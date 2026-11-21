@@ -8,7 +8,7 @@
 
 import { afterAll, describe, expect, test } from 'bun:test'
 import robots from '@/app/robots'
-import sitemap from '@/app/sitemap'
+import { GET as sitemapResponse } from '@/app/sitemap.xml/route'
 import { getGameSlugs } from '@/games/registry'
 import { defaultLocale, locales } from '@/lib/i18n/config'
 import {
@@ -27,11 +27,12 @@ import {
 	robotsDisallowPaths,
 	stripLocalePrefix,
 } from '@/lib/seo/routes'
+import { buildSitemap } from '@/lib/seo/sitemap'
 
 // Deterministic origin for the documents and metadata under test. Held only
 // for this file: the relay and canonical resolvers read these values live, so
 // leaving `https://tryit.fun` set would make another file's loopback requests
-// fail closed (relay.ts -> site-origin.ts). `sitemap()` runs while the suites
+// fail closed (relay.ts -> site-origin.ts). `robots()` runs while the suites
 // are collected, so this cannot move into a `beforeAll`.
 const PREVIOUS_ORIGIN = {
 	SYLPHX_PUBLIC_URL: process.env.SYLPHX_PUBLIC_URL,
@@ -60,6 +61,7 @@ describe('route truth table', () => {
 		expect(paths).toEqual([
 			'/',
 			'/games',
+			'/archive',
 			'/pricing',
 			'/use-cases/daily-word-and-logic-puzzles-online',
 			'/use-cases/family-brain-games-no-ads',
@@ -113,7 +115,6 @@ describe('route truth table', () => {
 		expect([...PRIVATE_ROUTE_PREFIXES]).toEqual([
 			'/api',
 			'/admin',
-			'/archive',
 			'/settings',
 			'/profile',
 			'/stats',
@@ -166,15 +167,14 @@ describe('route truth table', () => {
 		expect(isPrivateRoutePath('/stats-and-more')).toBe(false)
 	})
 
-	test('keeps the archive reachable but out of the index', () => {
-		// The archive surface is per-identity, so it must not be
-		// listed for crawlers — while staying crawlable so its own noindex is
-		// readable (a Disallow would hide the directive).
-		expect(isPrivateRoutePath('/archive')).toBe(true)
-		expect(isPrivateRoutePath('/zh-HK/archive')).toBe(true)
-		expect(PUBLIC_ROUTES.map((route) => route.path)).not.toContain('/archive')
-		expect(sitemap().some((entry) => new URL(entry.url).pathname.endsWith('/archive'))).toBe(false)
-		expect(robotsDisallowPaths()).not.toContain('/archive')
+	test('makes the shared archive calendar indexable in every locale', () => {
+		const urls = new Set(buildSitemap(BASE).map((entry) => entry.url))
+		for (const locale of locales) {
+			const path = locale === defaultLocale ? '/archive' : `/${locale}/archive`
+			expect(isPrivateRoutePath(path)).toBe(false)
+			expect(robotsDisallowPaths()).not.toContain(path)
+			expect(urls.has(`${BASE}${path}`)).toBe(true)
+		}
 	})
 
 	test('strips locale prefixes for path matching', () => {
@@ -186,7 +186,7 @@ describe('route truth table', () => {
 })
 
 describe('sitemap', () => {
-	const entries = sitemap()
+	const entries = buildSitemap(BASE)
 	const gameCount = getGameSlugs().length
 	const localizedPublicCount = PUBLIC_ROUTES.filter((route) => !route.englishOnly).length
 	const englishOnlyCount = PUBLIC_ROUTES.filter((route) => route.englishOnly).length
@@ -253,10 +253,17 @@ describe('sitemap', () => {
 		}
 	})
 
-	test('omits lastModified rather than inventing one', () => {
-		for (const entry of entries) {
-			expect(entry.lastModified).toBeUndefined()
-		}
+	test('serves cacheable XML without inventing lastmod', async () => {
+		const response = sitemapResponse()
+		expect(response.status).toBe(200)
+		expect(response.headers.get('Content-Type')).toBe('application/xml; charset=utf-8')
+		expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600')
+		const xml = await response.text()
+		expect(xml).not.toContain('<lastmod>')
+		expect(xml.match(/<loc>/g)).toHaveLength(expectedUrls)
+		expect(xml).toContain('<loc>https://tryit.fun/archive</loc>')
+		expect(xml).toContain('<loc>https://tryit.fun/zh-HK/archive</loc>')
+		expect(xml).toContain('hreflang="x-default" href="https://tryit.fun/archive"')
 	})
 })
 

@@ -38,8 +38,6 @@ export async function generateMetadata({ params }: Props) {
 			subtitle: t('metaDescription'),
 			eyebrow: t('eyebrow'),
 		}),
-		// The archive is a per-identity surface, not search content.
-		noindex: true,
 	})
 }
 

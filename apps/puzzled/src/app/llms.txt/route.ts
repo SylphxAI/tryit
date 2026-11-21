@@ -71,8 +71,7 @@ export function GET() {
 	return new Response(document, {
 		headers: {
 			'Content-Type': 'text/plain; charset=utf-8',
-			// Like /sitemap.xml: the edge may keep a copy but must revalidate it, so a
-			// deploy that changes the offer is served at once, not hours later.
+			// Revalidate because this document advertises the current checkout offer.
 			'Cache-Control': 'public, max-age=0, must-revalidate',
 		},
 	})

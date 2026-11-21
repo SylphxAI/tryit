@@ -270,10 +270,16 @@ async function main(): Promise<void> {
 	})
 
 	// ── sitemap.xml ─────────────────────────────────────────────────────────
-	const sitemap = await fetchHtml('/sitemap.xml')
+	const sitemap = await request('/sitemap.xml')
 	assert(sitemap.status === 200, `GET /sitemap.xml answered ${sitemap.status}`)
-	const locs = sitemapLocs(sitemap.html)
-	const clusters = sitemapClusters(sitemap.html)
+	const sitemapXml = await sitemap.text()
+	await check('sitemap is cacheable for one hour', async () => {
+		const cacheControl = sitemap.headers.get('cache-control')
+		assert(cacheControl === 'public, max-age=3600', `unexpected Cache-Control: ${cacheControl}`)
+		return cacheControl
+	})
+	const locs = sitemapLocs(sitemapXml)
+	const clusters = sitemapClusters(sitemapXml)
 	assert(locs.length > 0, 'sitemap is empty')
 	const origin = new URL(locs[0]).origin
 	const locSet = new Set(locs)
