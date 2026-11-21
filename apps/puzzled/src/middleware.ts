@@ -30,7 +30,7 @@ export default createMiddleware({
 	},
 	onBeforeResponse(event, { body }) {
 		const { pathname } = new URL(event.request.url)
-		if (event.request.method !== 'GET') return
+		if (event.request.method !== 'GET' || /^(?:\/[^/]+)?\/og\/?$/.test(pathname)) return
 		if (pathname !== '/api/identity/session' && isProxySkippedPath(pathname)) return
 		const headers = body instanceof Response ? body.headers : event.response.headers
 		const status = body instanceof Response ? body.status : (event.response.status ?? 200)
