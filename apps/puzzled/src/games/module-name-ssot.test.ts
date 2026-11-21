@@ -25,7 +25,7 @@ type Json = Record<string, unknown>
 
 /**
  * The English `games` namespace exactly as the app resolves it
- * (`lib/i18n/request.ts`), so the guard reads the same copy a player does.
+ * (`lib/i18n/messages.ts`), so the guard reads the same copy a player does.
  */
 const ENGLISH_GAMES = resolveGameMessages('en-US') as Record<string, Json>
 

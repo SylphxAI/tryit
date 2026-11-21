@@ -6,7 +6,7 @@
  * ships only the keys its fallback does not carry. Four invariants keep that
  * model honest:
  *
- *   1. `request.ts` imports exactly the files that exist on disk, in both
+ *   1. `messages.ts` imports exactly the files that exist on disk, in both
  *      directions - a deleted file may not stay imported and a new file may not
  *      be silently ignored;
  *   2. every overlay file still carries only its deltas - the same collapse the
@@ -18,9 +18,8 @@
  *      references under another key, ships the wrong catalogue while every
  *      other invariant still passes (TD-16).
  *
- * The resolver is `scripts/i18n-resolved-catalogue.ts`, which replicates
- * `loadMessages` mechanically because `request.ts` itself has Next-only deps; the
- * before/after proof for the overlay change used the same resolver.
+ * `scripts/i18n-resolved-catalogue.ts` resolves directly from disk, independently
+ * of the runtime imports, so it can also prove that both read the same values.
  */
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -33,12 +32,13 @@ import {
 	structurePaths,
 } from '../../../scripts/i18n-resolved-catalogue'
 import { locales } from './config'
+import { loadMessages } from './messages'
 
-const REQUEST_PATH = join(import.meta.dir, 'request.ts')
+const MESSAGES_PATH = join(import.meta.dir, 'messages.ts')
 
-/** Every `@/messages/<locale>/<file>.json` import in `request.ts`: binding and specifier. */
-function requestImports(): Array<{ binding: string; specifier: string }> {
-	const source = readFileSync(REQUEST_PATH, 'utf8')
+/** Every `@/messages/<locale>/<file>.json` import in `messages.ts`: binding and specifier. */
+function messageImports(): Array<{ binding: string; specifier: string }> {
+	const source = readFileSync(MESSAGES_PATH, 'utf8')
 	return [...source.matchAll(/^import (\w+) from '@\/messages\/([^']+)'$/gm)].map((match) => ({
 		binding: match[1] as string,
 		specifier: match[2] as string,
@@ -47,9 +47,9 @@ function requestImports(): Array<{ binding: string; specifier: string }> {
 
 /** Every `LOCALE_MESSAGES` entry: which import is wired under which locale and namespace. */
 function registryEntries(): Array<{ locale: string; namespace: string; binding: string }> {
-	const lines = readFileSync(REQUEST_PATH, 'utf8').split('\n')
+	const lines = readFileSync(MESSAGES_PATH, 'utf8').split('\n')
 	const start = lines.findIndex((line) => line.startsWith('const LOCALE_MESSAGES'))
-	if (start === -1) throw new Error('LOCALE_MESSAGES block not found in request.ts')
+	if (start === -1) throw new Error('LOCALE_MESSAGES block not found in messages.ts')
 	const entries: Array<{ locale: string; namespace: string; binding: string }> = []
 	let locale: string | null = null
 	for (const line of lines.slice(start + 1)) {
@@ -79,8 +79,12 @@ function filesOnDisk(): string[] {
 }
 
 describe('message catalogue wiring', () => {
-	test('request.ts imports exactly the files that exist on disk', () => {
-		const imported = requestImports()
+	test('runtime messages match the independently resolved catalogue in every locale', () => {
+		for (const locale of locales) expect(loadMessages(locale)).toEqual(resolveLocale(locale))
+	})
+
+	test('messages.ts imports exactly the files that exist on disk', () => {
+		const imported = messageImports()
 			.map(({ specifier }) => specifier)
 			.sort()
 		expect(imported).toEqual(filesOnDisk())
@@ -116,7 +120,7 @@ describe('message catalogue wiring', () => {
 	})
 
 	test('every import is wired into LOCALE_MESSAGES at its own locale and namespace', () => {
-		const imports = requestImports()
+		const imports = messageImports()
 		const entries = registryEntries()
 		const problems: string[] = []
 

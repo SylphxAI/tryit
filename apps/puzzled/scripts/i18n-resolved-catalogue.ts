@@ -8,12 +8,12 @@
  * must not alter a single resolved value, so a dump taken before the change has to
  * equal a dump taken after it.
  *
- * This file deliberately does NOT import `src/lib/i18n/request.ts` (Next-only
- * dependencies). `resolveFromSources` replicates `loadMessages` mechanically from
+ * This tool reads the files independently of the runtime import registry.
+ * `resolveFromSources` replicates `loadMessages` mechanically from
  * the same inputs, every one of them the same the runtime uses:
  *
- *   - namespace files read from `src/messages/<locale>/` - the files `request.ts`
- *     imports explicitly for Turbopack, with the file name mapping to the namespace
+ *   - namespace files read from `src/messages/<locale>/` - the files `messages.ts`
+ *     imports explicitly, with the file name mapping to the namespace
  *     key the same way (`game-result` -> `gameResult`),
  *   - the fallback chain from `src/lib/i18n/config.ts` (`LOCALE_REGISTRY`),
  *   - the identical `deepMerge` (locale wins over fallback; arrays replace whole
@@ -37,7 +37,7 @@ export type Json = Record<string, unknown>
 
 export const MESSAGES_ROOT = join(import.meta.dir, '..', 'src', 'messages')
 
-/** Same merge as `loadMessages` in `src/lib/i18n/request.ts`, copied verbatim. */
+/** Same merge as `loadMessages` in `src/lib/i18n/messages.ts`, copied verbatim. */
 export function deepMerge(target: Json, source: Json): Json {
 	const result = { ...target }
 
