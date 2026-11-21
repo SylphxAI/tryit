@@ -1,5 +1,6 @@
+import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { requireGamePage } from '@/features/catalog/lib/game-page'
+import { resolveGamePage } from '@/features/catalog/lib/game-page'
 
 type Props = {
 	children: ReactNode
@@ -17,7 +18,7 @@ type Props = {
  */
 export default async function GameSegmentLayout({ children, params }: Props) {
 	const { slug } = await params
-	requireGamePage(slug)
+	if (!resolveGamePage(slug)) notFound()
 
 	return <>{children}</>
 }

@@ -23,6 +23,12 @@ function cookieParts(value: string | null) {
 	})
 }
 
+export function hasAccountSessionCookie(headers: Headers): boolean {
+	return cookieParts(headers.get('cookie')).some(
+		({ name, value }) => name !== GUEST_COOKIE && isProgressCookie(name) && !!value,
+	)
+}
+
 export function hasProgressCookie(headers: Headers): boolean {
 	return cookieParts(headers.get('cookie')).some(
 		({ name, value }) => isProgressCookie(name) && !!value,

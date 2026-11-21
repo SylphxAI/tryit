@@ -1,10 +1,11 @@
+import { notFound } from 'next/navigation'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
 import { GamePageContent } from '@/features/catalog/components/game-page-content'
 import { GamePageHero } from '@/features/catalog/components/game-page-hero'
 import { readMessage, relatedCatalogSlugs } from '@/features/catalog/lib/catalog'
 import { gameMetaDescription, gameMetaTitle } from '@/features/catalog/lib/game-meta'
-import { parseGameFaq, parseGameTips, requireGamePage } from '@/features/catalog/lib/game-page'
+import { parseGameFaq, parseGameTips, resolveGamePage } from '@/features/catalog/lib/game-page'
 import { resolveGameDayRequest } from '@/features/daily/lib/day-request'
 import { START_PARAM_ON } from '@/features/daily/lib/start-param'
 import { todayPlayPath } from '@/features/daily/lib/today-play-path'
@@ -49,7 +50,8 @@ export async function generateStaticParams() {
  */
 export async function generateMetadata({ params }: Props) {
 	const { locale, slug } = await params
-	const page = requireGamePage(slug)
+	const page = resolveGamePage(slug)
+	if (!page) notFound()
 	const tGames = await getTranslations({ locale, namespace: 'games' })
 	const tCatalog = await getTranslations({ locale, namespace: 'catalog' })
 
@@ -103,7 +105,8 @@ export default async function GamePage({ params, searchParams }: Props) {
 	setRequestLocale(locale)
 
 	// Registry SSOT: canonical slug + module metadata, or a real 404.
-	const page = requireGamePage(slug)
+	const page = resolveGamePage(slug)
+	if (!page) notFound()
 	const canonicalSlug = page.slug
 	const moduleMetadata = page.metadata
 

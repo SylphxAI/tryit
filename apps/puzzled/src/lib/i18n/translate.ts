@@ -8,18 +8,18 @@ export function createTranslator(locale: Locale) {
 	const messages = loadMessages(locale)
 	const formats = new Map<string, IntlMessageFormat>()
 
-	function lookup(path: string): string | undefined {
+	function raw(path: string): unknown {
 		let value: unknown = messages
 		for (const key of path.split('.')) {
 			if (!value || typeof value !== 'object' || !Object.hasOwn(value, key)) return undefined
 			value = (value as Record<string, unknown>)[key]
 		}
-		return typeof value === 'string' ? value : undefined
+		return value
 	}
 
 	const translate = (path: string, values?: Values): string => {
-		const message = lookup(path)
-		if (message === undefined) return path
+		const message = raw(path)
+		if (typeof message !== 'string') return path
 		let format = formats.get(path)
 		if (!format) {
 			format = new IntlMessageFormat(message, locale)
@@ -27,7 +27,7 @@ export function createTranslator(locale: Locale) {
 		}
 		return String(format.format(values))
 	}
-	return Object.assign(translate, { has: (path: string) => lookup(path) !== undefined })
+	return Object.assign(translate, { has: (path: string) => typeof raw(path) === 'string', raw })
 }
 
 export type Translate = ReturnType<typeof createTranslator>

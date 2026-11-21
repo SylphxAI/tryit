@@ -27,8 +27,9 @@ mock.module('next/navigation', () => ({
 	useSearchParams: () => new URLSearchParams(),
 }))
 
-const { howToStructuredData, parseGameFaq, parseGameTips, requireGamePage, resolveGamePage } =
-	await import('./game-page')
+const { howToStructuredData, parseGameFaq, parseGameTips, resolveGamePage } = await import(
+	'./game-page'
+)
 const { generateMetadata } = (await import(
 	'@/app/[locale]/(main)/games/[slug]/page'
 )) as typeof import('@/app/[locale]/(main)/games/[slug]/page')
@@ -52,12 +53,6 @@ describe('resolveGamePage', () => {
 		expect(resolveGamePage('checkers')).toBeNull()
 		expect(resolveGamePage('')).toBeNull()
 		expect(resolveGamePage('sudoku-2')).toBeNull()
-	})
-})
-
-describe('requireGamePage', () => {
-	test('rejects an unknown slug through notFound()', () => {
-		expect(() => requireGamePage('checkers')).toThrow('NEXT_HTTP_ERROR_FALLBACK;404')
 	})
 })
 

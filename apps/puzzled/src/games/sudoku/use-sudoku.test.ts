@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import { createInitialState, type SudokuAction, sudokuReducer } from './state'
 import type { SudokuPuzzleClientData } from './types'
-import { createInitialState, type SudokuAction, sudokuReducer } from './use-sudoku'
 
 const puzzle: SudokuPuzzleClientData = {
 	grid: Array.from({ length: 9 }, (_, row) =>

@@ -163,7 +163,7 @@ export function CatalogPage(props: {
 	)
 }
 
-function CatalogTile(props: {
+export function CatalogTile(props: {
 	entry: CatalogPageData['entries'][number]
 	labels: CatalogPageData['labels']
 }) {
