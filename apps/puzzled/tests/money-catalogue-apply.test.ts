@@ -133,7 +133,9 @@ describe('money catalogue apply script', () => {
 			FAKE_MONEY_BODY: '{}',
 		})
 		expect(result.status).toBe(1)
-		expect(result.stdout).toContain('Money did not return the requested checkout branding after PATCH')
+		expect(result.stdout).toContain(
+			'Money did not return the requested checkout branding after PATCH',
+		)
 		expect(result.calls.some((call) => call.includes(':sync'))).toBe(false)
 	})
 
