@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import {
 	admitJsonPost,
 	destAdmissionResponse,
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
 				redirect_url: `${await getRequestSiteOrigin()}/reset-password`,
 			},
 		})
-		return NextResponse.json({ accepted: true })
+		return Response.json({ accepted: true })
 	} catch (error) {
 		return rateLimitedResponse(error) ?? identityFail(502, 'identity_recovery_unavailable')
 	}

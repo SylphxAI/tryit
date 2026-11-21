@@ -8,7 +8,6 @@
  * - No local users table - platform is source of truth
  */
 
-import { type NextRequest, NextResponse } from 'next/server'
 import { getServerIsAdmin } from '@/lib/api/server'
 import { auth } from '@/lib/identity/server'
 import { logger } from '@/lib/logger'
@@ -39,7 +38,7 @@ export type AdminCheckResult =
 /**
  * Check if request is from an admin
  */
-export async function checkAdminWithMfa(request: NextRequest): Promise<AdminCheckResult> {
+export async function checkAdminWithMfa(request: Request): Promise<AdminCheckResult> {
 	const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
 
 	// Check session-based auth
@@ -63,11 +62,11 @@ export async function checkAdminWithMfa(request: NextRequest): Promise<AdminChec
 
 /** Return unauthorized response */
 function unauthorized() {
-	return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+	return Response.json({ error: 'Unauthorized' }, { status: 401 })
 }
 
 /** Return response based on admin check result */
-export function adminCheckResponse(result: AdminCheckResult): NextResponse | null {
+export function adminCheckResponse(result: AdminCheckResult): Response | null {
 	if (result.allowed) return null
 
 	return unauthorized()

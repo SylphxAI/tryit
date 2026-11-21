@@ -1,5 +1,4 @@
 import { uuidv7 } from '@sylphx/sdk/runtime'
-import { NextResponse } from 'next/server'
 import { destEventsJson } from '@/lib/identity/peels'
 import { currentUser } from '@/lib/identity/server'
 
@@ -16,18 +15,18 @@ function deviceQuery(userId: string, cursor?: string, webPushOnly = false): stri
 
 export async function GET() {
 	const user = await currentUser()
-	if (!user) return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
+	if (!user) return Response.json({ error: 'not authenticated' }, { status: 401 })
 	try {
 		const body = await destEventsJson<DevicePage>(deviceQuery(user.id), { method: 'GET' })
-		return NextResponse.json({ devices: (body.devices ?? []).filter((d) => d.user_id === user.id) })
+		return Response.json({ devices: (body.devices ?? []).filter((d) => d.user_id === user.id) })
 	} catch {
-		return NextResponse.json({ error: 'events_devices_unavailable' }, { status: 502 })
+		return Response.json({ error: 'events_devices_unavailable' }, { status: 502 })
 	}
 }
 
 export async function POST(request: Request) {
 	const user = await currentUser()
-	if (!user) return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
+	if (!user) return Response.json({ error: 'not authenticated' }, { status: 401 })
 	const body = (await request.json().catch(() => null)) as {
 		token?: string
 		p256dh?: string
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
 		if (body?.unregister) {
 			const deviceId = body.deviceId
 			if (typeof deviceId !== 'string' || deviceId.length < 1 || deviceId.length > 128) {
-				return NextResponse.json({ error: 'device_id_required' }, { status: 400 })
+				return Response.json({ error: 'device_id_required' }, { status: 400 })
 			}
 			let cursor: string | undefined
 			const seen = new Set<string>()
@@ -63,10 +62,10 @@ export async function POST(request: Request) {
 						headers: { 'Idempotency-Key': idempotencyKey },
 						body: { idempotency_key: idempotencyKey, device_id: deviceId },
 					})
-					return NextResponse.json({ unregistered: true })
+					return Response.json({ unregistered: true })
 				}
 				if (!page.page?.has_more) {
-					return NextResponse.json({ error: 'device_not_found' }, { status: 404 })
+					return Response.json({ error: 'device_not_found' }, { status: 404 })
 				}
 				const next = page.page.next_cursor
 				if (!next || seen.has(next) || pageNumber === 9) throw new Error('device_page_unavailable')
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
 		}
 		const token = typeof body?.token === 'string' ? body.token.trim() : undefined
 		if (!token || token.length < 8) {
-			return NextResponse.json({ error: 'device_token_required' }, { status: 400 })
+			return Response.json({ error: 'device_token_required' }, { status: 400 })
 		}
 		const idempotencyKey = uuidv7()
 		const registered = await destEventsJson<{ device?: { device_id?: string } }>('/v1/devices', {
@@ -94,8 +93,8 @@ export async function POST(request: Request) {
 				},
 			},
 		})
-		return NextResponse.json({ deviceId: registered.device?.device_id })
+		return Response.json({ deviceId: registered.device?.device_id })
 	} catch {
-		return NextResponse.json({ error: 'events_devices_unavailable' }, { status: 502 })
+		return Response.json({ error: 'events_devices_unavailable' }, { status: 502 })
 	}
 }

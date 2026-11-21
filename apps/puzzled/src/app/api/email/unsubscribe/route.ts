@@ -1,5 +1,4 @@
 import { Code, ConnectError } from '@connectrpc/connect'
-import { NextResponse } from 'next/server'
 import { createPreferencesServiceClient } from '@/lib/connect/preferences-client'
 import { resolveServerConnectBaseUrl } from '@/lib/connect/transport'
 import { correlationIdFrom, logger } from '@/lib/logger'
@@ -28,17 +27,17 @@ export async function POST(request: Request) {
 		) {
 			const form = await request.formData()
 			if (form.get('List-Unsubscribe') !== 'One-Click') {
-				return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+				return Response.json({ error: 'Invalid request' }, { status: 400 })
 			}
 			token = new URL(request.url).searchParams.get('token')
 		} else {
 			token = (await request.json()).token
 		}
 	} catch {
-		return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+		return Response.json({ error: 'Invalid request' }, { status: 400 })
 	}
 	if (typeof token !== 'string' || !token) {
-		return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+		return Response.json({ error: 'Invalid request' }, { status: 400 })
 	}
 	try {
 		await unsubscribe(token)
@@ -46,20 +45,20 @@ export async function POST(request: Request) {
 			source: 'link',
 			correlationId: correlationIdFrom(request.headers),
 		})
-		return NextResponse.json({
+		return Response.json({
 			success: true,
 			message: 'Successfully unsubscribed from marketing emails',
 		})
 	} catch (error) {
 		if (invalidToken(error)) {
-			return NextResponse.json({ error: 'Invalid or expired unsubscribe link' }, { status: 400 })
+			return Response.json({ error: 'Invalid or expired unsubscribe link' }, { status: 400 })
 		}
 		logger.error('unsubscribe.failed', {
 			source: 'link',
 			error,
 			correlationId: correlationIdFrom(request.headers),
 		})
-		return NextResponse.json({ error: 'Failed to unsubscribe' }, { status: 500 })
+		return Response.json({ error: 'Failed to unsubscribe' }, { status: 500 })
 	}
 }
 
@@ -70,7 +69,7 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
 	const landing = async (query: string) =>
-		NextResponse.redirect(new URL(`/unsubscribe?${query}`, await getCanonicalSiteOrigin()))
+		Response.redirect(new URL(`/unsubscribe?${query}`, await getCanonicalSiteOrigin()), 307)
 	const token = new URL(request.url).searchParams.get('token')
 	if (!token) {
 		return landing('error=missing_token')

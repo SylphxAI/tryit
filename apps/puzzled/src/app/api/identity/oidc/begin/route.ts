@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { authConfig, googleStartUrl, safeNext } from '@/lib/identity/client-auth'
 import { admitJsonPost } from '@/lib/identity/http'
 import { isPolicyAcceptance } from '@/lib/identity/policy-consent'
@@ -26,7 +25,7 @@ export async function POST(request: Request) {
 	if (provider !== 'google') return authFail(400, 'oidc_provider_unsupported')
 	const next = safeNext(body?.redirectUrl)
 	const callback = `${await getRequestSiteOrigin()}/api/identity/oauth/callback?next=${encodeURIComponent(next)}`
-	return NextResponse.json({
+	return Response.json({
 		authorizationUrl: googleStartUrl(
 			config,
 			callback,

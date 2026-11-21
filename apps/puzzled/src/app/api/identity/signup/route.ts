@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { signUpCookieHeader } from '@/lib/identity/after-sign-up'
 import { AuthCallError, authConfig, passwordTicket, signUp } from '@/lib/identity/client-auth'
 import { admitJsonPost } from '@/lib/identity/http'
@@ -60,7 +59,7 @@ export async function POST(request: Request) {
 		const ticket = await passwordTicket(config, { email, password, userAgent })
 		stage = 'session_completion'
 		const { newAccount } = await completeSignIn(config, request, ticket)
-		const response = NextResponse.json({ signedIn: true })
+		const response = Response.json({ signedIn: true })
 		if (newAccount) response.headers.append('set-cookie', signUpCookieHeader('email'))
 		return response
 	} catch (error) {
@@ -70,6 +69,6 @@ export async function POST(request: Request) {
 			reason: error instanceof AuthCallError ? 'auth_call_failed' : 'unexpected_error',
 			upstreamStatus: error instanceof AuthCallError ? error.status : null,
 		})
-		return NextResponse.json({ error: 'signup_signin_failed', retrySignIn: true }, { status: 502 })
+		return Response.json({ error: 'signup_signin_failed', retrySignIn: true }, { status: 502 })
 	}
 }

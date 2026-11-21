@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto'
-import { NextResponse } from 'next/server'
 import { env } from '../env'
 import { getRequestSiteOrigin } from '../site-origin.server'
 import {
@@ -12,7 +11,7 @@ import {
 import { identityDestAdmission, setSessionCookie } from './server'
 
 export function identityFail(status: number, error: string) {
-	return NextResponse.json({ error }, { status })
+	return Response.json({ error }, { status })
 }
 
 export function identityOrigin(): string {
@@ -29,7 +28,7 @@ export function destDevice(request: Request) {
 
 export function destAdmissionResponse():
 	| { ok: true; origin: string; credential: string; projectId: string }
-	| { ok: false; response: NextResponse } {
+	| { ok: false; response: Response } {
 	try {
 		return { ok: true, ...identityDestAdmission() }
 	} catch (error) {
@@ -72,7 +71,7 @@ export { destSessionChallengeId }
  * cross-site` is refused too. A request with neither header (a server client)
  * has no ambient browser credentials to abuse and passes.
  */
-export async function admitSameOrigin(request: Request): Promise<NextResponse | null> {
+export async function admitSameOrigin(request: Request): Promise<Response | null> {
 	if (request.headers.get('sec-fetch-site') === 'cross-site') {
 		return identityFail(403, 'forbidden_origin')
 	}
@@ -88,7 +87,7 @@ export async function admitSameOrigin(request: Request): Promise<NextResponse | 
 }
 
 /** Same-origin admission plus a JSON body: the guard for every JSON identity POST. */
-export async function admitJsonPost(request: Request): Promise<NextResponse | null> {
+export async function admitJsonPost(request: Request): Promise<Response | null> {
 	const refused = await admitSameOrigin(request)
 	if (refused) return refused
 	if (!(request.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')) {
@@ -118,7 +117,7 @@ export function passwordByteLengthOk(password: string): boolean {
 }
 
 /** A 429 from Auth, with its Retry-After, or null for any other failure. */
-export function rateLimitedResponse(error: unknown): NextResponse | null {
+export function rateLimitedResponse(error: unknown): Response | null {
 	if (!(error instanceof DestHttpError) || error.status !== 429) return null
 	const response = identityFail(429, 'rate_limited')
 	if (error.retryAfter) response.headers.set('retry-after', error.retryAfter)

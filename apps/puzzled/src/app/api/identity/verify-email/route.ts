@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import {
 	admitJsonPost,
 	DestHttpError,
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
 				secret,
 			},
 		})
-		return NextResponse.json({ verified: true })
+		return Response.json({ verified: true })
 	} catch (error) {
 		const limited = rateLimitedResponse(error)
 		if (limited) return limited

@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { DEST_CONSENT_PURPOSES, DestHttpError } from '@/lib/identity/dest'
 import { destAdmissionResponse, destIdentityCall, identityFail } from '@/lib/identity/http'
 import { currentUser } from '@/lib/identity/server'
@@ -44,7 +43,7 @@ export async function POST(request: Request) {
 				occurred_at_unix_seconds: Math.floor(Date.now() / 1000),
 			},
 		})
-		return NextResponse.json({ purpose })
+		return Response.json({ purpose })
 	} catch (error) {
 		// Never log ids, emails, tokens or Auth's message text: only status, code, purpose, kind.
 		console.error('identity consent failed', {

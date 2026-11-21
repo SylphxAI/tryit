@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { signUpCookieHeader } from '@/lib/identity/after-sign-up'
 import { authConfig, safeNext } from '@/lib/identity/client-auth'
 import { completeSignIn } from '@/lib/identity/sign-in'
@@ -16,15 +15,15 @@ export async function GET(request: Request) {
 	const ticket = url.searchParams.get('sylphx_ticket')?.trim()
 	const config = authConfig()
 	if (!config || !ticket) {
-		return NextResponse.redirect(`${origin}/login?error=oauth_failed`, 303)
+		return Response.redirect(`${origin}/login?error=oauth_failed`, 303)
 	}
 	try {
 		const { newAccount } = await completeSignIn(config, request, ticket)
-		const response = NextResponse.redirect(`${origin}${next}`, 303)
+		const response = new Response(null, { status: 303, headers: { location: `${origin}${next}` } })
 		// Only Auth's own new-account answer sets the one-shot sign_up cookie.
 		if (newAccount) response.headers.append('set-cookie', signUpCookieHeader('oauth'))
 		return response
 	} catch {
-		return NextResponse.redirect(`${origin}/login?error=oauth_failed`, 303)
+		return Response.redirect(`${origin}/login?error=oauth_failed`, 303)
 	}
 }

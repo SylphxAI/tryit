@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import {
 	admitJsonPost,
 	DestHttpError,
@@ -65,5 +64,5 @@ export async function POST(request: Request) {
 		return identityFail(502, 'identity_recovery_unavailable')
 	}
 	await clearSessionCookie()
-	return NextResponse.json({ accepted: true })
+	return Response.json({ accepted: true })
 }

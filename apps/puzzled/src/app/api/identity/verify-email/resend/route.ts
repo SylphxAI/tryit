@@ -1,5 +1,4 @@
 import { uuidv7 } from '@sylphx/sdk/runtime'
-import { NextResponse } from 'next/server'
 import {
 	admitSameOrigin,
 	destIdentityCall,
@@ -30,7 +29,7 @@ export async function POST(request: Request) {
 				redirect_url: `${await getRequestSiteOrigin()}/verify-email`,
 			},
 		})
-		return NextResponse.json({ accepted: true })
+		return Response.json({ accepted: true })
 	} catch (error) {
 		return rateLimitedResponse(error) ?? identityFail(502, 'identity_verification_unavailable')
 	}

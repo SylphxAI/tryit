@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { AuthCallError, authConfig, passwordTicket } from '@/lib/identity/client-auth'
 import { admitJsonPost } from '@/lib/identity/http'
 import { authFail, completeSignIn, userAgentOf } from '@/lib/identity/sign-in'
@@ -23,7 +22,7 @@ export async function POST(request: Request) {
 			userAgent: userAgentOf(request),
 		})
 		await completeSignIn(config, request, ticket)
-		return NextResponse.json({})
+		return Response.json({})
 	} catch (error) {
 		if (error instanceof AuthCallError && error.status === 429) {
 			return authFail(429, 'locked_out')

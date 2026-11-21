@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { admitJsonPost, admitSameOrigin, identityFail, requestUserAgent } from '@/lib/identity/http'
 import { isPolicyAcceptance, POLICY_ACCEPTANCE } from '@/lib/identity/policy-consent'
 import { policyConsentRequest } from '@/lib/identity/policy-consent-server'
@@ -20,7 +19,7 @@ async function consent(request: Request, accept: boolean) {
 			requestUserAgent(request),
 			accept ? POLICY_ACCEPTANCE : undefined,
 		)
-		return NextResponse.json(status, { headers: { 'cache-control': 'no-store' } })
+		return Response.json(status, { headers: { 'cache-control': 'no-store' } })
 	} catch {
 		return identityFail(502, 'policy_consent_unavailable')
 	}

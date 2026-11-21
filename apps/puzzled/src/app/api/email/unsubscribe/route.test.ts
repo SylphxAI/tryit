@@ -107,8 +107,9 @@ describe('unsubscribe forwarding', () => {
 
 	test('redirects use the public origin, not the internal listener request URL', async () => {
 		process.env.SYLPHX_PUBLIC_URL = 'https://tryit.fun'
-		requestHeaders = new Headers({ host: '127.0.0.1:3000' })
-		const internal = 'http://127.0.0.1:3000/api/email/unsubscribe'
+		const host = 'tryit-web.default.svc.cluster.local:3000'
+		requestHeaders = new Headers({ host })
+		const internal = `http://${host}/api/email/unsubscribe`
 		const ok = await GET(new Request(`${internal}?token=valid`))
 		expect(ok.status).toBe(307)
 		expect(ok.headers.get('location')).toBe('https://tryit.fun/unsubscribe?success=true')

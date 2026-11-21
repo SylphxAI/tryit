@@ -32,6 +32,7 @@ const { POST: completeRecovery } = await import('@/app/api/identity/recovery/com
 const { POST: verifyEmail } = await import('@/app/api/identity/verify-email/route')
 const { POST: resendVerification } = await import('@/app/api/identity/verify-email/resend/route')
 const { POST: logout } = await import('@/app/api/identity/logout/route')
+const { GET: oauthCallback } = await import('@/app/api/identity/oauth/callback/route')
 const { POST: signup } = await import('@/app/api/identity/signup/route')
 
 const { currentUser } = await import('./server')
@@ -565,4 +566,13 @@ describe('sign up', () => {
 		expect(calls[0]?.url).toBe('https://bound-auth.example/v1/client/sign-up')
 		expect(calls[0]?.body?.redirect_url).toBe('https://puzzled.gg/verify-email')
 	})
+})
+
+test('OAuth failure redirect uses the validated public origin behind Knative', async () => {
+	const host = 'tryit-web.default.svc.cluster.local:3000'
+	requestHeaders = { host, 'x-forwarded-host': 'puzzled.gg', 'x-forwarded-proto': 'https' }
+	const response = await oauthCallback(new Request(`http://${host}/api/identity/oauth/callback`))
+	expect(response.status).toBe(303)
+	expect(response.headers.get('location')).toBe('https://puzzled.gg/login?error=oauth_failed')
+	expect(calls).toHaveLength(0)
 })

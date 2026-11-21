@@ -1,5 +1,4 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
-import type { NextRequest } from 'next/server'
 
 // Bun module mocks are process-wide for the run, so every replacement spreads the
 // real module surface and overrides only the seam this test needs; a partial
@@ -48,10 +47,10 @@ afterAll(() => {
 const { checkAdminWithMfa } = await import('./admin-api')
 const { requireAdmin } = await import('./admin')
 
-function adminRequest(headers: Record<string, string> = {}): NextRequest {
-	return {
-		headers: new Headers({ 'x-forwarded-for': '198.51.100.9', ...headers }),
-	} as unknown as NextRequest
+function adminRequest(headers: Record<string, string> = {}): Request {
+	return new Request('https://tryit.fun/admin', {
+		headers: { 'x-forwarded-for': '198.51.100.9', ...headers },
+	})
 }
 
 describe('checkAdminWithMfa', () => {

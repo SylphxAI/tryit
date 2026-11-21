@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { destProductCredential } from '@/lib/identity/credentials'
 import {
 	admitJsonPost,
@@ -48,7 +47,7 @@ export async function GET(request: Request) {
 		) {
 			return identityFail(502, 'identity_sessions_failed')
 		}
-		return NextResponse.json(
+		return Response.json(
 			{
 				sessions: body.sessions.map((session) => ({
 					session_id: session.session_id,
@@ -106,7 +105,7 @@ export async function POST(request: Request) {
 		}
 		const endedCurrent = current === id
 		if (endedCurrent) await clearSessionCookie()
-		return NextResponse.json({ endedCurrent })
+		return Response.json({ endedCurrent })
 	} catch (error) {
 		return rateLimitedResponse(error) ?? identityFail(502, 'identity_session_revoke_failed')
 	}

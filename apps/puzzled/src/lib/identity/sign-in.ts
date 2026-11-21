@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { NextResponse } from 'next/server'
 import {
 	AuthCallError,
 	type AuthConfig,
@@ -13,7 +12,7 @@ import { setSessionCookie } from './server'
 import { recordSignupAttribution } from './signup-attribution'
 
 export function authFail(status: number, error: string) {
-	return NextResponse.json({ error }, { status })
+	return Response.json({ error }, { status })
 }
 
 export function userAgentOf(request: Request): string {
