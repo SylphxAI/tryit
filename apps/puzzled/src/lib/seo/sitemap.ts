@@ -1,12 +1,12 @@
 import { getGameSlugs } from '@/games/registry'
 import { defaultLocale, locales } from '@/lib/i18n/config'
-import { canonicalUrl, hreflangLanguages } from '@/lib/seo/metadata'
 import {
 	type ChangeFrequency,
 	GAME_PAGE_ROUTE,
 	PUBLIC_ROUTES,
 	type PublicRoute,
 } from '@/lib/seo/routes'
+import { canonicalUrl, hreflangLanguages } from '@/lib/seo/urls'
 
 interface SitemapEntry {
 	url: string
