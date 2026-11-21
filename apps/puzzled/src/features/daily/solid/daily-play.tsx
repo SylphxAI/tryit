@@ -34,6 +34,7 @@ const boards = new Map([
 	['pattern-match', lazy(() => import('@/games/pattern-match/solid-board'))],
 	['crowns', lazy(() => import('@/games/queens/solid-board'))],
 	['duo', lazy(() => import('@/games/tango/solid-board'))],
+	['number-path', lazy(() => import('@/games/number-path/solid-board'))],
 ])
 type Locked = { kind: 'locked' }
 type State = DailySnapshot | Locked

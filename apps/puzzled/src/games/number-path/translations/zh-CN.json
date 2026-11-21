@@ -10,5 +10,8 @@
 		"rule3": "有数字的格是固定提示，必须按顺序经过"
 	},
 	"startGame": "开始游戏",
-	"complete": "路径完成！"
+	"complete": "路径完成！",
+	"undo": "撤销",
+	"cellClue": "提示 {number}",
+	"cellStep": "第 {number} 步"
 }

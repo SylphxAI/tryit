@@ -11,5 +11,8 @@
 		"rule3": "Las casillas numeradas son pistas fijas; visítalas en orden"
 	},
 	"startGame": "Empezar partida",
-	"complete": "¡Camino completado!"
+	"complete": "¡Camino completado!",
+	"undo": "Deshacer",
+	"cellClue": "Pista {number}",
+	"cellStep": "Paso {number}"
 }

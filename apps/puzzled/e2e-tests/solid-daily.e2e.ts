@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import crownsGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/crowns.json'
 import duoGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/duo.json'
+import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
 import { productDayKey } from '../src/lib/product-day'
 
@@ -313,4 +314,92 @@ test('Duo preserves fixed clues and rejects a filled grid with conflicts before 
 	expect(submits).toHaveLength(1)
 	expect(submits[0].body).toMatchObject({ gameSlug: 'duo', status: 'won' })
 	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ grid: duo.solution.grid })
+})
+
+test('Path keeps clues fixed and records only a complete legal route', async ({ page }) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const fixture = pathGoldens[0]
+	if (!fixture.solution) throw new Error('Path golden fixture lacks its solution')
+	const { board, submits } = await mount(page, 'number-path', fixture.puzzleData, true)
+	const cell = (row: number, col: number) =>
+		board.getByRole('button', {
+			name: new RegExp(`^Row ${row + 1}, Column ${col + 1}(,|$)`),
+		})
+	const start = cell(3, 3)
+	const next = cell(4, 3)
+	const earlyClue = cell(3, 4)
+	const trail = board.locator('polyline')
+	await expect(board.getByRole('group', { name: 'Path' }).getByRole('button')).toHaveCount(36)
+	await expect(start).toHaveText('1')
+	await expect(earlyClue).toHaveAccessibleName('Row 4, Column 5, Clue 8')
+	await expect(earlyClue).toHaveText('8')
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360)
+	const startBox = await start.boundingBox()
+	const nextBox = await next.boundingBox()
+	if (!startBox || !nextBox) throw new Error('Missing Path tile hit geometry')
+	expect(startBox.width).toBeGreaterThanOrEqual(48)
+	expect(startBox.height).toBeGreaterThanOrEqual(48)
+
+	await next.click()
+	await expect(next).toHaveAttribute('aria-pressed', 'false')
+	await start.press('Space')
+	await earlyClue.click()
+	await expect(earlyClue).toHaveAttribute('aria-pressed', 'false')
+	await cell(2, 2).click()
+	await expect(cell(2, 2)).toHaveAttribute('aria-pressed', 'false')
+	await start.press('ArrowDown')
+	await expect(next).toBeFocused()
+	await page.keyboard.press('Enter')
+	await expect(next).toHaveAccessibleName('Row 5, Column 4, Step 2')
+	await expect(trail).toHaveAttribute('points', '3.5,3.5 3.5,4.5')
+	await board.getByRole('button', { name: 'Undo' }).click()
+	await expect(next).toHaveAttribute('aria-pressed', 'false')
+
+	await page.mouse.move(startBox.x + startBox.width / 2, startBox.y + startBox.height / 2)
+	await page.mouse.down()
+	await page.mouse.move(nextBox.x + nextBox.width / 2, nextBox.y + nextBox.height / 2, { steps: 5 })
+	await page.mouse.up()
+	await expect(next).toHaveText('2')
+	await cell(5, 3).click()
+	await start.click()
+	await expect(trail).toHaveAttribute('points', '3.5,3.5')
+	await board.getByRole('button', { name: 'Start over' }).click()
+	await expect(trail).toHaveAttribute('points', '')
+	await expect(start).toHaveText('1')
+	await expect(earlyClue).toHaveText('8')
+	expect(submits).toHaveLength(0)
+
+	for (const { row, col } of fixture.solution.path.slice(0, -1)) await cell(row, col).click()
+	expect(submits).toHaveLength(0)
+	const last = fixture.solution.path.at(-1)
+	if (!last) throw new Error('Path golden fixture path is empty')
+	await cell(last.row, last.col).click()
+	const retry = board.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(cell(last.row, last.col)).toBeDisabled()
+	await expect(board.getByText('Path complete!')).toHaveCount(0)
+	expect(submits).toHaveLength(1)
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[0].body).toMatchObject({ gameSlug: 'number-path', status: 'won', attempts: 1 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		path: fixture.solution.path,
+	})
+	await retry.click()
+	await expect(board.getByText('Path complete!')).toBeVisible()
+	expect(submits).toEqual([submits[0], submits[0]])
+})
+
+test.describe('Path touch input', () => {
+	test.use({ hasTouch: true, viewport: { width: 390, height: 844 } })
+
+	test('extends the route with taps and does not submit a partial route', async ({ page }) => {
+		const { board, submits } = await mount(page, 'number-path', pathGoldens[0].puzzleData)
+		const start = board.getByRole('button', { name: 'Row 4, Column 4, Clue 1' })
+		const next = board.getByRole('button', { name: /^Row 5, Column 4(,|$)/ })
+		await start.tap()
+		await next.tap()
+		await expect(start).toHaveAttribute('aria-pressed', 'true')
+		await expect(next).toHaveText('2')
+		expect(submits).toHaveLength(0)
+	})
 })

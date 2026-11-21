@@ -4,8 +4,9 @@
  */
 
 import { useCallback, useReducer } from 'react'
+import { visitCell } from './path-moves'
 import type { Cell, NumberPathGameState, NumberPathPuzzleData } from './types'
-import { cellsEqual, findClueCell, isOrthogonalNeighbor, isSolved } from './types'
+import { cellsEqual, isSolved } from './types'
 
 type NumberPathAction = { type: 'TOUCH_CELL'; cell: Cell } | { type: 'UNDO' } | { type: 'RESET' }
 
@@ -17,17 +18,6 @@ function createInitialState(puzzleData: NumberPathPuzzleData): NumberPathGameSta
 		startTime: null,
 		endTime: null,
 	}
-}
-
-function clueAt(clues: (number | null)[][], cell: Cell): number | null {
-	return clues[cell.row]?.[cell.col] ?? null
-}
-
-function canEnter(cell: Cell, path: Cell[], clues: (number | null)[][]): boolean {
-	const clue = clueAt(clues, cell)
-	const nextNum = path.length + 1
-	if (clue !== null && clue !== nextNum) return false
-	return true
 }
 
 function withWinCheck(
@@ -53,26 +43,8 @@ function numberPathReducer(
 	switch (action.type) {
 		case 'TOUCH_CELL': {
 			if (state.gameStatus !== 'playing') return state
-			const { cell } = action
-			if (cell.row < 0 || cell.col < 0 || cell.row >= state.size || cell.col >= state.size) {
-				return state
-			}
-
-			if (state.path.length === 0) {
-				const start = findClueCell(puzzleData.clues, 1)
-				if (!start || !cellsEqual(start, cell)) return state
-				return withWinCheck(state, [cell], puzzleData.clues)
-			}
-
-			const existing = state.path.findIndex((step) => cellsEqual(step, cell))
-			if (existing >= 0) {
-				return withWinCheck(state, state.path.slice(0, existing + 1), puzzleData.clues)
-			}
-
-			const last = state.path[state.path.length - 1]
-			if (!last || !isOrthogonalNeighbor(last, cell)) return state
-			if (!canEnter(cell, state.path, puzzleData.clues)) return state
-			return withWinCheck(state, [...state.path, cell], puzzleData.clues)
+			const path = visitCell(puzzleData, state.path, action.cell)
+			return path === state.path ? state : withWinCheck(state, path, puzzleData.clues)
 		}
 
 		case 'UNDO': {
