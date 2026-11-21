@@ -1,3 +1,4 @@
+import { uuidv7 } from '@sylphx/sdk/runtime'
 import { DEST_CONSENT_PURPOSES, DestHttpError } from '@/lib/identity/dest'
 import { destAdmissionResponse, destIdentityCall, identityFail } from '@/lib/identity/http'
 import { requestUser } from '@/lib/identity/request-identity'
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 			credential: admission.credential,
 			signal: AbortSignal.timeout(CONSENT_TIMEOUT_MS),
 			body: {
-				idempotency_key: crypto.randomUUID(),
+				idempotency_key: uuidv7(),
 				project_id: admission.projectId,
 				principal_id: user.id,
 				purpose,
