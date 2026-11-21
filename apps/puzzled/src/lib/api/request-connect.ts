@@ -1,10 +1,10 @@
 import { createConnectTransport } from '@connectrpc/connect-web'
+import { CHECKOUT_CLAIM_COOKIE } from '@/lib/billing/checkout-claim-cookie'
 import { resolveServerConnectBaseUrl } from '@/lib/connect/transport'
 import { SESSION_COOKIE_NAMES } from '@/lib/identity/session-cookie'
 import { mergeServerConnectInit, SERVER_CONNECT_TIMEOUT_MS } from './connect-fetch'
 
 const GUEST_COOKIE = '__Host-puzzled_guest'
-const CHECKOUT_CLAIM_COOKIE = 'puzzled_checkout_claim'
 
 function isProgressCookie(name: string): boolean {
 	return (

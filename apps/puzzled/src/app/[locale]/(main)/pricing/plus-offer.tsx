@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { TrialChargeLine } from '@/features/plus/components/trial-charge-line'
+import styles from '@/features/plus/solid/pricing.module.css'
 import {
 	formatMonthlyEquivalentPrice,
 	formatPrice,
@@ -12,7 +13,6 @@ import {
 	yearlySavingPercent,
 } from '@/lib/billing/plus'
 import { cn } from '@/lib/utils'
-import styles from './pricing.module.css'
 import { SubscribeButton } from './subscribe-button'
 
 type Props = {

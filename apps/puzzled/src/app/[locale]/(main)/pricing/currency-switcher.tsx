@@ -4,9 +4,9 @@ import { ChevronDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useId } from 'react'
+import styles from '@/features/plus/solid/pricing.module.css'
 import { currencyOptionLabel, serializeCurrencyCookie } from '@/lib/billing/currency'
 import { cn } from '@/lib/utils'
-import styles from './pricing.module.css'
 
 type Props = {
 	currencies: string[]

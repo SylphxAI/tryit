@@ -2,6 +2,7 @@ import { Check, Play } from 'lucide-react'
 import { cookies, headers } from 'next/headers'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { MarketingHero, MarketingSection } from '@/features/marketing/components'
+import styles from '@/features/plus/solid/pricing.module.css'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
 import { getAllGameMetadata } from '@/games/registry'
 import { getServerPlans, getServerPlusAccess } from '@/lib/api/server'
@@ -22,7 +23,6 @@ import { buildPageMetadata, ogImagePath } from '@/lib/seo/metadata'
 import { cn } from '@/lib/utils'
 import { CurrencySwitcher } from './currency-switcher'
 import { PlusOffer } from './plus-offer'
-import styles from './pricing.module.css'
 
 type Props = {
 	params: Promise<{ locale: string }>

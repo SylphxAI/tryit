@@ -43,7 +43,7 @@ export async function startCheckout(
 	return res.url
 }
 
-export const CHECKOUT_CLAIM_COOKIE = 'puzzled_checkout_claim'
+export { CHECKOUT_CLAIM_COOKIE } from '@/lib/billing/checkout-claim-cookie'
 
 export async function claimCheckout(checkoutSessionId = '', locale = '') {
 	const res = await client().claimCheckout(

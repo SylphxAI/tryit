@@ -5,11 +5,11 @@ import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { trackGa4KeyEvent } from '@/features/analytics/lib/ga4-key-events'
 import { rememberCheckoutQuote } from '@/features/analytics/lib/google-tag'
+import styles from '@/features/plus/solid/pricing.module.css'
 import { isOneTimePassPlan, minorUnitsToMajor, type PlanId } from '@/lib/billing/plus'
 import { startCheckout } from '@/lib/connect/billing-client'
 import { Link } from '@/lib/i18n/routing'
 import { logger } from '@/lib/logger'
-import styles from './pricing.module.css'
 
 type Props = {
 	planId: string
