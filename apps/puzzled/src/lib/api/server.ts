@@ -13,7 +13,6 @@ import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError, createClient } from '@connectrpc/connect'
 import { cookies, headers } from 'next/headers'
 import { cache } from 'react'
-import { createActiveAnnouncementsCache } from '@/features/announcements/lib/active-cache'
 import { type SharedResult, toSharedResult } from '@/features/daily/lib/challenge'
 import { offerAccess } from '@/features/plus-offer/lib/plus-offer'
 import {
@@ -21,10 +20,6 @@ import {
 	GetMetricsReportRequestSchema,
 	GetSettingsRequestSchema,
 } from '@/gen/connect/puzzled/v1/admin_pb'
-import {
-	AnnouncementService,
-	ListActiveAnnouncementsRequestSchema,
-} from '@/gen/connect/puzzled/v1/announcements_pb'
 import {
 	BillingService,
 	ClaimCheckoutRequestSchema,
@@ -345,34 +340,6 @@ export const getServerTodayOverview = cache(
 )
 
 // ==========================================
-// Announcements (AnnouncementService)
-// ==========================================
-
-/**
- * The notices an admin has switched on right now, shared across requests (see
- * `active-cache`). The endpoint ignores identity, so this uses a bare
- * transport: no session or guest cookie and no user agent leave the web tier.
- */
-const activeAnnouncements = createActiveAnnouncementsCache({
-	fetch: async () => {
-		const transport = requestConnectTransport()
-		const res = await createClient(AnnouncementService, transport).listActiveAnnouncements(
-			create(ListActiveAnnouncementsRequestSchema, {}),
-		)
-		return res.announcements.map((a) => ({
-			id: a.id,
-			title: a.title,
-			body: a.body,
-			type: a.type,
-			dismissible: a.dismissible,
-			endsAt: a.endsAt,
-		}))
-	},
-})
-
-export const getServerActiveAnnouncements = () => activeAnnouncements.get()
-
-// ==========================================
 // Tryit Plus (BillingService)
 // ==========================================
 
@@ -479,3 +446,5 @@ export async function getServerMetricsReport() {
 		create(GetMetricsReportRequestSchema, {}),
 	)
 }
+
+export { getServerActiveAnnouncements } from '@/features/announcements/lib/public-announcements'
