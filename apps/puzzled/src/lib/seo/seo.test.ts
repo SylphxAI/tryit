@@ -6,8 +6,8 @@
  * separately by `scripts/seo-verify.ts` against a `next start` build.
  */
 
-import { afterAll, describe, expect, test } from 'bun:test'
-import robots from '@/app/robots'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { GET as robotsResponse } from '@/app/robots.txt/route'
 import { GET as sitemapResponse } from '@/app/sitemap.xml/route'
 import { getGameSlugs } from '@/games/registry'
 import { defaultLocale, locales } from '@/lib/i18n/config'
@@ -32,13 +32,14 @@ import { buildSitemap } from '@/lib/seo/sitemap'
 // Deterministic origin for the documents and metadata under test. Held only
 // for this file: the relay and canonical resolvers read these values live, so
 // leaving `https://tryit.fun` set would make another file's loopback requests
-// fail closed (relay.ts -> site-origin.ts). `robots()` runs while the suites
-// are collected, so this cannot move into a `beforeAll`.
+// fail closed (relay.ts -> site-origin.ts).
 const PREVIOUS_ORIGIN = {
 	SYLPHX_PUBLIC_URL: process.env.SYLPHX_PUBLIC_URL,
 	NODE_ENV: process.env.NODE_ENV,
 }
-process.env.SYLPHX_PUBLIC_URL = 'https://tryit.fun'
+beforeAll(() => {
+	process.env.SYLPHX_PUBLIC_URL = 'https://tryit.fun'
+})
 afterAll(() => {
 	for (const [key, value] of Object.entries(PREVIOUS_ORIGIN)) {
 		if (value === undefined) delete process.env[key]
@@ -268,16 +269,20 @@ describe('sitemap', () => {
 })
 
 describe('robots', () => {
-	const document = robots()
-	const rules = Array.isArray(document.rules) ? document.rules : [document.rules]
-	const disallow = rules.flatMap((rule) => rule.disallow ?? [])
+	let lines: string[]
+	let disallow: string[]
+	beforeAll(async () => {
+		const response = robotsResponse()
+		expect(response.status).toBe(200)
+		expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8')
+		lines = (await response.text()).split('\n')
+		disallow = lines.filter((line) => line.startsWith('Disallow: ')).map((line) => line.slice(10))
+	})
 
 	test('points at the sitemap and allows crawling by default', () => {
-		expect(document.sitemap).toBe(`${BASE}/sitemap.xml`)
-		for (const rule of rules) {
-			expect(rule.userAgent).toBe('*')
-			expect(rule.allow).toBe('/')
-		}
+		expect(lines).toContain(`Sitemap: ${BASE}/sitemap.xml`)
+		expect(lines).toContain('User-Agent: *')
+		expect(lines).toContain('Allow: /')
 	})
 
 	test('disallows the crawl-blocked prefixes under every locale', () => {

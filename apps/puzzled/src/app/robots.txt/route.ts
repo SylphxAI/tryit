@@ -1,4 +1,3 @@
-import type { MetadataRoute } from 'next'
 import { robotsDisallowPaths } from '@/lib/seo/routes'
 import { getServerBaseUrl } from '@/lib/utils'
 
@@ -12,17 +11,19 @@ import { getServerBaseUrl } from '@/lib/utils'
  * the block stops the crawl, the meta tag stops the *URL* from being indexed
  * without content when it is discovered through a link.
  */
-export default function robots(): MetadataRoute.Robots {
-	const baseUrl = getServerBaseUrl()
-
-	return {
-		rules: [
-			{
-				userAgent: '*',
-				allow: '/',
-				disallow: robotsDisallowPaths(),
-			},
-		],
-		sitemap: `${baseUrl}/sitemap.xml`,
-	}
+export function GET(): Response {
+	const document = [
+		'User-Agent: *',
+		'Allow: /',
+		...robotsDisallowPaths().map((path) => `Disallow: ${path}`),
+		'',
+		`Sitemap: ${getServerBaseUrl()}/sitemap.xml`,
+		'',
+	].join('\n')
+	return new Response(document, {
+		headers: {
+			'Content-Type': 'text/plain; charset=utf-8',
+			'Cache-Control': 'public, max-age=0, must-revalidate',
+		},
+	})
 }
