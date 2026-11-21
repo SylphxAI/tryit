@@ -346,7 +346,7 @@ async function main(): Promise<void> {
 	})
 
 	await check('sitemap omits lastmod instead of faking freshness', async () => {
-		assert(!sitemap.html.includes('<lastmod>'), 'sitemap publishes lastmod')
+		assert(!sitemapXml.includes('<lastmod>'), 'sitemap publishes lastmod')
 		return 'no <lastmod> element'
 	})
 
