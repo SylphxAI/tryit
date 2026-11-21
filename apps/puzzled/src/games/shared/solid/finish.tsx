@@ -24,6 +24,7 @@ export function createBoardFinish(props: DailyBoardProps, gameSlug: string) {
 	const mountedAt = Date.now()
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
 	const [shareId, setShareId] = createSignal<string>()
+	const [revealJson, setRevealJson] = createSignal<string>()
 	let intent: SubmitGuessInput | undefined
 	let disposed = false
 	onCleanup(() => {
@@ -37,6 +38,7 @@ export function createBoardFinish(props: DailyBoardProps, gameSlug: string) {
 			if (!disposed) {
 				if (result.valid && result.status === intent.status) {
 					recordFirstFinishDay(productDayKey())
+					setRevealJson(result.revealJson)
 					setState('accepted')
 					void shareResult({ gameSlug, puzzleDate: intent.puzzleDate })
 						.then((id) => !disposed && setShareId(id))
@@ -53,6 +55,7 @@ export function createBoardFinish(props: DailyBoardProps, gameSlug: string) {
 	}
 	return {
 		state,
+		revealJson,
 		finish(
 			submission: unknown,
 			options?: Partial<Pick<SubmitGuessInput, 'difficulty' | 'status' | 'attempts'>>,

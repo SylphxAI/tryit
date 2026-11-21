@@ -8,7 +8,13 @@ import { productDayKey } from '../src/lib/product-day'
 const boardStage = '[data-game-stage="board"]'
 const date = productDayKey()
 
-async function mount(page: Page, gameSlug: string, data: unknown, failOnce = false) {
+async function mount(
+	page: Page,
+	gameSlug: string,
+	data: unknown,
+	failOnce = false,
+	options?: { puzzleId: string; grade: (body: unknown) => unknown; reveal: unknown },
+) {
 	let starts = 0
 	let guests = 0
 	const submits: { body: Record<string, unknown>; key?: string }[] = []
@@ -16,6 +22,7 @@ async function mount(page: Page, gameSlug: string, data: unknown, failOnce = fal
 		gameSlug,
 		canPlay: true,
 		puzzleDate: date,
+		puzzleId: options?.puzzleId,
 		puzzleDataJson: JSON.stringify(data),
 	}
 	await page.route('**/v1/guest/session', (r) => {
@@ -23,7 +30,7 @@ async function mount(page: Page, gameSlug: string, data: unknown, failOnce = fal
 		return r.fulfill({ json: { issued: true } })
 	})
 	await page.route('**/puzzled.v1.FunnelService/RecordEvent', (r) => r.fulfill({ json: {} }))
-	await page.route('**/puzzled.v1.PuzzleService/*', (r) => {
+	await page.route('**/puzzled.v1.PuzzleService/*', async (r) => {
 		const request = r.request()
 		const body = request.postDataJSON()
 		switch (new URL(request.url()).pathname.split('/').pop()) {
@@ -35,13 +42,20 @@ async function mount(page: Page, gameSlug: string, data: unknown, failOnce = fal
 				starts++
 				expect(body).toMatchObject({ gameSlug, puzzleDate: date })
 				return r.fulfill({ json: { daily: snapshot } })
+			case 'CheckGuess': {
+				if (!options) throw new Error('Unexpected grade request')
+				const grade = await options.grade(body)
+				return grade === undefined
+					? r.fulfill({ status: 503, json: { code: 'unavailable', message: 'fixture outage' } })
+					: r.fulfill({ json: { resultJson: JSON.stringify(grade) } })
+			}
 			case 'SubmitGuess':
 				submits.push({ body, key: request.headers()['x-puzzled-idempotency-key'] })
 				return r.fulfill({
 					json:
 						failOnce && submits.length === 1
-							? { valid: false, error: 'unavailable' }
-							: { valid: true, status: body.status },
+							? { valid: false, error: 'unavailable', revealJson: JSON.stringify(options?.reveal) }
+							: { valid: true, status: body.status, revealJson: JSON.stringify(options?.reveal) },
 				})
 			case 'ShareResult':
 				return r.fulfill({ json: { shareId: 'fixture-share' } })
@@ -401,5 +415,167 @@ test.describe('Path touch input', () => {
 		await expect(start).toHaveAttribute('aria-pressed', 'true')
 		await expect(next).toHaveText('2')
 		expect(submits).toHaveLength(0)
+	})
+})
+
+const groupCategories = [
+	{ name: 'Fruit', words: ['APPLE', 'BANANA', 'ORANGE', 'GRAPE'], level: 0 },
+	{ name: 'Colours', words: ['RED', 'BLUE', 'GREEN', 'YELLOW'], level: 1 },
+	{ name: 'Planets', words: ['MARS', 'VENUS', 'SATURN', 'JUPITER'], level: 2 },
+	{ name: 'Card suits', words: ['HEART', 'DIAMOND', 'CLUB', 'SPADE'], level: 3 },
+]
+const groupWords = groupCategories.flatMap(({ words }) => words)
+const groupPuzzleId = '27012566-82c8-4b30-bb3e-9cd08b7f35a1'
+
+function mountGroups(page: Page, grade: (body: unknown) => unknown) {
+	return mount(
+		page,
+		'word-groups',
+		{ words: groupWords, maxMistakes: 4, wordsPerCategory: 4, totalCategories: 4 },
+		true,
+		{
+			puzzleId: groupPuzzleId,
+			grade,
+			reveal: { categories: groupCategories },
+		},
+	)
+}
+
+test('Groups retries a failed grade, ignores repeat sets, and reveals a loss only after acceptance', async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const oneAway = ['APPLE', 'BANANA', 'ORANGE', 'RED']
+	const misses = [
+		['RED', 'BLUE', 'HEART', 'CLUB'],
+		['VENUS', 'MARS', 'SPADE', 'DIAMOND'],
+	]
+	const { promise: held, resolve: releaseGrade } = Promise.withResolvers<void>()
+	const checks: unknown[] = []
+	const { board, submits } = await mountGroups(page, async (body) => {
+		checks.push(body)
+		if (checks.length === 1) {
+			await held
+			return undefined
+		}
+		if (checks.length === 3) return { correct: true, oneAway: false, category: groupCategories[0] }
+		return { correct: false, oneAway: checks.length === 2 }
+	})
+	const word = (name: string) => board.getByRole('button', { name, exact: true })
+	const submit = word('Submit')
+	const chosen = board.locator('button[aria-pressed="true"]')
+	const choose = async (words: string[]) => {
+		for (const name of words) await word(name).click()
+	}
+	const categories = board.locator('[data-group-category] h3')
+	const remaining = (count: number) => board.getByLabel(`${count} of 4 mistakes remaining`)
+	await expect(categories).toHaveCount(0)
+	await expect(board.locator('button[aria-pressed]')).toHaveCount(16)
+	await expect(remaining(4)).toBeVisible()
+	await expect(submit).toBeDisabled()
+	await word('APPLE').focus()
+	await page.keyboard.press('Space')
+	await expect(word('APPLE')).toHaveAttribute('aria-pressed', 'true')
+	await word('Deselect All').click()
+	await expect(chosen).toHaveCount(0)
+	await choose(oneAway)
+	await word('JUPITER').click()
+	await expect(chosen).toHaveCount(4)
+	await expect(word('JUPITER')).toHaveAttribute('aria-pressed', 'false')
+	await word('Shuffle').click()
+	await expect(chosen).toHaveCount(4)
+	await submit.click()
+	try {
+		await expect.poll(() => checks.length).toBe(1)
+		await expect(submit).toBeDisabled()
+		await expect(word('BANANA')).toBeDisabled()
+		await expect(word('Shuffle')).toBeDisabled()
+	} finally {
+		releaseGrade()
+	}
+	await expect(board.getByText('Something went wrong', { exact: true })).toBeVisible()
+	await expect(chosen).toHaveCount(4)
+	await expect(remaining(4)).toBeVisible()
+	await submit.click()
+	await expect(board.getByText('One away...', { exact: true })).toBeVisible()
+	await expect(remaining(3)).toBeVisible()
+	await choose([...oneAway].reverse())
+	await submit.click()
+	await expect(chosen).toHaveCount(0)
+	await expect(remaining(3)).toBeVisible()
+	expect(checks).toHaveLength(2)
+	await choose(groupCategories[0].words)
+	await submit.click()
+	await expect(categories).toHaveText(['Fruit'])
+	await expect(board.locator('button[aria-pressed]')).toHaveCount(12)
+	for (const words of misses) {
+		await choose(words)
+		await submit.click()
+		await expect(chosen).toHaveCount(0)
+	}
+	const last = ['RED', 'BLUE', 'VENUS', 'MARS']
+	await choose(last)
+	await submit.click()
+	const retry = word('Try again')
+	await expect(retry).toBeVisible()
+	await expect(categories).toHaveText(['Fruit'])
+	await expect(board.getByText('Better luck next time!')).toHaveCount(0)
+	expect(checks).toEqual(
+		[oneAway, oneAway, groupCategories[0].words, ...misses, last].map((words, i) => ({
+			gameSlug: 'word-groups',
+			puzzleId: groupPuzzleId,
+			puzzleDate: date,
+			guessJson: JSON.stringify({ words, solved: i >= 3 ? ['Fruit'] : [] }),
+		})),
+	)
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({
+		gameSlug: 'word-groups',
+		puzzleId: groupPuzzleId,
+		puzzleDate: date,
+		status: 'lost',
+		attempts: 5,
+	})
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		foundCategories: [groupCategories[0].words],
+		mistakes: 4,
+	})
+	await retry.click()
+	await expect(board.getByText('Better luck next time!')).toBeVisible()
+	await expect(categories).toHaveText(groupCategories.map(({ name }) => name))
+	expect(submits).toHaveLength(2)
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[1]).toEqual(submits[0])
+})
+
+test('Groups displays solved sets in level order and submits the four accepted sets', async ({
+	page,
+}) => {
+	const solvedOrder = [...groupCategories].reverse()
+	const checks: unknown[] = []
+	const { board, submits } = await mountGroups(page, (body) => {
+		checks.push(body)
+		return { correct: true, oneAway: false, category: solvedOrder[checks.length - 1] }
+	})
+	const categories = board.locator('[data-group-category] h3')
+	for (const [i, category] of solvedOrder.entries()) {
+		for (const name of category.words)
+			await board.getByRole('button', { name, exact: true }).click()
+		await board.getByRole('button', { name: 'Submit', exact: true }).click()
+		await expect(categories).toHaveText(
+			solvedOrder
+				.slice(0, i + 1)
+				.reverse()
+				.map(({ name }) => name),
+		)
+	}
+	await expect(board.getByText('Congratulations!')).toHaveCount(0)
+	await board.getByRole('button', { name: 'Try again' }).click()
+	await expect(board.getByText('Congratulations!')).toBeVisible()
+	expect(checks).toHaveLength(4)
+	expect(submits[0].body).toMatchObject({ status: 'won', attempts: 4 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		foundCategories: solvedOrder.map(({ words }) => words),
+		mistakes: 0,
 	})
 })
