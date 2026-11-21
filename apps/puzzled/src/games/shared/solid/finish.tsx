@@ -53,16 +53,19 @@ export function createBoardFinish(props: DailyBoardProps, gameSlug: string) {
 	}
 	return {
 		state,
-		finish(submission: unknown, difficulty = props.difficulty) {
+		finish(
+			submission: unknown,
+			options?: Partial<Pick<SubmitGuessInput, 'difficulty' | 'status' | 'attempts'>>,
+		) {
 			if (intent) return
 			intent = withIdempotencyKey({
 				gameSlug,
-				status: 'won' as const,
-				attempts: 1,
+				status: options?.status ?? 'won',
+				attempts: options?.attempts ?? 1,
 				timeSpentMs: Math.max(0, Date.now() - mountedAt),
 				puzzleDate: props.puzzle.puzzleDate,
 				puzzleId: props.puzzle.puzzleId,
-				difficulty,
+				difficulty: options?.difficulty ?? props.difficulty,
 				submission,
 			})
 			void send()

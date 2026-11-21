@@ -37,7 +37,10 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 	const values = createMemo(() => state().userGrid.map((row) => row.map((cell) => cell.value)))
 	createEffect(() => {
 		if (state().isComplete)
-			finish.finish({ finalGrid: values() }, props.difficulty ?? props.data.difficulty)
+			finish.finish(
+				{ finalGrid: values() },
+				{ difficulty: props.difficulty ?? props.data.difficulty },
+			)
 	})
 	onMount(() => {
 		function keydown(event: KeyboardEvent) {

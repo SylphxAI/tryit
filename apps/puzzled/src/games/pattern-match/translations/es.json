@@ -16,6 +16,18 @@
 	"giveUp": "Rendirse",
 	"hint": "Selecciona 3 cartas para comprobar si forman un set válido",
 	"complete": "¡Todos los sets encontrados!",
+	"card": {
+		"label": "{count}, {color}, {shape}, {fill}",
+		"diamond": "rombo",
+		"oval": "óvalo",
+		"squiggle": "onda",
+		"red": "rojo",
+		"green": "verde",
+		"purple": "morado",
+		"solid": "relleno",
+		"striped": "rayado",
+		"empty": "sin relleno"
+	},
 	"messages": {
 		"correct": "¡Set válido!",
 		"notASet": "No es un set válido",

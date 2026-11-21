@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test'
+import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
 import { productDayKey } from '../src/lib/product-day'
 
 const boardStage = '[data-game-stage="board"]'
@@ -37,7 +38,7 @@ async function mount(page: Page, gameSlug: string, data: unknown, failOnce = fal
 					json:
 						failOnce && submits.length === 1
 							? { valid: false, error: 'unavailable' }
-							: { valid: true, status: 'won' },
+							: { valid: true, status: body.status },
 				})
 			case 'ShareResult':
 				return r.fulfill({ json: { shareId: 'fixture-share' } })
@@ -132,4 +133,82 @@ test('Hunt accepts reverse drag and keyboard selection before saving the words',
 	await expect(board.getByText('All Words Found!')).toBeVisible()
 	expect(submits).toHaveLength(1)
 	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ foundWords: ['CAT', 'PIG'] })
+})
+
+const match = matchGoldens[0]
+
+function matchCard(board: ReturnType<Page['locator']>, id: number) {
+	return board.locator(`[data-match-card="${id}"]`)
+}
+
+test('Match finds overlapping sets, ignores duplicates, and offers sharing only after acceptance', async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const { board, submits } = await mount(page, 'pattern-match', match.puzzleData, true)
+	const first = board.getByRole('button', { name: '1, green, squiggle, striped' })
+	await expect(first).toBeVisible()
+	const size = await first.boundingBox()
+	expect(size?.width).toBeGreaterThanOrEqual(48)
+	expect(size?.height).toBeGreaterThanOrEqual(48)
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360)
+	await first.press('Enter')
+	await expect(first).toHaveAttribute('aria-pressed', 'true')
+	await board.getByRole('button', { name: 'Clear' }).click()
+	await expect(first).toHaveAttribute('aria-pressed', 'false')
+	for (const id of [0, 1, 2]) await matchCard(board, id).click()
+	await expect(board.getByText('Not a valid set')).toBeVisible()
+	await expect(board.getByText('Mistakes: 1/4')).toBeVisible()
+
+	const groups = match.solution.validSets
+	for (const id of groups[0]) await matchCard(board, id).click()
+	await expect(board.getByText('1/6 sets found')).toBeVisible()
+	for (const id of [...groups[0]].reverse()) await matchCard(board, id).click()
+	await expect(board.getByText('Set already found')).toBeVisible()
+	await expect(board.getByText('Mistakes: 1/4')).toBeVisible()
+	expect(submits).toHaveLength(0)
+	for (const group of groups.slice(1)) {
+		for (const id of group) await matchCard(board, id).click()
+	}
+	const retry = board.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(matchCard(board, 0)).toBeDisabled()
+	await expect(board.getByRole('button', { name: 'Share' })).toHaveCount(0)
+	expect(submits).toHaveLength(1)
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[0].body).toMatchObject({ gameSlug: 'pattern-match', status: 'won', attempts: 1 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		foundSets: groups,
+		mistakes: 1,
+	})
+	await retry.click()
+	await expect(board.getByText('All sets found!')).toBeVisible()
+	await expect(board.getByRole('button', { name: 'Share' })).toBeVisible()
+	expect(submits).toEqual([submits[0], submits[0]])
+})
+
+test('Match stops at the server mistake limit and records a loss', async ({ page }) => {
+	const { board, submits } = await mount(page, 'pattern-match', match.puzzleData)
+	for (let attempt = 0; attempt < 4; attempt++) {
+		expect(submits).toHaveLength(0)
+		for (const id of [0, 1, 2]) await matchCard(board, id).click()
+	}
+	await expect(board.getByRole('status').filter({ hasText: 'Game Over' })).toBeVisible()
+	await expect(matchCard(board, 0)).toBeDisabled()
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({ status: 'lost', attempts: 4 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ foundSets: [], mistakes: 4 })
+})
+
+test('Match give-up records the sets found so far, not a win', async ({ page }) => {
+	const { board, submits } = await mount(page, 'pattern-match', match.puzzleData)
+	for (const id of match.solution.validSets[0]) await matchCard(board, id).click()
+	await board.getByRole('button', { name: 'Give Up' }).click()
+	await expect(board.getByRole('status').filter({ hasText: 'Game Over' })).toBeVisible()
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({ status: 'lost' })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		foundSets: [match.solution.validSets[0]],
+		mistakes: 0,
+	})
 })

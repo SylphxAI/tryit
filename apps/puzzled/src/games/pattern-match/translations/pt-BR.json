@@ -16,6 +16,18 @@
 	"giveUp": "Desistir",
 	"hint": "Selecione 3 cartas para ver se formam um conjunto válido",
 	"complete": "Todos os conjuntos encontrados!",
+	"card": {
+		"label": "{count}, {color}, {shape}, {fill}",
+		"diamond": "losango",
+		"oval": "oval",
+		"squiggle": "onda",
+		"red": "vermelho",
+		"green": "verde",
+		"purple": "roxo",
+		"solid": "preenchido",
+		"striped": "listrado",
+		"empty": "sem preenchimento"
+	},
 	"messages": {
 		"correct": "Conjunto válido!",
 		"notASet": "Não é um conjunto válido",

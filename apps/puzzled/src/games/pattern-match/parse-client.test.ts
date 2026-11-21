@@ -23,6 +23,18 @@ describe('parsePatternMatchClientPayload', () => {
 		expect(parsed.cards).toEqual(served.puzzleData.cards)
 	})
 
+	test('rejects duplicate and unrepresentable card IDs', () => {
+		const [first, ...rest] = served.puzzleData.cards
+		for (const id of [-1, 1.5, 65536, rest[0].id]) {
+			expect(() =>
+				parsePatternMatchClientPayload({
+					...served.puzzleData,
+					cards: [{ ...first, id }, ...rest],
+				}),
+			).toThrow()
+		}
+	})
+
 	test('rejects an unknown card attribute', () => {
 		expect(() =>
 			parsePatternMatchClientPayload({
