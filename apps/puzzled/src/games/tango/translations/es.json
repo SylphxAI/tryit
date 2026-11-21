@@ -11,6 +11,11 @@
 		"rule3": "Todas las filas deben ser distintas, y todas las columnas también"
 	},
 	"startGame": "Empezar partida",
+	"cell": {
+		"sun": "Sol",
+		"moon": "Luna",
+		"blank": "Vacía"
+	},
 	"hasConflicts": "Algunas casillas incumplen las reglas",
 	"complete": "¡Puzle completado!"
 }

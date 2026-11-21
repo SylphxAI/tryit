@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 import crownsGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/crowns.json'
+import duoGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/duo.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
 import { productDayKey } from '../src/lib/product-day'
 
@@ -261,4 +262,55 @@ test('Crowns labels region boundaries, scopes keyboard controls, and submits onl
 			[true, false, false, false, false],
 		],
 	})
+})
+
+test('Duo preserves fixed clues and rejects a filled grid with conflicts before submitting', async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const duo = duoGoldens[0]
+	if (!duo.solution) throw new Error('Duo golden fixture lacks its solution')
+	const { board, submits } = await mount(page, 'duo', duo.puzzleData)
+	const cell = (row: number, col: number) =>
+		board.getByRole('button', { name: new RegExp(`^Row ${row + 1}, Column ${col + 1}, `) })
+	const given = board.getByRole('button', { name: 'Row 1, Column 1, Moon' })
+	await expect(given).toBeDisabled()
+	const edited = cell(0, 3)
+	await edited.press('Space')
+	await expect(edited).toHaveAccessibleName('Row 1, Column 4, Sun')
+	await edited.press('Enter')
+	await expect(edited).toHaveAccessibleName('Row 1, Column 4, Moon')
+	await edited.press('Enter')
+	await expect(edited).toHaveAccessibleName('Row 1, Column 4, Blank')
+	await edited.click()
+	await board.getByRole('button', { name: 'Start over' }).click()
+	await expect(edited).toHaveAccessibleName('Row 1, Column 4, Blank')
+	await expect(given).toBeDisabled()
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360)
+
+	for (const [row, line] of duo.solution.grid.entries()) {
+		for (const [col, value] of line.entries()) {
+			if (duo.puzzleData.initialGrid[row][col] || (row === 1 && col === 4)) continue
+			await cell(row, col).click()
+			if (value === 'moon') await cell(row, col).click()
+		}
+	}
+	// Fill the last cell with the wrong symbol, then clear and place the right one.
+	const last = cell(1, 4)
+	await last.click()
+	await expect(last).toHaveAccessibleName('Row 2, Column 5, Sun')
+	await expect(last).toHaveAttribute('aria-invalid', 'true')
+	await expect(
+		board.getByRole('status').filter({ hasText: 'Some cells violate the rules' }),
+	).toBeVisible()
+	expect(submits).toHaveLength(0)
+	await last.press('Delete')
+	await expect(last).toHaveAccessibleName('Row 2, Column 5, Blank')
+	await last.click()
+	await last.click()
+	await expect(board.getByText('Puzzle Complete!')).toBeVisible()
+	await expect(last).toBeDisabled()
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({ gameSlug: 'duo', status: 'won' })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ grid: duo.solution.grid })
 })

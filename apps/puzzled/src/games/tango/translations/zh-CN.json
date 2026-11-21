@@ -10,6 +10,11 @@
 		"rule3": "所有行必须唯一，所有列必须唯一"
 	},
 	"startGame": "开始游戏",
+	"cell": {
+		"sun": "太阳",
+		"moon": "月亮",
+		"blank": "空格"
+	},
 	"hasConflicts": "有格子违反规则",
 	"complete": "谜题完成！"
 }
