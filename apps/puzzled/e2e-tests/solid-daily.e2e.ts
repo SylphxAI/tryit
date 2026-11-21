@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import crownsGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/crowns.json'
 import duoGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/duo.json'
+import cageGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/killer-sudoku.json'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
 import { productDayKey } from '../src/lib/product-day'
@@ -13,7 +14,7 @@ async function mount(
 	gameSlug: string,
 	data: unknown,
 	failOnce = false,
-	options?: { puzzleId: string; grade: (body: unknown) => unknown; reveal: unknown },
+	options?: { puzzleId: string; grade?: (body: unknown) => unknown; reveal?: unknown },
 ) {
 	let starts = 0
 	let guests = 0
@@ -43,7 +44,7 @@ async function mount(
 				expect(body).toMatchObject({ gameSlug, puzzleDate: date })
 				return r.fulfill({ json: { daily: snapshot } })
 			case 'CheckGuess': {
-				if (!options) throw new Error('Unexpected grade request')
+				if (!options?.grade) throw new Error('Unexpected grade request')
 				const grade = await options.grade(body)
 				return grade === undefined
 					? r.fulfill({ status: 503, json: { code: 'unavailable', message: 'fixture outage' } })
@@ -63,9 +64,12 @@ async function mount(
 				throw new Error(`Unexpected puzzle RPC: ${request.url()}`)
 		}
 	})
-	const path = ['nonogram', 'crowns'].includes(gameSlug)
-		? `${gameSlug}?difficulty=easy&start=1`
-		: `${gameSlug}?start=1`
+	const path =
+		gameSlug === 'killer-sudoku'
+			? `${gameSlug}?difficulty=medium&start=1`
+			: ['nonogram', 'crowns'].includes(gameSlug)
+				? `${gameSlug}?difficulty=easy&start=1`
+				: `${gameSlug}?start=1`
 	await page.goto(`/games/${path}#play`)
 	const start = page.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' })
 	await expect(start).toBeVisible()
@@ -578,4 +582,85 @@ test('Groups displays solved sets in level order and submits the four accepted s
 		foundCategories: solvedOrder.map(({ words }) => words),
 		mistakes: 0,
 	})
+})
+
+test('Cage Sudoku honors cage sums, keeps givens fixed and retries the exact accepted grid', async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const fixture = cageGoldens.find(
+		(entry) => entry.difficulty === 'medium' && entry.puzzleData && entry.solution,
+	)
+	if (!fixture?.puzzleData || !fixture.solution)
+		throw new Error('Expected a playable medium golden')
+	const puzzleId = '7ac66c17-0842-4c14-8133-a0638338fa6d'
+	const { board, submits } = await mount(page, 'killer-sudoku', fixture.puzzleData, true, {
+		puzzleId,
+	})
+	const grid = board.getByRole('group', { name: 'Cage Sudoku' })
+	await expect(grid.getByRole('button')).toHaveCount(81)
+	const cell = (row: number, col: number) =>
+		grid.getByRole('button', { name: new RegExp(`^Row ${row + 1}, Column ${col + 1},`) })
+	await expect(board.getByRole('link', { name: 'How to play' })).toHaveAttribute('href', '#rules')
+	const first = cell(0, 0)
+	await expect(first).toHaveAccessibleName('Row 1, Column 1, Cage total 24')
+	await expect(first).toHaveText('24')
+	await first.click()
+	await first.press('n')
+	await board.getByRole('button', { name: '5', exact: true }).click()
+	await expect(first).toHaveAccessibleName('Row 1, Column 1, Cage total 24, Notes: 5')
+	await first.press('Backspace')
+	await expect(first).toHaveAccessibleName('Row 1, Column 1, Cage total 24')
+	await first.press('n')
+	await first.press('ArrowRight')
+	const second = cell(0, 1)
+	await expect(second).toBeFocused()
+	await page.keyboard.press('2')
+	await expect(second).toHaveAttribute('aria-invalid', 'true')
+	const given = cell(0, 8)
+	await given.press('1')
+	await expect(given).toHaveAccessibleName('Row 1, Column 9, 2, Cage total 21')
+	await board.getByRole('button', { name: 'Start over' }).click()
+	await expect(second).toHaveAccessibleName('Row 1, Column 2, Cage total 24')
+	await expect(given).toHaveAccessibleName('Row 1, Column 9, 2, Cage total 21')
+
+	// Swapping two digits absent from the givens leaves an ordinary solved Sudoku, but changes cage sums.
+	const swapped = (digit: number) => (digit === 1 ? 6 : digit === 6 ? 1 : digit)
+	for (const [row, values] of fixture.solution.grid.entries()) {
+		for (const [col, digit] of values.entries()) {
+			if (fixture.puzzleData.grid[row][col] === null)
+				await cell(row, col).press(String(swapped(digit)))
+		}
+	}
+	await expect(grid.getByRole('button', { name: /^Row 9, Column 9, 6,/ })).toBeEnabled()
+	await expect(grid.locator('[aria-invalid="true"]')).toHaveCount(0)
+	await expect(board.getByText('Puzzle Complete!')).toHaveCount(0)
+	expect(submits).toHaveLength(0)
+
+	for (const [row, values] of fixture.solution.grid.entries()) {
+		for (const [col, digit] of values.entries()) {
+			if (digit !== swapped(digit)) await cell(row, col).press(String(digit))
+		}
+	}
+	const retry = board.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(first).toBeDisabled()
+	await expect(board.getByText('Puzzle Complete!')).toHaveCount(0)
+	expect(submits).toHaveLength(1)
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[0].body).toMatchObject({
+		gameSlug: 'killer-sudoku',
+		puzzleId,
+		puzzleDate: date,
+		difficulty: 'medium',
+		status: 'won',
+		attempts: 1,
+	})
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		finalGrid: fixture.solution.grid,
+		mistakes: 0,
+	})
+	await retry.click()
+	await expect(board.getByText('Puzzle Complete!')).toBeVisible()
+	expect(submits).toEqual([submits[0], submits[0]])
 })

@@ -12,6 +12,7 @@
 	},
 	"startGame": "Empezar partida",
 	"complete": "¡Puzle completado!",
+	"cageTotal": "Total de la jaula: {sum}",
 	"notes": "Notas",
 	"notesMode": "Modo notas",
 	"difficulty": {

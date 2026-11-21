@@ -1,0 +1,31 @@
+.edge {
+	position: absolute;
+	inset: 2px;
+	border: 1px dashed currentColor;
+	border-width: 0;
+	color: var(--color-muted-foreground);
+	pointer-events: none;
+}
+
+.edge[data-top] { border-top-width: 1px; }
+.edge[data-right] { border-right-width: 1px; }
+.edge[data-bottom] { border-bottom-width: 1px; }
+.edge[data-left] { border-left-width: 1px; }
+
+.total {
+	position: absolute;
+	inset: 3px auto auto 4px;
+	color: inherit;
+	font: 750 9px/1 var(--font-sans);
+	font-variant-numeric: tabular-nums;
+	pointer-events: none;
+}
+
+.hasTotal .notes {
+	padding-top: 12px;
+}
+
+.digit {
+	font-size: clamp(16px, 4.5vw, 23px);
+	transform: translateY(2px);
+}

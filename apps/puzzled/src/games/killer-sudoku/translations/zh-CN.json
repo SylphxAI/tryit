@@ -11,6 +11,7 @@
 	},
 	"startGame": "开始游戏",
 	"complete": "谜题完成！",
+	"cageTotal": "笼的总和 {sum}",
 	"notes": "笔记",
 	"notesMode": "笔记模式",
 	"difficulty": {
