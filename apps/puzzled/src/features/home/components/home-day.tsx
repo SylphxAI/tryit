@@ -25,7 +25,9 @@ export type HomeDayGame = {
  * A finish count is shown only above this many players: a small number reads
  * as an empty room, not as proof.
  */
-export const MIN_PLAYERS_SHOWN = 500
+export { MIN_PLAYERS_SHOWN } from '../lib/player-count'
+
+import { MIN_PLAYERS_SHOWN } from '../lib/player-count'
 
 type HomeDayProps = {
 	locale: string

@@ -10,16 +10,19 @@ test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
 test.beforeEach(async ({ page }) => {
 	await page.route('**/api/identity/session', (route) => route.fulfill({ json: { user: null } }))
 	await page.goto('/en-GB/signup?callbackUrl=%2Fen-GB%2Fgames%2Fsudoku')
-	await page.waitForFunction(() =>
-		['name', 'email', 'password'].every((id) => {
-			const field = document.getElementById(id)
-			return field && Object.keys(field).some((key) => key.startsWith('__reactProps'))
-		}),
-	)
+	// A working reveal toggle proves the page is interactive without depending
+	// on React or Solid's private hydration markers.
+	await page.getByRole('button', { name: 'Show password' }).click()
+	await expect(page.locator('#password')).toHaveAttribute('type', 'text')
+	await page.getByRole('button', { name: 'Hide password' }).click()
+	await expect(page.locator('#password')).toHaveAttribute('type', 'password')
 	await page.locator('#name').fill('Synthetic player')
 	await page.locator('#email').fill(email)
 	await page.locator('#password').fill(password)
 	await page.locator('#password').blur()
+	await expect(page.locator('button[type="submit"]')).toBeDisabled()
+	await page.getByRole('checkbox').check()
+	await expect(page.locator('button[type="submit"]')).toBeEnabled()
 })
 
 for (const answer of [
