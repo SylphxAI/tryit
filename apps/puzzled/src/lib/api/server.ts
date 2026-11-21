@@ -11,7 +11,6 @@ import 'server-only'
 
 import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError, createClient } from '@connectrpc/connect'
-import { createConnectTransport } from '@connectrpc/connect-web'
 import { cookies, headers } from 'next/headers'
 import { cache } from 'react'
 import { createActiveAnnouncementsCache } from '@/features/announcements/lib/active-cache'
@@ -48,7 +47,6 @@ import {
 	GetUserStatsRequestSchema,
 	StatsService,
 } from '@/gen/connect/puzzled/v1/stats_pb'
-import { mergeServerConnectInit, SERVER_CONNECT_TIMEOUT_MS } from '@/lib/api/connect-fetch'
 import {
 	type DailyStatus,
 	mapDailyStatus,
@@ -57,6 +55,7 @@ import {
 	type TodaysPuzzle,
 } from '@/lib/api/domain/daily'
 import { isNoIdentityError } from '@/lib/api/no-identity'
+import { hasProgressCookie, requestConnectTransport } from '@/lib/api/request-connect'
 import {
 	OPEN_ACCESS,
 	type PlusAccess,
@@ -65,8 +64,6 @@ import {
 } from '@/lib/billing/plus'
 import { getLeaderboard } from '@/lib/connect/stats-client'
 import type { GetLeaderboardInput } from '@/lib/connect/stats-domain'
-import { resolveServerConnectBaseUrl } from '@/lib/connect/transport'
-import { SESSION_COOKIE_NAMES } from '@/lib/identity/session-cookie'
 import { logger } from '@/lib/logger'
 import { projectStreakInfo, type StreakInfo } from '@/lib/streak-info'
 
@@ -94,46 +91,24 @@ export type UserStats = {
 // Per-request Connect transport (forwards the session cookie)
 // ==========================================
 
-async function getServerTransport() {
+async function requestCredentials() {
 	const cookieStore = await cookies()
 	const cookie = cookieStore
 		.getAll()
-		.filter(
-			(cookie) =>
-				cookie.name === '__Host-puzzled_guest' ||
-				cookie.name === 'puzzled_checkout_claim' ||
-				SESSION_COOKIE_NAMES.some((name) => name === cookie.name) ||
-				(cookie.name.startsWith('__sylphx_') && cookie.name.endsWith('_session')),
-		)
-		.map((cookie) => `${cookie.name}=${cookie.value}`)
+		.map(({ name, value }) => `${name}=${value}`)
 		.join('; ')
-	// The api checks the Sylphx Auth session with Auth, which binds it to the
-	// browser's User-Agent.
+	const result = new Headers({ cookie })
 	const userAgent = (await headers()).get('user-agent')
-	const baseUrl = resolveServerConnectBaseUrl()
-	return createConnectTransport({
-		baseUrl,
-		useBinaryFormat: false,
-		fetch: ((input: RequestInfo | URL, init?: RequestInit) =>
-			fetch(
-				input,
-				mergeServerConnectInit(init, cookie, SERVER_CONNECT_TIMEOUT_MS, userAgent),
-			)) as typeof fetch,
-	})
+	if (userAgent) result.set('user-agent', userAgent)
+	return result
 }
 
-/** True when SSR can attach a guest or Platform identity to Connect reads. */
+async function getServerTransport() {
+	return requestConnectTransport(await requestCredentials())
+}
+
 export async function hasServerProgressIdentity(): Promise<boolean> {
-	const cookieStore = await cookies()
-	if (cookieStore.get('__Host-puzzled_guest')?.value) return true
-	return cookieStore
-		.getAll()
-		.some(
-			(cookie) =>
-				(SESSION_COOKIE_NAMES.some((name) => name === cookie.name) ||
-					(cookie.name.startsWith('__sylphx_') && cookie.name.endsWith('_session'))) &&
-				Boolean(cookie.value),
-		)
+	return hasProgressCookie(await requestCredentials())
 }
 
 /**
@@ -380,12 +355,7 @@ export const getServerTodayOverview = cache(
  */
 const activeAnnouncements = createActiveAnnouncementsCache({
 	fetch: async () => {
-		const transport = createConnectTransport({
-			baseUrl: resolveServerConnectBaseUrl(),
-			useBinaryFormat: false,
-			fetch: ((input: RequestInfo | URL, init?: RequestInit) =>
-				fetch(input, mergeServerConnectInit(init, '', SERVER_CONNECT_TIMEOUT_MS))) as typeof fetch,
-		})
+		const transport = requestConnectTransport()
 		const res = await createClient(AnnouncementService, transport).listActiveAnnouncements(
 			create(ListActiveAnnouncementsRequestSchema, {}),
 		)
