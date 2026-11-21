@@ -11,6 +11,7 @@
 		"rule4": "皇冠之间不能相邻（包括斜角）"
 	},
 	"startGame": "开始游戏",
+	"region": "区域 {index}",
 	"hasConflicts": "有皇冠互相冲突",
 	"complete": "谜题完成！",
 	"difficulty": {

@@ -12,6 +12,7 @@
 		"rule4": "王冠同士は隣り合えません（斜めも含む）"
 	},
 	"startGame": "ゲーム開始",
+	"region": "領域 {index}",
 	"hasConflicts": "競合している王冠があります",
 	"complete": "パズルクリア！",
 	"difficulty": {

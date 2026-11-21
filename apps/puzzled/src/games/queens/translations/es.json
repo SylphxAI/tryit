@@ -12,6 +12,7 @@
 		"rule4": "Las coronas no pueden tocarse entre sí (tampoco en diagonal)"
 	},
 	"startGame": "Empezar partida",
+	"region": "Región {index}",
 	"hasConflicts": "Algunas coronas están en conflicto",
 	"complete": "¡Puzle completado!",
 	"difficulty": {

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test'
+import crownsGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/crowns.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
 import { productDayKey } from '../src/lib/product-day'
 
@@ -46,8 +47,9 @@ async function mount(page: Page, gameSlug: string, data: unknown, failOnce = fal
 				throw new Error(`Unexpected puzzle RPC: ${request.url()}`)
 		}
 	})
-	const path =
-		gameSlug === 'nonogram' ? `${gameSlug}?difficulty=easy&start=1` : `${gameSlug}?start=1`
+	const path = ['nonogram', 'crowns'].includes(gameSlug)
+		? `${gameSlug}?difficulty=easy&start=1`
+		: `${gameSlug}?start=1`
 	await page.goto(`/games/${path}#play`)
 	const start = page.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' })
 	await expect(start).toBeVisible()
@@ -210,5 +212,53 @@ test('Match give-up records the sets found so far, not a win', async ({ page }) 
 	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
 		foundSets: [match.solution.validSets[0]],
 		mistakes: 0,
+	})
+})
+
+test('Crowns labels region boundaries, scopes keyboard controls, and submits only a valid grid', async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const crowns = crownsGoldens[0]
+	if (!crowns.solution) throw new Error('Crowns golden fixture lacks its solution')
+	const { board, submits } = await mount(page, 'crowns', crowns.puzzleData)
+	const cell = (row: number, col: number) =>
+		board.getByRole('button', { name: new RegExp(`^Row ${row + 1}, Column ${col + 1}, Region `) })
+	const first = cell(0, 0)
+	const second = cell(0, 1)
+	await expect(board.getByRole('button', { name: 'Row 1, Column 3, Region 1' })).toHaveCSS(
+		'border-right-width',
+		'2px',
+	)
+	await expect(first).toHaveCSS('border-right-width', '1px')
+	expect((await first.boundingBox())?.width).toBeGreaterThanOrEqual(48)
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360)
+	await first.press('Space')
+	await expect(first).toHaveAttribute('aria-pressed', 'true')
+	await page.keyboard.press('ArrowRight')
+	await expect(second).toBeFocused()
+	await page.keyboard.press('Enter')
+	await expect(
+		board.getByRole('status').filter({ hasText: 'Some crowns are in conflict' }),
+	).toBeVisible()
+	await expect(second).toHaveAttribute('aria-invalid', 'true')
+	expect(submits).toHaveLength(0)
+	await page.keyboard.press('Delete')
+	await expect(second).toHaveAttribute('aria-pressed', 'false')
+	await board.getByRole('button', { name: 'Start over' }).click()
+	await expect(first).toHaveAttribute('aria-pressed', 'false')
+	for (const [row, col] of crowns.solution.queens) await cell(row, col).click()
+	await expect(board.getByText('Puzzle Complete!')).toBeVisible()
+	await expect(first).toBeDisabled()
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({ gameSlug: 'crowns', status: 'won', difficulty: 'easy' })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		finalGrid: [
+			[false, false, true, false, false],
+			[false, false, false, false, true],
+			[false, true, false, false, false],
+			[false, false, false, true, false],
+			[true, false, false, false, false],
+		],
 	})
 })

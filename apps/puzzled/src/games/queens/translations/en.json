@@ -12,6 +12,7 @@
 		"rule4": "Crowns cannot touch each other (including diagonally)"
 	},
 	"startGame": "Start Game",
+	"region": "Region {index}",
 	"hasConflicts": "Some crowns are in conflict",
 	"complete": "Puzzle Complete!",
 	"difficulty": {
