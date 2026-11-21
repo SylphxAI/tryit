@@ -60,7 +60,11 @@ export function CurrencySwitcher(props: Props) {
 						)}
 					>
 						<For each={props.currencies}>
-							{(code) => <option value={code}>{currencyOptionLabel(code, props.locale)}</option>}
+							{(code) => (
+								<option value={code} selected={code === props.current}>
+									{currencyOptionLabel(code, props.locale)}
+								</option>
+							)}
 						</For>
 					</select>
 					<ChevronDown
