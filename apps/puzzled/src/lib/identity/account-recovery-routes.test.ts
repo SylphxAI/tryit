@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { POLICY_ACCEPTANCE } from './policy-consent'
 
 /**
@@ -7,25 +7,8 @@ import { POLICY_ACCEPTANCE } from './policy-consent'
  * the answers the browser sees, and the cookies.
  */
 
-const deleted: string[] = []
-const written: string[] = []
-let cookieFailure = false
 let requestHeaders: Record<string, string> = {}
 let cookieValues: Record<string, string> = {}
-
-mock.module('next/headers', () => ({
-	cookies: async () => ({
-		get: (name: string) => (cookieValues[name] ? { value: cookieValues[name] } : undefined),
-		set: (name: string) => {
-			if (cookieFailure) throw new Error('private session cookie failure new@x.test')
-			written.push(name)
-		},
-		delete: (name: string) => {
-			deleted.push(name)
-		},
-	}),
-	headers: async () => new Headers(requestHeaders),
-}))
 
 const { POST: startRecovery } = await import('@/app/api/identity/recovery/route')
 const { POST: completeRecovery } = await import('@/app/api/identity/recovery/complete/route')
@@ -35,7 +18,7 @@ const { POST: logout } = await import('@/app/api/identity/logout/route')
 const { GET: oauthCallback } = await import('@/app/api/identity/oauth/callback/route')
 const { POST: signup } = await import('@/app/api/identity/signup/route')
 
-const { currentUser } = await import('./server')
+const { requestUser } = await import('./request-identity')
 
 const originalFetch = globalThis.fetch
 const envKeys = [
@@ -63,9 +46,6 @@ beforeEach(() => {
 	process.env.SYLPHX_PUBLISHABLE_KEY = 'sylphx_pk_test_public'
 	process.env.SYLPHX_PUBLIC_URL = 'https://puzzled.gg'
 	calls = []
-	deleted.length = 0
-	written.length = 0
-	cookieFailure = false
 	cookieValues = {}
 	requestHeaders = { host: 'puzzled.gg', 'user-agent': 'TestBrowser/1.0' }
 	upstream = () => new Response('{}', { status: 200 })
@@ -89,12 +69,28 @@ afterEach(() => {
 	}
 })
 
-afterAll(() => {
-	mock.restore()
-})
+function browserRequest(url: string, init: RequestInit = {}) {
+	const headers = new Headers(requestHeaders)
+	headers.set(
+		'cookie',
+		Object.entries(cookieValues)
+			.map(([key, value]) => `${key}=${value}`)
+			.join('; '),
+	)
+	for (const [key, value] of new Headers(init.headers)) headers.set(key, value)
+	return new Request(url, { ...init, headers })
+}
+
+function expectExpiredCookies(response: Response) {
+	const cookies = response.headers.getSetCookie()
+	expect(cookies).toHaveLength(2)
+	for (const name of ['puzzled_session', 'sylphx_identity_session']) {
+		expect(cookies.find((line) => line.startsWith(`${name}=;`))).toContain('Max-Age=0')
+	}
+}
 
 function jsonPost(path: string, body: unknown, headers: Record<string, string> = {}) {
-	return new Request(`https://puzzled.gg${path}`, {
+	return browserRequest(`https://puzzled.gg${path}`, {
 		method: 'POST',
 		headers: { 'content-type': 'application/json', ...headers },
 		body: JSON.stringify(body),
@@ -116,7 +112,7 @@ describe('current signed-in player', () => {
 				},
 			}),
 		)
-		expect((await currentUser())?.id).toBe('principal-own')
+		expect((await requestUser(browserRequest('https://puzzled.gg/')))?.id).toBe('principal-own')
 		expect(calls).toHaveLength(1)
 		expect(calls[0]?.url).toBe('https://bound-auth.example/v1/sessions/current')
 		expect(calls[0]?.headers.get('authorization')).toBe('Bearer identity_org_session_test')
@@ -136,7 +132,7 @@ describe('current signed-in player', () => {
 				},
 			}),
 		)
-		expect(await currentUser()).toBeNull()
+		expect(await requestUser(browserRequest('https://puzzled.gg/'))).toBeNull()
 	})
 })
 
@@ -218,7 +214,7 @@ describe('forgot password (recovery start)', () => {
 		)
 		expect(crossSite.status).toBe(403)
 		const notJson = await startRecovery(
-			new Request('https://puzzled.gg/api/identity/recovery', {
+			browserRequest('https://puzzled.gg/api/identity/recovery', {
 				method: 'POST',
 				headers: { 'content-type': 'text/plain' },
 				body: '{"email":"a@x.test"}',
@@ -247,8 +243,7 @@ describe('reset password (recovery complete)', () => {
 			step_up_grant_jws: '',
 			new_password: GOOD_PASSWORD,
 		})
-		expect(deleted.sort()).toEqual(['puzzled_session', 'sylphx_identity_session'])
-		expect(response.headers.get('set-cookie')).toBeNull()
+		expectExpiredCookies(response)
 	})
 
 	test('does not use the token as the challenge id', async () => {
@@ -294,13 +289,12 @@ describe('reset password (recovery complete)', () => {
 	test('maps Auth failures to fixed answers by code and status, keeps the browser signed as is', async () => {
 		const run = async (status: number, body: string, headers: Record<string, string> = {}) => {
 			mockUpstream(() => new Response(body, { status, headers }))
-			deleted.length = 0
 			const response = await completeRecovery(jsonPost('/api/identity/recovery/complete', link))
 			return {
 				status: response.status,
 				body: await response.json(),
 				response,
-				cleared: deleted.length,
+				cleared: response.headers.getSetCookie().length,
 			}
 		}
 		for (const status of [401, 404, 409]) {
@@ -373,7 +367,7 @@ describe('verify email', () => {
 			const { idempotency_key, ...rest } = calls[0]?.body ?? {}
 			expect(typeof idempotency_key).toBe('string')
 			expect(rest).toEqual({ challenge_id: 'chal_v', secret: 'mailed' })
-			expect(deleted).toHaveLength(0)
+			expect(response.headers.getSetCookie()).toHaveLength(0)
 		}
 	})
 
@@ -414,7 +408,7 @@ describe('verify email', () => {
 describe('resend verification', () => {
 	test('is refused without a session cookie and never calls Auth', async () => {
 		const response = await resendVerification(
-			new Request('https://puzzled.gg/api/identity/verify-email/resend', { method: 'POST' }),
+			browserRequest('https://puzzled.gg/api/identity/verify-email/resend', { method: 'POST' }),
 		)
 		expect(response.status).toBe(401)
 		expect(calls).toHaveLength(0)
@@ -423,7 +417,7 @@ describe('resend verification', () => {
 	test('sends with the player own session bearer and browser User-Agent; names no address', async () => {
 		cookieValues = { puzzled_session: 'identity_org_session_abc' }
 		const response = await resendVerification(
-			new Request('https://puzzled.gg/api/identity/verify-email/resend', {
+			browserRequest('https://puzzled.gg/api/identity/verify-email/resend', {
 				method: 'POST',
 				headers: { 'user-agent': 'TestBrowser/1.0', 'content-type': 'application/json' },
 				body: JSON.stringify({ email: 'someone-else@x.test' }),
@@ -442,7 +436,7 @@ describe('resend verification', () => {
 		cookieValues = { puzzled_session: 'identity_org_session_abc' }
 		const post = () =>
 			resendVerification(
-				new Request('https://puzzled.gg/api/identity/verify-email/resend', { method: 'POST' }),
+				browserRequest('https://puzzled.gg/api/identity/verify-email/resend', { method: 'POST' }),
 			)
 		mockUpstream(() => new Response('{}', { status: 429, headers: { 'retry-after': '30' } }))
 		const limited = await post()
@@ -457,7 +451,7 @@ describe('sign out', () => {
 	test('ends the session on the supported client sign-out with own bearer and UA, then clears both cookies', async () => {
 		cookieValues = { puzzled_session: 'identity_org_session_abc' }
 		const response = await logout(
-			new Request('https://puzzled.gg/api/identity/logout', {
+			browserRequest('https://puzzled.gg/api/identity/logout', {
 				method: 'POST',
 				headers: { 'user-agent': 'TestBrowser/1.0' },
 			}),
@@ -467,17 +461,17 @@ describe('sign out', () => {
 		expect(calls[0]?.url).toBe('https://bound-auth.example/v1/client/sign-out')
 		expect(calls[0]?.headers.get('authorization')).toBe('Bearer identity_org_session_abc')
 		expect(calls[0]?.headers.get('user-agent')).toBe('TestBrowser/1.0')
-		expect(deleted.sort()).toEqual(['puzzled_session', 'sylphx_identity_session'])
+		expectExpiredCookies(response)
 	})
 
 	test('clears the cookies even when Auth refuses (an unverified account, or Auth down)', async () => {
 		cookieValues = { puzzled_session: 'identity_org_session_abc' }
 		mockUpstream(() => new Response('{"code":"email_unverified"}', { status: 403 }))
 		const response = await logout(
-			new Request('https://puzzled.gg/api/identity/logout', { method: 'POST' }),
+			browserRequest('https://puzzled.gg/api/identity/logout', { method: 'POST' }),
 		)
 		expect(response.status).toBe(200)
-		expect(deleted.sort()).toEqual(['puzzled_session', 'sylphx_identity_session'])
+		expectExpiredCookies(response)
 	})
 })
 
@@ -498,7 +492,9 @@ describe('sign up', () => {
 		)
 		expect(response.status).toBe(200)
 		expect(await response.json()).toEqual({ signedIn: true })
-		expect(written).toEqual(['puzzled_session'])
+		expect(response.headers.getSetCookie()[0]).toMatch(
+			/^puzzled_session=private-session;.*HttpOnly/,
+		)
 		expect(calls).toHaveLength(3)
 	})
 
@@ -509,16 +505,14 @@ describe('sign up', () => {
 			records.push(args)
 		}
 		try {
-			for (const stage of ['password_ticket', 'session_completion', 'cookie'] as const) {
+			for (const stage of ['password_ticket', 'session_completion', 'session_encoding'] as const) {
 				calls = []
-				written.length = 0
-				cookieFailure = stage === 'cookie'
 				mockUpstream((call) => {
 					if (call.url.endsWith('/v1/client/sign-up')) return new Response('{}', { status: 202 })
 					if (call.url.endsWith('/v1/client/sign-in/password') && stage !== 'password_ticket')
 						return Response.json({ ticket: 'private-ticket' })
-					if (stage === 'cookie')
-						return Response.json({ session: { token: 'private-session' }, is_new_user: false })
+					if (stage === 'session_encoding')
+						return Response.json({ session: { token: '\uD800' }, is_new_user: false })
 					return Response.json(
 						{ code: 'private-code-new@x.test', error: 'private-password-ticket-session' },
 						{ status: 503 },
@@ -533,13 +527,13 @@ describe('sign up', () => {
 				)
 				expect(response.status).toBe(502)
 				expect(await response.json()).toEqual({ error: 'signup_signin_failed', retrySignIn: true })
-				expect(written).toHaveLength(0)
+				expect(response.headers.getSetCookie()).toHaveLength(0)
 				expect(records.at(-1)).toEqual([
 					'[warn] signup.signin-failed',
 					{
 						stage: stage === 'password_ticket' ? 'password_ticket' : 'session_completion',
-						reason: stage === 'cookie' ? 'unexpected_error' : 'auth_call_failed',
-						upstreamStatus: stage === 'cookie' ? null : 503,
+						reason: stage === 'session_encoding' ? 'unexpected_error' : 'auth_call_failed',
+						upstreamStatus: stage === 'session_encoding' ? null : 503,
 					},
 				])
 			}
@@ -568,11 +562,11 @@ describe('sign up', () => {
 	})
 })
 
-test('OAuth failure redirect uses the validated public origin behind Knative', async () => {
+test('OAuth failure redirect never exposes the internal Knative host', async () => {
 	const host = 'tryit-web.default.svc.cluster.local:3000'
 	requestHeaders = { host, 'x-forwarded-host': 'puzzled.gg', 'x-forwarded-proto': 'https' }
-	const response = await oauthCallback(new Request(`http://${host}/api/identity/oauth/callback`))
+	const response = await oauthCallback(browserRequest(`http://${host}/api/identity/oauth/callback`))
 	expect(response.status).toBe(303)
-	expect(response.headers.get('location')).toBe('https://puzzled.gg/login?error=oauth_failed')
+	expect(response.headers.get('location')).toBe('/login?error=oauth_failed')
 	expect(calls).toHaveLength(0)
 })

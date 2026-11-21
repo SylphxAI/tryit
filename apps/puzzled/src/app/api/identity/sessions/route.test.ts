@@ -1,15 +1,12 @@
-import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test'
-import * as siteOrigin from '@/lib/site-origin.server'
+import { afterEach, describe, expect, mock, test } from 'bun:test'
 
 let token: string | undefined = 'session-token'
-let clears = 0
-mock.module('@/lib/identity/server', () => ({
-	sessionToken: async () => token,
-	clearSessionCookie: async () => {
-		clears++
+mock.module('@/lib/identity/request-identity', () => ({
+	requestSessionToken: () => token,
+	identityDestAdmission: () => {
+		throw new Error('unused by sessions')
 	},
-	setSessionCookie: async () => undefined,
-	identityDestAdmission: () => ({ origin: '', credential: '', projectId: '' }),
+	requestUserAgent: (request: Request) => request.headers.get('user-agent'),
 }))
 
 const { GET, POST } = await import('./route')
@@ -42,7 +39,12 @@ function stub(list: unknown = { sessions: [session('a')], next_cursor: '' }) {
 function request(body: unknown, extra: Record<string, string> = {}) {
 	return new Request('https://puzzled.gg/api/identity/sessions', {
 		method: 'POST',
-		headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0 Test', ...extra },
+		headers: {
+			'content-type': 'application/json',
+			'user-agent': 'Mozilla/5.0 Test',
+			host: 'puzzled.gg',
+			...extra,
+		},
 		body: JSON.stringify(body),
 	})
 }
@@ -52,7 +54,6 @@ afterEach(() => {
 	if (originalCallerKey === undefined) delete process.env.SYLPHX_PUBLISHABLE_KEY
 	else process.env.SYLPHX_PUBLISHABLE_KEY = originalCallerKey
 	token = 'session-token'
-	clears = 0
 	calls.length = 0
 })
 
@@ -108,17 +109,18 @@ describe('/api/identity/sessions', () => {
 			session_id: 'other',
 			reason: 'Player ended a session in Tryit settings',
 		})
-		expect(clears).toBe(0)
 	})
 	test('ending current session clears local cookies after confirmed revocation', async () => {
 		stub()
 		const response = await POST(request({ sessionId: 'current' }))
 		expect(await response.json()).toEqual({ endedCurrent: true })
-		expect(clears).toBe(1)
+		expect(response.headers.getSetCookie()).toEqual([
+			expect.stringContaining('puzzled_session=; Max-Age=0'),
+			expect.stringContaining('sylphx_identity_session=; Max-Age=0'),
+		])
 	})
 	test('cross-site and non-JSON writes never reach Auth', async () => {
 		stub()
-		spyOn(siteOrigin, 'getRequestSiteOrigin').mockResolvedValue('https://puzzled.gg')
 		expect(
 			(await POST(request({ sessionId: 'a' }, { origin: 'https://elsewhere.example' }))).status,
 		).toBe(403)
@@ -155,7 +157,8 @@ describe('/api/identity/sessions', () => {
 			String(url).endsWith('/revoke')
 				? Response.json({ error: 'not_found' }, { status: 404 })
 				: fetchStub(url, init)) as unknown as typeof fetch
-		expect((await POST(request({ sessionId: 'current' }))).status).toBe(502)
-		expect(clears).toBe(0)
+		const response = await POST(request({ sessionId: 'current' }))
+		expect(response.status).toBe(502)
+		expect(response.headers.getSetCookie()).toEqual([])
 	})
 })

@@ -1,14 +1,10 @@
 import { createHash } from 'node:crypto'
 import { env } from '../env'
-import { getRequestSiteOrigin } from '../site-origin.server'
-import {
-	DestHttpError,
-	destIdentityJson,
-	destIdentityOrigin,
-	destSessionAccessToken,
-	destSessionChallengeId,
-} from './dest'
-import { identityDestAdmission, setSessionCookie } from './server'
+import { requestSiteOrigin } from '../site-origin-request'
+import { DestHttpError, destIdentityJson, destIdentityOrigin } from './dest'
+import { identityDestAdmission } from './request-identity'
+
+export { requestUserAgent } from './request-identity'
 
 export function identityFail(status: number, error: string) {
 	return Response.json({ error }, { status })
@@ -33,11 +29,12 @@ export function destAdmissionResponse():
 		return { ok: true, ...identityDestAdmission() }
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'identity_unconfigured'
-		const errorCode = message.includes('SYLPHX_AUTH_SECRET_KEY')
-			? 'identity_credential_unconfigured'
-			: message.includes('SYLPHX_AUTH_ORGANIZATION_ID')
-				? 'identity_project_unconfigured'
-				: 'identity_unconfigured'
+		const errorCode = [
+			'identity_credential_unconfigured',
+			'identity_project_unconfigured',
+		].includes(message)
+			? message
+			: 'identity_unconfigured'
 		console.warn('identity admission unconfigured', { error: errorCode })
 		return { ok: false, response: identityFail(503, errorCode) }
 	}
@@ -56,14 +53,6 @@ export async function destIdentityCall<T>(
 	return destIdentityJson<T>(identityOrigin(), path, init)
 }
 
-export async function issueSessionCookie(raw: unknown): Promise<string | undefined> {
-	const token = destSessionAccessToken(raw)
-	if (token) await setSessionCookie(token)
-	return token
-}
-
-export { destSessionChallengeId }
-
 /**
  * Same-origin admission for a mutating identity route. A browser always sends
  * `Origin` on a cross-site POST, so a present `Origin` must be this site (the
@@ -76,11 +65,12 @@ export async function admitSameOrigin(request: Request): Promise<Response | null
 		return identityFail(403, 'forbidden_origin')
 	}
 	const origin = request.headers.get('origin')
-	if (
-		origin &&
-		origin !== new URL(request.url).origin &&
-		origin !== (await getRequestSiteOrigin())
-	) {
+	if (origin && origin !== new URL(request.url).origin) {
+		try {
+			if (origin === requestSiteOrigin(request.headers)) return null
+		} catch {
+			// Invalid or missing public authority cannot admit a browser write.
+		}
 		return identityFail(403, 'forbidden_origin')
 	}
 	return null
@@ -94,11 +84,6 @@ export async function admitJsonPost(request: Request): Promise<Response | null> 
 		return identityFail(415, 'json_required')
 	}
 	return null
-}
-
-/** The browser's User-Agent for a request: Auth binds a session to it. */
-export function requestUserAgent(request: Request): string {
-	return request.headers.get('user-agent')?.trim() || 'puzzled-web'
 }
 
 /**

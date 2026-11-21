@@ -1,6 +1,3 @@
-import { relayBrowserError } from '@/lib/observability/relay'
+export { POST } from '@/server/api/observability/errors'
 
 export const runtime = 'nodejs'
-
-/** Browser error relay into Sylphx Observability (docs/observability.md). */
-export const POST = relayBrowserError

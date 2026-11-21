@@ -8,19 +8,17 @@ import {
 	sessionTimes,
 } from './client-auth'
 import { destIdentityProjectId } from './credentials'
-import { setSessionCookie } from './server'
+import { requestUserAgent } from './request-identity'
 import { recordSignupAttribution } from './signup-attribution'
 
 export function authFail(status: number, error: string) {
 	return Response.json({ error }, { status })
 }
 
-export function userAgentOf(request: Request): string {
-	return request.headers.get('user-agent')?.trim() || 'puzzled-web'
-}
+export { requestUserAgent as userAgentOf }
 
 /**
- * Redeem a sign-in ticket into the session cookie. When the account is new,
+ * Redeem a sign-in ticket for the response to store in its session cookie. When the account is new,
  * credit the link that brought the player (first-touch tags). Returns the
  * session token and whether Auth says the account is new, or throws
  * `AuthCallError`.
@@ -30,9 +28,8 @@ export async function completeSignIn(
 	request: Request,
 	ticket: string,
 ): Promise<{ token: string; newAccount: boolean }> {
-	const userAgent = userAgentOf(request)
+	const userAgent = requestUserAgent(request)
 	const session = await redeemTicket(config, ticket, userAgent)
-	await setSessionCookie(session.token)
 	let newAccount = false
 	try {
 		const times =

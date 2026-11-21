@@ -6,7 +6,7 @@ let calls: {
 	init: { method?: string; body?: unknown; headers?: Record<string, string> }
 }[] = []
 let pages: unknown[] = []
-mock.module('@/lib/identity/server', () => ({ currentUser: async () => user }))
+mock.module('@/lib/identity/request-identity', () => ({ requestUser: async () => user }))
 mock.module('@/lib/identity/peels', () => ({
 	destEventsJson: async (path: string, init: (typeof calls)[number]['init']) => {
 		calls.push({ path, init })
@@ -42,14 +42,14 @@ beforeEach(() => {
 describe('verified viewer device adapter', () => {
 	test('unauthenticated list and write return 401 without upstream calls', async () => {
 		user = null
-		expect((await GET()).status).toBe(401)
+		expect((await GET(new Request('https://puzzled.test/api/events/devices'))).status).toBe(401)
 		expect((await POST(post({ unregister: true, deviceId: owned.device_id }))).status).toBe(401)
 		expect(calls).toHaveLength(0)
 	})
 
 	test('list is user scoped and filters unexpected foreign results', async () => {
 		pages = [page([owned, foreign])]
-		const response = await GET()
+		const response = await GET(new Request('https://puzzled.test/api/events/devices'))
 		expect(await response.json()).toEqual({ devices: [owned] })
 		const url = new URL(calls[0]!.path, 'https://events.test')
 		expect(url.searchParams.get('user_id')).toBe(owned.user_id)

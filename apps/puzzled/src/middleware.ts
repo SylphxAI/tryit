@@ -4,6 +4,8 @@ import { adsConfig } from '@/lib/ads'
 import { buildCsp, createNonce } from '@/lib/csp'
 import { env } from '@/lib/env'
 import { canonicalPageRedirect } from '@/lib/i18n/page-redirect'
+import { migratedSessionHeaders } from '@/lib/identity/session-response'
+import { isProxySkippedPath } from '@/lib/proxy-paths'
 
 export default createMiddleware({
 	onRequest(event) {
@@ -25,5 +27,23 @@ export default createMiddleware({
 		headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
 		headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
 		return canonicalPageRedirect(event.request)
+	},
+	onBeforeResponse(event, { body }) {
+		const { pathname } = new URL(event.request.url)
+		if (event.request.method !== 'GET') return
+		if (pathname !== '/api/identity/session' && isProxySkippedPath(pathname)) return
+		const headers = body instanceof Response ? body.headers : event.response.headers
+		const status = body instanceof Response ? body.status : (event.response.status ?? 200)
+		if (status >= 400) return
+		const cookies = migratedSessionHeaders(event.request, headers, env.NODE_ENV === 'production')
+		if (cookies.length === 0) return
+		if (body instanceof Response) {
+			const response = new Response(body.body, body)
+			response.headers.set('cache-control', 'private, no-store')
+			for (const cookie of cookies) response.headers.append('set-cookie', cookie)
+			return response
+		}
+		headers.set('cache-control', 'private, no-store')
+		for (const cookie of cookies) headers.append('set-cookie', cookie)
 	},
 })

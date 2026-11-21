@@ -1,14 +1,6 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
-// Exercise the real routes, session resolution and transport; mock only Next's
-// request context and the remote Auth service.
-let cookieValues: Record<string, string> = {}
-mock.module('next/headers', () => ({
-	cookies: async () => ({
-		get: (name: string) => (cookieValues[name] ? { value: cookieValues[name] } : undefined),
-	}),
-	headers: async () => new Headers({ host: 'puzzled.gg', 'user-agent': 'TestBrowser/1.0' }),
-}))
+let cookie = ''
 
 const { GET, POST } = await import('@/app/api/identity/policy-consent/route')
 const { policyConsentRequest } = await import('./policy-consent-server')
@@ -55,7 +47,7 @@ beforeEach(() => {
 	process.env.SYLPHX_AUTH_ORGANIZATION_ID = organization
 	process.env.SYLPHX_PUBLISHABLE_KEY = 'sylphx_pk_test_public'
 	process.env.SYLPHX_PUBLIC_URL = 'https://puzzled.gg'
-	cookieValues = { puzzled_session: token }
+	cookie = `puzzled_session=${token}`
 	calls = []
 	sessionOrganization = organization
 	consentUpstream = () => Response.json(currentStatus)
@@ -81,11 +73,10 @@ afterEach(() => {
 		else process.env[key] = savedEnv[key]
 	}
 })
-afterAll(() => mock.restore())
 
 function getRequest() {
 	return new Request('https://puzzled.gg/api/identity/policy-consent', {
-		headers: { 'user-agent': 'TestBrowser/1.0' },
+		headers: { host: 'puzzled.gg', 'user-agent': 'TestBrowser/1.0', cookie },
 	})
 }
 function postRequest(body: unknown = POLICY_ACCEPTANCE, headers: Record<string, string> = {}) {
@@ -94,6 +85,8 @@ function postRequest(body: unknown = POLICY_ACCEPTANCE, headers: Record<string, 
 		headers: {
 			'content-type': 'application/json',
 			origin: 'https://puzzled.gg',
+			host: 'puzzled.gg',
+			cookie,
 			'user-agent': 'TestBrowser/1.0',
 			...headers,
 		},
@@ -206,7 +199,7 @@ describe('policy consent browser routes', () => {
 		expect(await response.json()).toEqual(staleStatus)
 	})
 	test('GET and POST reject a missing session without calling Auth', async () => {
-		cookieValues = {}
+		cookie = ''
 		expect((await GET(getRequest())).status).toBe(401)
 		expect((await POST(postRequest())).status).toBe(401)
 		expect(calls).toHaveLength(0)

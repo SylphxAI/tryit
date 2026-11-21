@@ -1,10 +1,5 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { resetConnectTransportCache } from '@/lib/connect/transport'
-
-// Route handlers read request headers through next/headers; give the canonical
-// site-origin resolver the headers of the request under test.
-let requestHeaders = new Headers()
-mock.module('next/headers', () => ({ headers: async () => requestHeaders }))
 
 const { GET, POST } = await import('./route')
 
@@ -19,7 +14,6 @@ beforeEach(() => {
 	resetConnectTransportCache()
 	forwarded = []
 	rpcStatus = 200
-	requestHeaders = new Headers({ host: 'tryit.fun', 'x-forwarded-proto': 'https' })
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 		const request = new Request(input, init)
 		forwarded.push({ url: request.url, body: await request.json() })
@@ -91,7 +85,11 @@ describe('unsubscribe forwarding', () => {
 	test('Rust refusal becomes invalid-link response for JSON and browser links', async () => {
 		rpcStatus = 400
 		expect((await POST(jsonRequest('forged-or-expired'))).status).toBe(400)
-		const response = await GET(new Request('https://puzzled.test/api/email/unsubscribe?token=bad'))
+		const response = await GET(
+			new Request('https://tryit.fun/api/email/unsubscribe?token=bad', {
+				headers: { host: 'tryit.fun' },
+			}),
+		)
 		expect(response.headers.get('location')).toBe(
 			'https://tryit.fun/unsubscribe?error=invalid_token',
 		)
@@ -99,7 +97,9 @@ describe('unsubscribe forwarding', () => {
 
 	test('browser link forwards and retains success landing', async () => {
 		const response = await GET(
-			new Request('https://puzzled.test/api/email/unsubscribe?token=valid'),
+			new Request('https://tryit.fun/api/email/unsubscribe?token=valid', {
+				headers: { host: 'tryit.fun' },
+			}),
 		)
 		expect(response.headers.get('location')).toBe('https://tryit.fun/unsubscribe?success=true')
 		expect(forwarded[0]?.body).toEqual({ token: 'valid' })
@@ -108,7 +108,6 @@ describe('unsubscribe forwarding', () => {
 	test('redirects use the public origin, not the internal listener request URL', async () => {
 		process.env.SYLPHX_PUBLIC_URL = 'https://tryit.fun'
 		const host = 'tryit-web.default.svc.cluster.local:3000'
-		requestHeaders = new Headers({ host })
 		const internal = `http://${host}/api/email/unsubscribe`
 		const ok = await GET(new Request(`${internal}?token=valid`))
 		expect(ok.status).toBe(307)

@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 
-mock.module('@/lib/identity/server', () => ({
-	currentUser: async () => ({ id: 'user-secret-id', email: 'secret@example.com' }),
-	sessionToken: async () => 'session-token',
-	setSessionCookie: async () => undefined,
+mock.module('@/lib/identity/request-identity', () => ({
+	requestUser: async () => ({ id: 'user-secret-id', email: 'secret@example.com' }),
 	identityDestAdmission: () => ({
 		origin: 'https://identity.test',
 		credential: 'sk_secret',
