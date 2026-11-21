@@ -4,6 +4,7 @@ import duoGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/duo
 import cageGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/killer-sudoku.json'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
+import ladderGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-ladder.json'
 import { productDayKey } from '../src/lib/product-day'
 
 const boardStage = '[data-game-stage="board"]'
@@ -662,5 +663,79 @@ test('Cage Sudoku honors cage sums, keeps givens fixed and retries the exact acc
 	})
 	await retry.click()
 	await expect(board.getByText('Puzzle Complete!')).toBeVisible()
+	expect(submits).toEqual([submits[0], submits[0]])
+})
+
+test('Rungs validates steps, preserves undo and waits for the exact saved path', async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const puzzleId = '330993b1-f969-4e16-99cb-7dea3790122c'
+	const fixture = ladderGoldens[0]
+	const { board, submits } = await mount(page, 'word-ladder', fixture.puzzleData, true, {
+		puzzleId,
+	})
+	const input = board.getByRole('textbox', { name: 'Enter a word...' })
+	const rungs = board.getByRole('list', { name: 'Rungs' }).getByRole('listitem')
+	const go = board.getByRole('button', { name: 'Go', exact: true })
+	const undo = board.getByRole('button', { name: 'Undo' })
+	const type = async (word: string) => {
+		await input.fill(word)
+		await input.press('Enter')
+	}
+	await expect(board.getByText('TOMB', { exact: false }).first()).toBeVisible()
+	await expect(board.getByText('0 steps · Minimum: 4')).toBeVisible()
+	await expect(input).toHaveAttribute('maxlength', '4')
+	await expect(go).toBeDisabled()
+	await expect(undo).toBeDisabled()
+	await expect(rungs).toHaveCount(1)
+	await expect(board.getByText('dame', { exact: true })).toHaveCount(0)
+
+	await type('ZZZZ')
+	await expect(input).toHaveAttribute('aria-invalid', 'true')
+	await expect(input).toHaveAccessibleDescription('Not a valid word')
+	await type('hot')
+	await expect(input).toHaveAccessibleDescription('Word must be the same length')
+	await type('tomb')
+	await expect(input).toHaveAccessibleDescription('Change exactly one letter')
+	await expect(rungs).toHaveCount(1)
+
+	await input.fill('LAMP')
+	await go.click()
+	await expect(input).toBeFocused()
+	await expect(input).toHaveValue('')
+	await expect(rungs.last()).toHaveAttribute('aria-current', 'step')
+	await expect(rungs.last().locator('[data-changed]')).toHaveText('l')
+	await expect(board.getByText('1 step · Minimum: 4')).toBeVisible()
+	await type('damp')
+	await expect(input).toHaveAccessibleDescription('Already used this word')
+	await undo.click()
+	await expect(rungs).toHaveCount(1)
+	await expect(input).toBeFocused()
+	await expect(input).not.toHaveAttribute('aria-invalid')
+	expect(submits).toHaveLength(0)
+
+	for (const word of fixture.solution.path.slice(1)) await type(word)
+	const retry = board.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(input).toHaveCount(0)
+	await expect(undo).toHaveCount(0)
+	await expect(board.getByText('You made it!')).toHaveCount(0)
+	await expect(board.getByRole('button', { name: 'Share' })).toHaveCount(0)
+	expect(submits).toHaveLength(1)
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[0].body).toMatchObject({
+		gameSlug: 'word-ladder',
+		puzzleId,
+		puzzleDate: date,
+		status: 'won',
+		attempts: 4,
+	})
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		path: fixture.solution.path,
+	})
+	await retry.click()
+	await expect(board.getByText('You made it!')).toBeVisible()
+	await expect(board.getByRole('button', { name: 'Share' })).toBeVisible()
 	expect(submits).toEqual([submits[0], submits[0]])
 })

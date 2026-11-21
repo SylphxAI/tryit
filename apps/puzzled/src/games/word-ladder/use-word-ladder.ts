@@ -4,9 +4,8 @@
  */
 
 import { useCallback, useReducer } from 'react'
-import { getWordList } from './dictionary'
+import { checkLadderStep } from './check-step'
 import type { WordLadderPuzzleData, WordLadderState } from './types'
-import { isOneLetterChange } from './types'
 
 // Actions
 type WordLadderAction =
@@ -18,7 +17,6 @@ type WordLadderAction =
 
 type WordLadderReducerState = WordLadderState & {
 	puzzle: WordLadderPuzzleData | null
-	wordList: Set<string>
 	error: string | null
 }
 
@@ -29,7 +27,6 @@ const initialState: WordLadderReducerState = {
 	endTime: null,
 	currentWord: '',
 	puzzle: null,
-	wordList: new Set(),
 	error: null,
 }
 
@@ -44,7 +41,6 @@ function wordLadderReducer(
 				...initialState,
 				puzzle,
 				path: [puzzle.startWord.toLowerCase()],
-				wordList: getWordList(),
 				startTime: Date.now(),
 			}
 		}
@@ -62,39 +58,8 @@ function wordLadderReducer(
 			if (state.isComplete || !state.puzzle || !state.currentWord) return state
 
 			const word = state.currentWord.toLowerCase()
-			const lastWord = state.path[state.path.length - 1]
-
-			// Validate word is in dictionary
-			if (!state.wordList.has(word)) {
-				return {
-					...state,
-					error: 'notInList',
-				}
-			}
-
-			// Validate word length matches
-			if (word.length !== state.puzzle.wordLength) {
-				return {
-					...state,
-					error: 'wrongLength',
-				}
-			}
-
-			// Validate it's a one-letter change
-			if (!isOneLetterChange(lastWord, word)) {
-				return {
-					...state,
-					error: 'notOneChange',
-				}
-			}
-
-			// Check if already used
-			if (state.path.includes(word)) {
-				return {
-					...state,
-					error: 'alreadyUsed',
-				}
-			}
+			const error = checkLadderStep(state.path, word, state.puzzle.wordLength)
+			if (error) return { ...state, error }
 
 			const newPath = [...state.path, word]
 			const isComplete = word === state.puzzle.endWord.toLowerCase()

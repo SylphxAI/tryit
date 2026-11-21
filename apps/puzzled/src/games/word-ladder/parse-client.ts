@@ -19,13 +19,20 @@ export function parseWordLadderClientPayload(data: unknown): WordLadderPuzzleDat
 	const inner = isRecord(data.puzzleData) ? data.puzzleData : data
 	const startWord = typeof inner.startWord === 'string' ? inner.startWord.toLowerCase() : ''
 	const endWord = typeof inner.endWord === 'string' ? inner.endWord.toLowerCase() : ''
-	if (!startWord || startWord.length !== endWord.length) {
-		throw new Error('[word-ladder] start and end words are required')
+	if (
+		!/^[a-z]{3,5}$/.test(startWord) ||
+		!/^[a-z]{3,5}$/.test(endWord) ||
+		startWord === endWord ||
+		startWord.length !== endWord.length
+	) {
+		throw new Error('[word-ladder] distinct, equal-length start and end words are required')
 	}
-	const wordLength =
-		typeof inner.wordLength === 'number' && inner.wordLength > 0
-			? inner.wordLength
-			: startWord.length
-	const minSteps = typeof inner.minSteps === 'number' && inner.minSteps > 0 ? inner.minSteps : 1
-	return { startWord, endWord, wordLength, minSteps }
+	if (inner.wordLength !== undefined && inner.wordLength !== startWord.length) {
+		throw new Error('[word-ladder] invalid word length')
+	}
+	const minSteps = inner.minSteps === undefined ? 1 : inner.minSteps
+	if (typeof minSteps !== 'number' || !Number.isSafeInteger(minSteps) || minSteps < 1) {
+		throw new Error('[word-ladder] invalid minimum steps')
+	}
+	return { startWord, endWord, wordLength: startWord.length, minSteps }
 }

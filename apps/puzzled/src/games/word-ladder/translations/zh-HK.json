@@ -14,6 +14,8 @@
 	"submit": "出發",
 	"undo": "復原",
 	"complete": "你做到了！",
+	"target": "目標詞：",
+	"steps": "已走 {count} 步 · 最少 {minimum} 步",
 	"messages": {
 		"notInList": "不是有效的詞",
 		"wrongLength": "詞語長度必須相同",
