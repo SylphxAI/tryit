@@ -130,6 +130,16 @@ if [ "$code" -ge 300 ]; then
   echo "::error::PATCH price_catalogs/default answered ${code}"; cat "$work/patch.out"; exit 1
 fi
 
+# Confirm Money saved the requested branding before syncing to the processor.
+if ! jq -e --slurpfile desired "$work/catalog.json" '
+  .spec.checkout_branding as $actual
+  | $desired[0].spec.checkout_branding as $expected
+  | $expected == null or ($actual | {display_name, icon: {url: .icon.url}, background_color, button_color, border_style}) == $expected
+' "$work/patch.out" >/dev/null; then
+  echo "::error::Money did not return the requested checkout branding after PATCH"; exit 1
+fi
+echo "checkout branding verified in Money PATCH response"
+
 code=$(call_with_retry POST "${base}:sync" "$work/sync.out" --data '{}')
 if [ "$code" -ge 300 ]; then
   echo "::error::POST price_catalogs/default:sync answered ${code}"; cat "$work/sync.out"; exit 1
