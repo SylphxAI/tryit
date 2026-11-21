@@ -1,13 +1,8 @@
 /** @jsxImportSource solid-js */
 import { Delete, PencilLine, Undo2 } from 'lucide-solid'
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
-import type { DailySnapshot } from '@/features/daily/lib/daily-fallback'
-import type { PuzzleDifficulty } from '@/games/types'
-import { isAlreadyPlayedError } from '@/lib/connect/already-played'
-import { shareResult, submitGuess } from '@/lib/connect/puzzle-client'
-import type { Locale } from '@/lib/i18n/config'
+import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
-import { withIdempotencyKey } from '@/lib/idempotency-key'
 import styles from './components/sudoku-craft.module.css'
 import { parseSudokuClientPayload } from './parse-client'
 import { createInitialState, type SudokuAction, sudokuReducer } from './state'
@@ -17,14 +12,7 @@ const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const coords = [0, 1, 2]
 const moves = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' } as const
 
-type Props = {
-	puzzle: Extract<DailySnapshot, { kind: 'playable' }>
-	locale: Locale
-	difficulty?: PuzzleDifficulty
-	onAlreadyPlayed: () => void
-}
-
-export default function SudokuBoard(props: Props) {
+export default function SudokuBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
 	const puzzle = createMemo(() => {
 		try {
@@ -40,68 +28,17 @@ export default function SudokuBoard(props: Props) {
 	)
 }
 
-function Board(props: Props & { data: SudokuPuzzleClientData }) {
+function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 	const t = createTranslator(props.locale)
 	const [state, setState] = createSignal(createInitialState(props.data))
-	const [result, setResult] = createSignal<'pending' | 'accepted' | 'failed'>()
-	const [sharing, setSharing] = createSignal(false)
-	const [shareError, setShareError] = createSignal(false)
+	const finish = createBoardFinish(props, 'sudoku')
 	const dispatch = (action: SudokuAction) =>
 		setState((previous) => sudokuReducer(previous, action, props.data))
 	const values = createMemo(() => state().userGrid.map((row) => row.map((cell) => cell.value)))
-	let submitInput: ReturnType<typeof makeSubmission> | undefined
-	const startedAt = Date.now()
-
-	function makeSubmission() {
-		return withIdempotencyKey({
-			gameSlug: 'sudoku',
-			status: 'won' as const,
-			attempts: 1,
-			timeSpentMs: Math.max(0, (state().endTime ?? Date.now()) - startedAt),
-			difficulty: props.difficulty ?? props.data.difficulty,
-			puzzleDate: props.puzzle.puzzleDate,
-			puzzleId: props.puzzle.puzzleId,
-			submission: { finalGrid: values() },
-		})
-	}
-	async function finish() {
-		if (result() === 'pending' || result() === 'accepted') return
-		submitInput ??= makeSubmission()
-		setResult('pending')
-		try {
-			const response = await submitGuess(submitInput)
-			if (response.valid && response.status === 'won') setResult('accepted')
-			else if (isAlreadyPlayedError(response.error)) props.onAlreadyPlayed()
-			else setResult('failed')
-		} catch (error) {
-			if (isAlreadyPlayedError(error)) props.onAlreadyPlayed()
-			else setResult('failed')
-		}
-	}
 	createEffect(() => {
-		if (state().isComplete && !submitInput) void finish()
+		if (state().isComplete)
+			finish.finish({ finalGrid: values() }, props.difficulty ?? props.data.difficulty)
 	})
-
-	async function share() {
-		if (sharing()) return
-		setSharing(true)
-		setShareError(false)
-		try {
-			const id = await shareResult({
-				gameSlug: 'sudoku',
-				puzzleDate: props.puzzle.puzzleDate,
-				tap: true,
-			})
-			if (!id) throw new Error('missing_share_id')
-			const url = new URL(`/r/${encodeURIComponent(id)}`, window.location.origin).href
-			if (navigator.share) await navigator.share({ title: t('games.sudoku.name'), url })
-			else await navigator.clipboard.writeText(url)
-		} catch (error) {
-			if (!(error instanceof DOMException && error.name === 'AbortError')) setShareError(true)
-		} finally {
-			setSharing(false)
-		}
-	}
 	onMount(() => {
 		function keydown(event: KeyboardEvent) {
 			if (
@@ -256,35 +193,7 @@ function Board(props: Props & { data: SudokuPuzzleClientData }) {
 					</button>
 				</div>
 			</div>
-			<Show when={result() === 'accepted'}>
-				<div class="tactile-card space-y-2 p-4" role="status">
-					<h2 class="font-display text-xl">{t('gameResult.congratulations')}</h2>
-					<p>{t('games.sudoku.complete')}</p>
-					<button
-						type="button"
-						class="min-h-11 font-semibold underline"
-						disabled={sharing()}
-						onClick={() => void share()}
-					>
-						{t('common.share')}
-					</button>
-				</div>
-			</Show>
-			<Show when={result() === 'failed'}>
-				<div role="alert">
-					{t('common.error')}{' '}
-					<button
-						type="button"
-						class="min-h-11 font-semibold underline"
-						onClick={() => void finish()}
-					>
-						{t('common.retry')}
-					</button>
-				</div>
-			</Show>
-			<Show when={shareError()}>
-				<p role="alert">{t('common.error')}</p>
-			</Show>
+			<BoardFinish finish={finish} locale={props.locale} message={t('games.sudoku.complete')} />
 		</div>
 	)
 }

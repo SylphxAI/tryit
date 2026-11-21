@@ -12,7 +12,7 @@ import {
 	Suspense,
 	Switch,
 } from 'solid-js'
-import { isServer } from 'solid-js/web'
+import { Dynamic, isServer } from 'solid-js/web'
 import { sendFunnel } from '@/features/analytics/lib/funnel'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
@@ -27,7 +27,11 @@ import type { GameDayRequest } from '../lib/day-request'
 import { markStartIntent, takeStartIntent } from '../lib/start-intent'
 import { todayPlayPath } from '../lib/today-play-path'
 
-const SudokuBoard = lazy(() => import('@/games/sudoku/solid-board'))
+const boards = new Map([
+	['sudoku', lazy(() => import('@/games/sudoku/solid-board'))],
+	['nonogram', lazy(() => import('@/games/nonogram/solid-board'))],
+	['word-search', lazy(() => import('@/games/word-search/solid-board'))],
+])
 type Locked = { kind: 'locked' }
 type State = DailySnapshot | Locked
 
@@ -46,7 +50,7 @@ export function DailyPlay(props: {
 	const slug = props.data.slug
 	const archive = props.day.mode === 'archive'
 	const choose = !archive && props.data.difficultyLevels.length > 0 && !props.difficulty
-	const canRender = slug === 'sudoku'
+	const board = boards.get(slug)
 	const [starting, setStarting] = createSignal(false)
 	const input = { gameSlug: slug, difficulty: props.difficulty, puzzleDate: props.day.puzzleDate }
 	const [state, { mutate, refetch }] = createResource(
@@ -60,7 +64,7 @@ export function DailyPlay(props: {
 		},
 	)
 	const play = async (puzzleDate: string) => {
-		if (starting() || !canRender) return
+		if (starting() || !board) return
 		setStarting(true)
 		try {
 			mutate(classifyDailyResponse(await startDaily({ ...input, puzzleDate })))
@@ -75,13 +79,7 @@ export function DailyPlay(props: {
 		const value = state()
 		if (!value || handled) return
 		handled = true
-		if (
-			canRender &&
-			!choose &&
-			props.started &&
-			value.kind === 'startable' &&
-			takeStartIntent(slug)
-		)
+		if (board && !choose && props.started && value.kind === 'startable' && takeStartIntent(slug))
 			void play(value.puzzleDate)
 	})
 	const snapshot = <K extends State['kind']>(kind: K) => {
@@ -91,7 +89,7 @@ export function DailyPlay(props: {
 	let seen = false
 	createEffect(() => {
 		const value = snapshot('playable')
-		if (!value || seen || !canRender || choose) return
+		if (!value || seen || !board || choose) return
 		seen = true
 		sendFunnel({ event: 'game_start', game_slug: slug })
 		if (!archive) recordDailyPick(value.puzzleDate, slug)
@@ -205,7 +203,7 @@ export function DailyPlay(props: {
 				</Match>
 				<Match when={snapshot('startable')}>
 					{(value) =>
-						canRender ? (
+						board ? (
 							<div class="mx-auto max-w-md space-y-4 text-center" data-game-stage="start">
 								<p>{t('daily.startUsesPick')}</p>
 								<button
@@ -225,7 +223,7 @@ export function DailyPlay(props: {
 				</Match>
 				<Match when={snapshot('playable')}>
 					{(value) =>
-						canRender ? (
+						board ? (
 							<div
 								class="game-stage mx-auto flex min-h-[26rem] max-w-[34rem] flex-col"
 								data-game-stage="board"
@@ -240,15 +238,18 @@ export function DailyPlay(props: {
 									<a
 										class="inline-flex min-h-11 items-center underline"
 										href={
-											props.day.mode === 'daily' ? `${props.data.canonicalPath}#play` : '#rules'
+											!archive && props.data.difficultyLevels.length
+												? `${props.data.canonicalPath}#play`
+												: '#rules'
 										}
 									>
-										{props.day.mode === 'daily'
+										{!archive && props.data.difficultyLevels.length
 											? t('common.difficulty.selectDifficulty')
 											: t('common.help')}
 									</a>
 								</div>
-								<SudokuBoard
+								<Dynamic
+									component={board}
 									puzzle={value()}
 									locale={props.data.locale}
 									difficulty={props.difficulty}
