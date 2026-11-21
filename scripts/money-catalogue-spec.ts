@@ -17,7 +17,15 @@ type Licence = {
 	key: string
 	term: { unit: 'calendar_years' | 'calendar_months' | 'days'; count: number }
 }
+type CheckoutBranding = {
+	display_name: string
+	icon: { url: string }
+	background_color: string
+	button_color: string
+	border_style: 'rounded' | 'rectangular' | 'pill'
+}
 type Catalogue = {
+	checkout_branding?: CheckoutBranding
 	features: Record<string, { kind: string; name: Names }>
 	products: { id: string; name: Names; licence?: Licence }[]
 	plans: {
@@ -35,6 +43,7 @@ const KEY = /^[a-z][a-z0-9_]{0,63}$/
 const FEATURE_KEY = /^[a-z][a-z0-9_.]{0,63}$/
 
 export type Spec = {
+	checkout_branding?: CheckoutBranding
 	features: { key: string; display_name: string; kind: 'boolean' | 'limit' }[]
 	products: {
 		key: string
@@ -114,7 +123,7 @@ export function toSpec(catalogue: Catalogue): Spec {
 			}),
 		}
 	})
-	return { features, products }
+	return { checkout_branding: catalogue.checkout_branding, features, products }
 }
 
 function sorted(map: Record<string, string>): [string, string][] {
