@@ -50,7 +50,9 @@ case "$url" in
       answer '{"error":"not found"}' 404
     fi ;;
   */price_catalogs/default:sync) answer "\${FAKE_SYNC_BODY:-{}}" "\${FAKE_SYNC_CODE:-200}" ;;
-  */price_catalogs/default*) answer "\${FAKE_MONEY_BODY:-{}}" "\${FAKE_MONEY_CODE:-200}" ;;
+  */price_catalogs/default*)
+    cp "\${data#@}" "$RUNNER_TEMP/patch-request.json"
+    answer "\${FAKE_MONEY_BODY:-$(cat "$RUNNER_TEMP/patch-request.json")}" "\${FAKE_MONEY_CODE:-200}" ;;
   *) answer '{"unexpected":true}' 404 ;;
 esac
 `
@@ -98,6 +100,9 @@ function run(env: Record<string, string>) {
 		stderr: result.stderr.toString(),
 		stdout: result.stdout.toString(),
 		calls: readFileSync(log, 'utf8').split('\n').filter(Boolean),
+		patch: existsSync(join(dir, 'patch-request.json'))
+			? JSON.parse(readFileSync(join(dir, 'patch-request.json'), 'utf8'))
+			: undefined,
 		merchantConnect: existsSync(merchantConnect)
 			? JSON.parse(readFileSync(merchantConnect, 'utf8'))
 			: undefined,
@@ -108,6 +113,7 @@ describe('money catalogue apply script', () => {
 	test('writes only through price_catalogs/default: PATCH allow_missing, then :sync', () => {
 		const result = run({ FAKE_EXCHANGE_BODY: GRANTED, FAKE_EXCHANGE_CODE: '200' })
 		expect(result.status).toBe(0)
+		expect(result.patch.spec.checkout_branding.display_name).toBe('Tryit')
 		const writes = result.calls.filter((c) => c.startsWith('PATCH') || c.includes(':sync'))
 		expect(writes).toEqual([
 			'PATCH https://api.sylphx.com/v1/orgs/o/projects/p/envs/e/price_catalogs/default?allow_missing=true',
@@ -118,6 +124,17 @@ describe('money catalogue apply script', () => {
 		expect(result.calls.filter((c) => c.includes('merchant_accounts'))).toEqual([
 			'GET https://api.sylphx.com/v1/orgs/o/projects/p/envs/e/merchant_accounts/default',
 		])
+	})
+
+	test('stops before sync when Money drops branding from its PATCH response', () => {
+		const result = run({
+			FAKE_EXCHANGE_BODY: GRANTED,
+			FAKE_EXCHANGE_CODE: '200',
+			FAKE_MONEY_BODY: '{}',
+		})
+		expect(result.status).toBe(1)
+		expect(result.stdout).toContain('Money did not return the requested checkout branding after PATCH')
+		expect(result.calls.some((call) => call.includes(':sync'))).toBe(false)
 	})
 
 	test('an existing licence key is reused without a generate call', () => {

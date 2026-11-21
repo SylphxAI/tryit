@@ -15,6 +15,16 @@ const catalogue = JSON.parse(readFileSync(join(root, 'config/commercial/catalogu
 describe('money catalogue spec', () => {
 	const spec = toSpec(catalogue)
 
+	test('sets the hosted checkout branding on the catalog spec', () => {
+		expect(spec.checkout_branding).toEqual({
+			display_name: 'Tryit',
+			icon: { url: 'https://tryit.fun/apple-touch-icon.png' },
+			background_color: '#F7F4EE',
+			button_color: '#121110',
+			border_style: 'rounded',
+		})
+	})
+
 	test('declares the plus, family and seats features with the right kinds', () => {
 		const kinds = Object.fromEntries(spec.features.map((f) => [f.key, f.kind]))
 		expect(kinds).toEqual({ plus: 'boolean', family: 'boolean', seats: 'limit' })
