@@ -3,6 +3,7 @@ import { CalendarDays, ChartNoAxesColumn, CircleUserRound, LayoutGrid, Sun } fro
 import { For, type ParentProps } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import wordmark from '../../../../../brand/wordmark.json'
+import { LanguageMenu } from './language-menu'
 import type { SiteShellData } from './site-shell-data'
 
 const icons = {
@@ -57,27 +58,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData }>) {
 							<span class="h-2 w-2 rounded-[2px] bg-accent-warm" aria-hidden="true" />
 							{props.data.plus.title}
 						</a>
-						<details class="relative">
-							<summary class="pressable flex min-h-11 cursor-pointer list-none items-center rounded-lg px-3 text-sm font-semibold">
-								{props.data.language}
-							</summary>
-							<ul class="absolute right-0 top-full z-10 min-w-36 rounded-xl border border-border bg-card p-1 shadow-card">
-								<For each={props.data.languages}>
-									{(language) => (
-										<li>
-											<a
-												lang={language.code}
-												href={language.href}
-												aria-current={language.code === props.data.language ? 'page' : undefined}
-												class="flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-accent"
-											>
-												{language.name}
-											</a>
-										</li>
-									)}
-								</For>
-							</ul>
-						</details>
+						<LanguageMenu data={props.data} />
 						<a
 							href={props.data.tabs[4]?.href}
 							class="pressable hidden min-h-11 min-w-11 items-center justify-center rounded-lg md:flex"

@@ -1,5 +1,7 @@
 import { defaultLocale, isValidLocale, type Locale, locales } from './config'
 
+export const LOCALE_COOKIE = 'NEXT_LOCALE'
+
 /**
  * Locale prefix match, case-insensitive and tolerant of a locale root URL.
  *

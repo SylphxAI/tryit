@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { canonicalPageRedirect } from './page-redirect'
+import { canonicalPageRedirect, preferredPageRedirect } from './page-redirect'
 
 const INTERNAL = 'http://web.tryit.svc.cluster.local'
 
@@ -26,5 +26,41 @@ describe('SolidStart locale redirects', () => {
 	test('leaves writes to their owning endpoints', () => {
 		const request = new Request(`${INTERNAL}/en-US/archive`, { method: 'POST' })
 		expect(canonicalPageRedirect(request)).toBeUndefined()
+	})
+})
+
+describe('remembered page language', () => {
+	const headers = { cookie: 'NEXT_LOCALE=es' }
+	test('localizes an unprefixed page with its query and never publicly caches the redirect', () => {
+		const response = preferredPageRedirect(
+			new Request(`${INTERNAL}/settings/preferences?from=profile`, { headers }),
+		)
+		expect(response?.status).toBe(307)
+		expect(response?.headers.get('location')).toBe('/es/settings/preferences?from=profile')
+		expect(response?.headers.get('cache-control')).toBe('private, no-store')
+	})
+	test.each([
+		'/ja/settings/preferences',
+		'/sign-in',
+		'/api/identity/session',
+		'/_server/fixture',
+		'/sitemap.xml',
+		'/crowns',
+	])('does not redirect %s', (path) => {
+		expect(preferredPageRedirect(new Request(`${INTERNAL}${path}`, { headers }))).toBeUndefined()
+	})
+	test('ignores invalid or default cookies and does not redirect mutations', () => {
+		for (const cookie of ['NEXT_LOCALE=//example.org', 'NEXT_LOCALE=en-US']) {
+			expect(
+				preferredPageRedirect(
+					new Request(`${INTERNAL}/settings/preferences`, { headers: { cookie } }),
+				),
+			).toBeUndefined()
+		}
+		expect(
+			preferredPageRedirect(
+				new Request(`${INTERNAL}/settings/preferences`, { method: 'POST', headers }),
+			),
+		).toBeUndefined()
 	})
 })

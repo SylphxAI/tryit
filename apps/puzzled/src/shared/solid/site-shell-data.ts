@@ -28,6 +28,7 @@ export function siteShellData(locale: Locale, path: string, t: Translate, now: D
 			href: localizedPath(code, path),
 		})),
 		language: locale,
+		changeLanguage: t('common.changeLanguage'),
 		footer: {
 			tagline: t('footer.tagline'),
 			resetNote: t('footer.resetNote'),

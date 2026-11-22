@@ -6,7 +6,7 @@ import { legacySignInRedirect } from '@/features/identity/solid/sign-in-redirect
 import { adsConfig } from '@/lib/ads'
 import { buildCsp, createNonce } from '@/lib/csp'
 import { env } from '@/lib/env'
-import { canonicalPageRedirect } from '@/lib/i18n/page-redirect'
+import { canonicalPageRedirect, preferredPageRedirect } from '@/lib/i18n/page-redirect'
 import { migratedSessionHeaders } from '@/lib/identity/session-response'
 import { isProxySkippedPath } from '@/lib/proxy-paths'
 
@@ -33,7 +33,8 @@ export default createMiddleware({
 			legacySignInRedirect(event.request) ??
 			legacyChallengeRedirect(event.request) ??
 			canonicalPageRedirect(event.request) ??
-			dailyEntryRedirect(event.request)
+			dailyEntryRedirect(event.request) ??
+			preferredPageRedirect(event.request)
 		)
 	},
 	onBeforeResponse(event, { body }) {
