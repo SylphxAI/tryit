@@ -18,7 +18,7 @@ const variants = [
 		cell: 'Row 9, Column 9',
 		share: 'Share',
 		label: /^Unlock all \d+ games and the 30-day archive with a 3-day pass$/,
-		viewport: { width: 1280, height: 900 },
+		viewport: { width: 1440, height: 900 },
 	},
 	{
 		prefix: '/zh-HK',
@@ -26,7 +26,7 @@ const variants = [
 		cell: '第 9 行, 第 9 列',
 		share: '分享',
 		label: /^用 3 日通行證解鎖全部 \d+ 款遊戲同過去 30 日嘅題庫$/,
-		viewport: { width: 360, height: 750 },
+		viewport: { width: 390, height: 844 },
 	},
 ] as const
 
@@ -141,6 +141,9 @@ for (const variant of variants) {
 			expect(offerBox.y).toBeGreaterThanOrEqual(shareBox.y + shareBox.height)
 			expect(offerBox.height).toBeGreaterThanOrEqual(44)
 			expect(offerBox.x + offerBox.width).toBeLessThanOrEqual(variant.viewport.width)
+			expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+				variant.viewport.width,
+			)
 			await offer.focus()
 			await expect(offer).toBeFocused()
 			await share.locator('..').screenshot({ path: test.info().outputPath('result-actions.png') })
