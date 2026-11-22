@@ -22,8 +22,8 @@ use crate::capabilities::identity_access::adapters::{
     auth_session, auth_subjects, platform_jwt::VerifiedIdentity,
 };
 use crate::capabilities::money::{
-    access as money_access, checkout as money_checkout, claim_cookie, client::Subscription,
-    consent_db, pricing, CheckoutError, Money, MoneyError,
+    access as money_access, checkout as money_checkout, checkout_attribution::CheckoutAttribution,
+    claim_cookie, client::Subscription, consent_db, pricing, CheckoutError, Money, MoneyError,
 };
 use crate::capabilities::preferences::adapters::attribution_db::attribution_for_user;
 use crate::proto::puzzled::v1::{
@@ -185,6 +185,7 @@ impl BillingConnectService {
         landing: Option<&Attribution>,
         return_to: Option<&str>,
         request_id: Option<&str>,
+        measurement: CheckoutAttribution<'_>,
     ) -> Result<String, CheckoutError> {
         let pool = self
             .state
@@ -228,6 +229,7 @@ impl BillingConnectService {
                 Attribution::for_checkout(stored.as_ref(), landing).as_ref(),
                 return_to,
                 consent,
+                measurement,
             )
             .await;
         }
@@ -241,6 +243,7 @@ impl BillingConnectService {
             Attribution::for_checkout(stored.as_ref(), landing).as_ref(),
             return_to,
             consent,
+            measurement,
         )
         .await
     }
@@ -280,6 +283,7 @@ impl BillingConnectService {
                 landing.as_ref(),
                 return_to.as_deref(),
                 request_id,
+                CheckoutAttribution::from_headers(ctx.headers()),
             )
             .await;
         started.map_err(Self::map_checkout_error)
@@ -625,6 +629,7 @@ impl BillingService for BillingConnectService {
             landing.as_ref(),
             return_to.as_deref(),
             consent,
+            CheckoutAttribution::from_headers(ctx.headers()),
         )
         .await
         .map_err(Self::map_checkout_error)?;

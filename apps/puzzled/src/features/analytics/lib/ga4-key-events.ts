@@ -1,8 +1,7 @@
 /** GA4 conversions require explicit analytics consent and an active GA destination. */
 
-import { isComparisonSlug } from '@/features/marketing/components/comparison-slugs'
-import { PAYWALL_CHECKOUT_TRIGGERS } from '@/features/plus-offer/lib/plus-offer'
 import { readSessionEntrySurface } from '@/lib/attribution'
+import { trustedCheckoutTrigger, trustedEntrySurface } from './checkout-entry-surface'
 import { hasAnalyticsConsent } from './consent'
 import { sendGa4Event } from './google-tag'
 
@@ -87,23 +86,6 @@ function sanitizeToken(value: unknown, maxLen = 120): string | undefined {
 	const trimmed = value.trim()
 	if (!trimmed || trimmed.includes('@') || hasControlChar(trimmed)) return undefined
 	return trimmed.slice(0, maxLen)
-}
-
-function trustedCheckoutTrigger(value: unknown): string | undefined {
-	if (typeof value !== 'string') return undefined
-	if (value === 'pricing_subscribe' || PAYWALL_CHECKOUT_TRIGGERS.has(value)) return value
-}
-
-function trustedEntrySurface(value: unknown): string | undefined {
-	if (typeof value !== 'string') return undefined
-	if (trustedCheckoutTrigger(value)) return value
-	if (value.startsWith('seo_vs-') && isComparisonSlug(value.slice('seo_vs-'.length))) return value
-	if (
-		value === 'seo_vs-hub' ||
-		value === 'seo_daily-word-and-logic-puzzles-online' ||
-		value === 'seo_family-brain-games-no-ads'
-	)
-		return value
 }
 
 function sanitizeParams(raw: Record<string, unknown>): Record<string, unknown> {

@@ -4,10 +4,22 @@ import { capture, commands, id } from './google-tag-support'
 
 const snapshotKey = 'fixture-tag-commands'
 
-for (const consent of [null, 'accepted', 'declined'] as const) {
-	test(`checkout handoff with consent ${consent ?? 'non-EEA default'}`, async ({ page }) => {
+for (const { consent, gpc, entry, surface } of [
+	{ consent: null, gpc: false, entry: 'seo_vs-nyt-games', surface: 'seo_vs-nyt-games' },
+	{ consent: 'accepted', gpc: false, entry: 'private_person_5551234', surface: 'pricing_card' },
+	{ consent: 'declined', gpc: false, entry: 'seo_vs-nyt-games', surface: 'pricing_card' },
+	{ consent: 'accepted', gpc: true, entry: 'seo_vs-nyt-games', surface: 'pricing_card' },
+] as const) {
+	test(`checkout handoff: ${gpc ? 'GPC' : (consent ?? 'non-EEA default')}`, async ({
+		page,
+		context,
+		baseURL,
+	}) => {
 		await capture(page)
-		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
+		const granted = consent === 'accepted' && !gpc
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US', ...(gpc ? { 'Sec-GPC': '1' } : {}) })
+		const origin = baseURL ?? 'http://localhost:3000'
+		await context.addCookies([{ name: '_ga', value: 'GA1.1.12345.67890', url: origin }])
 		await page.addInitScript(
 			({ consent, key }) => {
 				if (consent) localStorage.setItem(key, consent)
@@ -18,18 +30,29 @@ for (const consent of [null, 'accepted', 'declined'] as const) {
 		await page.route('**/__fixture-checkout', (route) =>
 			route.fulfill({ body: 'Synthetic payment page' }),
 		)
-		let failCheckout = consent === 'accepted'
-		await page.route('**/puzzled.v1.BillingService/CreateCheckout', (route) =>
-			failCheckout
-				? route.fulfill({ status: 503, json: { code: 'unavailable', message: 'synthetic error' } })
-				: route.fulfill({ json: { url: `${new URL(page.url()).origin}/__fixture-checkout` } }),
-		)
-		const entry = consent === 'accepted' ? 'untrusted-name-and-phone-5551234' : 'vs-nyt-games'
+		let failCheckout = granted
+		const checkoutRequests: Record<string, string>[] = []
+		await page.route('**/puzzled.v1.BillingService/CreateCheckout', async (route) => {
+			checkoutRequests.push(await route.request().allHeaders())
+			expect(route.request().postDataJSON()).toEqual({
+				planId: 'individual_yearly',
+				locale: 'en-US',
+				currency: 'usd',
+			})
+			return failCheckout
+				? route.fulfill({
+						status: 503,
+						json: { code: 'unavailable', message: 'synthetic error' },
+					})
+				: route.fulfill({ json: { url: `${origin}/__fixture-checkout` } })
+		})
 		const contextReady = page.waitForResponse('**/api/consent-context')
-		await page.goto(`/pricing?entry_surface=${entry}`)
+		await page.goto(
+			`/pricing?${new URLSearchParams({ entry_surface: entry, email: 'fixture@example.test' })}`,
+		)
 		await contextReady
 		const begin = (rows: unknown[][]) => rows.filter((row) => row[1] === 'begin_checkout')
-		if (consent !== 'declined') {
+		if (consent !== 'declined' && !gpc) {
 			await expect
 				.poll(async () => (await commands(page)).map((row) => row[1]))
 				.toContain('page_view')
@@ -55,7 +78,7 @@ for (const consent of [null, 'accepted', 'declined'] as const) {
 			snapshotKey,
 		)
 		expect(begin(rows)).toEqual(
-			consent === 'accepted'
+			granted
 				? [
 						[
 							'event',
@@ -70,6 +93,11 @@ for (const consent of [null, 'accepted', 'declined'] as const) {
 					]
 				: [],
 		)
-		expect(JSON.stringify(rows)).not.toContain(entry)
+		expect(checkoutRequests).toHaveLength(granted ? 2 : 1)
+		for (const headers of checkoutRequests) {
+			expect(headers['x-puzzled-entry-surface']).toBe(surface)
+			expect(headers['x-puzzled-analytics-storage']).toBe(granted ? 'granted' : undefined)
+		}
+		if (granted) expect(JSON.stringify(rows)).not.toContain(entry)
 	})
 }
