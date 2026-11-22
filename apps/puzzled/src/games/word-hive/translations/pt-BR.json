@@ -21,6 +21,8 @@
 	"shuffle": "Embaralhar",
 	"delete": "Apagar",
 	"enter": "Enter",
+	"showAll": "Mostrar todas as palavras",
+	"showLess": "Mostrar menos palavras",
 	"foundWords": "Palavras encontradas",
 	"pangram": "Pangrama",
 	"pangramBonus": "+7 de bônus",

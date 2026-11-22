@@ -3,6 +3,7 @@
 	"tagline": "4つの単語 • 9回",
 	"highlight": "1回の予想で4つの単語に挑戦",
 	"description": "4つの隠れた単語を同時に当てよう",
+	"clearGuess": "入力を消去",
 	"howToPlay": "遊び方",
 	"rules": {
 		"title": "遊び方",

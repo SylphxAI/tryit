@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { createInitialState, spellingBeeReducer } from './use-word-hive'
+import { checkHiveDraft, createInitialState, spellingBeeReducer } from './play-state'
+import { readHiveGrade } from './read-grade'
 
 const start = createInitialState({
 	centerLetter: 'E',
@@ -34,6 +35,27 @@ describe('word-hive played from server grading', () => {
 		}
 		expect(state.score).toBe(1 + 6 + 6)
 		expect(state.gameStatus).toBe('won')
+	})
+
+	test('checks only local rules before asking the server about membership', () => {
+		expect(checkHiveDraft({ ...start, currentWord: 'ACED' })).toBeUndefined()
+		expect(checkHiveDraft({ ...start, currentWord: 'ACE' })).toBe('too_short')
+		expect(checkHiveDraft({ ...start, currentWord: 'CADS' })).toBe('missing_center')
+		expect(checkHiveDraft({ ...start, currentWord: 'ZACE' })).toBe('invalid_letter')
+		expect(checkHiveDraft({ ...start, currentWord: 'ACED', foundWords: ['ACED'] })).toBe(
+			'already_found',
+		)
+	})
+
+	test('a rejected server grade cannot score and malformed grades cannot be applied', () => {
+		const grade = { valid: false, pangram: false, totalWords: 3, totalPangrams: 1 }
+		expect(readHiveGrade(grade)).toEqual(grade)
+		expect(readHiveGrade({ ...grade, valid: 'false' })).toBeNull()
+		expect(readHiveGrade({ ...grade, pangram: true })).toBeNull()
+		expect(readHiveGrade({ ...grade, totalWords: -1 })).toBeNull()
+		const draft = { ...start, currentWord: 'ACED', grading: true }
+		const rejected = spellingBeeReducer(draft, { type: 'APPLY_WORD', word: 'ACED', grade })
+		expect(rejected).toEqual({ ...draft, grading: false })
 	})
 
 	test('a rejected word keeps the letters; a repeat never scores twice', () => {

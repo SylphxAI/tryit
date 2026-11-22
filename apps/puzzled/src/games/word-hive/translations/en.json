@@ -21,6 +21,8 @@
 	"shuffle": "Shuffle",
 	"delete": "Delete",
 	"enter": "Enter",
+	"showAll": "Show all words",
+	"showLess": "Show fewer words",
 	"foundWords": "Found Words",
 	"pangram": "Pangram",
 	"pangramBonus": "+7 bonus",
