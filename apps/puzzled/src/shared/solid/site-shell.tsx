@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { CalendarDays, ChartNoAxesColumn, CircleUserRound, LayoutGrid, Sun } from 'lucide-solid'
-import { For, type ParentProps } from 'solid-js'
+import { For, type ParentProps, Show } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import wordmark from '../../../../../brand/wordmark.json'
 import { ConsentBanner, CookieSettings } from './consent-banner'
@@ -15,7 +15,7 @@ const icons = {
 	account: CircleUserRound,
 }
 
-export function SiteShell(props: ParentProps<{ data: SiteShellData }>) {
+export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: boolean }>) {
 	return (
 		<div class="site-shell flex min-h-dvh flex-col">
 			<a
@@ -55,19 +55,31 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData }>) {
 					<div class="ml-auto flex items-center gap-2">
 						<a
 							href={props.data.plus.href}
-							class="pressable flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold"
+							class="pressable flex min-h-11 items-center gap-1 rounded-full px-1.5 text-xs font-semibold sm:gap-2 sm:px-3 sm:text-sm"
 						>
 							<span class="h-2 w-2 rounded-[2px] bg-accent-warm" aria-hidden="true" />
 							{props.data.plus.title}
 						</a>
 						<LanguageMenu data={props.data} />
-						<a
-							href={props.data.tabs[4]?.href}
-							class="pressable hidden min-h-11 min-w-11 items-center justify-center rounded-lg md:flex"
-							aria-label={props.data.tabs[4]?.title}
+						<Show
+							when={props.signedIn}
+							fallback={
+								<a
+									href={props.data.signIn.href}
+									class="pressable inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-2.5 text-center text-xs font-semibold hover:bg-accent sm:px-4 sm:text-sm"
+								>
+									{props.data.signIn.title}
+								</a>
+							}
 						>
-							<CircleUserRound size={22} aria-hidden="true" />
-						</a>
+							<a
+								href={props.data.tabs[4]?.href}
+								class="pressable hidden min-h-11 min-w-11 items-center justify-center rounded-lg md:flex"
+								aria-label={props.data.tabs[4]?.title}
+							>
+								<CircleUserRound size={22} aria-hidden="true" />
+							</a>
+						</Show>
 					</div>
 				</div>
 			</header>

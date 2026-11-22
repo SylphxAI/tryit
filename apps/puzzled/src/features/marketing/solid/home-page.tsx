@@ -35,12 +35,12 @@ import { formatTrialEnd } from '@/lib/billing/plus'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { cn } from '@/lib/utils'
-import { GameIcon } from '@/shared/solid/game-icon'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { ProgressRing } from '@/shared/solid/progress-ring'
 import { SiteShell } from '@/shared/solid/site-shell'
 import type { HomeDocument, HomeFacts } from './home-data'
+import { HomeGameCard } from './home-game-card'
 import { MarketingFaq } from './marketing-faq'
 import { MilestonePrompt } from './milestone-prompt'
 
@@ -240,7 +240,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		</div>
 	)
 	return (
-		<SiteShell data={page.shell}>
+		<SiteShell data={page.shell} signedIn={props.facts()?.member}>
 			<PageMeta value={page.meta} />
 			<main id="main-content" tabIndex={-1} class="flex-1">
 				<For each={page.schemas}>{(schema) => <JsonLd value={schema} />}</For>
@@ -404,64 +404,35 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 										)}
 									</For>
 								</ul>
-								<Suspense
-									fallback={
-										<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-											<For each={page.fallbackOrder}>
-												{(slug) => (
-													<li>
-														<a
-															class="tactile-card block p-3"
-															href={href(todayPlayPath(slug))}
-															onClick={(event) => markStart(event, slug)}
-															data-home-game={slug}
-														>
-															<GameIcon slug={slug} />
-															{bySlug.get(slug)?.name}
-														</a>
-													</li>
-												)}
-											</For>
-										</ul>
-									}
-								>
-									<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-										<For each={status().renderedGames}>
-											{(state) => {
-												const game = bySlug.get(state.slug)
-												if (!game) return null
-												const kind = lineupStatus(state)
-												return (
-													<li>
-														<a
-															class="tactile-card flex h-full min-h-24 flex-col gap-1 p-3 hover:border-primary"
-															data-home-game={game.slug}
-															data-home-status={kind}
-															href={href(
-																kind === 'solved'
-																	? todayResultPath(game.slug)
-																	: todayPlayPath(game.slug),
-															)}
-															onClick={(event) => kind !== 'solved' && markStart(event, game.slug)}
-														>
-															<GameIcon slug={game.slug} />
-															<strong class="text-sm leading-tight">{game.name}</strong>
-															<span class="text-xs text-muted-foreground">
-																{kind === 'solved'
-																	? [t('gameResult.seeResult'), state.score]
-																			.filter(Boolean)
-																			.join(' · ')
-																	: kind === 'free'
-																		? t('home.lineup.freeToday')
-																		: game.duration}
-															</span>
-														</a>
-													</li>
-												)
-											}}
-										</For>
-									</ul>
-								</Suspense>
+								<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+									<For each={status().renderedGames}>
+										{(state, index) => {
+											const game = bySlug.get(state.slug)
+											if (!game) return null
+											const kind = lineupStatus(state)
+											return (
+												<HomeGameCard
+													game={game}
+													index={index()}
+													status={kind}
+													href={href(
+														kind === 'solved'
+															? todayResultPath(game.slug)
+															: todayPlayPath(game.slug),
+													)}
+													onClick={(event) => kind !== 'solved' && markStart(event, game.slug)}
+													caption={
+														kind === 'solved'
+															? [t('gameResult.seeResult'), state.score].filter(Boolean).join(' · ')
+															: kind === 'free'
+																? t('home.lineup.freeToday')
+																: game.duration
+													}
+												/>
+											)
+										}}
+									</For>
+								</ul>
 							</section>
 						</div>
 					</div>

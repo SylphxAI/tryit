@@ -32,7 +32,7 @@ export default function StatsPage() {
 				{(data) => (
 					<>
 						<PageMeta value={data.meta} />
-						<SiteShell data={data.shell}>
+						<SiteShell data={data.shell} signedIn={data.signedIn}>
 							<StatsConsole data={data} />
 						</SiteShell>
 					</>

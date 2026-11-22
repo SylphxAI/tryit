@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { settle } from './a11y-support'
+import { languageTrigger, settle } from './a11y-support'
 
 for (const viewport of [
 	{ width: 1440, height: 757 },
@@ -17,6 +17,10 @@ for (const viewport of [
 		await expect(primaryAction).toBeVisible()
 		await settle(page)
 		await expect(page.locator('[data-consent-banner]')).toBeVisible()
+		await expect(languageTrigger(page)).toHaveText('English')
+		const signIn = page.locator('header').getByRole('link', { name: 'Sign in', exact: true })
+		await expect(signIn).toBeInViewport({ ratio: 1 })
+		await signIn.click({ trial: true })
 		for (const consentState of ['open', 'dismissed']) {
 			if (consentState === 'dismissed') {
 				await page.getByRole('button', { name: 'Decline', exact: true }).click()
@@ -90,6 +94,11 @@ test('Chinese display type and reduced motion remain readable', async ({ page },
 		expect(['normal', '0px']).toContain(type.tracking)
 		expect(type.ratio).toBeGreaterThanOrEqual(1.29)
 	}
+	await expect(languageTrigger(page)).toHaveText('简体中文')
+	const lineupCard = page.locator('[data-home-game="nonogram"]')
+	await lineupCard.hover()
+	await expect(lineupCard.locator('img')).toHaveCSS('transform', 'none')
+	await expect(lineupCard.locator('..')).toHaveCSS('animation-name', 'none')
 	const card = page.locator('.home-featured-card')
 	await card.hover()
 	await expect(card).toHaveCSS('transform', 'none')
@@ -99,4 +108,49 @@ test('Chinese display type and reduced motion remain readable', async ({ page },
 		quality: 55,
 		fullPage: false,
 	})
+})
+
+test('the lineup delivers 19 distinct illustrated keys with a stationary hit target', async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 })
+	await page.goto('/')
+	const cards = page.locator('[data-home-game]')
+	await expect(cards).toHaveCount(19)
+	const slugs = new Set<string>()
+	const tints = new Set<string>()
+	for (const [index, card] of (await cards.all()).entries()) {
+		const slug = (await card.getAttribute('data-home-game'))!
+		const motif = card.locator('img')
+		await expect(motif).toHaveAttribute('src', `/motifs/${slug}-zoom.svg`)
+		await expect(motif).toHaveAttribute('alt', '')
+		await expect(motif).toHaveAttribute('loading', index < 8 ? 'eager' : 'lazy')
+		await motif.scrollIntoViewIfNeeded()
+		await expect
+			.poll(() => motif.evaluate((img: HTMLImageElement) => img.naturalWidth))
+			.toBeGreaterThan(0)
+		slugs.add(slug)
+		tints.add(await motif.evaluate((img) => getComputedStyle(img.parentElement!).backgroundColor))
+	}
+	expect(slugs.size).toBe(19)
+	expect(tints.size).toBeGreaterThanOrEqual(10)
+
+	const card = page.locator('[data-home-game="nonogram"]')
+	await card.scrollIntoViewIfNeeded()
+	await settle(page)
+	const face = card.locator(':scope > div')
+	const motif = face.locator('img')
+	const hitbox = await card.boundingBox()
+	await card.hover()
+	await expect(face).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -3)')
+	await expect(motif).toHaveCSS('transform', 'matrix(1.045, 0, 0, 1.045, 0, -1)')
+	await page.mouse.down()
+	try {
+		await expect(face).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 3)')
+		expect(await card.boundingBox()).toEqual(hitbox)
+	} finally {
+		// Release off-card so this assertion doesn't also start a game.
+		await page.mouse.move(0, 0)
+		await page.mouse.up()
+	}
 })

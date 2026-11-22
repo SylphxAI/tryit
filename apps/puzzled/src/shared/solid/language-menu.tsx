@@ -5,8 +5,6 @@ import { LOCALE_COOKIE } from '@/lib/i18n/page-locale'
 import type { SiteShellData } from './site-shell-data'
 
 export function LanguageMenu(props: { data: SiteShellData; showName?: boolean }) {
-	const current = () =>
-		props.data.languages.find((language) => language.code === props.data.language)
 	return (
 		<details
 			class="relative w-fit"
@@ -18,14 +16,16 @@ export function LanguageMenu(props: { data: SiteShellData; showName?: boolean })
 			}}
 		>
 			<summary
-				aria-label={props.data.changeLanguage}
-				class="pressable flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg px-3 text-sm font-semibold hover:bg-accent"
+				aria-label={`${props.showName ? props.data.languageName : props.data.languageShortName}, ${props.data.changeLanguage}`}
+				class="pressable flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1.5 text-xs font-semibold hover:bg-accent sm:px-3 sm:text-sm"
 			>
-				<Show when={props.showName} fallback={props.data.language}>
-					<Languages class="h-4 w-4" aria-hidden="true" />
-					{current()?.name}
-					<ChevronDown class="h-4 w-4" aria-hidden="true" />
+				<Show when={props.showName}>
+					<Languages class="h-4 w-4 shrink-0" aria-hidden="true" />
 				</Show>
+				<span lang={props.data.language}>
+					{props.showName ? props.data.languageName : props.data.languageShortName}
+				</span>
+				<ChevronDown class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 			</summary>
 			<ul
 				data-language-options=""

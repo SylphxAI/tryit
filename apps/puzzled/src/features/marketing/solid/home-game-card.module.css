@@ -1,0 +1,89 @@
+.slot {
+	min-inline-size: 0;
+}
+
+.key {
+	position: relative;
+	isolation: isolate;
+	display: block;
+	block-size: 100%;
+	border-radius: 1.125rem;
+}
+
+/* A fixed key bed lets the face move without animating a shadow or the hitbox. */
+.key::before {
+	position: absolute;
+	z-index: -1;
+	inset: 3px 0 -3px;
+	border-radius: inherit;
+	background-color: var(--tactile-edge);
+	content: '';
+}
+
+.face {
+	display: flex;
+	min-block-size: 100%;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1.5px solid var(--tactile-line);
+	border-radius: inherit;
+	background-color: var(--color-card);
+}
+
+.field {
+	display: grid;
+	aspect-ratio: 16 / 10;
+	place-items: center;
+	overflow: hidden;
+	border-bottom: 1.5px solid var(--tactile-line);
+}
+
+.motif {
+	block-size: auto;
+	inline-size: 86%;
+}
+
+.key:focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.slot {
+		animation: deal-in 320ms var(--ease-out) var(--lineup-delay) backwards;
+	}
+
+	.face,
+	.motif {
+		transition: transform 220ms var(--ease-spring);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.key:hover .face {
+			transform: translate3d(0, -3px, 0);
+		}
+
+		.key:hover .motif {
+			transform: translate3d(0, -1px, 0) scale(1.045);
+		}
+	}
+
+	.key:active .face {
+		transform: translate3d(0, 3px, 0);
+		transition-duration: 90ms;
+	}
+
+	.key:active .motif {
+		transform: scale(0.98);
+		transition-duration: 90ms;
+	}
+}
+
+@keyframes deal-in {
+	from {
+		transform: translate3d(0, 6px, 0);
+	}
+	to {
+		transform: none;
+	}
+}

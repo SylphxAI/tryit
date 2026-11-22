@@ -53,7 +53,7 @@ export default function DeleteAccountPage() {
 				{(data) => (
 					<>
 						<PageMeta value={data.meta} />
-						<SiteShell data={data.shell}>
+						<SiteShell data={data.shell} signedIn={data.signedIn}>
 							<Instructions locale={data.locale} signedIn={data.signedIn} />
 						</SiteShell>
 					</>

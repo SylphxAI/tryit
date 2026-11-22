@@ -52,7 +52,7 @@ export function MemberSettingsRoute(props: {
 				{(data) => (
 					<>
 						<PageMeta value={data.meta} />
-						<SiteShell data={data.shell}>
+						<SiteShell data={data.shell} signedIn>
 							<SettingsShell locale={data.locale} section={props.section} member>
 								<props.content data={data} t={createTranslator(data.locale)} />
 							</SettingsShell>

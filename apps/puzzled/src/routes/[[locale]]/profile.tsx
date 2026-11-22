@@ -40,7 +40,7 @@ export default function ProfilePage() {
 				{(data) => (
 					<>
 						<PageMeta value={data.meta} />
-						<SiteShell data={data.shell}>
+						<SiteShell data={data.shell} signedIn>
 							<ProfileCard data={data} />
 						</SiteShell>
 					</>

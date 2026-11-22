@@ -1418,7 +1418,8 @@ html[data-transition-type="fade"] {
 /* Keep the footer and keyboard-focused controls above the fixed consent bar. */
 html {
 	--mobile-tab-clearance: 0px;
-	scroll-padding-bottom: calc(var(--mobile-tab-clearance) + var(--consent-bar-height, 0px));
+	/* Leave room for the fractional pixel Blink rounds off scrollIntoView. */
+	scroll-padding-bottom: calc(var(--mobile-tab-clearance) + var(--consent-bar-height, 0px) + 1px);
 }
 
 .site-shell {

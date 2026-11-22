@@ -160,6 +160,7 @@ export async function readStats(locale: Locale, request: Request) {
 			eyebrow: t('stats.eyebrow'),
 			request,
 		}),
+		signedIn: Boolean(user),
 		memberSession,
 		memberLabel: user?.name?.trim() || user?.email || t('stats.identity.player'),
 		modules,
