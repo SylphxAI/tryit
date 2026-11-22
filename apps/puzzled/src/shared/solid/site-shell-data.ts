@@ -10,11 +10,27 @@ const tabs = [
 	{ path: '/profile', label: 'account' },
 ] as const
 
+export function consentCopy(locale: Locale, t: Translate) {
+	return {
+		privacyHref: localizedPath(locale, '/privacy'),
+		title: t('consent.title'),
+		message: t('consent.message'),
+		learnMore: t('consent.learnMore'),
+		accept: t('consent.accept'),
+		decline: t('consent.decline'),
+		change: t('consent.change'),
+		close: t('consent.close'),
+		gpc: t('consent.gpc'),
+		enabled: t('consent.enabled'),
+		disabled: t('consent.disabled'),
+	}
+}
+
 export function siteShellData(locale: Locale, path: string, t: Translate, now: Date) {
 	return {
 		home: localizedPath(locale),
 		mainNav: t('nav.main'),
-		privacy: { href: localizedPath(locale, '/privacy'), title: t('footer.privacy') },
+		consent: consentCopy(locale, t),
 		tabs: tabs.map((tab) => ({
 			...tab,
 			title: t(`nav.${tab.label}`),

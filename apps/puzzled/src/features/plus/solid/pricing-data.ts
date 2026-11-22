@@ -1,7 +1,7 @@
 import { parseCookie } from 'cookie-es'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
 import { getAllGameMetadata } from '@/games/registry'
-import { requestBilling } from '@/lib/api/request-billing'
+import { readBillingPlans, requestBilling } from '@/lib/api/request-billing'
 import {
 	availableCurrencies,
 	COUNTRY_HEADER,
@@ -20,6 +20,8 @@ import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import { siteShellData } from '@/shared/solid/site-shell-data'
 
+import { loadPricingPlans, pricingPlanState } from '../lib/pricing-plans'
+
 export async function readPricingPage(
 	locale: Locale,
 	request: Request,
@@ -31,11 +33,12 @@ export async function readPricingPage(
 	const freeSlug = getTodaysFreeGame(now)
 	const t = (key: string, values?: Record<string, string | number>) =>
 		translate(`plus.pricing.${key}`, values)
-	const billing = requestBilling(request.headers)
+	const pricingPlans = loadPricingPlans((timeoutMs) => readBillingPlans(request.headers, timeoutMs))
+	const billing = requestBilling(request.headers, pricingPlans)
 	const user = withPresentationDeadline(requestUser(request), null)
 	const [viewer, plans, access] = await Promise.all([
 		user,
-		withPresentationDeadline(billing.listPlans(), null),
+		pricingPlans,
 		user.then((viewer) => withPresentationDeadline(billing.access(Boolean(viewer)), null)),
 	])
 	const currencies = plans?.salesOpen ? availableCurrencies(plans.plans) : []
@@ -52,14 +55,16 @@ export async function readPricingPage(
 			entrySurface: search.get('entry_surface') ?? undefined,
 			fallback,
 		})
+	const cards = plans?.salesOpen ? planCards(plans.plans, currency) : []
 	return {
 		locale,
+		planState: pricingPlanState(plans, cards.length),
 		gameCount,
 		freeSlug,
 		freeName: translate(`games.${slugToCamelCase(freeSlug)}.name`),
 		currencies,
 		currency,
-		cards: plans?.salesOpen ? planCards(plans.plans, currency) : [],
+		cards,
 		familyMax: plans?.familyMaxMembers ?? 4,
 		plusMember: showsCurrentPlan(access),
 		signedIn: Boolean(viewer),

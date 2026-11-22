@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { ATTRIBUTION_SESSION_KEY, CONSENT_KEY } from '@/lib/storage-keys'
+import { setConsentContext } from './consent'
 import { resetGa4KeyEventsForTests, trackGa4KeyEvent } from './ga4-key-events'
+import { createGoogleTag, setActiveGoogleTag, type TagWindow } from './google-tag'
 
 const g = globalThis as unknown as Record<string, unknown>
 
@@ -9,7 +11,7 @@ function installBrowserStubs() {
 	const sessionItems = new Map<string, string>()
 	const gtagCalls: unknown[][] = []
 	const gtag = (...args: unknown[]) => {
-		gtagCalls.push(args)
+		if (args[0] === 'event') gtagCalls.push(args)
 	}
 	const localStorage = {
 		getItem: (k: string) => localItems.get(k) ?? null,
@@ -25,9 +27,24 @@ function installBrowserStubs() {
 	g.sessionStorage = sessionStorage
 	g.window = {
 		gtag,
+		location: { origin: 'https://tryit.fun', hostname: 'tryit.fun' },
+		dispatchEvent: () => {},
 		localStorage,
 		sessionStorage,
 	}
+	setConsentContext({ region: 'eea', gpc: false })
+	const tag = createGoogleTag({
+		ids: { ga: 'G-TEST1234', ads: null },
+		win: g.window as TagWindow,
+		doc: {
+			cookie: '',
+			head: { appendChild: () => {} },
+			createElement: () => ({ src: '', async: false }),
+		},
+		consent: () => ({ analytics: true, marketing: false }),
+	})
+	tag.sync()
+	setActiveGoogleTag(tag)
 	return { localItems, sessionItems, gtagCalls }
 }
 
@@ -38,6 +55,8 @@ describe('trackGa4KeyEvent', () => {
 
 	afterEach(() => {
 		resetGa4KeyEventsForTests()
+		setActiveGoogleTag(null)
+		setConsentContext(null)
 		g.window = undefined
 		g.localStorage = undefined
 		g.sessionStorage = undefined
@@ -46,7 +65,7 @@ describe('trackGa4KeyEvent', () => {
 	test('pre-consent (pending or declined) emits 0 gtag calls even when window.gtag exists', () => {
 		const { localItems, sessionItems, gtagCalls } = installBrowserStubs()
 
-		// Pending consent (CONSENT_DEFAULT_SCRIPT already defined window.gtag)
+		// A queued tag does not imply permission.
 		expect(trackGa4KeyEvent('sign_up', { method: 'email' })).toBe(false)
 		expect(
 			trackGa4KeyEvent('begin_checkout', {
@@ -83,10 +102,10 @@ describe('trackGa4KeyEvent', () => {
 		expect(sessionItems.size).toBe(0)
 	})
 
-	test('returns false when window.gtag is missing or not a function', () => {
+	test('returns false when there is no active GA destination', () => {
 		const { localItems } = installBrowserStubs()
 		localItems.set(CONSENT_KEY, 'accepted')
-		;(g.window as Record<string, unknown>).gtag = undefined
+		setActiveGoogleTag(null)
 		expect(trackGa4KeyEvent('sign_up', { method: 'email' })).toBe(false)
 	})
 
@@ -125,6 +144,7 @@ describe('trackGa4KeyEvent', () => {
 				'event',
 				'sign_up',
 				{
+					send_to: 'G-TEST1234',
 					method: 'oauth',
 					entry_surface: 'seo_daily-word-and-logic-puzzles-online',
 				},
@@ -133,6 +153,7 @@ describe('trackGa4KeyEvent', () => {
 				'event',
 				'begin_checkout',
 				{
+					send_to: 'G-TEST1234',
 					plan: 'plus',
 					plan_sku: 'individual_yearly',
 					billing_interval: 'year',
@@ -145,6 +166,7 @@ describe('trackGa4KeyEvent', () => {
 				'event',
 				'purchase',
 				{
+					send_to: 'G-TEST1234',
 					transaction_id: 'cs_live_42',
 					value: 39.99,
 					currency: 'GBP',
@@ -181,6 +203,7 @@ describe('trackGa4KeyEvent', () => {
 				'event',
 				'begin_checkout',
 				{
+					send_to: 'G-TEST1234',
 					plan: 'plus',
 					billing_interval: 'month',
 					option: 'subscription',

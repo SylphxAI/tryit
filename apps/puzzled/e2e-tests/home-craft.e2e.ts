@@ -16,6 +16,7 @@ for (const viewport of [
 		await expect(primaryAction).toHaveCount(1)
 		await expect(primaryAction).toBeVisible()
 		await settle(page)
+		await expect(page.locator('[data-consent-banner]')).toBeVisible()
 		for (const consentState of ['open', 'dismissed']) {
 			if (consentState === 'dismissed') {
 				await page.getByRole('button', { name: 'Decline', exact: true }).click()
@@ -34,7 +35,7 @@ for (const viewport of [
 			if (consentState === 'open') {
 				const unobstructed = await action.evaluate((el) => {
 					const r = el.getBoundingClientRect()
-					const banner = document.querySelector('[data-consent-banner] > section')
+					const banner = document.querySelector('[data-consent-banner]')
 					const b = banner?.getBoundingClientRect()
 					const overlapsBanner =
 						!!b &&

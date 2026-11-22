@@ -1,17 +1,8 @@
-/**
- * Consent-gated GA4 Key Event bridge (`sign_up`, `begin_checkout`, `purchase`).
- *
- * Strictly fail-closed: `CONSENT_DEFAULT_SCRIPT` defines `window.gtag` before
- * consent is decided, so checking `typeof window.gtag === 'function'` alone is
- * insufficient. This helper verifies explicit analytics consent
- * (`canTrackAnalytics()`) AND `typeof window.gtag === 'function'` before any
- * call, enriches `entry_surface` from `sessionStorage` (`puzzled:attr:session`)
- * when omitted, strips undefined and PII fields, and deduplicates `purchase`
- * per transaction in `sessionStorage`.
- */
+/** GA4 conversions require explicit analytics consent and an active GA destination. */
 
 import { readSessionEntrySurface } from '@/lib/attribution'
-import { canTrackAnalytics } from './consent'
+import { hasAnalyticsConsent } from './consent'
+import { sendGa4Event } from './google-tag'
 
 export type Ga4KeyEventName = 'sign_up' | 'begin_checkout' | 'purchase'
 
@@ -158,20 +149,16 @@ export function resetGa4KeyEventsForTests(): void {
 	firedPurchaseKeys.clear()
 }
 
-type GtagFn = (...args: unknown[]) => void
-
 /**
  * Emits a consent-gated GA4 Key Event (`sign_up`, `begin_checkout`, `purchase`).
- * Returns `true` if `window.gtag` was called, `false` if gated or deduplicated.
+ * Returns `true` if the GA destination accepted dispatch, `false` if gated or deduplicated.
  */
 export function trackGa4KeyEvent<E extends Ga4KeyEventName>(
 	event: E,
 	params: Ga4KeyEventParams<E>,
 ): boolean {
 	if (typeof window === 'undefined') return false
-	if (!canTrackAnalytics()) return false
-	const gtag = (window as unknown as { gtag?: unknown }).gtag
-	if (typeof gtag !== 'function') return false
+	if (!hasAnalyticsConsent()) return false
 
 	const raw = params as Record<string, unknown>
 	const clean = sanitizeParams(raw)
@@ -186,9 +173,9 @@ export function trackGa4KeyEvent<E extends Ga4KeyEventName>(
 		if (!dedupeId) return false
 		if (!clean.transaction_id) clean.transaction_id = dedupeId
 		if (isPurchaseRecorded(dedupeId)) return false
+		if (!sendGa4Event(event, clean)) return false
 		markPurchaseRecorded(dedupeId)
+		return true
 	}
-
-	;(gtag as GtagFn)('event', event, clean)
-	return true
+	return sendGa4Event(event, clean)
 }

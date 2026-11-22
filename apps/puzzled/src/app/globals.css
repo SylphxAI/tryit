@@ -1415,39 +1415,26 @@ html[data-transition-type="fade"] {
 	animation: podium-crown-in 500ms ease-out 300ms forwards;
 }
 
-/* =============================================
-   Consent banner - settled visitors
-=============================================
-   The banner renders in the first frame - it is the mobile LCP element, see
-   `app/[locale]/layout.tsx`. A decision already stored in localStorage is
-   marked on <html> before paint by the settle script there, and this rule
-   keeps the banner from ever flashing for that visitor. The element stays in
-   the tree so React hydration finds exactly what the server rendered; the SDK
-   unmounts it for settled visitors once hydrated. */
-html[data-consent-decided] [data-consent-banner] {
-	display: none;
+/* Keep the footer and keyboard-focused controls above the fixed consent bar. */
+html {
+	--mobile-tab-clearance: 0px;
+	scroll-padding-bottom: calc(var(--mobile-tab-clearance) + var(--consent-bar-height, 0px));
 }
 
-/* The undecided visitor's bar sits in normal document flow at the end of the
-   page, below the footer, so it never covers hero CTAs, game cards, boards,
-   or checkout buttons on any viewport. */
+.site-shell {
+	padding-bottom: calc(var(--mobile-tab-clearance) + var(--consent-bar-height, 0px));
+}
+
 .consent-bar {
-	position: static;
-	bottom: auto;
-	padding-block: 0.75rem;
-	/* Reserve the extra mobile tab-bar clearance beyond pb-nav so the banner
-	   sits completely above the fixed bottom nav when scrolled to the foot. */
-	margin-bottom: 1rem;
+	position: fixed;
+	inset-inline: 0;
+	bottom: var(--mobile-tab-clearance);
+	z-index: 50;
 }
-html:not([data-consent-decided]):has([data-consent-banner]) {
-	scroll-padding-bottom: calc(var(--spacing-bottom-nav-height) + var(--spacing-safe-bottom) + 1rem);
-}
-@media (min-width: 768px) {
-	.consent-bar {
-		margin-bottom: 0;
-	}
-	html:not([data-consent-decided]):has([data-consent-banner]) {
-		scroll-padding-bottom: 0;
+
+@media (max-width: 767px) {
+	html:has(.site-shell) {
+		--mobile-tab-clearance: calc(59px + env(safe-area-inset-bottom));
 	}
 }
 

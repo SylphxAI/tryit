@@ -161,7 +161,7 @@
 			},
 			{
 				"value": "Close",
-				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close"]
+				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close", "consent.close"]
 			},
 			{
 				"value": "Compact Mode",
@@ -198,6 +198,10 @@
 			{
 				"value": "Conversion Rate",
 				"keys": ["admin.analytics.conversionRate", "admin.dashboard.conversionRate"]
+			},
+			{
+				"value": "Cookie settings",
+				"keys": ["consent.change", "footer.cookieSettings"]
 			},
 			{
 				"value": "Cookies",
@@ -1299,7 +1303,7 @@
 			},
 			{
 				"value": "Close",
-				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close"]
+				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close", "consent.close"]
 			},
 			{
 				"value": "Compact Mode",
@@ -1336,6 +1340,10 @@
 			{
 				"value": "Conversion Rate",
 				"keys": ["admin.analytics.conversionRate", "admin.dashboard.conversionRate"]
+			},
+			{
+				"value": "Cookie settings",
+				"keys": ["consent.change", "footer.cookieSettings"]
 			},
 			{
 				"value": "Cookies",
@@ -2320,6 +2328,10 @@
 			{
 				"value": "Cookie",
 				"keys": ["footer.cookies", "legal.privacy.sections.cookies.title"]
+			},
+			{
+				"value": "Cookie 設定",
+				"keys": ["consent.change", "footer.cookieSettings"]
 			},
 			{
 				"value": "Create Announcement",
@@ -3373,6 +3385,7 @@
 				"keys": [
 					"auth.close",
 					"common.dismiss",
+					"consent.close",
 					"settings.notifications.push.disable",
 					"streak.dismiss"
 				]
@@ -3484,6 +3497,10 @@
 			{
 				"value": "Cookie",
 				"keys": ["footer.cookies", "legal.privacy.sections.cookies.title"]
+			},
+			{
+				"value": "Cookie 設定",
+				"keys": ["consent.change", "footer.cookieSettings"]
 			},
 			{
 				"value": "Create Announcement",
@@ -4519,6 +4536,7 @@
 				"keys": [
 					"auth.close",
 					"common.dismiss",
+					"consent.close",
 					"settings.notifications.push.disable",
 					"streak.dismiss"
 				]
@@ -4533,12 +4551,8 @@
 				]
 			},
 			{
-				"value": "隱私政策",
-				"keys": ["consent.learnMore", "support.resources.privacy.title"]
-			},
-			{
 				"value": "隱私權政策",
-				"keys": ["auth.privacyPolicy", "footer.privacy", "legal.privacy.title"]
+				"keys": ["auth.privacyPolicy", "consent.learnMore", "footer.privacy", "legal.privacy.title"]
 			},
 			{
 				"value": "雙重驗證",
@@ -4647,6 +4661,10 @@
 			{
 				"value": "Cookie",
 				"keys": ["footer.cookies", "legal.privacy.sections.cookies.title"]
+			},
+			{
+				"value": "Cookie 设置",
+				"keys": ["consent.change", "footer.cookieSettings"]
 			},
 			{
 				"value": "Create Announcement",
@@ -4917,6 +4935,7 @@
 				"keys": [
 					"auth.close",
 					"common.dismiss",
+					"consent.close",
 					"settings.notifications.push.disable",
 					"streak.dismiss"
 				]
@@ -7090,6 +7109,7 @@
 					"admin.plans.close",
 					"auth.close",
 					"common.dismiss",
+					"consent.close",
 					"streak.dismiss"
 				]
 			},
@@ -7255,7 +7275,7 @@
 			},
 			{
 				"value": "Cerrar",
-				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close"]
+				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close", "consent.close"]
 			},
 			{
 				"value": "Cerrar sesión",
@@ -7301,6 +7321,10 @@
 			{
 				"value": "Conectar",
 				"keys": ["settings.account.connect", "settings.connectedAccounts.connect"]
+			},
+			{
+				"value": "Configuración de cookies",
+				"keys": ["consent.change", "footer.cookieSettings"]
 			},
 			{
 				"value": "Confirmar",
@@ -8475,6 +8499,10 @@
 				]
 			},
 			{
+				"value": "Configurações de cookies",
+				"keys": ["consent.change", "footer.cookieSettings"]
+			},
+			{
 				"value": "Confira seu e-mail",
 				"keys": ["auth.checkEmail", "auth.checkYourEmail"]
 			},
@@ -8763,7 +8791,7 @@
 			},
 			{
 				"value": "Fechar",
-				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close"]
+				"keys": ["admin.commandPalette.close", "admin.plans.close", "auth.close", "consent.close"]
 			},
 			{
 				"value": "Fila de mensagens mortas",
@@ -9058,7 +9086,6 @@
 				"value": "Política de Privacidade",
 				"keys": [
 					"auth.privacyPolicy",
-					"consent.learnMore",
 					"footer.privacy",
 					"legal.privacy.title",
 					"support.resources.privacy.title"

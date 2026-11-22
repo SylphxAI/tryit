@@ -11,7 +11,7 @@ import { HttpHeader } from '@solidjs/start'
 import { Target, Trophy } from 'lucide-solid'
 import { createEffect, For, onCleanup, Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
-import { canTrackAnalytics, onConsentChange } from '@/features/analytics/lib/consent'
+import { hasAnalyticsConsent, onConsentChange } from '@/features/analytics/lib/consent'
 import { sendFunnel } from '@/features/analytics/lib/funnel'
 import { rememberChallenge } from '@/features/daily/lib/challenge'
 import { resultCardChips, resultCardStringsFrom } from '@/features/daily/lib/result-card'
@@ -61,7 +61,7 @@ function ShareLanding(props: { data: SharePageData }) {
 		sendFunnel({ event: 'share_landing' })
 		const sync = () => {
 			try {
-				if (canTrackAnalytics())
+				if (hasAnalyticsConsent())
 					void createPuzzleServiceClient()
 						.recordShareLanding({ shareId, analyticsConsent: true })
 						.catch(() => {})

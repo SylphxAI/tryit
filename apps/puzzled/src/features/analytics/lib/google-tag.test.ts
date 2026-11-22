@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import {
-	CONSENT_DEFAULT_SCRIPT,
 	cleanEventParams,
 	consentSignals,
 	createGoogleTag,
@@ -18,7 +17,11 @@ import {
 
 const IDS = { ga: 'G-TEST1234', ads: 'AW-123456789' }
 
-function harness(choice: { analytics: boolean; marketing: boolean }, ids = IDS) {
+function harness(
+	choice: { analytics: boolean; marketing: boolean },
+	ids = IDS,
+	defaultAnalytics = false,
+) {
 	const scripts: string[] = []
 	const calls: unknown[][] = []
 	const store = new Map<string, string>()
@@ -33,7 +36,13 @@ function harness(choice: { analytics: boolean; marketing: boolean }, ids = IDS) 
 		createElement: () => ({ src: '', async: false }),
 	}
 	const state = { ...choice }
-	const tag = createGoogleTag({ ids, win, doc, consent: () => state })
+	const tag = createGoogleTag({
+		ids,
+		win,
+		doc,
+		consent: () => state,
+		defaultAnalytics: () => defaultAnalytics,
+	})
 	return { tag, scripts, calls, state, store, win }
 }
 
@@ -62,15 +71,6 @@ describe('ids', () => {
 })
 
 describe('consent mode', () => {
-	test('inline defaults deny every signal and wait 500 ms', () => {
-		expect(CONSENT_DEFAULT_SCRIPT).toContain('"ad_storage":"denied"')
-		expect(CONSENT_DEFAULT_SCRIPT).toContain('"ad_user_data":"denied"')
-		expect(CONSENT_DEFAULT_SCRIPT).toContain('"ad_personalization":"denied"')
-		expect(CONSENT_DEFAULT_SCRIPT).toContain('"analytics_storage":"denied"')
-		expect(CONSENT_DEFAULT_SCRIPT).toContain('"wait_for_update":500')
-		expect(CONSENT_DEFAULT_SCRIPT).not.toContain('config')
-	})
-
 	test('signals follow the two choices and personalization is never granted', () => {
 		expect(consentSignals({ analytics: true, marketing: false })).toEqual({
 			ad_storage: 'denied',
@@ -88,26 +88,26 @@ describe('consent mode', () => {
 })
 
 describe('loading', () => {
-	test('no script and no call without a stored grant', () => {
+	test('queues only denied defaults and never loads without permission', () => {
 		const h = harness({ analytics: false, marketing: false })
 		h.tag.sync()
 		expect(h.tag.pageView('/')).toBe(false)
 		expect(h.tag.event('sign_up', { method: 'email' })).toBe(false)
 		expect(h.scripts).toEqual([])
-		expect(h.calls).toEqual([])
+		expect(h.calls).toEqual([['consent', 'default', consentSignals(h.state)]])
 	})
 
 	test('consent update, js and the fixed address precede config', () => {
 		const h = harness({ analytics: true, marketing: true })
 		h.tag.sync()
-		expect(names(h.calls)).toEqual(['consent', 'js', 'set', 'config', 'config'])
+		expect(names(h.calls)).toEqual(['consent', 'consent', 'js', 'set', 'config', 'config'])
 		expect(h.scripts).toEqual(['https://www.googletagmanager.com/gtag/js?id=G-TEST1234'])
-		expect(h.calls[2]?.[1]).toEqual({
+		expect(h.calls[3]?.[1]).toEqual({
 			page_location: 'https://tryit.fun/',
 			page_referrer: '',
 			page_title: 'Tryit',
 		})
-		expect(h.calls[3]?.[2]).toMatchObject({
+		expect(h.calls[4]?.[2]).toMatchObject({
 			send_page_view: false,
 			allow_google_signals: false,
 			allow_ad_personalization_signals: false,
@@ -115,6 +115,12 @@ describe('loading', () => {
 		h.tag.sync()
 		expect(h.scripts).toHaveLength(1)
 		expect(names(h.calls).filter((n) => n === 'config')).toHaveLength(2)
+	})
+
+	test('regional default grants analytics only', () => {
+		const h = harness({ analytics: true, marketing: false }, IDS, true)
+		h.tag.sync()
+		expect(h.calls[0]).toEqual(['consent', 'default', consentSignals(h.state)])
 	})
 
 	test('analytics only configures GA4; marketing only configures Ads', () => {

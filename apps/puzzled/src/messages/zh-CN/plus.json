@@ -1,6 +1,9 @@
 {
 	"name": "Tryit Plus",
 	"pricing": {
+		"unavailableTitle": "Tryit Plus 方案暂时无法显示",
+		"unavailableBody": "未能加载方案和价格，请稍后再试。",
+		"retryPlans": "重新加载方案",
 		"metaTitle": "Tryit Plus：全部游戏与完整往日题库",
 		"metaDescription": "每天任选 3 款游戏免费玩。Tryit Plus 开放全部游戏、所有往日题目，并提供家庭方案。",
 		"title": "每一款游戏，每一天",

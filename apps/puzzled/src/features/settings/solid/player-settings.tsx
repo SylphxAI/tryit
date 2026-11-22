@@ -5,6 +5,8 @@ import { Dynamic } from 'solid-js/web'
 import { ConsoleCard } from '@/features/console/solid/console-chrome'
 import type { Translate } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
+import { CookieSettings } from '@/shared/solid/consent-banner'
+import { consentCopy } from '@/shared/solid/site-shell-data'
 import { settingsPath } from './sections'
 import { accountPortal, PortalLink, SettingsLink, SettingsTitle } from './settings-controls'
 import type { MemberSettingsData } from './settings-data'
@@ -125,6 +127,9 @@ export function PrivacySettings(props: Props) {
 	return (
 		<>
 			<SettingsTitle t={t} section="privacy" />
+			<ConsoleCard title={t('consent.title')}>
+				<CookieSettings copy={consentCopy(props.data.locale, t)} />
+			</ConsoleCard>
 			<ConsoleCard
 				title={t('settings.privacy.centreTitle')}
 				description={t('settings.privacy.centreDescription')}

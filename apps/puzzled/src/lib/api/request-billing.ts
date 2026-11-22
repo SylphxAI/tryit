@@ -12,12 +12,21 @@ import { OPEN_ACCESS, type PlusAccess } from '@/lib/billing/plus'
 import { logger } from '@/lib/logger'
 import { requestConnectTransport } from './request-connect'
 
+type ListPlans = Awaited<ReturnType<typeof readBillingPlans>>
+
+function createBillingClient(headers: Headers, timeoutMs?: number) {
+	return createClient(BillingService, requestConnectTransport(headers, timeoutMs))
+}
+
+export function readBillingPlans(headers: Headers, timeoutMs?: number) {
+	return createBillingClient(headers, timeoutMs).listPlans(create(ListPlansRequestSchema))
+}
+
 /** Presentation reads stay request-local; Money remains the sole checkout and access authority. */
-export function requestBilling(headers: Headers) {
-	const client = () => createClient(BillingService, requestConnectTransport(headers))
-	let plans: ReturnType<ReturnType<typeof client>['listPlans']> | undefined
-	const listPlans = () =>
-		(plans ??= Promise.resolve().then(() => client().listPlans(create(ListPlansRequestSchema))))
+export function requestBilling(headers: Headers, accessPlans?: Promise<ListPlans | null>) {
+	const client = () => createBillingClient(headers)
+	let plans: Promise<ListPlans> | undefined
+	const listPlans = () => (plans ??= Promise.resolve().then(() => readBillingPlans(headers)))
 	const subscription = (refresh = false) =>
 		client().getSubscription(create(GetSubscriptionRequestSchema, { refresh }))
 	const claim = async (checkoutSessionId = '', locale = '') => {
@@ -45,7 +54,8 @@ export function requestBilling(headers: Headers) {
 			}
 		}
 		try {
-			return { salesOpen: (await listPlans()).salesOpen, entitled: false }
+			const result = await (accessPlans ?? listPlans())
+			return result ? { salesOpen: result.salesOpen, entitled: false } : OPEN_ACCESS
 		} catch (error) {
 			logger.warn('plus.plans-read-failed', { error })
 			return OPEN_ACCESS

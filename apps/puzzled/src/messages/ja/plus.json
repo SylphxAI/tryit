@@ -1,6 +1,9 @@
 {
 	"name": "Tryit Plus",
 	"pricing": {
+		"unavailableTitle": "現在、Tryit Plusのプランを表示できません",
+		"unavailableBody": "プランと料金を読み込めませんでした。しばらくしてからもう一度お試しください。",
+		"retryPlans": "プランを再読み込み",
 		"metaTitle": "Tryit Plus：全ゲームと全アーカイブ",
 		"metaDescription": "毎日、好きなゲームを3つ無料で。Tryit Plusなら、すべてのゲーム、過去のすべての日、ファミリープランをご利用いただけます。",
 		"title": "毎日、すべてのゲームを",

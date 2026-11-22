@@ -31,7 +31,7 @@
 					"payment": "Payment information: Sylphx Limited and its payment processor Stripe collect your card details; we receive your subscription status, amounts, dates and payment references",
 					"technical": "Technical data: IP address, browser type, and device information",
 					"errors": "Error reports: when a page or our server fails, we record the error message, stack trace and page path (never the query string, email addresses or anything you typed) in our own error-monitoring service, to find and fix the fault",
-					"referral": "Referral and ad tags: if you arrive through a link that carries campaign tags (utm_ parameters or a referral id, for example from another Sylphx product), and you have accepted analytics cookies, we keep those tags for 30 days in a first-party cookie and store them with your account if you sign up. If you arrive from a Google ad and have turned on advertising cookies, we keep the ad click id for 90 days in the same cookie and pass it only to the payment record of a subscription you start, not to your account. We use them to know which link or ad brought you, and we do not sell them. With analytics consent, we also link a visit to a shared result to your guest or account player ID for up to 41 product days to measure whether you finish your first daily puzzle. Deleting your account erases these linked receipts; aggregate reports contain no player IDs."
+					"referral": "Referral and ad tags: if you arrive through a link that carries campaign tags (utm_ parameters or a referral id, for example from another Sylphx product), and you have explicitly consented to analytics, we keep those tags for 30 days in a first-party cookie and store them with your account if you sign up. If you arrive from a Google ad and have given separate, explicit advertising consent in addition to explicit analytics consent, we keep the ad click id for 90 days in the same cookie and pass it only to the payment record of a subscription you start, not to your account. We use them to know which link or ad brought you, and we do not sell them. With explicit analytics consent, we also link a visit to a shared result to your guest or account player ID for up to 41 product days to measure whether you finish your first daily puzzle. Deleting your account erases these linked receipts; aggregate reports contain no player IDs."
 				}
 			},
 			"dataUse": {
@@ -41,9 +41,9 @@
 					"service": "To provide Tryit, your account, Tryit Plus and the family plan, and to answer your requests: performance of our contract with you",
 					"improve": "To keep Tryit secure, prevent cheating, abuse and fraud, fix faults, and understand and improve our games: our legitimate interests in running a safe, working and improving service",
 					"communicate": "To send you messages about your account, subscription and changes to Tryit: our contract with you and our legitimate interests",
-					"analytics": "To measure how Tryit is played, which links and ads bring players, and whether they sign up or subscribe, using analytics, advertising measurement and the referral cookie: your consent (analytics and advertising are separate choices), which you can withdraw at any time with Change cookie choice in the Cookies section",
+					"analytics": "To understand how people use Tryit and what leads to sign-ups or subscriptions, we use Google Analytics under the regional rules in the Cookies section. Our first-party referral cookie and shared-result analytics still require explicit analytics consent. Ad click storage and Google Ads conversion measurement at checkout also require separate, explicit advertising consent.",
 					"legal": "To keep tax and accounting records, respond to lawful requests, and establish, exercise or defend legal claims: our legal obligations and our legitimate interests",
-					"noSale": "We do not sell your personal data. Players without Tryit Plus may see advertising on the archive and result screens (never during a puzzle), served by Google AdSense; the ad is shown, and advertising cookies are set, only if you turned on advertising cookies."
+					"noSale": "We do not sell your personal data. Players without Tryit Plus may see advertising on the archive and result screens (never during a puzzle), served by Google AdSense; the ad is shown, and advertising cookies are set, only with separate, explicit advertising consent in addition to explicit analytics consent."
 				}
 			},
 			"payments": {
@@ -57,7 +57,7 @@
 				"google": "Authentication",
 				"mail": "Email delivery (sign-in and verification mail)",
 				"others": "We may also share data with our hosting providers, professional advisers, authorities where the law requires it, and a buyer or successor if our business or Tryit is sold or reorganized.",
-				"googleMeasurement": "Analytics and advertising measurement (only after you consent)"
+				"googleMeasurement": "Google Analytics under the regional rules above; Google Ads measurement only with separate, explicit advertising consent as well as explicit analytics consent"
 			},
 			"transfers": {
 				"title": "International transfers",
@@ -69,9 +69,9 @@
 			},
 			"cookies": {
 				"title": "Cookies",
-				"content": "We use cookies that are strictly necessary to sign you in, keep Tryit secure and remember your settings. We use analytics and the referral cookie only if you accept analytics, and advertising measurement only if you separately turn on advertising in Settings; nothing is pre-selected and declining costs you nothing.",
+				"content": "We use strictly necessary cookies to sign you in, keep Tryit secure and remember your settings. We decide which analytics rules apply using only the IP-based country code Cloudflare provides with your request, not your language or locale settings. Where Google Analytics is available, it stays off until you opt in if the code points to the European Economic Area (EEA), the UK, Switzerland or associated European territories, or if the code is missing or unrecognized. In other recognized countries, Google Analytics measurement is on by default unless you opt out. Use Cookie settings in the footer or in Settings → Privacy at any time to choose, opt out or withdraw consent. If we detect a Global Privacy Control (GPC) signal in your request or browser, we turn off analytics and advertising measurement even if you previously opted in or analytics would otherwise be on by default. Declining does not affect your access to Tryit.",
 				"notices": "One more cookie remembers which site notices you have closed or already seen: puzzled_dismissed_notices. It is strictly necessary, set by us (first-party) and kept for one year; it holds only the ids of those notices, no personal data, so it is set without asking and is not used for analytics. Another strictly necessary first-party cookie, puzzled_currency, remembers the currency you pick on the pricing page (for example GBP or USD) for one year; it holds only that currency code, no personal data, and is not used for analytics.",
-				"google": "If Google Analytics or Google Ads is switched on for this site, it loads only after you have said yes: Google Analytics for analytics, and Google Ads to measure whether an ad led to a sign-up or a purchase, with the plan and price but no name or email. We turn off ad personalisation and Google signals, and send Google only public page addresses. You can withdraw at any time with the button below, which also deletes the Google cookies."
+				"google": "When enabled under these rules, Google Analytics reports page views only on approved public pages. These reports do not include game, shared-result or private page URLs, query strings or referrer URLs. The Google tag denies advertising storage and use of user data for advertising by default. Accepting analytics does not enable Google Ads: measuring whether an ad led to a sign-up or purchase requires separate, explicit advertising consent as well as explicit analytics consent. Google Ads conversion reports can include the plan and price, but not your name or email. We never allow ad personalization and keep Google signals off."
 			},
 			"rights": {
 				"title": "Your Rights",

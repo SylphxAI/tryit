@@ -1,6 +1,9 @@
 {
 	"name": "Tryit Plus",
 	"pricing": {
+		"unavailableTitle": "Los planes de Tryit Plus no están disponibles en este momento",
+		"unavailableBody": "No pudimos cargar los planes ni los precios. Vuelve a intentarlo en unos instantes.",
+		"retryPlans": "Volver a cargar los planes",
 		"metaTitle": "Tryit Plus: todos los juegos y el archivo completo",
 		"metaDescription": "Juega 3 juegos gratis cada día. Tryit Plus desbloquea todos los juegos, todos los días anteriores y un plan familiar.",
 		"title": "Todos los juegos, todos los días",

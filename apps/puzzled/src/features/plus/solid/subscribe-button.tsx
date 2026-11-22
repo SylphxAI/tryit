@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { ExternalLink } from 'lucide-solid'
 import { createSignal, Show } from 'solid-js'
+import { hasAnalyticsConsent } from '@/features/analytics/lib/consent'
 import { trackGa4KeyEvent } from '@/features/analytics/lib/ga4-key-events'
 import { rememberCheckoutQuote } from '@/features/analytics/lib/google-tag'
 import { isOneTimePassPlan, minorUnitsToMajor, type PlanId } from '@/lib/billing/plus'
@@ -135,11 +136,12 @@ export function SubscribeButton(props: Props) {
 							currency: props.currency.toUpperCase(),
 						})
 						// What the checkout return reports to Google Ads (kept only with consent).
-						rememberCheckoutQuote({
-							plan: props.planId,
-							value: minorUnitsToMajor(props.amountMinor, props.currency),
-							currency: props.currency.toUpperCase(),
-						})
+						if (hasAnalyticsConsent())
+							rememberCheckoutQuote({
+								plan: props.planId,
+								value: minorUnitsToMajor(props.amountMinor, props.currency),
+								currency: props.currency.toUpperCase(),
+							})
 						window.location.assign(
 							await startCheckout(
 								props.planId,

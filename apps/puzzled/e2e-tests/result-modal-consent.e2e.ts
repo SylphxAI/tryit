@@ -17,6 +17,7 @@ const solution = Array.from({ length: 9 }, (_, r) =>
 test('result modal actions are tappable and the banner can be declined with the banner unanswered', async ({
 	page,
 }) => {
+	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 	await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
 		route.fulfill({
 			json: {
@@ -41,7 +42,11 @@ test('result modal actions are tappable and the banner can be declined with the 
 	await page.getByRole('button', { name: 'See your result', exact: true }).click()
 	const dialog = page.getByRole('dialog')
 	await expect(dialog).toBeVisible()
-	await expect(page.locator('button', { hasText: /^Decline$/ })).toHaveCount(1)
+	const banner = page.locator('[data-consent-banner]')
+	// Cookie settings has its own Decline button, even while its dialog is closed.
+	const decline = banner.locator('button', { hasText: /^Decline$/ })
+	await expect(banner).toBeVisible()
+	await expect(decline).toHaveCount(1)
 
 	// Every action in the modal must be the element under its own centre.
 	const targets = dialog.locator('a, button').filter({ visible: true })
@@ -67,6 +72,6 @@ test('result modal actions are tappable and the banner can be declined with the 
 		await page.keyboard.press('Escape')
 	}
 	await expect(dialog).toHaveCount(0)
-	await page.locator('button', { hasText: /^Decline$/ }).click()
-	await expect(page.locator('[data-consent-banner]')).toBeHidden()
+	await decline.click()
+	await expect(banner).toBeHidden()
 })

@@ -1,12 +1,12 @@
 {
-	"title": "分析同意",
-	"message": "我哋唔用 Cookie 匿名統計到訪同遊玩次數，可選嘅分析同廣告 Cookie 要你同意先會開啟。",
-	"accept": "同意",
+	"title": "分析 Cookie",
+	"message": "允許使用分析 Cookie？",
+	"accept": "接受",
 	"decline": "拒絕",
 	"learnMore": "私隱政策",
-	"analyticsLabel": "分析 Cookie",
-	"analyticsHint": "若網站使用，會啟用 Google Analytics。",
-	"marketingLabel": "廣告 Cookie",
-	"marketingHint": "等我哋知道 Google 廣告有冇帶嚟註冊。預設關閉。",
-	"change": "更改 Cookie 選擇"
+	"change": "Cookie 設定",
+	"close": "關閉",
+	"gpc": "Global Privacy Control（GPC）已啟用。選用的分析及廣告功能已關閉。",
+	"enabled": "分析 Cookie 已開啟。",
+	"disabled": "分析 Cookie 已關閉。"
 }

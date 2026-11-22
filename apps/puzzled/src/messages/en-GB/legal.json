@@ -5,6 +5,9 @@
 			"body": "The Terms of Service cover accounts, subscriptions and conduct. Support helps with account and billing questions."
 		},
 		"sections": {
+			"cookies": {
+				"google": "When enabled under these rules, Google Analytics reports page views only on approved public pages. These reports do not include game, shared-result or private page URLs, query strings or referrer URLs. The Google tag denies advertising storage and use of user data for advertising by default. Accepting analytics does not enable Google Ads: measuring whether an ad led to a sign-up or purchase requires separate, explicit advertising consent as well as explicit analytics consent. Google Ads conversion reports can include the plan and price, but not your name or email. We never allow ad personalisation and keep Google signals off."
+			},
 			"thirdParty": {
 				"others": "We may also share data with our hosting providers, professional advisers, authorities where the law requires it, and a buyer or successor if our business or Tryit is sold or reorganised."
 			},
