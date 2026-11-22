@@ -1,6 +1,7 @@
 import { useIsRouting, useLocation } from '@solidjs/router'
 import { createEffect, onCleanup, onMount } from 'solid-js'
 import { subscriptionReturn } from '@/features/settings/solid/subscription-return'
+import { consumeSignUpCookie, type SignUpMethod } from '@/lib/identity/after-sign-up'
 import { CONSENT_KEY, MARKETING_CONSENT_KEY } from '@/lib/storage-keys'
 import {
 	cookieConsent,
@@ -8,6 +9,7 @@ import {
 	onConsentChange,
 	setConsentContext,
 } from '../lib/consent'
+import { trackGa4KeyEvent } from '../lib/ga4-key-events'
 import {
 	createGoogleTag,
 	deleteGoogleCookies,
@@ -34,6 +36,7 @@ export function ConsentRuntime() {
 	const location = useLocation()
 	const isRouting = useIsRouting()
 	let tag: GoogleTagController | null = null
+	let signup: SignUpMethod | null = null
 	function sync() {
 		const routing = isRouting()
 		const { pathname: path, search } = location
@@ -45,7 +48,12 @@ export function ConsentRuntime() {
 			/^(?:\/[^/]+)?\/settings\/subscription\/?$/.test(path) &&
 			subscriptionReturn(new URLSearchParams(search)).session !== null
 		const isPublic = trackablePath(path) !== null
-		tag?.sync(!routing && (isPublic || checkoutReturn))
+		tag?.sync(!routing && (isPublic || checkoutReturn || signup !== null))
+		if (!routing && consent.ready && signup) {
+			const method = signup
+			signup = null
+			trackGa4KeyEvent('sign_up', { method })
+		}
 		if (!routing) tag?.pageView(path, isPublic ? publicDocumentTitle(path) : null)
 		if (!tag && !consent.analytics && (consent.ready || consent.gpc)) {
 			deleteGoogleCookies(document, window.location.hostname)
@@ -54,6 +62,9 @@ export function ConsentRuntime() {
 
 	createEffect(sync)
 	onMount(() => {
+		// Auth sets this only after creating an account. Never replay it on a later opt-in.
+		const method = consumeSignUpCookie(document)
+		if (cookieConsent().status === 'accepted') signup = method
 		const stop = onConsentChange(sync)
 		// SolidStart may insert the new title and canonical link after the
 		// location has committed. Recheck only after head content changes.

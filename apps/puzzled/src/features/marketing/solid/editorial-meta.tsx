@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { defaultLocale } from '@/lib/i18n/config'
+import { defaultLocale, type Locale } from '@/lib/i18n/config'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { PageMeta } from '@/shared/solid/page-meta'
 
@@ -13,6 +13,7 @@ type EditorialSpec = {
 export function EditorialMeta(props: {
 	spec: EditorialSpec
 	origin: string
+	locale?: Locale
 	type?: 'website' | 'article'
 	imageSubtitle: string
 }) {
@@ -20,7 +21,7 @@ export function EditorialMeta(props: {
 		<PageMeta
 			value={pageMetadata({
 				baseUrl: props.origin,
-				locale: defaultLocale,
+				locale: props.locale ?? defaultLocale,
 				englishOnly: true,
 				path: props.spec.path,
 				title: props.spec.metaTitle,

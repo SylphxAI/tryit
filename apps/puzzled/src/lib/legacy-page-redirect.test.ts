@@ -20,6 +20,8 @@ describe('legacy public page redirects', () => {
 		['/games/cipher', '/games/cryptogram'],
 		['/games/frame', '/games/word-box'],
 		['/games/hive', '/games/word-hive'],
+		['/games/spellbee', '/games/word-hive'],
+		['/games/mini', '/games/crossword'],
 		['/compare', '/vs'],
 	])('permanently redirects %s to %s', (path, target) => {
 		const response = legacyPageRedirect(new Request(origin + path))

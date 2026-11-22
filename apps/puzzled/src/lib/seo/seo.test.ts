@@ -419,7 +419,9 @@ describe('metadata helper', () => {
 				englishOnly: true,
 				baseUrl: BASE,
 			})
-			expect(metadata.documentTitle).toBe('Tryit vs Wordle | Tryit')
+			expect(metadata.documentTitle).toBe(
+				locale === 'en-GB' ? 'Tryit vs Wordle (UK) | Tryit' : 'Tryit vs Wordle | Tryit',
+			)
 			expect(metadata.alternates?.canonical).toBe(`${BASE}/vs/wordle`)
 			expect(metadata.alternates?.languages).toBeUndefined()
 			expect(metadata.openGraph?.url).toBe(`${BASE}/vs/wordle`)

@@ -135,7 +135,7 @@ describe('trackGa4KeyEvent', () => {
 				plan: 'family',
 				plan_sku: 'family_yearly',
 				billing_interval: 'year',
-				entry_surface: 'explicit_checkout_surface',
+				entry_surface: 'seo_vs-wordle',
 			}),
 		).toBe(true)
 
@@ -173,7 +173,7 @@ describe('trackGa4KeyEvent', () => {
 					plan: 'family',
 					plan_sku: 'family_yearly',
 					billing_interval: 'year',
-					entry_surface: 'explicit_checkout_surface',
+					entry_surface: 'seo_vs-wordle',
 				},
 			],
 		])
@@ -207,6 +207,36 @@ describe('trackGa4KeyEvent', () => {
 					plan: 'plus',
 					billing_interval: 'month',
 					option: 'subscription',
+				},
+			],
+		])
+	})
+
+	test('falls back to the checkout trigger instead of sending arbitrary inbound attribution', () => {
+		const { localItems, sessionItems, gtagCalls } = installBrowserStubs()
+		localItems.set(CONSENT_KEY, 'accepted')
+		sessionItems.set(
+			ATTRIBUTION_SESSION_KEY,
+			encodeURIComponent('s=google&es=Ada-Lovelace-12345678'),
+		)
+		expect(
+			trackGa4KeyEvent('begin_checkout', {
+				entry_surface: 'Ada Lovelace',
+				checkout_trigger: 'game_unlock',
+				value: 39.99,
+				currency: 'gbp',
+			}),
+		).toBe(true)
+		expect(gtagCalls).toEqual([
+			[
+				'event',
+				'begin_checkout',
+				{
+					send_to: 'G-TEST1234',
+					entry_surface: 'game_unlock',
+					checkout_trigger: 'game_unlock',
+					value: 39.99,
+					currency: 'GBP',
 				},
 			],
 		])

@@ -1,5 +1,7 @@
 /** GA4 conversions require explicit analytics consent and an active GA destination. */
 
+import { isComparisonSlug } from '@/features/marketing/components/comparison-slugs'
+import { PAYWALL_CHECKOUT_TRIGGERS } from '@/features/plus-offer/lib/plus-offer'
 import { readSessionEntrySurface } from '@/lib/attribution'
 import { hasAnalyticsConsent } from './consent'
 import { sendGa4Event } from './google-tag'
@@ -87,11 +89,34 @@ function sanitizeToken(value: unknown, maxLen = 120): string | undefined {
 	return trimmed.slice(0, maxLen)
 }
 
+function trustedCheckoutTrigger(value: unknown): string | undefined {
+	if (typeof value !== 'string') return undefined
+	if (value === 'pricing_subscribe' || PAYWALL_CHECKOUT_TRIGGERS.has(value)) return value
+}
+
+function trustedEntrySurface(value: unknown): string | undefined {
+	if (typeof value !== 'string') return undefined
+	if (trustedCheckoutTrigger(value)) return value
+	if (value.startsWith('seo_vs-') && isComparisonSlug(value.slice('seo_vs-'.length))) return value
+	if (
+		value === 'seo_vs-hub' ||
+		value === 'seo_daily-word-and-logic-puzzles-online' ||
+		value === 'seo_family-brain-games-no-ads'
+	)
+		return value
+}
+
 function sanitizeParams(raw: Record<string, unknown>): Record<string, unknown> {
 	const out: Record<string, unknown> = {}
 	for (const [key, value] of Object.entries(raw)) {
 		if (value === undefined || value === null) continue
 		if (FORBIDDEN_PII_KEYS.has(key.toLowerCase()) || !ALLOWED_KEYS.has(key)) continue
+		if (key === 'entry_surface' || key === 'checkout_trigger') {
+			const trusted =
+				key === 'entry_surface' ? trustedEntrySurface(value) : trustedCheckoutTrigger(value)
+			if (trusted) out[key] = trusted
+			continue
+		}
 		if (key === 'value') {
 			if (typeof value === 'number' && Number.isFinite(value)) out.value = value
 			continue
@@ -164,8 +189,10 @@ export function trackGa4KeyEvent<E extends Ga4KeyEventName>(
 	const clean = sanitizeParams(raw)
 
 	if (clean.entry_surface === undefined) {
-		const persisted = sanitizeToken(readSessionEntrySurface(sessionStore()))
-		if (persisted) clean.entry_surface = persisted
+		// Entry attribution can originate in a query string. Never send free-form text.
+		const surface =
+			trustedEntrySurface(readSessionEntrySurface(sessionStore())) ?? clean.checkout_trigger
+		if (surface) clean.entry_surface = surface
 	}
 
 	if (event === 'purchase') {

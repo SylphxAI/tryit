@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
+import { SIGNUP_COOKIE } from '../src/lib/identity/after-sign-up'
 import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
+import { CONSENT_KEY } from '../src/lib/storage-keys'
+import { capture, commands, id } from './google-tag-support'
 
 const authFixture = process.env.SOLID_AUTH_FIXTURE_URL
 const browserCookies = [
@@ -210,3 +213,59 @@ test('real sign-in endpoint requires browser Origin, valid proof and current con
 		origin: headers.origin,
 	})
 })
+
+for (const [isNew, consent, expected] of [
+	[true, 'accepted', 1],
+	[true, 'pending', 0],
+	[true, 'declined', 0],
+	[false, 'accepted', 0],
+] as const) {
+	test(`GA4 signup: ${isNew ? 'new' : 'returning'} account with ${consent} analytics`, async ({
+		page,
+		context,
+	}) => {
+		await fixture(isNew ? 'new' : 'enabled')
+		await capture(page)
+		// Model the trusted TLS edge on the local production build. The
+		// real sign-in handler and Auth fixture stay in the request path.
+		await page.route('**/api/identity/sign-in', async (route) => {
+			const response = await route.fetch({
+				headers: {
+					...route.request().headers(),
+					origin: 'https://tryit.fun',
+					'x-forwarded-host': 'tryit.fun',
+					'x-forwarded-proto': 'https',
+				},
+			})
+			await route.fulfill({ response })
+		})
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
+		await page.addInitScript(
+			({ consent, key }) => {
+				if (consent !== 'pending') localStorage.setItem(key, consent)
+				window.addEventListener('consent-change', () => {
+					document.documentElement.dataset.fixtureConsentReady = 'true'
+				})
+			},
+			{ consent, key: CONSENT_KEY },
+		)
+		await page.goto('/sign-in?callbackUrl=%2Farchive')
+		await page.locator('#sign-in-policy').check()
+		await page.locator('#email').fill('synthetic@example.test')
+		await page.getByRole('button', { name: 'Continue', exact: true }).click()
+		const code = page.getByLabel('6-digit code')
+		await expect(code).toBeVisible()
+		await Promise.all([page.waitForResponse('**/api/consent-context'), code.fill('141421')])
+		await expect(page).toHaveURL(/\/archive(?:\?|$)/)
+		const events = async () => (await commands(page)).filter((row) => row[1] === 'sign_up')
+		await expect(page.locator('html')).toHaveAttribute('data-fixture-consent-ready', 'true')
+		expect(await events()).toEqual(
+			expected ? [['event', 'sign_up', { method: 'email', send_to: id }]] : [],
+		)
+		expect((await commands(page)).filter((row) => row[1] === 'page_view')).toEqual([])
+		expect((await context.cookies()).some(({ name }) => name === SIGNUP_COOKIE)).toBe(false)
+		await page.goto('/archive?signedUp=1')
+		await expect(page.locator('html')).toHaveAttribute('data-fixture-consent-ready', 'true')
+		expect(await events()).toEqual([])
+	})
+}
