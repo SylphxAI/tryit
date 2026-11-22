@@ -1,5 +1,6 @@
 /** @jsxImportSource solid-js */
 import { createEffect, createSignal, For, Match, onCleanup, onMount, Show, Switch } from 'solid-js'
+import { cookieConsent, onConsentChange } from '@/features/analytics/lib/consent'
 import { ConsoleCard } from '@/features/console/solid/console-chrome'
 import { reportCheckoutReturn } from '@/features/plus/lib/checkout-return'
 import {
@@ -101,7 +102,24 @@ export function SubscriptionPanel(props: Props) {
 	})
 	createEffect(() => {
 		const conversion = snapshot().conversion
-		if (conversion) reportCheckoutReturn(conversion)
+		if (!conversion) return
+		if (cookieConsent().ready) {
+			reportCheckoutReturn(conversion)
+			return
+		}
+		// Wait for request-level privacy context, not for a later opt-in.
+		let cancelled = false
+		const stop = onConsentChange(() => {
+			if (!cookieConsent().ready) return
+			stop()
+			queueMicrotask(() => {
+				if (!cancelled) reportCheckoutReturn(conversion)
+			})
+		})
+		onCleanup(() => {
+			cancelled = true
+			stop()
+		})
 	})
 
 	const trialEnd = () => {

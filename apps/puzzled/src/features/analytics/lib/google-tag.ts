@@ -1,24 +1,16 @@
 /**
  * Google tag (gtag.js) for GA4 and Google Ads, consent first.
  *
- * Basic consent mode: the inline defaults deny every signal, and gtag.js is
- * injected, and `config` sent, only once the visitor has stored a choice that
- * grants something. Unanswered or declined means no Google request at all.
- * Analytics consent covers GA4 (`analytics_storage`); marketing consent covers
- * Ads (`ad_storage`, `ad_user_data`). `ad_personalization` is never granted.
+ * Basic consent mode: queue defaults and effective consent before loading any
+ * remote code. Analytics may use a regional default; advertising signals
+ * require a separate stored grant. Ad personalization is always denied.
  *
  * The page address, title and referrer sent to Google are fixed to an
  * allowlist of public marketing paths; a game, share or account URL never
  * reaches Google. With no ids configured the whole module is inert.
  */
 
-export {
-	type Ga4KeyEventName,
-	type Ga4KeyEventParams,
-	type Ga4KeyEventParamsMap,
-	resetGa4KeyEventsForTests,
-	trackGa4KeyEvent,
-} from './ga4-key-events'
+import { CHECKOUT_QUOTE_KEY } from './consent'
 
 export type GoogleTagIds = { ga: string | null; ads: string | null }
 
@@ -56,14 +48,7 @@ export function consentSignals(choice: ConsentChoice): ConsentSignals {
 	}
 }
 
-/**
- * Inline script run before anything else: the data layer, `gtag`, and the
- * denied defaults with a 500 ms wait for an update. There is no geo signal in
- * the product, so the defaults are denied everywhere, not only in EEA/GB/CH.
- */
-export const CONSENT_DEFAULT_SCRIPT = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',${JSON.stringify(
-	{ ...consentSignals({ analytics: false, marketing: false }), wait_for_update: 500 },
-)});`
+const DENIED = consentSignals({ analytics: false, marketing: false })
 
 export const SITE_TITLE = 'Tryit'
 
@@ -85,7 +70,7 @@ export function trackablePath(pathname: string): string | null {
 	return PUBLIC_PATHS.has(path) ? path : null
 }
 
-const GOOGLE_COOKIE = /^(_ga|_ga_[A-Z0-9]+|_gid|_gat.*|_gcl_[a-z]+|_gac_.+|__gads|__gpi)$/
+const GOOGLE_COOKIE = /^(_ga(?:_[a-z0-9_-]+)?|_gid|_gat.*|_gcl_[a-z]+|_gac_.+|__gads|__gpi)$/i
 
 /** Names of Google cookies in a `document.cookie` string. */
 export function googleCookieNames(cookies: string): string[] {
@@ -126,13 +111,14 @@ export type TagDocument = {
 
 export type GoogleTagController = {
 	/** Apply the current stored consent: load, configure or withdraw. */
-	sync(): void
+	sync(allowLoad?: boolean): void
 	/** A page view for a route; only allowlisted public routes are reported. */
 	pageView(pathname: string): boolean
 	/** A conversion event to the destinations the visitor consented to. */
 	event(name: string, params: Record<string, unknown>): boolean
 	/** Has the visitor granted anything a Google destination could use? */
 	hasConsent(): boolean
+	gaEvent(name: string, params: Record<string, unknown>): boolean
 }
 
 /** Characters allowed in an event parameter string: nothing that can carry an address. */
@@ -171,9 +157,11 @@ export function createGoogleTag(input: {
 	win: TagWindow
 	doc: TagDocument
 	consent: () => ConsentChoice
+	defaultAnalytics?: () => boolean
 }): GoogleTagController {
 	const { ids, win, doc } = input
 	const base = `${win.location.origin}/`
+	let initialized = false
 	let loaded = false
 	let gaOn = false
 	let adsOn = false
@@ -192,13 +180,13 @@ export function createGoogleTag(input: {
 	}
 
 	function load(firstId: string) {
+		gtag('js', new Date())
+		// Fixed before any config so the first hit never carries the real address.
+		gtag('set', { page_location: base, page_referrer: '', page_title: SITE_TITLE })
 		const script = doc.createElement('script')
 		script.async = true
 		script.src = `https://www.googletagmanager.com/gtag/js?id=${firstId}`
 		doc.head.appendChild(script)
-		gtag('js', new Date())
-		// Fixed before any config so the first hit never carries the real address.
-		gtag('set', { page_location: base, page_referrer: '', page_title: SITE_TITLE })
 		loaded = true
 	}
 
@@ -207,21 +195,29 @@ export function createGoogleTag(input: {
 	}
 
 	return {
-		sync() {
+		sync(allowLoad = true) {
 			const choice = input.consent()
 			const wantGa = Boolean(ids.ga) && choice.analytics
 			const wantAds = Boolean(ids.ads) && choice.marketing
+			if (!initialized) {
+				gtag('consent', 'default', {
+					...DENIED,
+					analytics_storage: state(wantGa && input.defaultAnalytics?.() === true),
+				})
+				initialized = true
+			}
+			if (ids.ga && !wantGa) win[`ga-disable-${ids.ga}`] = true
+			if (ids.ads && !wantAds) win[`ga-disable-${ids.ads}`] = true
 			if (!wantGa && !wantAds) {
-				if (loaded) {
-					gtag('consent', 'update', consentSignals({ analytics: false, marketing: false }))
-					for (const id of [ids.ga, ids.ads]) if (id) win[`ga-disable-${id}`] = true
-					deleteGoogleCookies(doc, win.location.hostname)
-				}
+				if (gaOn || adsOn) gtag('consent', 'update', DENIED)
+				deleteGoogleCookies(doc, win.location.hostname)
 				gaOn = false
 				adsOn = false
 				lastPath = null
 				return
 			}
+			if (!loaded && !allowLoad) return
+			if (gaOn === wantGa && adsOn === wantAds) return
 			gtag('consent', 'update', consentSignals(choice))
 			const first = wantGa ? ids.ga : ids.ads
 			if (!loaded && first) load(first)
@@ -240,8 +236,7 @@ export function createGoogleTag(input: {
 					allow_ad_personalization_signals: false,
 				})
 			}
-			if (!wantGa && gaOn && ids.ga) win[`ga-disable-${ids.ga}`] = true
-			if (!wantAds && adsOn && ids.ads) win[`ga-disable-${ids.ads}`] = true
+			if ((gaOn && !wantGa) || (adsOn && !wantAds)) deleteGoogleCookies(doc, win.location.hostname)
 			gaOn = wantGa
 			adsOn = wantAds
 		},
@@ -267,6 +262,11 @@ export function createGoogleTag(input: {
 			const choice = input.consent()
 			return (Boolean(ids.ga) && choice.analytics) || (Boolean(ids.ads) && choice.marketing)
 		},
+		gaEvent(name, params) {
+			if (!gaOn || !input.consent().analytics) return false
+			gtag('event', name, { ...params, send_to: ids.ga })
+			return true
+		},
 		event(name, params) {
 			const sendTo = targets()
 			if (!loaded || sendTo.length === 0) return false
@@ -283,9 +283,13 @@ export function setActiveGoogleTag(controller: GoogleTagController | null): void
 	active = controller
 }
 
+/** Dispatch fields already sanitized by the GA4 key-event bridge. */
+export function sendGa4Event(name: string, params: Record<string, unknown>): boolean {
+	return active?.gaEvent(name, params) ?? false
+}
+
 export type CheckoutQuote = { plan: string; value: number; currency: string }
 
-const QUOTE_KEY = 'puzzled:ads:checkout-quote'
 const SENT_PREFIX = 'puzzled:ads:sent:'
 
 type Store = {
@@ -306,7 +310,7 @@ function store(): Store | null {
 export function rememberCheckoutQuote(quote: CheckoutQuote): void {
 	if (!active?.hasConsent()) return
 	try {
-		store()?.setItem(QUOTE_KEY, JSON.stringify(quote))
+		store()?.setItem(CHECKOUT_QUOTE_KEY, JSON.stringify(quote))
 	} catch {
 		// Private mode: no quote, so no conversion value; checkout is unaffected.
 	}
@@ -314,7 +318,9 @@ export function rememberCheckoutQuote(quote: CheckoutQuote): void {
 
 function readQuote(storage: Store): CheckoutQuote | null {
 	try {
-		const raw = JSON.parse(storage.getItem(QUOTE_KEY) ?? 'null') as Partial<CheckoutQuote> | null
+		const raw = JSON.parse(
+			storage.getItem(CHECKOUT_QUOTE_KEY) ?? 'null',
+		) as Partial<CheckoutQuote> | null
 		if (
 			raw &&
 			typeof raw.plan === 'string' &&
@@ -379,6 +385,6 @@ export function trackCheckoutReturn(input: {
 					...user,
 				}),
 	)
-	if (sent) storage.removeItem(QUOTE_KEY)
+	if (sent) storage.removeItem(CHECKOUT_QUOTE_KEY)
 	return sent
 }

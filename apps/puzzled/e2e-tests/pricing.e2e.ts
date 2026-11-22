@@ -61,7 +61,7 @@ for (const viewport of VIEWPORTS) {
 					await expect(plusCta).toBeEnabled()
 					const unobstructed = await plusCta.evaluate((el) => {
 						const r = el.getBoundingClientRect()
-						const banner = document.querySelector('[data-consent-banner] > section')
+						const banner = document.querySelector('[data-consent-banner]')
 						const b = banner?.getBoundingClientRect()
 						const overlapsBanner =
 							!!b &&
@@ -138,7 +138,7 @@ for (const viewport of VIEWPORTS) {
 				await expect(freePlay).toHaveAttribute('href', /^\/games\/[^/?#]+$/)
 				await expectReachable(freePlay)
 				for (const path of ['/privacy', '/terms']) {
-					const legal = page.locator(`footer a[href="${path}"]`)
+					const legal = page.locator(`footer li > a[href="${path}"]`)
 					await expect(legal).toHaveCount(1)
 					await expectReachable(legal)
 				}
@@ -256,6 +256,7 @@ for (const viewport of VIEWPORTS) {
 			].join('&')
 			await page.goto(`/pricing?${query}`, { waitUntil: 'domcontentloaded' })
 			await settle(page)
+			await expect(page.locator('[data-consent-banner]')).toBeVisible()
 
 			const offer = page.locator('#plus')
 			test.skip((await offer.getByRole('radio').count()) === 0, 'sales are closed')
@@ -271,10 +272,10 @@ for (const viewport of VIEWPORTS) {
 			})
 			expect(capturedBody).not.toMatchObject({ immediateSupplyConsent: true })
 			const attrHeader = decodeURIComponent(capturedHeaders['x-puzzled-attribution'] ?? '')
-			expect(attrHeader).toContain('g=Cj0_e2e_test')
-			expect(attrHeader).toContain('gb=gb_e2e')
-			expect(attrHeader).toContain('wb=wb_e2e')
-			expect(attrHeader).toContain('fb=fb_e2e')
+			expect(attrHeader).not.toContain('g=Cj0_e2e_test')
+			expect(attrHeader).not.toContain('gb=gb_e2e')
+			expect(attrHeader).not.toContain('wb=wb_e2e')
+			expect(attrHeader).not.toContain('fb=fb_e2e')
 			expect(attrHeader).toContain('s=google')
 			expect(capturedHeaders['x-puzzled-return-to']).toBe('/games/sudoku')
 

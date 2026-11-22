@@ -1,6 +1,8 @@
 import { devices, expect, test } from '@playwright/test'
 
-test.use({ ...devices['iPhone 13'] })
+// Exercise the mobile viewport without changing the configured browser engine.
+const { defaultBrowserType: _engine, ...phone } = devices['iPhone 13']
+test.use(phone)
 test.describe.configure({ retries: 0 })
 
 for (const viewport of [
@@ -44,20 +46,6 @@ for (const viewport of [
 			}
 			const action = document.querySelector('[data-day-primary-action]')!
 			const r = action.getBoundingClientRect()
-			const consentRect = document.querySelector('[data-consent-banner]')!.getBoundingClientRect()
-			const lineupOverlap = Array.from(document.querySelectorAll('main a[href*="/games/"]')).some(
-				(el) => {
-					const b = el.getBoundingClientRect()
-					return (
-						b.width > 0 &&
-						b.height > 0 &&
-						consentRect.left < b.right &&
-						consentRect.right > b.left &&
-						consentRect.top < b.bottom &&
-						consentRect.bottom > b.top
-					)
-				},
-			)
 			return {
 				cardDocTop:
 					document.querySelector('[data-day-puzzle-card]')!.getBoundingClientRect().top +
@@ -67,15 +55,12 @@ for (const viewport of [
 				consent: bounds('[data-consent-banner]'),
 				consentPosition: getComputedStyle(document.querySelector('[data-consent-banner]')!)
 					.position,
-				lineupOverlap,
 				hit: action.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)),
 			}
 		})
-		// The consent bar sits in normal static document flow at the bottom of the
-		// page: it never floats over the hero card, Play CTA, or any game card.
-		expect(geometry.consentPosition).toBe('static')
-		expect(geometry.card.bottom).toBeLessThanOrEqual(geometry.consent.top)
-		expect(geometry.lineupOverlap).toBe(false)
+		// The fixed bar keeps the main Play CTA clear. Other cards can scroll past it.
+		expect(geometry.consentPosition).toBe('fixed')
+		expect(geometry.play.bottom).toBeLessThanOrEqual(geometry.consent.top)
 		expect(geometry.play.height).toBeGreaterThanOrEqual(48)
 		expect(geometry.hit).toBe(true)
 		await expect(play).toHaveAttribute('href', /start=1#play$/)

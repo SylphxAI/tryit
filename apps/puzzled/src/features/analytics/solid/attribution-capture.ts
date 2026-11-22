@@ -2,9 +2,8 @@ import { useLocation } from '@solidjs/router'
 import { createEffect, onCleanup } from 'solid-js'
 import {
 	canStoreMarketing,
-	canTrackAnalytics,
-	isAnalyticsDeclined,
-	isMarketingDeclined,
+	cookieConsent,
+	hasAnalyticsConsent,
 	onConsentChange,
 } from '@/features/analytics/lib/consent'
 import {
@@ -18,11 +17,9 @@ import {
 } from '@/lib/attribution'
 
 /**
- * Keeps first-touch attribution tags (utm_*, ref) and ad click ids (gclid,
- * gbraid, wbraid, fbclid) in same-tab `sessionStorage` across routes such as
- * `/pricing` -> `/login` -> checkout even before optional cookie consent, and
- * promotes them into the durable `puzzled_attr` cookie once consent is
- * granted. Explicit decline or consent withdrawal clears both.
+ * Preserves same-tab campaign attribution across sign-in. A durable
+ * attribution cookie requires an explicit grant; GPC or decline clears both
+ * stores. Ad click IDs are captured only with separate marketing consent.
  */
 export function AttributionCapture() {
 	const location = useLocation()
@@ -37,13 +34,16 @@ export function AttributionCapture() {
 			} catch {
 				// Blocked storage does not block navigation.
 			}
+			const consent = cookieConsent()
+			if (!consent.ready && !consent.gpc) return
 			const existingSession = readSessionAttribution(storage)
 			const sessionAction = nextSessionAttribution({
 				existing: existingSession,
 				search: liveSearch,
 				landingPath: pathname || window.location.pathname,
-				analyticsDeclined: isAnalyticsDeclined(),
-				marketingDeclined: isMarketingDeclined(),
+				analyticsDeclined:
+					!consent.storageAvailable || consent.gpc || consent.status === 'declined',
+				marketingDeclined: !consent.marketing,
 			})
 			let activeSession = existingSession
 			try {
@@ -63,7 +63,7 @@ export function AttributionCapture() {
 				search: mergeSearchWithSession(liveSearch, activeSession),
 				landingPath: pathname || window.location.pathname,
 				now: Date.now(),
-				analytics: canTrackAnalytics(),
+				analytics: hasAnalyticsConsent(),
 				marketing: canStoreMarketing(),
 			})
 			if (cookieAction.kind === 'set') {

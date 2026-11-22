@@ -1,12 +1,12 @@
 {
-	"title": "Consentimiento de analítica",
-	"message": "Contamos visitas y partidas sin cookies; las cookies opcionales solo se activan si aceptas.",
+	"title": "Cookies de análisis",
+	"message": "¿Permitir cookies de análisis?",
 	"accept": "Aceptar",
 	"decline": "Rechazar",
 	"learnMore": "Política de privacidad",
-	"analyticsLabel": "Cookies de analítica",
-	"analyticsHint": "Google Analytics, si el sitio lo usa.",
-	"marketingLabel": "Cookies publicitarias",
-	"marketingHint": "Miden si los anuncios de Google traen registros. Desactivadas por defecto.",
-	"change": "Cambiar elección de cookies"
+	"change": "Configuración de cookies",
+	"close": "Cerrar",
+	"gpc": "El Control Global de Privacidad (GPC) está activo. El análisis y la publicidad opcionales están desactivados.",
+	"enabled": "Las cookies de análisis están activadas.",
+	"disabled": "Las cookies de análisis están desactivadas."
 }

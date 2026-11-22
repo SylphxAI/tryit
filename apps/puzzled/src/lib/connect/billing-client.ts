@@ -5,6 +5,7 @@
  */
 import { create } from '@bufbuild/protobuf'
 import { createClient } from '@connectrpc/connect'
+import { cookieConsent } from '@/features/analytics/lib/consent'
 import {
 	BillingService,
 	CancelSubscriptionRequestSchema,
@@ -17,7 +18,12 @@ import {
 	ResetFamilyInviteRequestSchema,
 	ResumeSubscriptionRequestSchema,
 } from '@/gen/connect/puzzled/v1/billing_pb'
-import { ATTRIBUTION_HEADER, RETURN_TO_HEADER, readSessionAttribution } from '@/lib/attribution'
+import {
+	ATTRIBUTION_HEADER,
+	nextSessionAttribution,
+	RETURN_TO_HEADER,
+	readSessionAttribution,
+} from '@/lib/attribution'
 import { getConnectTransport } from './transport'
 
 function client() {
@@ -32,9 +38,29 @@ export async function startCheckout(
 	returnTo?: string,
 ) {
 	const headers: Record<string, string> = {}
-	const sessionAttr =
-		typeof window !== 'undefined' ? readSessionAttribution(window.sessionStorage) : null
-	if (sessionAttr) headers[ATTRIBUTION_HEADER] = sessionAttr
+	const consent = cookieConsent()
+	if (
+		typeof window !== 'undefined' &&
+		consent.ready &&
+		consent.storageAvailable &&
+		!consent.gpc &&
+		consent.status !== 'declined'
+	) {
+		try {
+			const existing = readSessionAttribution(window.sessionStorage)
+			const action = nextSessionAttribution({
+				existing,
+				search: '',
+				analyticsDeclined: false,
+				marketingDeclined: !consent.marketing,
+			})
+			const attribution =
+				action.kind === 'keep' ? existing : action.kind === 'set' ? action.value : null
+			if (attribution) headers[ATTRIBUTION_HEADER] = attribution
+		} catch {
+			// Storage denial never blocks checkout.
+		}
+	}
 	if (returnTo) headers[RETURN_TO_HEADER] = returnTo
 	const res = await client().createCheckout(
 		create(CreateCheckoutRequestSchema, { planId, locale, currency, immediateSupplyConsent }),

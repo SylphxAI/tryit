@@ -1,78 +1,78 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { canStoreMarketing, canTrackAnalytics, withdrawCookieChoice } from './consent'
+import { expect, test } from 'bun:test'
+import { CONSENT_KEY, MARKETING_CONSENT_KEY } from '@/lib/storage-keys'
+import {
+	cookieConsent,
+	hasAnalyticsConsent,
+	resolveConsent,
+	saveCookieChoice,
+	setConsentContext,
+} from './consent'
 
-const g = globalThis as unknown as Record<string, unknown>
-let items: Map<string, string>
-let sessionItems: Map<string, string>
-let cookieWrites: string[]
-let events: string[]
+const statuses = ['pending', 'accepted', 'declined'] as const
 
-beforeEach(() => {
-	items = new Map()
-	sessionItems = new Map()
-	cookieWrites = []
-	events = []
-	const win: Record<string, unknown> = {
-		location: { hostname: 'tryit.fun' },
-		dispatchEvent: (e: { type: string }) => events.push(e.type),
-	}
-	g.window = win
-	g.localStorage = {
-		getItem: (k: string) => items.get(k) ?? null,
-		setItem: (k: string, v: string) => void items.set(k, v),
-		removeItem: (k: string) => void items.delete(k),
-	}
-	g.sessionStorage = {
-		getItem: (k: string) => sessionItems.get(k) ?? null,
-		setItem: (k: string, v: string) => void sessionItems.set(k, v),
-		removeItem: (k: string) => void sessionItems.delete(k),
-	}
-	g.document = {
-		get cookie() {
-			return '_ga=1; _gcl_au=2'
-		},
-		set cookie(v: string) {
-			cookieWrites.push(v)
-		},
-	}
-	g.CustomEvent = class {
-		type: string
-		constructor(type: string) {
-			this.type = type
+test('region, explicit choices, either GPC signal and storage availability compose fail-closed', () => {
+	for (const region of ['eea', 'non-eea'] as const) {
+		for (const status of statuses) {
+			for (const marketing of statuses) {
+				for (const httpGpc of [true, false]) {
+					for (const browserGpc of [true, false]) {
+						for (const ready of [true, false]) {
+							for (const storageAvailable of [true, false]) {
+								const gpc = browserGpc || (ready && httpGpc)
+								const allowed = ready && storageAvailable && !gpc
+								expect(
+									resolveConsent({
+										context: ready ? { region, gpc: httpGpc } : null,
+										browserGpc,
+										status,
+										marketing,
+										storageAvailable,
+									}),
+								).toMatchObject({
+									analytics:
+										allowed &&
+										(status === 'accepted' || (status === 'pending' && region === 'non-eea')),
+									marketing: allowed && status === 'accepted' && marketing === 'accepted',
+									prompt: allowed && region === 'eea' && status === 'pending',
+									gpc,
+									ready,
+								})
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 })
 
-afterEach(() => {
-	for (const k of ['window', 'localStorage', 'sessionStorage', 'document', 'CustomEvent']) {
-		g[k] = undefined
+test('analytics-only accept, persistent decline and non-EEA default retain the explicit integration gate', () => {
+	const globals = globalThis as unknown as { window?: unknown }
+	const entries = new Map<string, string>()
+	globals.window = {
+		dispatchEvent: () => {},
+		localStorage: {
+			getItem: (key: string) => entries.get(key) ?? null,
+			setItem: (key: string, value: string) => entries.set(key, value),
+			removeItem: (key: string) => entries.delete(key),
+		},
+		sessionStorage: { removeItem: () => {} },
 	}
-})
-
-describe('consent checks', () => {
-	test('advertising and analytics are separate', () => {
-		items.set('puzzled:consent:cookie', 'accepted')
-		items.set('puzzled:consent:marketing', 'declined')
-		expect(canTrackAnalytics()).toBe(true)
-		expect(canStoreMarketing()).toBe(false)
-	})
-})
-
-describe('withdrawCookieChoice', () => {
-	test('forgets the choice, the stored quote, Google cookies, and disables the resident tag', () => {
-		items.set('puzzled-consent', '{"analytics":true,"marketing":true}')
-		items.set('puzzled:ads:checkout-quote', '{}')
-		sessionItems.set('puzzled:attr:session', 'g%3DCj0_123')
-		withdrawCookieChoice(['G-TEST1234', 'AW-123456789'])
-		expect(items.has('puzzled-consent')).toBe(false)
-		expect(items.has('puzzled:ads:checkout-quote')).toBe(false)
-		expect(sessionItems.has('puzzled:attr:session')).toBe(false)
-		expect(items.get('puzzled:consent:marketing')).toBe('declined')
-		const win = g.window as Record<string, unknown>
-		expect(win['ga-disable-G-TEST1234']).toBe(true)
-		expect(win['ga-disable-AW-123456789']).toBe(true)
-		expect(cookieWrites.some((w) => w.startsWith('_ga=; Path=/; Max-Age=0'))).toBe(true)
-		expect(cookieWrites.some((w) => w.startsWith('_gcl_au=; Path=/; Max-Age=0'))).toBe(true)
-		expect(events).toEqual(['consent-change'])
-	})
+	try {
+		setConsentContext({ region: 'non-eea', gpc: false })
+		expect(cookieConsent().analytics).toBe(true)
+		expect(hasAnalyticsConsent()).toBe(false)
+		saveCookieChoice('declined')
+		expect(entries.get(CONSENT_KEY)).toBe('declined')
+		expect(cookieConsent().analytics).toBe(false)
+		saveCookieChoice('accepted')
+		expect(hasAnalyticsConsent()).toBe(true)
+		expect(entries.get(MARKETING_CONSENT_KEY)).toBe('declined')
+		setConsentContext({ region: 'non-eea', gpc: true })
+		saveCookieChoice('accepted')
+		expect(hasAnalyticsConsent()).toBe(false)
+	} finally {
+		setConsentContext(null)
+		globals.window = undefined
+	}
 })

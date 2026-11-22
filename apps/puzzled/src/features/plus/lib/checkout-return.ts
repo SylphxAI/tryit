@@ -1,11 +1,10 @@
+import { CHECKOUT_QUOTE_KEY, hasAnalyticsConsent } from '@/features/analytics/lib/consent'
 import { trackGa4KeyEvent } from '@/features/analytics/lib/ga4-key-events'
 import { trackCheckoutReturn } from '@/features/analytics/lib/google-tag'
 
-const QUOTE_KEY = 'puzzled:ads:checkout-quote'
-
 function readStoredQuote(): { plan?: string; value?: number; currency?: string } | null {
 	try {
-		const raw = JSON.parse(window.localStorage.getItem(QUOTE_KEY) ?? 'null') as {
+		const raw = JSON.parse(window.localStorage.getItem(CHECKOUT_QUOTE_KEY) ?? 'null') as {
 			plan?: unknown
 			value?: unknown
 			currency?: unknown
@@ -27,7 +26,7 @@ function readStoredQuote(): { plan?: string; value?: number; currency?: string }
 
 function clearStoredQuote(): void {
 	try {
-		window.localStorage.removeItem(QUOTE_KEY)
+		window.localStorage.removeItem(CHECKOUT_QUOTE_KEY)
 	} catch {
 		// Ignore blocked storage.
 	}
@@ -52,6 +51,7 @@ export function reportCheckoutReturn({
 	value?: number
 	currency?: string
 }) {
+	if (!hasAnalyticsConsent()) return
 	if (status === 'trialing') {
 		trackCheckoutReturn({ sessionId, status, userId })
 		return
