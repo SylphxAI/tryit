@@ -142,7 +142,7 @@ export function PolicyPage(props: { kind: Policy }) {
 				<>
 					<PageMeta value={page.meta} />
 					<SiteShell data={page.shell}>
-						<main id="main-content" class="page-shell-wide flex-1 space-y-7 py-10">
+						<main id="main-content" tabIndex={-1} class="page-shell-wide flex-1 space-y-7 py-10">
 							<header class="max-w-3xl space-y-3">
 								<p class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
 									{page.eyebrow}

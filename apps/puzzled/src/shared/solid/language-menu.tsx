@@ -8,7 +8,15 @@ export function LanguageMenu(props: { data: SiteShellData; showName?: boolean })
 	const current = () =>
 		props.data.languages.find((language) => language.code === props.data.language)
 	return (
-		<details class="relative w-fit">
+		<details
+			class="relative w-fit"
+			onKeyDown={(event) => {
+				if (event.key !== 'Escape' || !event.currentTarget.open) return
+				event.preventDefault()
+				event.currentTarget.open = false
+				event.currentTarget.querySelector('summary')?.focus()
+			}}
+		>
 			<summary
 				aria-label={props.data.changeLanguage}
 				class="pressable flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg px-3 text-sm font-semibold hover:bg-accent"
@@ -20,6 +28,7 @@ export function LanguageMenu(props: { data: SiteShellData; showName?: boolean })
 				</Show>
 			</summary>
 			<ul
+				data-language-options=""
 				class={`absolute top-full z-10 min-w-36 rounded-xl border border-border bg-card p-1 shadow-card ${props.showName ? 'left-0' : 'right-0'}`}
 			>
 				<For each={props.data.languages}>

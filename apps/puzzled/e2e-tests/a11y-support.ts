@@ -160,7 +160,10 @@ export async function targetOffenders(page: Page, selector: string): Promise<Tar
 
 /** Shell controls the 44px company target applies to on every route. */
 export const SHELL_TARGET_SELECTOR =
-	'header a[href], header button, nav[aria-label] a[href], nav[aria-label] button, footer a[href]'
+	'header a[href], header button, header summary, nav[aria-label] a[href], nav[aria-label] button, footer a[href]'
+
+export const languageTrigger = (page: Page) => page.locator('header details > summary')
+export const languageOptions = (page: Page) => page.locator('header [data-language-options]')
 
 /**
  * Record the CSS-animated popup itself, not its implementation-specific children.
@@ -173,52 +176,60 @@ export async function samplePopupTransform(
 	page: Page,
 	open: () => Promise<unknown>,
 	mountTimeoutMs = 8000,
+	selector = '[role="menu"]',
 ) {
-	const recorder = await page.evaluateHandle((timeout) => {
-		let frame = 0
-		let timer: ReturnType<typeof setTimeout>
-		let complete: (result: { samples: string[]; error?: string }) => void
-		const result = new Promise<{ samples: string[]; error?: string }>((resolve) => {
-			complete = resolve
-		})
-		const samples: string[] = []
-		const stop = () => {
-			observer.disconnect()
-			clearTimeout(timer)
-			cancelAnimationFrame(frame)
-		}
-		const observePopup = () => {
-			const popups = document.querySelectorAll('[role="menu"]')
-			if (popups.length !== 1) return
-			const popup = popups[0]
-			if (!popup || popup.hasAttribute('data-starting-style')) return
-			observer.disconnect()
-			clearTimeout(timer)
-			const sample = () => {
-				const style = getComputedStyle(popup)
-				samples.push(`${style.transform};translate:${style.translate};scale:${style.scale}`)
-				if (samples.length === 14) {
-					complete({ samples })
-					return
+	const recorder = await page.evaluateHandle(
+		({ timeout, selector }) => {
+			let frame = 0
+			let timer: ReturnType<typeof setTimeout>
+			let complete: (result: { samples: string[]; error?: string }) => void
+			const result = new Promise<{ samples: string[]; error?: string }>((resolve) => {
+				complete = resolve
+			})
+			const samples: string[] = []
+			const stop = () => {
+				observer.disconnect()
+				clearTimeout(timer)
+				cancelAnimationFrame(frame)
+			}
+			const observePopup = () => {
+				const popups = document.querySelectorAll(selector)
+				if (popups.length !== 1) return
+				const popup = popups[0]
+				if (!popup || popup.hasAttribute('data-starting-style')) return
+				observer.disconnect()
+				clearTimeout(timer)
+				const sample = () => {
+					const style = getComputedStyle(popup)
+					samples.push(`${style.transform};translate:${style.translate};scale:${style.scale}`)
+					if (samples.length === 14) {
+						complete({ samples })
+						return
+					}
+					frame = requestAnimationFrame(sample)
 				}
 				frame = requestAnimationFrame(sample)
 			}
-			frame = requestAnimationFrame(sample)
-		}
-		const observer = new MutationObserver(observePopup)
-		observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true })
-		timer = setTimeout(() => {
-			stop()
-			complete({ samples, error: 'samplePopupTransform: expected one mounted popup content' })
-		}, timeout)
-		observePopup()
-		return { result, stop }
-	}, mountTimeoutMs)
+			const observer = new MutationObserver(observePopup)
+			observer.observe(document.documentElement, {
+				childList: true,
+				subtree: true,
+				attributes: true,
+			})
+			timer = setTimeout(() => {
+				stop()
+				complete({ samples, error: 'samplePopupTransform: expected one mounted popup content' })
+			}, timeout)
+			observePopup()
+			return { result, stop }
+		},
+		{ timeout: mountTimeoutMs, selector },
+	)
 	try {
 		await open()
 		const { samples, error } = await recorder.evaluate((recording) => recording.result)
 		if (error) throw new Error(error)
-		await page.getByRole('menu').waitFor({ state: 'visible' })
+		await page.locator(selector).waitFor({ state: 'visible' })
 		return samples
 	} finally {
 		await recorder.evaluate((recording) => recording.stop())

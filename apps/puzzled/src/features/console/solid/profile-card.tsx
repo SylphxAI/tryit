@@ -31,7 +31,7 @@ export function ProfileCard(props: { data: NonNullable<Awaited<ReturnType<typeof
 	]
 
 	return (
-		<main id="main-content" class="page-shell-wide py-8 md:py-10">
+		<main id="main-content" tabIndex={-1} class="page-shell-wide py-8 md:py-10">
 			<div class="space-y-6">
 				<ConsoleHeader
 					eyebrow={t('playerCard.eyebrow')}

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, type TestInfo, test } from '@playwright/test'
 import { settle } from './a11y-support'
+import { serveSudoku } from './sudoku-fixture'
 
 /**
  * WCAG 2.2 A/AA conformance gate for the Tryit web app.
@@ -260,6 +261,9 @@ async function openPageCase(page: Page, pageCase: PageCase): Promise<PageCase> {
 		if (!resolved) throw new Error(`Unaudited redirect destination: ${pageCase.redirectTo}`)
 		destination = resolved
 	}
+	// Solid can stream the destination after DOMContentLoaded. Audit the page,
+	// not the interim Suspense document.
+	await expect(page.getByRole('main')).toBeVisible()
 	await settle(page)
 	return destination
 }
@@ -347,11 +351,11 @@ test.describe('Shared shell invariants', () => {
 			for (const pageCase of PAGES) {
 				await openPageCase(page, pageCase)
 
-				const counts = await page.evaluate(() => ({
-					banners: document.querySelectorAll('header, [role="banner"]').length,
-					mains: document.querySelectorAll('main, [role="main"]').length,
-					primaryNavs: document.querySelectorAll('nav[aria-label]').length,
-				}))
+				const counts = {
+					banners: await page.getByRole('banner').count(),
+					mains: await page.getByRole('main').count(),
+					primaryNavs: await page.locator('nav[aria-label]:visible').count(),
+				}
 
 				const where = `${pageCase.name} (${mode.name})`
 				expect(counts.banners, `${where}: more than one banner landmark`).toBeLessThanOrEqual(1)
@@ -423,26 +427,14 @@ test.describe('Localised routes', () => {
 test.describe('Game board once a puzzle is on screen', () => {
 	test.use({ viewport: MODES[2].viewport, colorScheme: 'light' })
 
-	/**
-	 * The board only exists when the server hands out a puzzle. Without a
-	 * reachable API the page stays on its loading state, and asserting board
-	 * semantics there would be noise, so the run is skipped with the reason
-	 * instead of passing vacuously.
-	 */
 	test('sudoku board names every cell and stays free of WCAG 2.2 A/AA violations', async ({
 		page,
 	}, testInfo) => {
-		await page.goto('/games/sudoku?difficulty=easy', { waitUntil: 'domcontentloaded' })
+		await serveSudoku(page)
+		await page.goto('/games/sudoku?difficulty=easy&start=1#play')
+		const board = page.getByRole('group', { name: 'Sudoku', exact: true })
+		await expect(board).toBeVisible()
 		await settle(page)
-
-		const board = page.getByRole('group', { name: 'Sudoku' })
-		if (!(await board.isVisible().catch(() => false))) {
-			testInfo.skip(
-				true,
-				'no puzzle was served (API_UNAVAILABLE) — the sudoku board semantics are unverified in this run',
-			)
-			return
-		}
 
 		const cells = board.getByRole('button')
 		expect(await cells.count(), 'sudoku board cell count').toBe(81)

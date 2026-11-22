@@ -1,6 +1,8 @@
-import { expect, type Locator, type Page, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 import {
 	DESKTOP,
+	languageOptions,
+	languageTrigger,
 	MOBILE,
 	readActiveElement,
 	SHELL_TARGET_SELECTOR,
@@ -104,109 +106,38 @@ test.describe('Tab order through the shell', () => {
 	})
 })
 
-/**
- * Popups only mount when the client runtime can drive them: the dev server
- * serves a CSP without `unsafe-eval`, and the popup primitives need it to attach
- * their handlers. A modal that never opens cannot be keyboard-tested, so these
- * checks skip with that reason rather than asserting against an unrendered DOM.
- */
-async function openPopup(
-	page: Page,
-	triggerName: RegExp,
-	popup: Locator,
-	skip: (reason: string) => void,
-) {
-	const trigger = page.getByRole('button', { name: triggerName }).first()
-	const triggerReady = await trigger
-		.waitFor({ state: 'visible', timeout: 8000 })
-		.then(() => true)
-		.catch(() => false)
-	if (!triggerReady) {
-		skip(`"${triggerName}" is not on this surface yet — keyboard focus behaviour is unverified`)
-		return null
-	}
-	await trigger.click()
-	const opened = await popup
-		.first()
-		.waitFor({ state: 'visible', timeout: 8000 })
-		.then(() => true)
-		.catch(() => false)
-	if (!opened) {
-		skip(
-			'the popup never mounted (dev-server CSP blocks eval) — keyboard focus behaviour is unverified',
-		)
-		return null
-	}
-	return trigger
-}
-
-test.describe('Overlay focus management', () => {
-	test.use({ viewport: MOBILE })
-
-	test('Escape closes the mobile nav sheet and restores focus to its trigger', async ({
-		page,
-	}, testInfo) => {
-		await page.goto('/', { waitUntil: 'domcontentloaded' })
-		await settle(page)
-
-		const trigger = await openPopup(
-			page,
-			/open navigation menu/i,
-			page.getByRole('dialog'),
-			(reason) => testInfo.skip(true, reason),
-		)
-		if (!trigger) return
-
-		const sheet = page.getByRole('dialog')
-		for (let press = 0; press < 6; press += 1) await page.keyboard.press('Tab')
-		expect(
-			await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]')),
-			'focus stays inside the open sheet',
-		).toBe(true)
-
-		await page.keyboard.press('Escape')
-		await expect(sheet).toBeHidden()
-		await expect(trigger).toBeFocused()
+test.describe('Responsive navigation and disclosures', () => {
+	test('the mobile tabs expose every primary destination to keyboard users', async ({ page }) => {
+		await page.setViewportSize(MOBILE)
+		await page.goto('/')
+		const nav = page.getByRole('navigation', { name: 'Main navigation', exact: true })
+		await expect(nav).toBeVisible()
+		const links = nav.getByRole('link')
+		await expect(links).toHaveCount(5)
+		await links.first().focus()
+		for (let index = 0; index < 5; index++) {
+			await expect(links.nth(index)).toBeFocused()
+			await page.keyboard.press('Tab')
+		}
+		await expect(nav.locator(':focus')).toHaveCount(0)
 	})
 
-	test('Escape closes the game rules dialog and restores focus', async ({ page }, testInfo) => {
-		await page.setViewportSize(DESKTOP)
-		await page.goto('/games/sudoku', { waitUntil: 'domcontentloaded' })
-		await settle(page)
-
-		const trigger = await openPopup(page, /how to play/i, page.getByRole('dialog'), (reason) =>
-			testInfo.skip(true, reason),
-		)
-		if (!trigger) return
-
-		const dialog = page.getByRole('dialog')
-		await page.keyboard.press('Escape')
-		await expect(dialog).toBeHidden()
-		await expect(trigger).toBeFocused()
-	})
-
-	test('Escape closes the language menu and restores focus to its trigger', async ({
+	test('Escape closes the language disclosure and restores focus to its trigger', async ({
 		page,
-	}, testInfo) => {
-		await page.setViewportSize(DESKTOP)
-		await page.goto('/', { waitUntil: 'domcontentloaded' })
-		await settle(page)
-
-		const trigger = await openPopup(page, /change language/i, page.getByRole('menu'), (reason) =>
-			testInfo.skip(true, reason),
-		)
-		if (!trigger) return
-
-		const menu = page.getByRole('menu')
+	}) => {
+		await page.goto('/')
+		const trigger = languageTrigger(page)
+		await trigger.press('Enter')
+		const options = languageOptions(page)
+		await expect(options).toBeVisible()
+		await options.getByRole('link').first().focus()
 		await page.keyboard.press('Escape')
-		await expect(menu).toBeHidden()
+		await expect(options).toBeHidden()
 		await expect(trigger).toBeFocused()
 	})
 })
 
 test.describe('Company target size (44px effective hit area)', () => {
-	const OVERLAY_SELECTOR = '[role="dialog"] a[href], [role="dialog"] button'
-
 	for (const [name, viewport] of [
 		['desktop', DESKTOP],
 		['mobile', MOBILE],
@@ -226,39 +157,25 @@ test.describe('Company target size (44px effective hit area)', () => {
 		})
 	}
 
-	test('shell controls inside the open mobile drawer', async ({ page }, testInfo) => {
+	test('language choices have a 44px effective target when disclosed at mobile width', async ({
+		page,
+	}) => {
 		await page.setViewportSize(MOBILE)
-		await page.goto('/', { waitUntil: 'domcontentloaded' })
+		await page.goto('/')
+		await languageTrigger(page).press('Enter')
+		await expect(languageOptions(page).getByRole('link')).toHaveCount(8)
 		await settle(page)
-
-		// The drawer's destinations, appearance controls and account entry only
-		// exist in the DOM (and only in the tab order) while it is open.
-		const trigger = await openPopup(
-			page,
-			/open navigation menu/i,
-			page.getByRole('dialog'),
-			(reason) => testInfo.skip(true, reason),
-		)
-		if (!trigger) return
-		await settle(page)
-
-		const offenders = await targetOffenders(page, OVERLAY_SELECTOR)
-		expect(
-			offenders,
-			`drawer controls below 44px effective target:\n${offenders
-				.map((entry) => `  ${entry.width}x${entry.height} ${entry.target} "${entry.name}"`)
-				.join('\n')}`,
-		).toEqual([])
+		expect(await targetOffenders(page, 'header [data-language-options] a[href]')).toEqual([])
 	})
 })
 
 /** Exercise reopening after the popup has been loaded and closed once. */
 async function prepareLanguagePopup(page: Page) {
-	const trigger = page.getByRole('button', { name: /change language/i }).first()
+	const trigger = languageTrigger(page)
 	await trigger.click()
-	await expect(page.getByRole('menu')).toBeVisible()
+	await expect(languageOptions(page)).toBeVisible()
 	await page.keyboard.press('Escape')
-	await expect(page.getByRole('menu')).toBeHidden()
+	await expect(languageOptions(page)).toBeHidden()
 	return trigger
 }
 
@@ -271,9 +188,14 @@ test.describe('Reduced motion', () => {
 
 	test('does not interpolate the first language menu entrance', async ({ page }) => {
 		await page.goto('/', { waitUntil: 'domcontentloaded' })
-		const trigger = page.getByRole('button', { name: /change language/i }).first()
+		const trigger = languageTrigger(page)
 		await expect(trigger).toBeEnabled()
-		const samples = await samplePopupTransform(page, () => trigger.click({ force: true }))
+		const samples = await samplePopupTransform(
+			page,
+			() => trigger.press('Enter'),
+			8000,
+			'header details[open] > [data-language-options]',
+		)
 		// Reduced motion may jump from the initial mount style to its endpoint;
 		// interpolation or repeated movement would require further frame changes.
 		expect(
@@ -304,7 +226,12 @@ test.describe('Reduced motion', () => {
 	test('keeps the language menu popup static', async ({ page }) => {
 		await page.goto('/', { waitUntil: 'domcontentloaded' })
 		const trigger = await prepareLanguagePopup(page)
-		const samples = await samplePopupTransform(page, () => trigger.click({ force: true }))
+		const samples = await samplePopupTransform(
+			page,
+			() => trigger.press('Enter'),
+			8000,
+			'header details[open] > [data-language-options]',
+		)
 		expect(new Set(samples).size, `popup transform changed: ${samples.join(' ')}`).toBe(1)
 	})
 })
@@ -318,9 +245,14 @@ test.describe('Motion for users without the preference', () => {
 
 	test('animates the first language menu entrance', async ({ page }) => {
 		await page.goto('/', { waitUntil: 'domcontentloaded' })
-		const trigger = page.getByRole('button', { name: /change language/i }).first()
+		const trigger = languageTrigger(page)
 		await expect(trigger).toBeEnabled()
-		const samples = await samplePopupTransform(page, () => trigger.click({ force: true }))
+		const samples = await samplePopupTransform(
+			page,
+			() => trigger.press('Enter'),
+			8000,
+			'header details[open] > [data-language-options]',
+		)
 		expect(
 			transformChanges(samples),
 			`first entrance stayed static: ${samples.join(' ')}`,
@@ -330,7 +262,12 @@ test.describe('Motion for users without the preference', () => {
 	test('keeps the language menu popup animation', async ({ page }) => {
 		await page.goto('/', { waitUntil: 'domcontentloaded' })
 		const trigger = await prepareLanguagePopup(page)
-		const samples = await samplePopupTransform(page, () => trigger.click({ force: true }))
+		const samples = await samplePopupTransform(
+			page,
+			() => trigger.press('Enter'),
+			8000,
+			'header details[open] > [data-language-options]',
+		)
 		expect(
 			transformChanges(samples),
 			`expected the popup to animate, saw: ${samples.join(' ')}`,

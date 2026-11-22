@@ -31,7 +31,7 @@ export function CatalogPage(props: {
 	return (
 		<SiteShell data={props.data.shell}>
 			<PageMeta value={props.data.meta} />
-			<main id="main-content" class="flex-1">
+			<main id="main-content" tabIndex={-1} class="flex-1">
 				<section class="relative">
 					<div class="page-shell-wide pb-4 pt-6 md:pt-10">
 						<div class="grid items-end gap-x-10 gap-y-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">

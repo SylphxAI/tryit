@@ -33,7 +33,7 @@ export function SettingsShell(
 ) {
 	const t = createMemo(() => createTranslator(props.locale))
 	return (
-		<main id="main-content" class="page-shell-wide py-8 md:py-10">
+		<main id="main-content" tabIndex={-1} class="page-shell-wide py-8 md:py-10">
 			<Show when={props.member} fallback={props.children}>
 				<ConsoleHeader
 					eyebrow={t()('settings.eyebrow')}

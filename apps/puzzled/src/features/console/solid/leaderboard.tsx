@@ -13,7 +13,7 @@ const PANEL_ID = 'board-panel'
 
 export function Board(props: { data: LeaderboardData }) {
 	return (
-		<main id="main-content" class="page-shell-wide space-y-6 py-8 md:py-10">
+		<main id="main-content" tabIndex={-1} class="page-shell-wide space-y-6 py-8 md:py-10">
 			<Show when={props.data} keyed>
 				{(data) => <BoardHeader data={data} />}
 			</Show>

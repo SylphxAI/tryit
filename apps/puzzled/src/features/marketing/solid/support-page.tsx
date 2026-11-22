@@ -12,7 +12,7 @@ import {
 	ShieldCheck,
 } from 'lucide-solid'
 import { For, Show } from 'solid-js'
-import { Dynamic, getRequestEvent } from 'solid-js/web'
+import { getRequestEvent } from 'solid-js/web'
 import { APP_NAME, SUPPORT_EMAIL } from '@/lib/config/app'
 import { defaultLocale, isValidLocale, type Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -116,7 +116,7 @@ function SupportContent(props: { locale: Locale }) {
 	})
 
 	return (
-		<main id="main-content" class="flex-1">
+		<main id="main-content" tabIndex={-1} class="flex-1">
 			<MarketingHero
 				eyebrow={t('hero.eyebrow')}
 				title={t('title')}
@@ -231,11 +231,7 @@ function SupportContent(props: { locale: Locale }) {
 										href={localizedPath(props.locale, href)}
 										class="surface-card surface-card-hover flex min-h-11 items-start gap-3 p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 									>
-										<Dynamic
-											component={Icon}
-											class="mt-0.5 h-5 w-5 shrink-0 text-primary"
-											aria-hidden="true"
-										/>
+										<Icon class="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
 										<span>
 											<span class="block font-display text-base">
 												{t(`resources.${key}.title`)}

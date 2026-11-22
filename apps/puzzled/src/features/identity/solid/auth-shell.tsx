@@ -103,7 +103,11 @@ export function AuthShell(
 					</a>
 				</aside>
 
-				<main id="main-content" class="flex flex-col px-4 py-6 sm:px-6 lg:justify-center lg:py-12">
+				<main
+					id="main-content"
+					tabIndex={-1}
+					class="flex flex-col px-4 py-6 sm:px-6 lg:justify-center lg:py-12"
+				>
 					<div class="mb-6 flex items-center justify-between gap-3 lg:hidden">
 						<Brand locale={props.locale} />
 						<a

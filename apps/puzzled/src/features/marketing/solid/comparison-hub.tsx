@@ -83,7 +83,7 @@ export function ComparisonHub(props: { origin: string }) {
 	const hub = COMPARISON_HUB
 
 	return (
-		<main id="main-content" lang="en-US" class="flex-1 pb-16">
+		<main id="main-content" tabIndex={-1} lang="en-US" class="flex-1 pb-16">
 			<MarketingHero
 				eyebrow={hub.eyebrow}
 				title={hub.h1}

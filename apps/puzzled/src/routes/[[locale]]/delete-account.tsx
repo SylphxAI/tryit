@@ -68,7 +68,7 @@ function Instructions(props: { locale: Locale; signedIn: boolean }) {
 	const t = (key: string, values?: { email: string }) => translate(`settings.${key}`, values)
 	const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Tryit account deletion request')}`
 	return (
-		<main id="main-content" class="page-shell-wide max-w-3xl space-y-6 py-10">
+		<main id="main-content" tabIndex={-1} class="page-shell-wide max-w-3xl space-y-6 py-10">
 			<h1 class="font-display text-3xl font-semibold">{t('deletePage.title')}</h1>
 			<p class="text-muted-foreground">{t('deletePage.description')}</p>
 			<section class="space-y-4 rounded-2xl border border-border p-6">

@@ -86,7 +86,7 @@ function Invite(props: { locale: Locale; code: string; signedIn: boolean }) {
 		return !props.code ? 'invite_not_found' : latest?.code === props.code ? latest.key : null
 	}
 	return (
-		<main id="main-content" class="page-shell flex-1 py-10">
+		<main id="main-content" tabIndex={-1} class="page-shell flex-1 py-10">
 			<div class="surface-card mx-auto max-w-lg space-y-4 p-6">
 				<h1 class="font-display text-2xl">{t('joinTitle')}</h1>
 				<p class="text-sm text-muted-foreground">{t('joinBody')}</p>

@@ -722,12 +722,28 @@ body {
 	background: var(--color-foreground);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+	details[open] > [data-language-options] {
+		animation: language-options-enter 180ms ease-out both;
+	}
+}
+
+@keyframes language-options-enter {
+	from {
+		translate: 0 -4px;
+	}
+	to {
+		translate: 0 0;
+	}
+}
+
 /* =============================================
    Focus Styles (WCAG 2.4.7)
 ============================================= */
 
 a:focus-visible,
 button:focus-visible,
+summary:focus-visible,
 [role="button"]:focus-visible,
 [tabindex]:focus-visible:not(input):not(textarea):not(select) {
 	outline: 2px solid var(--color-ring);

@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { For, type JSX } from 'solid-js'
+import { children, For, type JSX } from 'solid-js'
 import { cn } from '@/lib/utils'
 
 type MarketingHeroProps = {
@@ -28,13 +28,16 @@ type MarketingHeroProps = {
  * without a solid surface behind it.
  */
 export function MarketingHero(props: MarketingHeroProps) {
+	// Resolve JSX slots once: evaluating a slot again allocates new hydration keys.
+	const aside = children(() => props.aside)
+	const actions = children(() => props.actions)
 	return (
 		<section class={cn('relative', props.class)}>
 			<div class="page-shell-wide pb-8 pt-8 md:pb-12 md:pt-14">
 				<div
 					class={cn(
 						'animate-enter',
-						props.aside && 'grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12',
+						aside() && 'grid items-start gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12',
 					)}
 				>
 					<div>
@@ -59,11 +62,9 @@ export function MarketingHero(props: MarketingHeroProps) {
 								</For>
 							</ul>
 						)}
-						{props.actions && (
-							<div class="mt-6 flex flex-wrap items-center gap-3">{props.actions}</div>
-						)}
+						{actions() && <div class="mt-6 flex flex-wrap items-center gap-3">{actions()}</div>}
 					</div>
-					{props.aside}
+					{aside()}
 				</div>
 			</div>
 		</section>

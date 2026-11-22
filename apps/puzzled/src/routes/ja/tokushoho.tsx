@@ -49,7 +49,7 @@ export default function TokushohoPage() {
 				<>
 					<PageMeta value={data.meta} />
 					<SiteShell data={data.shell}>
-						<main id="main-content" class="flex-1">
+						<main id="main-content" tabIndex={-1} class="flex-1">
 							<MarketingHero eyebrow="法的情報" title={TITLE} lead={LEAD} />
 							<div class="page-shell-wide grid gap-7 pb-10 lg:grid-cols-[14rem_minmax(0,1fr)]">
 								<details class="surface-card self-start p-4" open>

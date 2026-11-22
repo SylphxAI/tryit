@@ -32,7 +32,7 @@ export function ComparisonLanding({ spec, origin }: { spec: ComparisonSpec; orig
 	}
 
 	return (
-		<main id="main-content" lang="en-US" class="flex-1 pb-16">
+		<main id="main-content" tabIndex={-1} lang="en-US" class="flex-1 pb-16">
 			<MarketingHero
 				breadcrumb={
 					<nav aria-label="Breadcrumb" class="-mt-3 mb-1">

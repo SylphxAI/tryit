@@ -104,6 +104,8 @@ test('unknown rival and use-case slugs are non-indexable 404s', async ({ page })
 			'content',
 			'noindex, nofollow',
 		)
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page not found')
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+			'This page is missing — the puzzle is not',
+		)
 	}
 })

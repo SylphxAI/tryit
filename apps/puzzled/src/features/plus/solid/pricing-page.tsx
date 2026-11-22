@@ -74,7 +74,12 @@ function PricingBody({ data }: { data: PricingData }) {
 
 	if (cards.length === 0) {
 		return (
-			<main id="main-content" data-pricing-page="" class={cn('flex-1', styles.page, styles.closed)}>
+			<main
+				id="main-content"
+				tabIndex={-1}
+				data-pricing-page=""
+				class={cn('flex-1', styles.page, styles.closed)}
+			>
 				<MarketingHero
 					eyebrow={tPlus('name')}
 					title={t('title')}
@@ -129,7 +134,7 @@ function PricingBody({ data }: { data: PricingData }) {
 	)
 
 	return (
-		<main id="main-content" data-pricing-page="" class={cn('flex-1', styles.page)}>
+		<main id="main-content" tabIndex={-1} data-pricing-page="" class={cn('flex-1', styles.page)}>
 			<section class={cn('page-shell-wide pb-8 pt-4 md:pb-10 md:pt-6 lg:pt-5', styles.shell)}>
 				{checkout === 'cancelled' ? (
 					<output class="mb-3 block rounded-xl bg-muted px-4 py-3 text-sm">

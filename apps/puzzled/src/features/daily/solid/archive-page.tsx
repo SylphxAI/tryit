@@ -61,7 +61,7 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 	return (
 		<SiteShell data={props.data.shell}>
 			<PageMeta value={props.data.meta} />
-			<main id="main-content" class="flex-1">
+			<main id="main-content" tabIndex={-1} class="flex-1">
 				<section class="page-shell-wide py-6 md:py-10">
 					<div
 						class={

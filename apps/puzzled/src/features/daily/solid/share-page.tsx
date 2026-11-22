@@ -74,7 +74,7 @@ function ShareLanding(props: { data: SharePageData }) {
 	})
 	const heading = t('share.challenge.theirs')
 	return (
-		<main id="main-content" class="flex-1 page-shell py-10 md:py-16">
+		<main id="main-content" tabIndex={-1} class="flex-1 page-shell py-10 md:py-16">
 			<div class="mx-auto w-full max-w-md">
 				<p class="text-center text-sm font-medium text-muted-foreground">{landing('eyebrow')}</p>
 				<h1 class="mt-2 text-balance text-center font-display text-[2rem] leading-tight md:text-4xl">

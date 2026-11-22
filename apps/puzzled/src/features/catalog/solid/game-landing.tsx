@@ -76,7 +76,7 @@ export function GameLanding(
 	return (
 		<SiteShell data={d().shell}>
 			<PageMeta value={d().meta} />
-			<main id="main-content" class="flex-1">
+			<main id="main-content" tabIndex={-1} class="flex-1">
 				<section
 					class="game-hero relative border-b border-[var(--tactile-soft-line)]"
 					classList={{ 'game-hero-stage': props.stage }}

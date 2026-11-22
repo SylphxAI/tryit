@@ -242,7 +242,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 	return (
 		<SiteShell data={page.shell}>
 			<PageMeta value={page.meta} />
-			<main id="main-content" class="flex-1">
+			<main id="main-content" tabIndex={-1} class="flex-1">
 				<For each={page.schemas}>{(schema) => <JsonLd value={schema} />}</For>
 				<Show when={props.facts()?.milestone} keyed>
 					{(milestone) => (
