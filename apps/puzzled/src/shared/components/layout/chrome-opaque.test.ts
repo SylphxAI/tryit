@@ -6,12 +6,7 @@ import { join } from 'node:path'
 // lets the text behind it show through as ghost text (and backdrop-filter is not
 // honoured everywhere), so each bar uses the opaque page background.
 const SRC = join(import.meta.dir, '../../..')
-const CHROME = [
-	'shared/components/layout/top-nav.tsx',
-	'shared/components/layout/bottom-nav.tsx',
-	'features/daily/components/minimal-header.tsx',
-	'app/[locale]/(main)/layout.tsx',
-] as const
+const CHROME = ['shared/solid/site-shell.tsx'] as const
 
 describe('scrolled-under chrome is opaque', () => {
 	test.each([...CHROME])('%s', (file) => {

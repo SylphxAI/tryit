@@ -10,7 +10,7 @@ import {
 } from '@/features/daily/lib/challenge'
 import { dailyEntryTarget, shareQuery } from '@/features/daily/lib/daily-entry'
 import { resolveModuleDisplayName } from '@/features/daily/lib/result-share'
-import { getHowToPlayConfig } from '@/games/how-to-play-registry'
+import { getGameMetadata } from '@/games/registry'
 import { GetSharedResultRequestSchema, PuzzleService } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { requestConnectTransport } from '@/lib/api/request-connect'
 import { getTodaysFreeGame } from '@/lib/free-rotation'
@@ -97,14 +97,14 @@ export async function readShareLanding(
 					subtitle: status ? (metric ? `${status} · ${metric}` : status) : description,
 					eyebrow: t('share.landing.eyebrow'),
 					badge: shared?.streak ? t('share.card.streakDays', { days: shared.streak }) : undefined,
-					theme: metadataGame ? getHowToPlayConfig(metadataGame)?.display.theme : undefined,
+					theme: metadataGame ? getGameMetadata(metadataGame)?.display.theme : undefined,
 				}),
 			}),
 			card: shared
 				? sharedResultCard(shared, {
 						origin,
 						gameName: playName,
-						theme: getHowToPlayConfig(target.gameSlug)?.display.theme ?? 'slate',
+						theme: getGameMetadata(target.gameSlug)?.display.theme ?? 'slate',
 						locale,
 					})
 				: null,

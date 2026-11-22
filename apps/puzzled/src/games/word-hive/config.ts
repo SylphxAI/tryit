@@ -4,7 +4,6 @@
  */
 
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { WordHiveIcon } from './icon'
 import type { SpellingBeePuzzleClientData } from './types'
 
 export type { SpellingBeePuzzleClientData }
@@ -73,7 +72,7 @@ export const wordHiveConfig: GameConfig<
 	slug: 'word-hive',
 	name: 'Hive',
 	description: 'Find words using 7 letters',
-	IconComponent: WordHiveIcon,
+
 	sortOrder: 3,
 	category: 'word',
 	skills: ['vocabulary', 'spelling'],

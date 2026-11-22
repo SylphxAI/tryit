@@ -6,7 +6,6 @@
 import { compareByTime, formatTimeScore } from '@/games/shared'
 import { MINUTE_MS } from '@/lib/constants/time'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { WordSearchIcon } from './icon'
 import type {
 	WordSearchGuess,
 	WordSearchGuessResult,
@@ -23,7 +22,7 @@ export const wordSearchConfig: GameConfig<
 	slug: 'word-search',
 	name: 'Hunt',
 	description: 'Find hidden words in the grid',
-	IconComponent: WordSearchIcon,
+
 	sortOrder: 19,
 	category: 'word',
 	skills: ['vocabulary', 'pattern'],

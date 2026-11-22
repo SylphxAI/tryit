@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
 import ts from 'typescript'
-import { POST } from '../src/app/api/observability/errors/route'
+import { POST } from '../src/server/api/observability/errors'
 
 // Assert the public relay wire format independently of the collector's encoder.
 const RELAY_PATH = '/api/observability/errors'
@@ -10,7 +10,7 @@ const RELAY_PATH = '/api/observability/errors'
 const origin = 'http://127.0.0.1:3900'
 const target = `${origin}/ja/games/private-slug?private-query#private-fragment`
 const modulePaths = [
-	'/instrumentation-client',
+	'/lib/observability/browser-startup',
 	'/lib/observability/browser',
 	'/lib/observability/browser-report',
 	'/lib/i18n/config',
@@ -66,7 +66,7 @@ async function installFixture(
 				body:
 					'<link rel="icon" href="data:,">' +
 					html +
-					'<script type="module" src="/instrumentation-client"></script>',
+					'<script type="module" src="/lib/observability/browser-startup"></script>',
 			})
 		} else if (modulePaths.includes(path)) {
 			const source = readFileSync(resolve(__dirname, `../src${path}.ts`), 'utf-8')

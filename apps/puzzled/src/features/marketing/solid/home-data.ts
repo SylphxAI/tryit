@@ -7,6 +7,8 @@ import { deriveHomeExposure } from '@/features/daily/lib/home-exposure'
 import type { HomePersonalResult } from '@/features/daily/lib/home-play-state'
 import { getPuzzleNumber } from '@/features/daily/lib/puzzle-utils'
 import { HOME_FAQ_KEYS } from '@/features/home/lib/home-faq'
+import { homeOfferSchemas } from '@/features/home/lib/home-offer-schemas'
+import { dueMilestone, seenMilestones } from '@/features/plus-offer/lib/plus-offer'
 import { seasonForInstant } from '@/features/seasons/lib/seasons'
 import { getAllGameMetadata } from '@/games/registry'
 import { GamificationService } from '@/gen/connect/puzzled/v1/gamification_pb'
@@ -77,6 +79,7 @@ export function homeDocument(locale: Locale, baseUrl: string, now: Date) {
 				badge: t('home.hero.ogBadge'),
 			}),
 		}),
+		schemas: homeOfferSchemas(locale, baseUrl),
 		faqs: HOME_FAQ_KEYS.map((key) => ({
 			question: t(`home.faq.${key}.question`),
 			answer: t(`home.faq.${key}.answer`),
@@ -129,8 +132,16 @@ export async function readHomeFacts(request: Request, dayKey: string) {
 					]),
 				)
 			: {}
+	const dismissed = parseCookie(request.headers.get('cookie') ?? '')[DISMISSED_COOKIE]
+	const playedDays = streak?.playedDays ?? 0
+	// Neither a guest nor an unreadable subscription can be shown a paid offer.
+	const milestone =
+		member && subscription?.salesOpen && !subscription.entitled && productDayKey() === dayKey
+			? dueMilestone(playedDays, seenMilestones(dismissed))
+			: null
 	return {
 		member,
+		milestone: milestone === null ? null : { day: milestone, playedDays },
 		hasIdentity,
 		results,
 		playerCount,

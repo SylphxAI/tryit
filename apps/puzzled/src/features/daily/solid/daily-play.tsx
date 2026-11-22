@@ -26,6 +26,7 @@ import { recordDailyPick } from '../lib/daily-picks'
 import type { GameDayRequest } from '../lib/day-request'
 import { markStartIntent, takeStartIntent } from '../lib/start-intent'
 import { todayPlayPath } from '../lib/today-play-path'
+import { ResultActions } from './result-actions'
 
 const boards = new Map([
 	['sudoku', lazy(() => import('@/games/sudoku/solid-board'))],
@@ -93,9 +94,9 @@ export function DailyPlay(props: {
 	let handled = false
 	createEffect(() => {
 		const value = state()
-		if (!value || handled) return
+		if (!value || handled || !props.started) return
 		handled = true
-		if (board && !choose && props.started && value.kind === 'startable' && takeStartIntent(slug))
+		if (board && !choose && value.kind === 'startable' && takeStartIntent(slug))
 			void play(value.puzzleDate)
 	})
 	const snapshot = <K extends State['kind']>(kind: K) => {
@@ -174,6 +175,17 @@ export function DailyPlay(props: {
 							<p>
 								{t('gameResult.attempts')}: {result().session.attempts}
 							</p>
+							<ResultActions
+								facts={{
+									gameSlug: slug,
+									mode: props.day.mode,
+									status: result().session.status,
+									puzzleDate: result().puzzleDate,
+									attempts: result().session.attempts,
+									score: result().session.score,
+								}}
+								locale={props.data.locale}
+							/>
 							<p>{t('daily.comeBackTomorrow')}</p>
 							<a class="inline-flex min-h-11 items-center underline" href={props.data.catalog}>
 								{t('daily.backToGames')}
@@ -222,15 +234,17 @@ export function DailyPlay(props: {
 						board ? (
 							<div class="mx-auto max-w-md space-y-4 text-center" data-game-stage="start">
 								<p>{t('daily.startUsesPick')}</p>
-								<button
-									type="button"
-									class={playButton}
-									disabled={starting()}
-									onClick={() => void play(value().puzzleDate)}
-								>
-									<Play size={16} aria-hidden="true" />
-									{t(starting() ? 'daily.loadingPuzzle' : 'common.play')}
-								</button>
+								<Show when={archive || props.started}>
+									<button
+										type="button"
+										class={playButton}
+										disabled={starting()}
+										onClick={() => void play(value().puzzleDate)}
+									>
+										<Play size={16} aria-hidden="true" />
+										{t(starting() ? 'daily.loadingPuzzle' : 'common.play')}
+									</button>
+								</Show>
 							</div>
 						) : (
 							unavailable()
@@ -267,6 +281,7 @@ export function DailyPlay(props: {
 								<Dynamic
 									component={board}
 									puzzle={value()}
+									mode={props.day.mode}
 									locale={props.data.locale}
 									difficulty={props.difficulty}
 									onAlreadyPlayed={() => void refetch()}

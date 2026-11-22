@@ -1,6 +1,6 @@
 /**
  * Canonical catalogue of game metadata. A new game also needs its own play
- * renderer and a rules entry in how-to-play-registry.ts; Rust owns validation.
+ * renderer; Rust owns validation.
  */
 
 import { canonicalizeGameSlug } from '@/lib/game-slug'
@@ -169,15 +169,6 @@ export function getAllGameMetadata(): GameMetadata[] {
  */
 export function gameSupportsDifficulty(slug: string): boolean {
 	return getGameConfig(slug)?.supportsDifficulty ?? false
-}
-
-/**
- * Get the custom SVG icon component for a game
- */
-export function getGameIconComponent(
-	slug: string,
-): React.ComponentType<{ size?: number; className?: string }> | undefined {
-	return getGameConfig(slug)?.IconComponent
 }
 
 // ==========================================

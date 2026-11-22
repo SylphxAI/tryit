@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { CrosswordIcon } from './icon'
 import type {
 	CrosswordGuess,
 	CrosswordGuessResult,
@@ -24,7 +23,7 @@ export const crosswordConfig: GameConfig<
 	slug: 'crossword',
 	name: 'Mini Grid',
 	description: 'Solve a 5×5 mini crossword puzzle',
-	IconComponent: CrosswordIcon,
+
 	sortOrder: 4,
 	category: 'word',
 	skills: ['vocabulary', 'association'],

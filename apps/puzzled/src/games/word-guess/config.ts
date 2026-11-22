@@ -5,7 +5,6 @@
 
 import { pickRandom } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type GameConfig, type GameShareStats } from '../types'
-import { WordGuessIcon } from './icon'
 import { type LetterStatus, WORD_LENGTH, type WordlePuzzleData, type WordleSolution } from './types'
 
 // ==========================================
@@ -74,7 +73,7 @@ export const wordGuessConfig: GameConfig<
 	slug: 'word-guess',
 	name: 'Five',
 	description: 'Guess the 5-letter word in 6 tries',
-	IconComponent: WordGuessIcon,
+
 	sortOrder: 1,
 	category: 'word',
 	skills: ['vocabulary', 'logic'],

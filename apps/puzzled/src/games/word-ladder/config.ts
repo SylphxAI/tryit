@@ -6,7 +6,6 @@
 import { compareByTime, isPerfectGame } from '@/games/shared'
 import { formatTimer } from '@/games/shared/format'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { WordLadderIcon } from './icon'
 import type {
 	WordLadderGuess,
 	WordLadderGuessResult,
@@ -26,7 +25,7 @@ export const wordLadderConfig: GameConfig<
 	slug: 'word-ladder',
 	name: 'Rungs',
 	description: 'Transform one word into another, changing one letter at a time',
-	IconComponent: WordLadderIcon,
+
 	sortOrder: 7,
 	category: 'word',
 	skills: ['vocabulary'],

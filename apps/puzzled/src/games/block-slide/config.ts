@@ -6,7 +6,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type DifficultyLevelConfig, type GameConfig } from '../types'
-import { BlockSlideIcon } from './icon'
 import type { Block, BlockSlidePuzzle, BlockSlideSolution, Direction } from './types'
 
 /**
@@ -76,7 +75,7 @@ export const blockSlideConfig: GameConfig<
 	slug: 'block-slide',
 	name: 'Slides',
 	description: 'Slide blocks to free the target',
-	IconComponent: BlockSlideIcon,
+
 	sortOrder: 10,
 	category: 'spatial',
 	skills: ['spatial', 'logic'],

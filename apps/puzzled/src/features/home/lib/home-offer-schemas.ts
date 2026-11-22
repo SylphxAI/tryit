@@ -1,0 +1,74 @@
+import { getAllGameMetadata } from '@/games/registry'
+import { currencyFractionDigits, minorUnitsToMajor } from '@/lib/billing/plus'
+import catalogue from '../../../../../../config/commercial/catalogue.json'
+
+/** Discovery prices come from the declaration applied to Money, never a second price list. */
+export function homeOfferSchemas(locale: string, baseUrl: string) {
+	const gameCount = getAllGameMetadata().length
+	const currency =
+		(catalogue.currency_display as { by_locale?: Record<string, string> }).by_locale?.[locale] ??
+		catalogue.base_currency
+	const fractionDigits = currencyFractionDigits(currency)
+	const nameFor = (names: Record<string, string>) => names[locale] ?? names['en-US']
+	const schema = {
+		'@context': 'https://schema.org',
+		'@type': 'WebApplication',
+		name: 'Tryit',
+		url: baseUrl,
+		description: `Daily word, logic, number and spatial puzzles. Any 3 of ${gameCount} puzzles free every day, no account needed.`,
+		applicationCategory: 'GameApplication',
+		operatingSystem: 'Any',
+		publisher: {
+			'@type': 'Organization',
+			name: catalogue.seller.legal_name,
+			url: 'https://sylphx.com',
+		},
+		offers: [
+			{
+				'@type': 'Offer',
+				name: `${nameFor(catalogue.free.name)} daily puzzles`,
+				price: minorUnitsToMajor(catalogue.free.price_minor, currency).toFixed(fractionDigits),
+				priceCurrency: currency.toUpperCase(),
+				url: baseUrl,
+			},
+			...catalogue.plans
+				.filter((plan) => plan.interval === 'month' || plan.interval === 'year')
+				.flatMap((plan) => {
+					const amount = (plan.unit_amounts as Record<string, number>)[currency]
+					if (amount === undefined) return []
+					const price = minorUnitsToMajor(amount, currency).toFixed(fractionDigits)
+					return [
+						{
+							'@type': 'Offer',
+							name: nameFor(plan.name),
+							price,
+							priceCurrency: currency.toUpperCase(),
+							url: `${baseUrl}/pricing`,
+							priceSpecification: {
+								'@type': 'UnitPriceSpecification',
+								price,
+								priceCurrency: currency.toUpperCase(),
+								billingDuration: plan.interval === 'month' ? 'P1M' : 'P1Y',
+								valueAddedTaxIncluded: plan.tax_behavior === 'inclusive',
+							},
+						},
+					]
+				}),
+		],
+	}
+	return [
+		schema,
+		{
+			...schema,
+			'@type': 'SoftwareApplication',
+		},
+		{
+			'@context': 'https://schema.org',
+			'@type': 'Product',
+			name: 'Tryit Plus',
+			url: `${baseUrl}/pricing`,
+			brand: { '@type': 'Brand', name: 'Tryit' },
+			offers: schema.offers.slice(1),
+		},
+	]
+}

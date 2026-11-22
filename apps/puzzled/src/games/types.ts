@@ -18,8 +18,6 @@
  *   scores every submission; this package renders and captures input only
  */
 
-import type { ComponentType } from 'react'
-
 // ==========================================
 // Constants
 // ==========================================
@@ -291,8 +289,7 @@ export interface GameConfig<
 	slug: string
 	name: string
 	description: string
-	/** Custom SVG icon component for this game */
-	IconComponent: ComponentType<{ size?: number; className?: string }>
+
 	sortOrder: number
 
 	// ==========================================

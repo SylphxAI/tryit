@@ -3,20 +3,13 @@
  * documents built from it, and the canonical/hreflang helper.
  *
  * These are pure: no network, no server. The served-HTML contract is asserted
- * separately by `scripts/seo-verify.ts` against a `next start` build.
+ * separately by `scripts/seo-verify.ts` against a `Nitro` build.
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { GET as robotsResponse } from '@/app/robots.txt/route'
-import { GET as sitemapResponse } from '@/app/sitemap.xml/route'
 import { getGameSlugs } from '@/games/registry'
 import { defaultLocale, locales } from '@/lib/i18n/config'
-import {
-	buildPageMetadata,
-	hreflangLanguages,
-	localizedPath,
-	ogImagePath,
-} from '@/lib/seo/metadata'
+import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import {
 	CRAWL_BLOCKED_ROUTE_PREFIXES,
 	isEnglishOnlyRoute,
@@ -28,6 +21,9 @@ import {
 	stripLocalePrefix,
 } from '@/lib/seo/routes'
 import { buildSitemap } from '@/lib/seo/sitemap'
+import { hreflangLanguages, localizedPath } from '@/lib/seo/urls'
+import { GET as robotsResponse } from '@/server/robots-response'
+import { GET as sitemapResponse } from '@/server/sitemap-response'
 
 // Deterministic origin for the documents and metadata under test. Held only
 // for this file: the relay and canonical resolvers read these values live, so
@@ -360,8 +356,8 @@ describe('metadata helper', () => {
 		})
 	})
 
-	test('emits a self-referencing canonical with a complete social card', async () => {
-		const metadata = await buildPageMetadata({
+	test('emits a self-referencing canonical with a complete social card', () => {
+		const metadata = pageMetadata({
 			locale: 'zh-HK',
 			path: '/games/sudoku',
 			title: 'Sudoku',
@@ -381,8 +377,8 @@ describe('metadata helper', () => {
 		expect(metadata.robots).toBeUndefined()
 	})
 
-	test('marks private surfaces noindex', async () => {
-		const metadata = await buildPageMetadata({
+	test('marks private surfaces noindex', () => {
+		const metadata = pageMetadata({
 			locale: 'en-US',
 			path: '/unsubscribe',
 			title: 'Unsubscribe',
@@ -397,9 +393,9 @@ describe('metadata helper', () => {
 		expect(metadata.alternates?.languages).toBeUndefined()
 	})
 
-	test('canonicalises English-only routes to en-US and drops hreflang alternates across locales', async () => {
+	test('canonicalises English-only routes to en-US and drops hreflang alternates across locales', () => {
 		for (const locale of locales) {
-			const metadata = await buildPageMetadata({
+			const metadata = pageMetadata({
 				locale,
 				path: '/vs/wordle',
 				title: 'Tryit vs Wordle',
@@ -415,8 +411,8 @@ describe('metadata helper', () => {
 		}
 	})
 
-	test('honours an absolute image override', async () => {
-		const metadata = await buildPageMetadata({
+	test('honours an absolute image override', () => {
+		const metadata = pageMetadata({
 			locale: 'en-US',
 			title: 'Tryit',
 			description: 'Daily puzzles',

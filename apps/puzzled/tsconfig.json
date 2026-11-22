@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"target": "ES2017",
+		"target": "ES2022",
 		"lib": ["dom", "dom.iterable", "esnext"],
 		"allowJs": true,
 		"skipLibCheck": true,
@@ -11,32 +11,23 @@
 		"moduleResolution": "bundler",
 		"resolveJsonModule": true,
 		"isolatedModules": true,
-		"jsx": "react-jsx",
+		"jsx": "preserve",
 		"incremental": true,
-		"plugins": [
-			{
-				"name": "next"
-			}
-		],
 		"paths": {
 			"@/*": ["./src/*"],
 			"server-only": ["./scripts/shims/server-only.ts"]
-		}
+		},
+		"jsxImportSource": "solid-js"
 	},
-	"include": [
-		"next-env.d.ts",
-		"**/*.ts",
-		"**/*.tsx",
-		".next/types/**/*.ts",
-		".next/dev/types/**/*.ts",
-		"**/*.mts"
-	],
+	"include": ["**/*.ts", "**/*.tsx", "**/*.mts"],
 	"exclude": [
 		"node_modules",
 		"e2e-tests",
 		"playwright.config.ts",
 		"**/*.test.ts",
 		"**/*.test.tsx",
-		"tests"
+		"tests",
+		".output",
+		".nitro"
 	]
 }

@@ -3,6 +3,7 @@ import { CalendarDays, ChartNoAxesColumn, CircleUserRound, LayoutGrid, Sun } fro
 import { For, type ParentProps } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 import wordmark from '../../../../../brand/wordmark.json'
+import { ConsentBanner } from './consent-banner'
 import { LanguageMenu } from './language-menu'
 import type { SiteShellData } from './site-shell-data'
 
@@ -92,6 +93,10 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData }>) {
 					<small>{props.data.footer.copyright}</small>
 				</div>
 			</footer>
+			<ConsentBanner
+				privacyHref={props.data.privacy.href}
+				privacyLabel={props.data.privacy.title}
+			/>
 			<nav
 				class="fixed inset-x-0 bottom-0 z-bottom-nav border-t border-hairline bg-background pb-safe md:hidden"
 				aria-label={props.data.mainNav}

@@ -3,7 +3,7 @@
 import { For } from 'solid-js'
 import { cn } from '@/lib/utils'
 import { JsonLd } from '@/shared/solid/json-ld'
-import type { MarketingFaqItem } from '../components/marketing-faq'
+import type { MarketingFaqItem } from '../components/marketing-faq-item'
 import { ChevronDown } from './editorial-icons'
 import { EditorialLink } from './editorial-link'
 

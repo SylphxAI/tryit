@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type DifficultyLevelConfig, type GameConfig } from '../types'
-import { SudokuIcon } from './icon'
 import type {
 	SudokuGuess,
 	SudokuGuessResult,
@@ -49,7 +48,7 @@ export const sudokuConfig: GameConfig<
 	slug: 'sudoku',
 	name: 'Sudoku',
 	description: 'Fill the 9×9 grid so each row, column, and 3×3 box contains 1-9',
-	IconComponent: SudokuIcon,
+
 	sortOrder: 5,
 	category: 'logic',
 	skills: ['logic', 'pattern'],

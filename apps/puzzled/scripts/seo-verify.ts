@@ -2,7 +2,7 @@
 /**
  * SEO contract harness: asserts the indexed surface of a *served* build.
  *
- * Run from `apps/puzzled` against `next start` (never against dev):
+ * Run from `apps/puzzled` against `bun run start` (never against dev):
  *
  *   bun run build
  *   SYLPHX_PUBLIC_URL=https://tryit.fun bun run start -p 3014 &

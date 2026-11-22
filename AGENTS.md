@@ -34,7 +34,7 @@ one test file into another. Keep `--isolate` in both test scripts.
 - `crates/puzzled-core`: game rules, grading and policy, no I/O (functional core).
 - `crates/puzzled-server`: the Rust api, the only service that decides results
   and writes to the database (imperative shell). Connect RPC is the sole transport.
-- `apps/puzzled`: the Next.js site, presentation only. It calls the api through
+- `apps/puzzled`: the SolidStart site, presentation only. It calls the api through
   a generated Connect client.
 - Daily puzzles are generated, validated and stored by the Rust pipeline
   (`crates/puzzled-server/src/capabilities/daily_pipeline`), 14 days ahead. The

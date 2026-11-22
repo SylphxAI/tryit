@@ -15,16 +15,8 @@ preview_deploys = true
 merge = "optimistic"
 on_red = "revert"
 
-# Only production publishes retained browser assets. Preview admission never
-# requests this credential and keeps HTML private without a publication receipt.
-[environments.production.build.secrets]
-public_assets = { from_secret = "PUZZLED_PUBLIC_ASSETS_KEY" }
-
 [environments.production.env.GA_MEASUREMENT_ID]
 value = "G-J5P11P794N"
-
-[environments.production.env.NEXT_PUBLIC_PUZZLED_ASSET_PREFIX]
-value = "https://api.data.sylphx.com/v1/public/objects/env_fs01jp34p38ahpzfskjywcp271j5gq/web-static"
 
 # Project-level schema gate (ADR-089 / DEPLOY-GUIDE). Ephemeral Job runs once
 # per push BEFORE writer services roll. Supersedes web-only release_command:
@@ -72,7 +64,7 @@ value = "on"
 name = "web"
 instance_type = "micro"
 port = 3000
-# Readiness answers from the Next.js process and calls nothing. Probing "/"
+# Readiness answers from the Nitro process and calls nothing. Probing "/"
 # rendered the home page (about 20 api reads) every 5 seconds.
 health = { path = "/api/health" }
 # ADR-5140: presentation is web. Platform injects API_INTERNAL_URL for private
@@ -83,7 +75,7 @@ health = { path = "/api/health" }
 connect = { services = ["api"] }
 # Schema apply is [database.migrations] only — no dual residual release_command.
 
-# Rust owns the product API (sole backend). Next.js owns presentation only.
+# Rust owns the product API (sole backend). SolidStart owns presentation only.
 [[services]]
 name = "api"
 instance_type = "nano"

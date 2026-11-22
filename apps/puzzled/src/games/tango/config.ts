@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { TangoIcon } from './icon'
 import type { TangoGuessInput, TangoGuessResult, TangoPuzzleData, TangoSolution } from './types'
 
 export const tangoConfig: GameConfig<
@@ -17,7 +16,7 @@ export const tangoConfig: GameConfig<
 	slug: 'duo',
 	name: 'Duo',
 	description: 'Balance suns and moons',
-	IconComponent: TangoIcon,
+
 	sortOrder: 13,
 	category: 'logic',
 	skills: ['logic', 'pattern'],

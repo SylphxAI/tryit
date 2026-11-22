@@ -1,7 +1,7 @@
 /** @jsxImportSource solid-js */
-import { ArrowDown, Crown } from 'lucide-solid'
+import { ArrowRight, Crown } from 'lucide-solid'
 import { AdSlot } from '@/features/ads/solid/ad-slot'
-import { CheckoutOffer } from '@/features/plus/solid/checkout-offer'
+import { playButton } from '@/features/catalog/solid/game-landing'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { PageMeta } from '@/shared/solid/page-meta'
@@ -37,6 +37,27 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 					? tOffer('resultPrice', { plan: tPlus('name'), price: offerPrices.yearlyPrice })
 					: null
 
+	const pricingHref = localizedPath(
+		locale,
+		`/pricing?${new URLSearchParams({ callbackUrl: localizedPath(locale, '/archive'), trigger: 'archive_banner' })}`,
+	)
+	const unlock = () => (
+		<aside class="rounded-2xl border-2 border-foreground bg-card p-4 shadow-[0_3px_0_0_var(--color-foreground)]">
+			<h2 class="flex items-center gap-2 font-display text-lg">
+				<Crown size={18} class="shrink-0 text-accent-warm" aria-hidden="true" />
+				{t('mobileUnlockTitle')}
+			</h2>
+			<p class="mt-1 text-sm text-muted-foreground">
+				{mobilePriceLine ??
+					t('mobileUnlockBody', { count: ARCHIVE_WINDOW_DAYS, games: games.length })}
+			</p>
+			<a href={pricingHref} class={`mt-3 w-full ${playButton}`}>
+				{t('mobileUnlockCta')}
+				<ArrowRight size={16} aria-hidden="true" />
+			</a>
+		</aside>
+	)
+
 	return (
 		<SiteShell data={props.data.shell}>
 			<PageMeta value={props.data.meta} />
@@ -67,40 +88,11 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 									{t('backToGames')}
 								</a>
 							</div>
-							{locked ? (
-								<div
-									data-archive-mobile-unlock=""
-									class="mt-4 rounded-2xl border-2 border-foreground bg-card p-3.5 shadow-[0_3px_0_0_var(--color-foreground)] lg:hidden"
-								>
-									<div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-										<div class="min-w-0">
-											<p class="flex items-center gap-1.5 font-display text-base leading-snug">
-												<Crown class="h-4 w-4 shrink-0 text-accent-warm" aria-hidden="true" />
-												{t('mobileUnlockTitle')}
-											</p>
-											{mobilePriceLine ? (
-												<p class="mt-0.5 text-xs font-semibold text-muted-foreground tnum">
-													{mobilePriceLine}
-												</p>
-											) : (
-												<p class="mt-0.5 text-xs text-muted-foreground">
-													{t('mobileUnlockBody', {
-														count: ARCHIVE_WINDOW_DAYS,
-														games: games.length,
-													})}
-												</p>
-											)}
-										</div>
-										<a
-											href="#archive-unlock"
-											class="pressable inline-flex min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#f4b42a] px-4 text-sm font-bold text-[#1a1712] shadow-[0_3px_0_0_#c98a0b] transition-colors hover:bg-[#f7c24e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-										>
-											{t('mobileUnlockCta')}
-											<ArrowDown class="h-4 w-4" aria-hidden="true" />
-										</a>
-									</div>
+							{locked && (
+								<div class="mt-4 lg:hidden" data-archive-mobile-unlock>
+									{unlock()}
 								</div>
-							) : null}
+							)}
 							<section class="mt-5" aria-labelledby="archive-list-title">
 								<h2 id="archive-list-title" class="sr-only">
 									{t('listTitle')}
@@ -123,18 +115,11 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 								/>
 							</section>
 						</div>
-						{locked ? (
-							<aside id="archive-unlock" class="scroll-mt-20 lg:sticky lg:top-20">
-								<CheckoutOffer
-									locale={locale}
-									data={props.data.offer}
-									signedIn={props.data.signedIn}
-									callbackUrl={localizedPath(locale, '/archive')}
-									gameCount={games.length}
-									checkoutTrigger="archive_banner"
-								/>
-							</aside>
-						) : null}
+						{locked && (
+							<div class="hidden lg:sticky lg:top-20 lg:block" data-archive-unlock>
+								{unlock()}
+							</div>
+						)}
 					</div>
 					{ads ? (
 						<div class="mt-8 max-w-2xl">

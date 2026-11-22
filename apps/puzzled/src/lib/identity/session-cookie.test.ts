@@ -1,6 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { NextRequest } from 'next/server'
-import { proxy } from '../../proxy'
 import {
 	LEGACY_SESSION_COOKIE,
 	legacySessionToMigrate,
@@ -8,13 +6,14 @@ import {
 	SESSION_COOKIE,
 	SESSION_COOKIE_NAMES,
 } from './session-cookie'
+import { migratedSessionHeaders } from './session-response'
 
 function jar(values: Record<string, string>) {
 	return { get: (name: string) => (name in values ? { value: values[name] as string } : undefined) }
 }
 
 function request(cookie: string) {
-	return new NextRequest('https://puzzled.gg/games', { headers: { cookie } })
+	return new Request('https://puzzled.gg/games', { headers: { cookie } })
 }
 
 describe('session cookie rename', () => {
@@ -35,20 +34,24 @@ describe('session cookie rename', () => {
 		expect(readSessionToken(jar({}))).toBeUndefined()
 	})
 
-	test('the proxy re-sets an old cookie under the new name and expires the old one', async () => {
-		const response = await proxy(request(`${LEGACY_SESSION_COOKIE}=old-token`))
-		expect(response.cookies.get(SESSION_COOKIE)?.value).toBe('old-token')
-		const expired = response.cookies.get(LEGACY_SESSION_COOKIE)
-		expect(expired?.value).toBe('')
+	test('the proxy re-sets an old cookie under the new name and expires the old one', () => {
+		const cookies = migratedSessionHeaders(
+			request(`${LEGACY_SESSION_COOKIE}=old-token`),
+			new Headers(),
+			true,
+		)
+		expect(cookies[0]).toStartWith(`${SESSION_COOKIE}=old-token;`)
+		expect(cookies[1]).toStartWith(`${LEGACY_SESSION_COOKIE}=;`)
+		expect(cookies[1]).toContain('Max-Age=0')
 	})
 
 	test('sign-out clears both names', () => {
 		expect([...SESSION_COOKIE_NAMES]).toEqual([SESSION_COOKIE, LEGACY_SESSION_COOKIE])
 	})
 
-	test('the proxy leaves a new-cookie request alone', async () => {
-		const response = await proxy(request(`${SESSION_COOKIE}=new-token`))
-		expect(response.cookies.get(SESSION_COOKIE)).toBeUndefined()
-		expect(response.cookies.get(LEGACY_SESSION_COOKIE)).toBeUndefined()
+	test('the proxy leaves a new-cookie request alone', () => {
+		expect(
+			migratedSessionHeaders(request(`${SESSION_COOKIE}=new-token`), new Headers(), true),
+		).toEqual([])
 	})
 })

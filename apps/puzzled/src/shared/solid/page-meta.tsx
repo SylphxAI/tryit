@@ -3,12 +3,15 @@ import { Link, Meta, Title } from '@solidjs/meta'
 import { For } from 'solid-js'
 import type { PageMetadata } from '@/lib/seo/page-metadata'
 
+import { SiteSchema } from './site-schema'
+
 export function PageMeta(props: { value: PageMetadata }) {
 	const value = () => props.value
 	const og = () => value().openGraph
 	const image = () => og().images[0]
 	return (
 		<>
+			<SiteSchema origin={new URL(value().alternates.canonical).origin} />
 			<Title>{value().title} | Tryit</Title>
 			<Meta name="description" content={value().description} />
 			{value().robots && <Meta name="robots" content="noindex, nofollow" />}

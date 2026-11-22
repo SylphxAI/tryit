@@ -30,7 +30,7 @@ test('normal deploy executes baseline DDL on an empty preview database', () => {
 		scripts: Record<string, string>
 	}
 	const build = pkg.scripts['build:with-migrate']
-	expect(build).toBe('atlas migrate apply --env production && next build')
+	expect(build).toBe('atlas migrate apply --env production && bun run build')
 	expect(build).not.toContain('--baseline')
 	expect(build).not.toContain('--allow-dirty')
 	const directory = resolve(ROOT, 'apps/puzzled/atlas/migrations')

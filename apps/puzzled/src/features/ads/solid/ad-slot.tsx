@@ -1,5 +1,12 @@
 /** @jsxImportSource solid-js */
 import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+
+declare global {
+	interface Window {
+		adsbygoogle?: unknown[]
+	}
+}
+
 import { canStoreMarketing, onConsentChange } from '@/features/analytics/lib/consent'
 import { type AdsConfig, adScriptSrc } from '@/lib/ads'
 

@@ -1,1 +1,0 @@
-export { NonogramGrid } from './grid'

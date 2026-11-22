@@ -1,20 +1,22 @@
 /** @jsxImportSource solid-js */
+import { isFieldSet } from '@bufbuild/protobuf'
 import { createSignal, onCleanup, Show } from 'solid-js'
 import type { DailySnapshot } from '@/features/daily/lib/daily-fallback'
-import { ritualShareDeepLink } from '@/features/daily/lib/share-text'
+import { ResultActions } from '@/features/daily/solid/result-actions'
 import type { PuzzleDifficulty } from '@/games/types'
+import { SubmitGuessResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { isAlreadyPlayedError } from '@/lib/connect/already-played'
-import { shareResult, submitGuess } from '@/lib/connect/puzzle-client'
+import { submitGuess } from '@/lib/connect/puzzle-client'
 import type { SubmitGuessInput } from '@/lib/connect/puzzle-domain'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { withIdempotencyKey } from '@/lib/idempotency-key'
-import { productDayKey } from '@/lib/product-day'
 import { recordFirstFinishDay } from '@/shared/components/pwa-install-policy'
 
 export type DailyBoardProps = {
 	puzzle: Extract<DailySnapshot, { kind: 'playable' }>
 	locale: Locale
+	mode?: 'daily' | 'archive'
 	difficulty?: PuzzleDifficulty
 	onAlreadyPlayed: () => void
 }
@@ -27,7 +29,7 @@ export function createBoardFinish(
 ) {
 	const mountedAt = Date.now()
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
-	const [shareId, setShareId] = createSignal<string>()
+	const [score, setScore] = createSignal<number>()
 	const [revealJson, setRevealJson] = createSignal<string>()
 	let intent: SubmitGuessInput | undefined
 	let disposed = false
@@ -41,12 +43,11 @@ export function createBoardFinish(
 			const result = await submitGuess(intent)
 			if (!disposed) {
 				if (result.valid && result.status === intent.status) {
-					recordFirstFinishDay(productDayKey())
+					if (props.mode !== 'archive')
+						recordFirstFinishDay(intent.puzzleDate ?? props.puzzle.puzzleDate)
 					setRevealJson(result.revealJson)
+					if (isFieldSet(result, SubmitGuessResponseSchema.field.score)) setScore(result.score)
 					setState('accepted')
-					void shareResult({ gameSlug, puzzleDate: intent.puzzleDate })
-						.then((id) => !disposed && setShareId(id))
-						.catch(() => {})
 				} else if (isAlreadyPlayedError(result.error)) props.onAlreadyPlayed()
 				else if (
 					options &&
@@ -71,6 +72,18 @@ export function createBoardFinish(
 	}
 	return {
 		state,
+		result() {
+			if (state() !== 'accepted' || !intent) return
+			return {
+				gameSlug,
+				mode: props.mode ?? 'daily',
+				status: intent.status,
+				puzzleDate: intent.puzzleDate,
+				attempts: intent.attempts,
+				score: score(),
+				timeSpentMs: intent.timeSpentMs,
+			} as const
+		},
 		revealJson,
 		finish(
 			submission: unknown,
@@ -90,16 +103,6 @@ export function createBoardFinish(
 			void send()
 		},
 		retry: send,
-		async share(title: string, text?: string) {
-			if (state() !== 'accepted') return
-			const puzzleDate = intent?.puzzleDate
-			const archiveDate = puzzleDate === productDayKey() ? undefined : puzzleDate
-			const url = ritualShareDeepLink(window.location.origin, gameSlug, archiveDate, shareId())
-			void shareResult({ gameSlug, puzzleDate, tap: true }).catch(() => {})
-			// Invoke native share synchronously with the tap; the count must not block it.
-			if (navigator.share) await navigator.share({ title, text, url })
-			else await navigator.clipboard.writeText(text ? `${text}\n\n${url}` : url)
-		},
 	}
 }
 
@@ -111,21 +114,6 @@ export function BoardFinish(props: {
 	shareText?: string
 }) {
 	const t = createTranslator(props.locale)
-	const [sharing, setSharing] = createSignal(false)
-	const [notice, setNotice] = createSignal<'error' | 'copied'>()
-	async function share() {
-		if (sharing()) return
-		setSharing(true)
-		setNotice(undefined)
-		try {
-			await props.finish.share(props.shareTitle ?? props.message, props.shareText)
-			if (!navigator.share) setNotice('copied')
-		} catch (error) {
-			if (!(error instanceof DOMException && error.name === 'AbortError')) setNotice('error')
-		} finally {
-			setSharing(false)
-		}
-	}
 	return (
 		<>
 			<Show when={props.finish.state() === 'pending'}>
@@ -143,26 +131,20 @@ export function BoardFinish(props: {
 					</button>
 				</p>
 			</Show>
-			<Show when={props.finish.state() === 'accepted'}>
-				<div class="tactile-card space-y-2 p-4">
-					<h2 class="font-display text-xl" role="status">
-						{props.message}
-					</h2>
-					<button
-						type="button"
-						class="min-h-11 font-semibold underline"
-						disabled={sharing()}
-						onClick={share}
-					>
-						{t('common.share')}
-					</button>
-					<Show when={notice() === 'copied'}>
-						<p role="status">{t('common.copied')}</p>
-					</Show>
-					<Show when={notice() === 'error'}>
-						<p role="alert">{t('common.error')}</p>
-					</Show>
-				</div>
+			<Show when={props.finish.result()}>
+				{(result) => (
+					<div class="tactile-card space-y-2 p-4">
+						<h2 class="font-display text-xl" role="status">
+							{props.message}
+						</h2>
+						<ResultActions
+							facts={result()}
+							locale={props.locale}
+							shareTitle={props.shareTitle}
+							shareText={props.shareText}
+						/>
+					</div>
+				)}
 			</Show>
 		</>
 	)

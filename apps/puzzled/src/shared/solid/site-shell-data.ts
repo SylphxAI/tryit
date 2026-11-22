@@ -14,6 +14,7 @@ export function siteShellData(locale: Locale, path: string, t: Translate, now: D
 	return {
 		home: localizedPath(locale),
 		mainNav: t('nav.main'),
+		privacy: { href: localizedPath(locale, '/privacy'), title: t('footer.privacy') },
 		tabs: tabs.map((tab) => ({
 			...tab,
 			title: t(`nav.${tab.label}`),

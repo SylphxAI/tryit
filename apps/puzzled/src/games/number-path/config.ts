@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { NumberPathIcon } from './icon'
 import type {
 	NumberPathGuess,
 	NumberPathGuessResult,
@@ -22,7 +21,7 @@ export const numberPathConfig: GameConfig<
 	slug: 'number-path',
 	name: 'Path',
 	description: 'Visit 1…n without crossing',
-	IconComponent: NumberPathIcon,
+
 	sortOrder: 20,
 	category: 'spatial',
 	skills: ['spatial', 'logic'],

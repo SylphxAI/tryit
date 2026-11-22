@@ -4,7 +4,6 @@
  */
 
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { QuadWordsIcon } from './icon'
 import type {
 	QuordleGuessInput,
 	QuordleGuessResult,
@@ -21,7 +20,7 @@ export const quadWordsConfig: GameConfig<
 	slug: 'quad-words',
 	name: 'Quad',
 	description: 'Solve 4 words at once',
-	IconComponent: QuadWordsIcon,
+
 	sortOrder: 15,
 	category: 'word',
 	skills: ['vocabulary', 'logic', 'memory'],

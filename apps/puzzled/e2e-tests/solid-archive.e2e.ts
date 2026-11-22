@@ -45,56 +45,22 @@ test('archive calendar and category link to the chosen past day without starting
 	expect(requests).toEqual([{ gameSlug: 'word-search', puzzleDate: selected }])
 })
 
-test('archive pass needs consent, retains archive return, and changes every price with currency', async ({
+test('archive unlock directs to pricing with the return and attribution intact', async ({
 	page,
 }) => {
 	await page.setViewportSize({ width: 360, height: 750 })
-	const requests: { body: unknown; returnTo?: string }[] = []
-	await page.route('**/puzzled.v1.BillingService/CreateCheckout', (route) => {
-		requests.push({
-			body: route.request().postDataJSON(),
-			returnTo: route.request().headers()['x-puzzled-return-to'],
-		})
-		return route.fulfill({ status: 503, json: { code: 'unavailable', message: 'fixture_only' } })
-	})
 	await page.goto('/archive')
 	const mobile = page.locator('[data-archive-mobile-unlock]')
-	await expect(mobile.getByRole('link', { name: 'Unlock archive' })).toHaveAttribute(
-		'href',
-		'#archive-unlock',
-	)
-	await expect(mobile).toContainText('3-day pass $')
-	const offer = page.locator('#archive-unlock')
-	const currency = offer.getByRole('combobox', { name: 'Currency' })
-	await expect(currency).toHaveValue('usd')
-	await currency.selectOption('gbp')
-	await expect(currency).toHaveValue('gbp')
-	await expect(mobile).toContainText('3-day pass £')
-	const checkout = offer.locator('[data-checkout-trigger="archive_banner"]')
-	const waiver = offer.getByRole('checkbox')
-	await expect(waiver).toBeVisible()
-	await expect(checkout).toBeDisabled()
-	expect(requests).toEqual([])
-	await waiver.check()
-	await checkout.click()
-	await expect(offer.getByRole('alert')).toContainText('Checkout could not start')
-	expect(requests).toEqual([
-		{
-			body: {
-				planId: 'individual_once',
-				locale: 'en-US',
-				currency: 'gbp',
-				immediateSupplyConsent: true,
-			},
-			returnTo: '/archive',
-		},
-	])
-	await offer.getByRole('radio', { name: /^Yearly/ }).check()
-	await expect(waiver).toHaveCount(0)
-	await expect(checkout).toBeEnabled()
-	const compare = offer.getByRole('link', { name: /compare/i })
-	await expect(compare).toHaveAttribute(
+	const cta = mobile.getByRole('link', { name: 'Unlock archive' })
+	await expect(cta).toHaveAttribute(
 		'href',
 		'/pricing?callbackUrl=%2Farchive&trigger=archive_banner',
+	)
+	await expect(mobile.getByRole('checkbox')).toHaveCount(0)
+	await cta.click()
+	await expect(page).toHaveURL(
+		(url) =>
+			url.pathname === '/pricing' &&
+			url.search === '?callbackUrl=%2Farchive&trigger=archive_banner',
 	)
 })

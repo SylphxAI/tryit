@@ -43,6 +43,7 @@ import { ProgressRing } from '@/shared/solid/progress-ring'
 import { SiteShell } from '@/shared/solid/site-shell'
 import type { HomeDocument, HomeFacts } from './home-data'
 import { MarketingFaq } from './marketing-faq'
+import { MilestonePrompt } from './milestone-prompt'
 
 function markStart(event: MouseEvent, slug: string) {
 	if (
@@ -203,17 +204,16 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		<SiteShell data={page.shell}>
 			<PageMeta value={page.meta} />
 			<main id="main-content" class="flex-1">
-				<JsonLd
-					value={{
-						'@context': 'https://schema.org',
-						'@type': 'WebApplication',
-						name: 'Tryit',
-						url: page.meta.alternates.canonical,
-						description: page.meta.description,
-						applicationCategory: 'GameApplication',
-						operatingSystem: 'Any',
-					}}
-				/>
+				<For each={page.schemas}>{(schema) => <JsonLd value={schema} />}</For>
+				<Show when={props.facts()?.milestone} keyed>
+					{(milestone) => (
+						<MilestonePrompt
+							locale={page.locale}
+							count={page.catalog.length}
+							milestone={milestone}
+						/>
+					)}
+				</Show>
 				<Show when={page.season}>
 					{(season) => (
 						<aside

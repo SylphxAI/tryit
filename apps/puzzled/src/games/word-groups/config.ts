@@ -10,7 +10,6 @@ import {
 	type GameConfig,
 	type GameShareStats,
 } from '../types'
-import { WordGroupsIcon } from './icon'
 import type { Category, ConnectionsPuzzleData, ConnectionsSolution } from './types'
 
 export type { ConnectionsPuzzleData, ConnectionsSolution }
@@ -61,7 +60,7 @@ export const wordGroupsConfig: GameConfig<
 	slug: 'word-groups',
 	name: 'Threads',
 	description: 'Group 16 words into 4 categories of 4',
-	IconComponent: WordGroupsIcon,
+
 	sortOrder: 2,
 	category: 'word',
 	skills: ['vocabulary', 'association', 'logic'],

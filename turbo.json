@@ -30,13 +30,11 @@
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
-			"outputs": [".next/**", "!.next/cache/**", "dist/**"],
-			"env": ["NEXT_PUBLIC_*"]
+			"outputs": [".output/**", "dist/**"]
 		},
 		"build:with-migrate": {
 			"dependsOn": ["^build"],
-			"outputs": [".next/**", "!.next/cache/**", "dist/**"],
-			"env": ["NEXT_PUBLIC_*"],
+			"outputs": [".output/**", "dist/**"],
 			"cache": false
 		},
 		"dev": {
