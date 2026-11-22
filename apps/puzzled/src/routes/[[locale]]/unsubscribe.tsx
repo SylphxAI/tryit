@@ -1,4 +1,5 @@
 /** @jsxImportSource solid-js */
+import { Meta, Title } from '@solidjs/meta'
 import { type RouteDefinition, useParams, useSearchParams } from '@solidjs/router'
 import { HttpHeader } from '@solidjs/start'
 import { CheckCircle, Gamepad2, Loader2, Mail, XCircle } from 'lucide-solid'
@@ -87,6 +88,8 @@ export default function UnsubscribePage() {
 	const settings = () => localizedPath(locale(), '/settings')
 	return (
 		<main class="flex min-h-screen flex-col items-center justify-center px-4">
+			<Title>{t('idleTitle')} | Tryit</Title>
+			<Meta name="robots" content="noindex, nofollow" />
 			<HttpHeader name="Cache-Control" value="private, no-store" />
 			<HttpHeader name="Referrer-Policy" value="no-referrer" />
 			<div class="w-full max-w-sm space-y-6 text-center">

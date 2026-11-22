@@ -68,6 +68,8 @@ test.describe('Solid transactional landings', () => {
 		})
 		const response = await page.goto('/unsubscribe?error=missing_token&token=do-not-submit')
 		expect(response?.headers()['referrer-policy']).toBe('no-referrer')
+		expect(response?.headers()['cache-control']).toBe('private, no-store')
+		await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', 'noindex, nofollow')
 		await expect(page.getByRole('alert')).toContainText('No unsubscribe token provided.')
 		await page.goto('/unsubscribe?success=true&token=do-not-submit')
 		await expect(page.getByRole('heading', { name: 'Unsubscribed Successfully' })).toBeVisible()
