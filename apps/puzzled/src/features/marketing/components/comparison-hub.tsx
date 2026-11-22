@@ -4,14 +4,18 @@ import { getGameColors } from '@/games/theme-colors'
 import { Link } from '@/lib/i18n/routing'
 import { buildPageMetadata, ogImagePath } from '@/lib/seo/metadata'
 import { GameMotifImage } from '@/shared/components/games/game-motif'
-import { PLAY_CTA } from './comparison-landing'
 import { COMPARISON_HUB, COMPARISONS, type ComparisonSpec } from './comparison-specs'
+import {
+	buildComparisonHubJsonLd,
+	INK_SECONDARY_CTA,
+	PLAY_CTA,
+	SECONDARY_CTA,
+} from './editorial-presentation'
 import { MarketingCta } from './marketing-cta'
 import { MarketingHero } from './marketing-hero'
 import { MarketingSection } from './marketing-section'
-import { INK_SECONDARY_CTA, SECONDARY_CTA } from './use-case-landing'
 
-const ORIGIN = 'https://tryit.fun'
+export { buildComparisonHubJsonLd } from './editorial-presentation'
 
 export async function buildComparisonHubMetadata(locale: string) {
 	return buildPageMetadata({
@@ -26,26 +30,6 @@ export async function buildComparisonHubMetadata(locale: string) {
 			eyebrow: COMPARISON_HUB.eyebrow,
 		}),
 	})
-}
-
-/** The hub as a schema.org collection of the comparison pages it lists. */
-export function buildComparisonHubJsonLd() {
-	return {
-		'@context': 'https://schema.org',
-		'@type': 'CollectionPage',
-		name: COMPARISON_HUB.metaTitle,
-		description: COMPARISON_HUB.metaDescription,
-		url: `${ORIGIN}${COMPARISON_HUB.path}`,
-		mainEntity: {
-			'@type': 'ItemList',
-			itemListElement: COMPARISONS.map((spec, index) => ({
-				'@type': 'ListItem',
-				position: index + 1,
-				name: `Tryit vs ${spec.rival}`,
-				url: `${ORIGIN}${spec.path}`,
-			})),
-		},
-	}
 }
 
 /**

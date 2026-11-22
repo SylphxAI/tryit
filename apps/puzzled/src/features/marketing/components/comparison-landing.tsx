@@ -5,16 +5,17 @@ import { Link } from '@/lib/i18n/routing'
 import { buildPageMetadata, ogImagePath } from '@/lib/seo/metadata'
 import { COMPARISON_HUB_PATH } from './comparison-slugs'
 import { COMPARISON_HUB, type ComparisonSpec } from './comparison-specs'
+import {
+	comparisonBreadcrumbJsonLd,
+	INK_SECONDARY_CTA,
+	PLAY_CTA,
+	SECONDARY_CTA,
+} from './editorial-presentation'
 import { MarketingCta } from './marketing-cta'
 import { MarketingFaq } from './marketing-faq'
 import { MarketingHero } from './marketing-hero'
 import { MarketingSection } from './marketing-section'
-import { INK_SECONDARY_CTA, SECONDARY_CTA } from './use-case-landing'
 import { buildUseCaseJsonLd } from './use-case-specs'
-
-/** The page's one amber action, as on the home page. */
-export const PLAY_CTA =
-	'pressable inline-flex min-h-12 items-center gap-2 rounded-2xl bg-cta px-6 py-3 font-bold text-cta-foreground shadow-[inset_0_-3px_0_var(--color-cta-edge)] transition-colors hover:bg-cta-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export async function buildComparisonMetadata(locale: string, spec: ComparisonSpec) {
 	return buildPageMetadata({
@@ -30,26 +31,6 @@ export async function buildComparisonMetadata(locale: string, spec: ComparisonSp
 			eyebrow: spec.eyebrow,
 		}),
 	})
-}
-
-const ORIGIN = 'https://tryit.fun'
-
-/** Home > Compare > this page, as schema.org reads a breadcrumb trail. */
-export function comparisonBreadcrumbJsonLd(spec: ComparisonSpec) {
-	const trail = [
-		{ name: 'Tryit', url: ORIGIN },
-		{ name: COMPARISON_HUB.eyebrow, url: `${ORIGIN}${COMPARISON_HUB_PATH}` },
-		{ name: `Tryit vs ${spec.rival}`, url: `${ORIGIN}${spec.path}` },
-	]
-	return {
-		'@type': 'BreadcrumbList',
-		itemListElement: trail.map((step, index) => ({
-			'@type': 'ListItem',
-			position: index + 1,
-			name: step.name,
-			item: step.url,
-		})),
-	}
 }
 
 /**

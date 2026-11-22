@@ -1,20 +1,12 @@
 import { ArrowRight } from 'lucide-react'
 import { Link } from '@/lib/i18n/routing'
 import { buildPageMetadata, ogImagePath } from '@/lib/seo/metadata'
+import { INK_SECONDARY_CTA, PRIMARY_CTA, SECONDARY_CTA } from './editorial-presentation'
 import { MarketingCta } from './marketing-cta'
 import { MarketingFaq } from './marketing-faq'
 import { MarketingHero } from './marketing-hero'
 import { MarketingSection } from './marketing-section'
 import { buildUseCaseJsonLd, type UseCaseSpec } from './use-case-specs'
-
-export const PRIMARY_CTA =
-	'inline-flex min-h-12 items-center gap-2 rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:-translate-y-0.5 hover:bg-primary-hover active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
-
-export const SECONDARY_CTA =
-	'inline-flex min-h-12 items-center gap-2 rounded-2xl border border-border bg-background/80 px-5 py-3 font-semibold backdrop-blur transition-colors hover:border-primary/30 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
-
-export const INK_SECONDARY_CTA =
-	'inline-flex min-h-12 items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 py-3 font-semibold text-white transition-colors hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export async function buildUseCaseMetadata(locale: string, spec: UseCaseSpec) {
 	return buildPageMetadata({

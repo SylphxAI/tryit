@@ -39,7 +39,7 @@ export function MarketingHero(props: MarketingHeroProps) {
 				>
 					<div>
 						{props.breadcrumb}
-						{props.eyebrow && <p class="props.eyebrow">{props.eyebrow}</p>}
+						{props.eyebrow && <p class="eyebrow">{props.eyebrow}</p>}
 						<h1 class="mt-2 font-display text-[2.125rem] leading-[1.06] text-balance sm:text-5xl lg:text-[3.5rem]">
 							{props.title}
 						</h1>
