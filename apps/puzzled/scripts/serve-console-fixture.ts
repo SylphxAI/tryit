@@ -10,7 +10,9 @@ Bun.serve({
 		const cookie = request.headers.get('cookie') ?? ''
 		const pairs = cookie.split(/; */)
 		const authenticated = pairs.some((pair) => pair.endsWith(`=${fixtureToken}`))
-		const guest = pairs.includes('__Host-puzzled_guest=console-guest')
+		const guest = pairs.some((pair) =>
+			['console-guest', 'home-stale'].some((value) => pair === `__Host-puzzled_guest=${value}`),
+		)
 		const hasRecord = authenticated || guest
 		const privateReadsUnavailable = pairs.includes('__Host-puzzled_guest=unavailable')
 		const unavailable = () => Response.json({ code: 'unavailable' }, { status: 503 })
@@ -74,6 +76,7 @@ Bun.serve({
 			const body = await request.json()
 			if (body.gameSlugs?.length !== 19) return unavailable()
 			return Response.json({
+				dayKey: pairs.includes('__Host-puzzled_guest=home-stale') ? '2000-01-01' : productDayKey(),
 				games: body.gameSlugs.map((gameSlug: string) => ({
 					gameSlug,
 					hasCompleted: gameSlug === 'sudoku',
