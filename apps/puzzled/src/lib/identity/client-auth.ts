@@ -214,8 +214,8 @@ export async function sessionTimes(
 	}
 }
 
-/** Instance-wide capabilities, never an email/account eligibility lookup. */
-export async function clientMethods(config: AuthConfig) {
+/** Instance-wide client config, never an email/account eligibility lookup. */
+async function readClientConfig(config: AuthConfig) {
 	const query = new URLSearchParams({ publishable_key: config.publishableKey })
 	const response = await fetch(`${config.url}/v1/client/config?${query}`, {
 		cache: 'no-store',
@@ -227,14 +227,23 @@ export async function clientMethods(config: AuthConfig) {
 		methods?: Record<string, unknown>
 		social?: Array<{ provider?: unknown } | null>
 	} | null
-	if (!body?.methods || typeof body.methods !== 'object' || !Array.isArray(body.social)) {
+	if (!Array.isArray(body?.social)) throw new AuthCallError(502, 'invalid_config')
+	const providers = body.social.flatMap((entry) =>
+		typeof entry?.provider === 'string' && entry.provider ? [entry.provider] : [],
+	)
+	return { methods: body.methods, providers }
+}
+
+export async function clientMethods(config: AuthConfig) {
+	const { methods, providers } = await readClientConfig(config)
+	if (!methods || typeof methods !== 'object' || Array.isArray(methods)) {
 		throw new AuthCallError(502, 'invalid_config')
 	}
 	return {
-		emailCode: body.methods.email_otp === true,
-		password: body.methods.password === true,
-		passkey: body.methods.passkey === true,
-		google: body.social.some((entry) => entry?.provider === 'google'),
+		emailCode: methods.email_otp === true,
+		password: methods.password === true,
+		passkey: methods.passkey === true,
+		google: providers.includes('google'),
 	}
 }
 
@@ -337,10 +346,9 @@ export async function passkeyTicket(config: AuthConfig, userAgent: string, proof
 	)
 }
 
-/** Social providers for legacy pages. */
+/** Legacy pages only need the provider list, even when methods are absent. */
 export async function socialProviders(config: AuthConfig): Promise<string[]> {
-	const methods = await clientMethods(config).catch(() => null)
-	return methods?.google ? ['google'] : []
+	return (await readClientConfig(config)).providers
 }
 
 /** Auth's Google start door; Auth returns to `returnUrl` with `sylphx_ticket`. */

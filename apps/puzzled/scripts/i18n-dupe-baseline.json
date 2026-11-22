@@ -188,6 +188,10 @@
 				"keys": ["footer.contact", "legal.terms.sections.contact.title"]
 			},
 			{
+				"value": "Continue",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "Conversion Rate",
 				"keys": ["admin.analytics.conversionRate", "admin.dashboard.conversionRate"]
 			},
@@ -738,6 +742,14 @@
 			{
 				"value": "Remove Admin",
 				"keys": ["admin.users.removeAdmin", "admin.users.removeAdminBulk"]
+			},
+			{
+				"value": "Resend code",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Resend in {seconds}s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
 			},
 			{
 				"value": "Reset your password",
@@ -1302,6 +1314,10 @@
 				"keys": ["footer.contact", "legal.terms.sections.contact.title"]
 			},
 			{
+				"value": "Continue",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "Conversion Rate",
 				"keys": ["admin.analytics.conversionRate", "admin.dashboard.conversionRate"]
 			},
@@ -1852,6 +1868,14 @@
 			{
 				"value": "Remove Admin",
 				"keys": ["admin.users.removeAdmin", "admin.users.removeAdminBulk"]
+			},
+			{
+				"value": "Resend code",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Resend in {seconds}s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
 			},
 			{
 				"value": "Reset your password",
@@ -2616,6 +2640,10 @@
 				"keys": ["gameResult.attempts", "share.card.attemptsLabel"]
 			},
 			{
+				"value": "嘗試次數過多，請稍後再試。",
+				"keys": ["auth.unified.rateLimited", "settings.account.password.rateLimited"]
+			},
+			{
 				"value": "天",
 				"keys": ["settings.overview.stats.days", "settings.playerCard.stats.days", "streak.days"]
 			},
@@ -3110,6 +3138,10 @@
 			{
 				"value": "總覽",
 				"keys": ["settings.nav.overview", "settings.security.tabs.overview"]
+			},
+			{
+				"value": "繼續",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
 			},
 			{
 				"value": "聯絡我們",
@@ -3767,6 +3799,10 @@
 				"keys": ["gameResult.attempts", "share.card.attemptsLabel"]
 			},
 			{
+				"value": "嘗試次數過多，請稍後再試。",
+				"keys": ["auth.unified.rateLimited", "settings.account.password.rateLimited"]
+			},
+			{
 				"value": "天",
 				"keys": ["settings.overview.stats.days", "settings.playerCard.stats.days", "streak.days"]
 			},
@@ -4241,6 +4277,10 @@
 				"keys": ["settings.nav.overview", "settings.security.tabs.overview"]
 			},
 			{
+				"value": "繼續",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "聯絡我們",
 				"keys": ["footer.contact", "legal.privacy.sections.contact.title", "support.contact.title"]
 			},
@@ -4679,6 +4719,10 @@
 				]
 			},
 			{
+				"value": "{seconds} 秒后可重新发送",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
+			},
+			{
 				"value": "一般",
 				"keys": ["auth.passwordStrength.fair", "settings.overview.protectionLevels.fair"]
 			},
@@ -4995,6 +5039,10 @@
 			{
 				"value": "尝试次数",
 				"keys": ["gameResult.attempts", "share.card.attemptsLabel"]
+			},
+			{
+				"value": "尝试次数过多，请稍后重试。",
+				"keys": ["auth.unified.rateLimited", "settings.account.password.rateLimited"]
 			},
 			{
 				"value": "已关联",
@@ -5424,6 +5472,10 @@
 				"keys": ["settings.compactMode", "settings.preferences.appearance.compactMode"]
 			},
 			{
+				"value": "继续",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "编辑",
 				"keys": ["settings.playerCard.edit", "settings.profile.edit"]
 			},
@@ -5575,6 +5627,10 @@
 					"settings.security.securityCheckup.emailVerified",
 					"settings.securityScore.checks.emailVerified"
 				]
+			},
+			{
+				"value": "重新发送验证码",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
 			},
 			{
 				"value": "重新生成代码",
@@ -5929,6 +5985,10 @@
 				"keys": ["settings.compactMode", "settings.preferences.appearance.compactMode"]
 			},
 			{
+				"value": "コードの有効期限が切れました。新しいコードをリクエストしてください。",
+				"keys": ["auth.unified.expired", "reauth.codeExpired"]
+			},
+			{
 				"value": "コードを再生成",
 				"keys": ["settings.recoveryCodes.confirmRegenerate", "settings.recoveryCodes.regenerate"]
 			},
@@ -6244,6 +6304,10 @@
 			{
 				"value": "メールアドレスを入力してください。パスワードを再設定するためのリンクをお送りします。",
 				"keys": ["auth.forgotPasswordDescription", "auth.resetInstructions"]
+			},
+			{
+				"value": "メールアドレスを変更",
+				"keys": ["auth.unified.changeEmail", "settings.email.changeEmail"]
 			},
 			{
 				"value": "メール認証済み",
@@ -6772,6 +6836,10 @@
 				"keys": ["nav.stats", "stats.title"]
 			},
 			{
+				"value": "続ける",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "総ユーザー数",
 				"keys": ["admin.dashboard.totalUsers", "admin.system.totalUsers", "admin.users.totalUsers"]
 			},
@@ -7084,6 +7152,10 @@
 				"keys": ["settings.search.ariaLabel", "settings.search.searchSettings"]
 			},
 			{
+				"value": "Cambiar correo",
+				"keys": ["auth.unified.changeEmail", "settings.email.changeEmail"]
+			},
+			{
 				"value": "Cambiar idioma",
 				"keys": ["common.changeLanguage", "common.switchLanguage"]
 			},
@@ -7169,6 +7241,10 @@
 					"legal.terms.sections.contact.title",
 					"support.contact.title"
 				]
+			},
+			{
+				"value": "Continuar",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
 			},
 			{
 				"value": "Contraseña",
@@ -7805,6 +7881,14 @@
 				"keys": ["settings.preferences.appearance.reduceMotion", "settings.reduceMotion"]
 			},
 			{
+				"value": "Reenviar código",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Reenviar en {seconds} s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
+			},
+			{
 				"value": "Regenerar códigos",
 				"keys": ["settings.recoveryCodes.confirmRegenerate", "settings.recoveryCodes.regenerate"]
 			},
@@ -8138,6 +8222,10 @@
 				"keys": ["settings.notifications.push.streakAlert", "settings.pushStreakAlert"]
 			},
 			{
+				"value": "Alterar e-mail",
+				"keys": ["auth.unified.changeEmail", "settings.email.changeEmail"]
+			},
+			{
 				"value": "Anterior",
 				"keys": ["admin.auditLogs.pagination.previous", "pagination.previous"]
 			},
@@ -8345,6 +8433,10 @@
 			{
 				"value": "Contato",
 				"keys": ["footer.contact", "legal.terms.sections.contact.title"]
+			},
+			{
+				"value": "Continuar",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
 			},
 			{
 				"value": "Cookies",
@@ -8822,6 +8914,10 @@
 				]
 			},
 			{
+				"value": "O código expirou. Solicite um novo.",
+				"keys": ["auth.unified.expired", "reauth.codeExpired"]
+			},
+			{
 				"value": "Outras páginas que você pode precisar",
 				"keys": ["legal.privacy.cta.title", "legal.terms.cta.title"]
 			},
@@ -8944,6 +9040,10 @@
 			{
 				"value": "Reduzir movimento",
 				"keys": ["settings.preferences.appearance.reduceMotion", "settings.reduceMotion"]
+			},
+			{
+				"value": "Reenviar código",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
 			},
 			{
 				"value": "Remover",

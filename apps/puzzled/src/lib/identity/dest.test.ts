@@ -171,14 +171,15 @@ describe('Identity dest HTTP', () => {
 		process.env.SYLPHX_PUBLISHABLE_KEY = 'sylphx_pk_test_a'
 		const fetchMock = mockFetch({
 			ok: true,
-			body: { social: [{ provider: 'google', name: 'Google' }] },
+			// A social-only response remains valid for the legacy pages.
+			body: { social: [{ provider: 'google', name: 'Google' }, { provider: 'github' }] },
 		})
 		const config = await getAppConfig()
 		// Auth's client config is the only config read.
 		expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
 			'https://bound-auth.example/v1/client/config?publishable_key=sylphx_pk_test_a',
 		])
-		expect(config.oauthProviders).toEqual(['google'])
+		expect(config.oauthProviders).toEqual(['google', 'github'])
 		expect(config.consentTypes).toContain('analytics')
 	})
 
@@ -228,6 +229,7 @@ function mockFetch(result: { ok: boolean; body: unknown; status?: number }) {
 				ok: result.ok,
 				status: result.status ?? (result.ok ? 200 : 500),
 				text: async () => JSON.stringify(result.body),
+				json: async () => result.body,
 			}) as Response,
 		{ mock: { calls: [] as Array<[string, RequestInit]> } },
 	)
