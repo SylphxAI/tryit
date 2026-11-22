@@ -1,25 +1,35 @@
 /** @jsxImportSource solid-js */
-import { createAsync } from '@solidjs/router'
+import { createAsync, type RouteDefinition, useParams } from '@solidjs/router'
 import { Show } from 'solid-js'
 import { COMPARISON_HUB } from '@/features/marketing/components/comparison-specs'
 import { ComparisonHub } from '@/features/marketing/solid/comparison-hub'
 import { EditorialMeta } from '@/features/marketing/solid/editorial-meta'
-import { editorialOrigin, editorialRoute } from '@/features/marketing/solid/editorial-route'
+import { editorialPage, editorialRoute } from '@/features/marketing/solid/editorial-route'
+import { defaultLocale } from '@/lib/i18n/config'
+import { SiteShell } from '@/shared/solid/site-shell'
 
-export const route = editorialRoute
+export const route = {
+	...editorialRoute,
+	preload: ({ params }) => editorialPage(params.locale ?? defaultLocale, '/vs'),
+} satisfies RouteDefinition
 
 export default function Page() {
-	const origin = createAsync(() => editorialOrigin(), { deferStream: true })
+	const params = useParams()
+	const page = createAsync(() => editorialPage(params.locale ?? defaultLocale, '/vs'), {
+		deferStream: true,
+	})
 	return (
-		<Show when={origin()}>
+		<Show when={page()}>
 			{(base) => (
 				<>
 					<EditorialMeta
 						spec={COMPARISON_HUB}
 						imageSubtitle={COMPARISON_HUB.facts.join(' · ')}
-						origin={base()}
+						origin={base().origin}
 					/>
-					<ComparisonHub origin={base()} />
+					<SiteShell data={base().shell}>
+						<ComparisonHub origin={base().origin} />
+					</SiteShell>
 				</>
 			)}
 		</Show>

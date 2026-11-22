@@ -56,6 +56,12 @@ test('details serve canonical SEO and structured data without client JavaScript'
 			await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
 			await expect(page.locator('html')).toHaveAttribute('lang', 'es')
 			await expect(page.locator('main')).toHaveAttribute('lang', 'en-US')
+			await expect(
+				page.getByRole('banner').getByRole('link', { name: 'Tryit', exact: true }),
+			).toHaveAttribute('href', '/es')
+			await expect(page.getByRole('contentinfo').locator('a[href="/es/support"]')).toBeVisible()
+			await expect(page.locator('a[href="#main-content"]')).toHaveCount(1)
+			await expect(page.locator('main')).toHaveAttribute('id', 'main-content')
 			const canonical = page.locator('link[rel="canonical"]')
 			await expect(canonical).toHaveAttribute('href', new RegExp(`^https?://[^/]+${path}$`))
 			await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(

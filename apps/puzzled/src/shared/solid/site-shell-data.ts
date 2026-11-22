@@ -37,6 +37,7 @@ export function siteShellData(locale: Locale, path: string, t: Translate, now: D
 				{ path: '/games', title: t('footer.allGames') },
 				{ path: '/pricing', title: t('nav.plus') },
 				{ path: '/support', title: t('nav.support') },
+				{ path: '/vs', title: t('footer.allComparisons') },
 				{ path: '/privacy', title: t('footer.privacy') },
 				{ path: '/terms', title: t('footer.terms') },
 				{ path: '/delete-account', title: t('footer.deleteAccount') },

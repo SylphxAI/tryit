@@ -15,7 +15,7 @@ export function UseCaseLanding({ spec, origin }: { spec: UseCaseSpec; origin: st
 	const structuredData = buildUseCaseJsonLd(spec, origin)
 
 	return (
-		<main lang="en-US" class="pb-16">
+		<main id="main-content" lang="en-US" class="flex-1 pb-16">
 			<MarketingHero
 				eyebrow={spec.eyebrow}
 				title={spec.h1}
