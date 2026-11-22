@@ -438,11 +438,11 @@ jobs:
           BASE_URL: http://localhost:3015
         run: bun run test:a11y --retries=0
 
-      - name: Sudoku authoritative terminal regression
+      - name: Authoritative finish, result and featured pass regressions
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3015
-        run: bun run test:e2e e2e-tests/sudoku-terminal.e2e.ts e2e-tests/result-modal-consent.e2e.ts --workers=1 --retries=0
+        run: bun run test:e2e e2e-tests/sudoku-terminal.e2e.ts e2e-tests/result-modal-consent.e2e.ts e2e-tests/game1-pass.e2e.ts --workers=1 --retries=0
 
       - name: Discovery structured data, catalog, redirects and statutory disclosures
         working-directory: apps/puzzled
