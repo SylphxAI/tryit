@@ -5,6 +5,7 @@
 
 import { useCallback, useReducer } from 'react'
 
+import { updateKeyboardStatus } from './feedback'
 import type { ArithmoState, CharStatus } from './types'
 import { EQUATION_LENGTH, isValidEquation, MAX_ATTEMPTS, VALID_CHARS } from './types'
 
@@ -89,23 +90,6 @@ function arithmoReducer(state: ArithmoReducerState, action: ArithmoAction): Arit
 			const isLastAttempt = state.currentRow >= MAX_ATTEMPTS - 1
 			const guess = action.guess
 
-			// Update keyboard status
-			const newKeyboardStatus = { ...state.keyboardStatus }
-			for (let i = 0; i < guess.length; i++) {
-				const char = guess[i]
-				const status = result[i]
-				const currentStatus = newKeyboardStatus[char]
-
-				// Only upgrade status (correct > present > absent)
-				if (status === 'correct') {
-					newKeyboardStatus[char] = 'correct'
-				} else if (status === 'present' && currentStatus !== 'correct') {
-					newKeyboardStatus[char] = 'present'
-				} else if (!currentStatus) {
-					newKeyboardStatus[char] = status
-				}
-			}
-
 			return {
 				...state,
 				grading: false,
@@ -117,7 +101,7 @@ function arithmoReducer(state: ArithmoReducerState, action: ArithmoAction): Arit
 				isWon: isCorrect,
 				endTime: isCorrect || isLastAttempt ? Date.now() : null,
 				error: null,
-				keyboardStatus: newKeyboardStatus,
+				keyboardStatus: updateKeyboardStatus(state.keyboardStatus, guess, result),
 			}
 		}
 

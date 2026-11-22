@@ -25,5 +25,14 @@
 		"easy": "Pocos movimientos: un calentamiento rápido",
 		"medium": "Más piezas y una ruta más larga",
 		"hard": "Muchos movimientos y varias formas de atascarte"
-	}
+	},
+	"target": "Bloque objetivo",
+	"block": "Bloque {index}",
+	"exit": "Salida",
+	"moveControls": "Mover el bloque seleccionado",
+	"up": "Mover arriba",
+	"down": "Mover abajo",
+	"left": "Mover a la izquierda",
+	"right": "Mover a la derecha",
+	"blocked": "Ese bloque no puede moverse en esa dirección."
 }

@@ -25,5 +25,14 @@
 		"easy": "Few moves — a quick warm-up",
 		"medium": "More pieces and a longer route",
 		"hard": "Many moves, and several ways to get stuck"
-	}
+	},
+	"target": "Target block",
+	"block": "Block {index}",
+	"exit": "Exit",
+	"moveControls": "Move selected block",
+	"up": "Move up",
+	"down": "Move down",
+	"left": "Move left",
+	"right": "Move right",
+	"blocked": "That block cannot move in this direction."
 }

@@ -18,5 +18,10 @@
 	"messages": {
 		"notComplete": "Caracteres insuficientes",
 		"invalid": "Equação inválida"
+	},
+	"feedback": {
+		"correct": "Caractere certo na posição certa",
+		"present": "Caractere certo em outra posição",
+		"absent": "Caractere que não está na equação"
 	}
 }

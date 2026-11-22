@@ -25,5 +25,14 @@
 		"easy": "Poucas jogadas — um aquecimento rápido",
 		"medium": "Mais peças e um caminho mais longo",
 		"hard": "Muitas jogadas e vários jeitos de ficar travado"
-	}
+	},
+	"target": "Bloco-alvo",
+	"block": "Bloco {index}",
+	"exit": "Saída",
+	"moveControls": "Mover o bloco selecionado",
+	"up": "Mover para cima",
+	"down": "Mover para baixo",
+	"left": "Mover para a esquerda",
+	"right": "Mover para a direita",
+	"blocked": "Esse bloco não pode se mover nessa direção."
 }
