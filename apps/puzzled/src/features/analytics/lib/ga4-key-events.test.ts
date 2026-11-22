@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 import { ATTRIBUTION_SESSION_KEY, CONSENT_KEY } from '@/lib/storage-keys'
 import { setConsentContext } from './consent'
-import { resetGa4KeyEventsForTests, trackGa4KeyEvent } from './ga4-key-events'
+import { trackGa4KeyEvent } from './ga4-key-events'
 import { createGoogleTag, setActiveGoogleTag, type TagWindow } from './google-tag'
 
 const g = globalThis as unknown as Record<string, unknown>
@@ -49,12 +49,7 @@ function installBrowserStubs() {
 }
 
 describe('trackGa4KeyEvent', () => {
-	beforeEach(() => {
-		resetGa4KeyEventsForTests()
-	})
-
 	afterEach(() => {
-		resetGa4KeyEventsForTests()
 		setActiveGoogleTag(null)
 		setConsentContext(null)
 		g.window = undefined
@@ -76,27 +71,10 @@ describe('trackGa4KeyEvent', () => {
 				option: 'subscription',
 			}),
 		).toBe(false)
-		expect(
-			trackGa4KeyEvent('purchase', {
-				transaction_id: 'cs_pending_1',
-				value: 39.99,
-				currency: 'USD',
-				plan: 'plus',
-				plan_sku: 'individual_yearly',
-				billing_interval: 'year',
-			}),
-		).toBe(false)
 
 		// Explicitly declined
 		localItems.set(CONSENT_KEY, 'declined')
 		expect(trackGa4KeyEvent('sign_up', { method: 'oauth' })).toBe(false)
-		expect(
-			trackGa4KeyEvent('purchase', {
-				transaction_id: 'cs_pending_1',
-				value: 39.99,
-				currency: 'USD',
-			}),
-		).toBe(false)
 
 		expect(gtagCalls).toEqual([])
 		expect(sessionItems.size).toBe(0)
@@ -109,7 +87,7 @@ describe('trackGa4KeyEvent', () => {
 		expect(trackGa4KeyEvent('sign_up', { method: 'email' })).toBe(false)
 	})
 
-	test('post-consent emits sign_up, begin_checkout, and purchase with custom dimensions', () => {
+	test('post-consent emits sign_up and begin_checkout with custom dimensions', () => {
 		const { localItems, sessionItems, gtagCalls } = installBrowserStubs()
 		localItems.set(CONSENT_KEY, 'accepted')
 		sessionItems.set(
@@ -125,17 +103,6 @@ describe('trackGa4KeyEvent', () => {
 				billing_interval: 'year',
 				checkout_trigger: 'pricing_card',
 				option: 'subscription',
-			}),
-		).toBe(true)
-		expect(
-			trackGa4KeyEvent('purchase', {
-				transaction_id: 'cs_live_42',
-				value: 39.99,
-				currency: 'gbp',
-				plan: 'family',
-				plan_sku: 'family_yearly',
-				billing_interval: 'year',
-				entry_surface: 'seo_vs-wordle',
 			}),
 		).toBe(true)
 
@@ -160,20 +127,6 @@ describe('trackGa4KeyEvent', () => {
 					checkout_trigger: 'pricing_card',
 					option: 'subscription',
 					entry_surface: 'seo_daily-word-and-logic-puzzles-online',
-				},
-			],
-			[
-				'event',
-				'purchase',
-				{
-					send_to: 'G-TEST1234',
-					transaction_id: 'cs_live_42',
-					value: 39.99,
-					currency: 'GBP',
-					plan: 'family',
-					plan_sku: 'family_yearly',
-					billing_interval: 'year',
-					entry_surface: 'seo_vs-wordle',
 				},
 			],
 		])
@@ -240,56 +193,5 @@ describe('trackGa4KeyEvent', () => {
 				},
 			],
 		])
-	})
-
-	test('deduplicates purchase in sessionStorage across reloads and never burns pre-consent', () => {
-		const { localItems, gtagCalls } = installBrowserStubs()
-
-		// Pre-consent attempt must not consume the deduplication slot
-		expect(
-			trackGa4KeyEvent('purchase', {
-				transaction_id: 'cs_reload_9',
-				value: 39.99,
-				currency: 'USD',
-				plan: 'plus',
-				plan_sku: 'individual_yearly',
-				billing_interval: 'year',
-			}),
-		).toBe(false)
-		expect(gtagCalls).toHaveLength(0)
-
-		// Grant consent -> sends once
-		localItems.set(CONSENT_KEY, 'accepted')
-		expect(
-			trackGa4KeyEvent('purchase', {
-				transaction_id: 'cs_reload_9',
-				value: 39.99,
-				currency: 'USD',
-				plan: 'plus',
-				plan_sku: 'individual_yearly',
-				billing_interval: 'year',
-			}),
-		).toBe(true)
-		expect(gtagCalls).toHaveLength(1)
-
-		// Same-document duplicate blocked
-		expect(
-			trackGa4KeyEvent('purchase', {
-				transaction_id: 'cs_reload_9',
-				value: 39.99,
-				currency: 'USD',
-			}),
-		).toBe(false)
-
-		// Page reload simulation (in-memory Set cleared, sessionStorage remains)
-		resetGa4KeyEventsForTests()
-		expect(
-			trackGa4KeyEvent('purchase', {
-				transaction_id: 'cs_reload_9',
-				value: 39.99,
-				currency: 'USD',
-			}),
-		).toBe(false)
-		expect(gtagCalls).toHaveLength(1)
 	})
 })

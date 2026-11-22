@@ -361,38 +361,22 @@ export function trackSignUp(method: string, userId?: string): boolean {
 	return active?.event('sign_up', { method, ...(userId ? { user_id: userId } : {}) }) ?? false
 }
 
-/**
- * The checkout return: `trial_start` when the subscription is trialing (value
- * is the price that converts after the trial), `purchase` when it is paid. Each
- * fires once per Money checkout session, and the stored quote is cleared after.
- */
-export function trackCheckoutReturn(input: {
-	sessionId: string
-	status: 'trialing' | 'paid'
-	userId?: string
-}): boolean {
+/** Report a trial at the existing destinations once, then clear its stored quote. */
+export function trackCheckoutTrialStart(input: { sessionId: string; userId?: string }): boolean {
 	const storage = store()
 	if (!active || !storage || !/^[A-Za-z0-9_]{6,200}$/.test(input.sessionId)) return false
 	const quote = readQuote(storage)
 	if (!quote) return false
 	const tag = active
 	const user = input.userId ? { user_id: input.userId } : {}
-	const sent = fireOnce(storage, `${input.status}:${input.sessionId}`, () =>
-		input.status === 'trialing'
-			? tag.event('trial_start', {
-					value: quote.value,
-					currency: quote.currency,
-					plan: quote.plan,
-					items: [{ item_id: quote.plan }],
-					...user,
-				})
-			: tag.event('purchase', {
-					transaction_id: input.sessionId,
-					value: quote.value,
-					currency: quote.currency,
-					items: [{ item_id: quote.plan }],
-					...user,
-				}),
+	const sent = fireOnce(storage, `trialing:${input.sessionId}`, () =>
+		tag.event('trial_start', {
+			value: quote.value,
+			currency: quote.currency,
+			plan: quote.plan,
+			items: [{ item_id: quote.plan }],
+			...user,
+		}),
 	)
 	if (sent) storage.removeItem(CHECKOUT_QUOTE_KEY)
 	return sent
