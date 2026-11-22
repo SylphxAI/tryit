@@ -6,6 +6,7 @@ use puzzled_core::attribution::Attribution;
 use serde_json::{json, Map, Value};
 
 use super::access::{FEATURE_FAMILY, FEATURE_PLUS};
+use super::checkout_attribution::CheckoutAttribution;
 use super::client::{Catalog, CreatedCheckout, Money, MoneyError};
 use super::pricing::{plan, price_of};
 
@@ -256,7 +257,7 @@ pub fn guest_session_body(
 /// Create an unclaimed guest checkout session (omitting `subject` on the wire so Money
 /// allocates `guest:{id}` and returns a single-use `claim_secret`).
 #[allow(clippy::too_many_arguments)]
-pub async fn create_guest_session(
+pub(crate) async fn create_guest_session(
     money: &Money,
     catalog: &Catalog,
     plan_id: &str,
@@ -265,6 +266,7 @@ pub async fn create_guest_session(
     attribution: Option<&Attribution>,
     return_to: Option<&str>,
     consent: Consent,
+    measurement: CheckoutAttribution<'_>,
 ) -> Result<GuestCheckoutSession, CheckoutError> {
     let found_plan = plan(catalog, plan_id).ok_or(CheckoutError::PlanNotOnSale)?;
     let validated_consent =
@@ -272,7 +274,7 @@ pub async fn create_guest_session(
     let price = price_of(catalog, &found_plan).ok_or(CheckoutError::PlanNotOnSale)?;
     let upper = currency.trim().to_ascii_uppercase();
     let chosen_currency = price.unit_amounts.contains_key(&upper).then_some(upper);
-    let body = guest_session_body(
+    let mut body = guest_session_body(
         money,
         plan_id,
         &found_plan.price_key,
@@ -282,10 +284,14 @@ pub async fn create_guest_session(
         return_to,
         validated_consent,
     );
+    set_entry_surface(&mut body, &measurement);
     let created = money
         .create_checkout_session_full(&body)
         .await
         .map_err(|e: MoneyError| CheckoutError::Failed(e.to_string()))?;
+    money
+        .bind_checkout_attribution(&created.session_id, &measurement)
+        .await;
     Ok(GuestCheckoutSession {
         created,
         plan_id: found_plan.plan_id,
@@ -298,7 +304,7 @@ pub async fn create_guest_session(
 /// validated checkout disclosure/consent for the plan (recorded by the caller
 /// before this call).
 #[allow(clippy::too_many_arguments)]
-pub async fn create_session(
+pub(crate) async fn create_session(
     money: &Money,
     catalog: &Catalog,
     user_id: &str,
@@ -308,8 +314,9 @@ pub async fn create_session(
     attribution: Option<&Attribution>,
     return_to: Option<&str>,
     consent: Consent,
+    measurement: CheckoutAttribution<'_>,
 ) -> Result<String, CheckoutError> {
-    let body = prepare_session(
+    let mut body = prepare_session(
         money,
         catalog,
         user_id,
@@ -321,14 +328,19 @@ pub async fn create_session(
         consent,
     )
     .await?;
-    money
-        .create_checkout_session(&body)
+    set_entry_surface(&mut body, &measurement);
+    let created = money
+        .create_checkout_session_full(&body)
         .await
-        .map_err(|e: MoneyError| CheckoutError::Failed(e.to_string()))
+        .map_err(|e: MoneyError| CheckoutError::Failed(e.to_string()))?;
+    money
+        .bind_checkout_attribution(&created.session_id, &measurement)
+        .await;
+    Ok(created.url)
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn create_retained_session(
+pub(crate) async fn create_retained_session(
     pool: &sqlx::PgPool,
     money: &Money,
     catalog: &Catalog,
@@ -340,8 +352,9 @@ pub async fn create_retained_session(
     attribution: Option<&Attribution>,
     return_to: Option<&str>,
     consent: Consent,
+    measurement: CheckoutAttribution<'_>,
 ) -> Result<String, CheckoutError> {
-    let body = prepare_session(
+    let mut body = prepare_session(
         money,
         catalog,
         user_id,
@@ -353,6 +366,7 @@ pub async fn create_retained_session(
         consent,
     )
     .await?;
+    set_entry_surface(&mut body, &measurement);
     let session = super::attempts::create(pool, money, user_id, request_id, &body)
         .await
         .map_err(|error| match error {
@@ -361,12 +375,24 @@ pub async fn create_retained_session(
             super::attempts::Error::Pending => CheckoutError::AttemptPending,
             _ => CheckoutError::Failed("checkout_unavailable".into()),
         })?;
+    if let Some(id) = session["name"]
+        .as_str()
+        .and_then(|name| name.rsplit('/').next())
+    {
+        money.bind_checkout_attribution(id, &measurement).await;
+    }
     session
         .get("url")
         .and_then(Value::as_str)
         .filter(|url| !url.is_empty())
         .map(str::to_owned)
         .ok_or_else(|| CheckoutError::Failed("checkout_unavailable".into()))
+}
+
+fn set_entry_surface(body: &mut Value, measurement: &CheckoutAttribution<'_>) {
+    if let Some(surface) = measurement.entry_surface {
+        body["metadata"]["entry_surface"] = json!(surface);
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -26,6 +26,7 @@ struct FakeMoney {
     answer: Value,
     checks: Vec<Value>,
     sessions: Vec<Value>,
+    bindings: Vec<Value>,
     catalog: Value,
 }
 
@@ -42,7 +43,9 @@ async fn check(State(fake): State<Fake>, Json(body): Json<Value>) -> (StatusCode
 
 async fn session(State(fake): State<Fake>, Json(body): Json<Value>) -> Json<Value> {
     fake.lock().unwrap().sessions.push(body);
-    Json(json!({"url": "https://checkout.example/pay/cs_1", "state": "open"}))
+    Json(
+        json!({"name": "orgs/o/projects/p/envs/e/checkout_sessions/chk_1", "url": "https://checkout.example/pay/cs_1", "state": "open"}),
+    )
 }
 
 async fn subscriptions(State(fake): State<Fake>) -> (StatusCode, Json<Value>) {
@@ -120,6 +123,21 @@ fn fake_money_router(fake: Fake) -> Router {
             post(action),
         )
         .route("/v1/orgs/o/projects/p/envs/e/portal_sessions", post(portal))
+        .route(
+            "/v1/events/attribution_bindings",
+            post(
+                |State(fake): State<Fake>,
+                 headers: axum::http::HeaderMap,
+                 Json(body): Json<Value>| async move {
+                    assert_eq!(headers["x-sylphx-key"], "pk_fixture");
+                    assert!(!headers.contains_key("authorization"));
+                    assert!(!headers.contains_key("cookie"));
+                    assert!(!headers.contains_key("referer"));
+                    fake.lock().unwrap().bindings.push(body);
+                    StatusCode::SERVICE_UNAVAILABLE // attribution failure must not block checkout
+                },
+            ),
+        )
         .with_state(fake)
 }
 
@@ -279,6 +297,74 @@ async fn seats_is_a_limit_feature() {
 // ---- checkout ---------------------------------------------------------------
 
 #[tokio::test]
+async fn checkout_sends_only_allowed_dimensions_to_money_and_consent_gated_identity_to_events() {
+    let (money, fake) = fake_money(200, json!({"entitled": false})).await;
+    let money = money.with_publishable_key("pk_fixture");
+    let catalog = parsed(catalog_fixture(&[]));
+    let consent = Consent::for_plan(false, false).unwrap();
+    for (surface, grant, gpc) in [
+        ("seo_vs-nyt-games", Some("granted"), false),
+        ("user@example.test", None, false),
+        ("private_person_5551234", Some("denied"), false),
+        ("stats_banner", Some("granted"), true),
+    ] {
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert("x-puzzled-entry-surface", surface.parse().unwrap());
+        headers.insert(
+            "cookie",
+            "_ga=GA1.1.12345.67890; session=private".parse().unwrap(),
+        );
+        headers.insert(
+            "referer",
+            "https://tryit.fun/pricing?email=user@example.test"
+                .parse()
+                .unwrap(),
+        );
+        if let Some(grant) = grant {
+            headers.insert("x-puzzled-analytics-storage", grant.parse().unwrap());
+        }
+        if gpc {
+            headers.insert("sec-gpc", "1".parse().unwrap());
+        }
+        let result = super::checkout::create_guest_session(
+            &money,
+            &catalog,
+            "individual_monthly",
+            "en-US",
+            "USD",
+            None,
+            None,
+            consent,
+            super::checkout_attribution::CheckoutAttribution::from_headers(&headers),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.created.url, "https://checkout.example/pay/cs_1");
+    }
+    let fake = fake.lock().unwrap();
+    assert_eq!(
+        fake.sessions
+            .iter()
+            .map(|body| body["metadata"]["entry_surface"].as_str())
+            .collect::<Vec<_>>(),
+        vec![Some("seo_vs-nyt-games"), None, None, Some("stats_banner")]
+    );
+    assert!(!fake
+        .sessions
+        .iter()
+        .any(|body| body.to_string().contains("12345.67890")));
+    assert_eq!(
+        fake.bindings,
+        [json!({
+            "checkout_session_id": "chk_1",
+            "consent": { "analytics_storage": "granted", "ad_storage": "denied", "ad_user_data": "denied", "ad_personalization": "denied" },
+            "ga_client_id": "12345.67890",
+            "page_location": "https://puzzled.test/pricing"
+        })]
+    );
+}
+
+#[tokio::test]
 async fn checkout_creates_a_money_session_and_returns_its_url() {
     let (money, fake) = fake_money(200, json!({"entitled": false})).await;
     let catalog = parsed(catalog_fixture(&[]));
@@ -293,6 +379,7 @@ async fn checkout_creates_a_money_session_and_returns_its_url() {
         None,
         None,
         consent,
+        Default::default(),
     )
     .await
     .unwrap();
@@ -348,6 +435,7 @@ async fn one_time_pass_requires_reg37_waiver_while_recurring_uses_reg36() {
             None,
             None,
             Consent::RecurringSubscription,
+            Default::default(),
         )
         .await,
         Err(CheckoutError::ConsentRequired)
@@ -366,6 +454,7 @@ async fn one_time_pass_requires_reg37_waiver_while_recurring_uses_reg36() {
         None,
         None,
         waiver,
+        Default::default(),
     )
     .await
     .unwrap();
@@ -393,6 +482,7 @@ async fn checkout_drops_a_currency_money_does_not_price() {
         None,
         None,
         consent,
+        Default::default(),
     )
     .await
     .unwrap();
@@ -429,7 +519,19 @@ async fn checkout_refuses_unknown_archived_and_already_subscribed() {
     let (money, fake) = fake_money(200, json!({"entitled": false})).await;
     let catalog = parsed(catalog_fixture(&[]));
     assert_eq!(
-        create_session(&money, &catalog, USER, "nope", "", "usd", None, None, consent).await,
+        create_session(
+            &money,
+            &catalog,
+            USER,
+            "nope",
+            "",
+            "usd",
+            None,
+            None,
+            consent,
+            Default::default()
+        )
+        .await,
         Err(CheckoutError::PlanNotOnSale)
     );
     let archived = parsed(catalog_fixture(&["k_solo_m"]));
@@ -443,7 +545,8 @@ async fn checkout_refuses_unknown_archived_and_already_subscribed() {
             "usd",
             None,
             None,
-            consent
+            consent,
+            Default::default(),
         )
         .await,
         Err(CheckoutError::PlanNotOnSale)
@@ -460,7 +563,8 @@ async fn checkout_refuses_unknown_archived_and_already_subscribed() {
             "usd",
             None,
             None,
-            consent
+            consent,
+            Default::default(),
         )
         .await,
         Err(CheckoutError::AlreadySubscribed)
@@ -1325,6 +1429,7 @@ async fn guest_checkout_and_claim_work_in_both_webhook_orderings_and_verified_em
         None,
         None,
         Consent::for_plan(false, false).unwrap(),
+        Default::default(),
     )
     .await
     .unwrap();

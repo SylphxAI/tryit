@@ -5,6 +5,7 @@
  */
 import { create } from '@bufbuild/protobuf'
 import { createClient } from '@connectrpc/connect'
+import { checkoutEntrySurface } from '@/features/analytics/lib/checkout-entry-surface'
 import { cookieConsent } from '@/features/analytics/lib/consent'
 import {
 	BillingService,
@@ -36,9 +37,15 @@ export async function startCheckout(
 	currency: string,
 	immediateSupplyConsent: boolean,
 	returnTo?: string,
+	checkoutTrigger?: string,
 ) {
 	const headers: Record<string, string> = {}
 	const consent = cookieConsent()
+	// A regional default is not an explicit grant for settled-purchase attribution.
+	if (consent.analytics && consent.status === 'accepted') {
+		headers['x-puzzled-analytics-storage'] = 'granted'
+	}
+	let surface = checkoutEntrySurface(checkoutTrigger, null)
 	if (
 		typeof window !== 'undefined' &&
 		consent.ready &&
@@ -48,6 +55,7 @@ export async function startCheckout(
 	) {
 		try {
 			const existing = readSessionAttribution(window.sessionStorage)
+			surface = checkoutEntrySurface(checkoutTrigger, window.sessionStorage)
 			const action = nextSessionAttribution({
 				existing,
 				search: '',
@@ -61,6 +69,7 @@ export async function startCheckout(
 			// Storage denial never blocks checkout.
 		}
 	}
+	if (surface) headers['x-puzzled-entry-surface'] = surface
 	if (returnTo) headers[RETURN_TO_HEADER] = returnTo
 	const res = await client().createCheckout(
 		create(CreateCheckoutRequestSchema, { planId, locale, currency, immediateSupplyConsent }),

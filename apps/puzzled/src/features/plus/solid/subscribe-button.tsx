@@ -137,6 +137,7 @@ export function SubscribeButton(props: Props) {
 							props.currency,
 							requiresWaiver ? consent() : false,
 							props.callbackUrl,
+							trigger,
 						)
 						if (consentAtStart && hasAnalyticsConsent()) {
 							trackGa4KeyEvent('begin_checkout', {
