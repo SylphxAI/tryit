@@ -97,6 +97,20 @@ test('details serve canonical SEO and structured data without client JavaScript'
 	}
 })
 
+test('the UK hub and each comparison have distinct server-rendered UK titles', async ({
+	request,
+}) => {
+	for (const path of ['/vs', ...comparisons.map((slug) => `/vs/${slug}`)]) {
+		const [us, uk] = await Promise.all([request.get(path), request.get(`/en-GB${path}`)])
+		expect(us.status(), path).toBe(200)
+		expect(uk.status(), path).toBe(200)
+		const usTitle = (await us.text()).match(/<title\b[^>]*>([^<]*)<\/title>/)?.[1]
+		const ukTitle = (await uk.text()).match(/<title\b[^>]*>([^<]*)<\/title>/)?.[1]
+		expect(usTitle).toMatch(/(?<!\(UK\)) \| Tryit$/)
+		expect(ukTitle).toBe(usTitle?.replace(' | Tryit', ' (UK) | Tryit'))
+	}
+})
+
 test('unknown rival and use-case slugs are non-indexable 404s', async ({ page }) => {
 	for (const path of ['/vs/not-a-comparison', '/use-cases/constructor', '/not-a-locale/vs']) {
 		expect((await page.goto(path))?.status(), path).toBe(404)

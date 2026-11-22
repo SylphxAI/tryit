@@ -26,6 +26,7 @@ export default function Page() {
 						spec={COMPARISON_HUB}
 						imageSubtitle={COMPARISON_HUB.facts.join(' · ')}
 						origin={base().origin}
+						locale={base().shell.language}
 					/>
 					<SiteShell data={base().shell}>
 						<ComparisonHub origin={base().origin} />

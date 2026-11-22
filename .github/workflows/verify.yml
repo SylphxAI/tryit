@@ -448,7 +448,7 @@ jobs:
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3015
-        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts --workers=1 --retries=0
+        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts e2e-tests/solid-editorial.e2e.ts --workers=1 --retries=0
 
       - name: Stage the Playwright report
         id: playwright-report
@@ -792,8 +792,37 @@ jobs:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/pricing
         run: |
           set -euo pipefail
-          bun run test:e2e e2e-tests/pricing.e2e.ts e2e-tests/comparison-currency.e2e.ts e2e-tests/seo-conversion-layout.e2e.ts --workers=1 --retries=0 --output=test-results/pricing 2>&1 | tee "$RUNNER_TEMP/craft-pricing.log"
+          bun run test:e2e e2e-tests/pricing.e2e.ts e2e-tests/comparison-currency.e2e.ts e2e-tests/seo-conversion-layout.e2e.ts e2e-tests/ga4-checkout.e2e.ts --workers=1 --retries=0 --output=test-results/pricing 2>&1 | tee "$RUNNER_TEMP/craft-pricing.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-pricing.log"; then echo "a pricing test skipped"; exit 1; fi
+
+      - name: GA4 signup through the local Auth fixture
+        working-directory: apps/puzzled
+        env:
+          SKIP_ENV_VALIDATION: 'true'
+          NODE_ENV: production
+          API_INTERNAL_URL: http://127.0.0.1:8787
+          SYLPHX_PUBLIC_URL: https://tryit.fun
+          SOLID_AUTH_FIXTURE_URL: http://127.0.0.1:18875
+          SYLPHX_AUTH_URL: http://127.0.0.1:18875
+          SYLPHX_AUTH_ORGANIZATION_ID: organization-00000000-0000-4000-8000-000000000123
+          SYLPHX_PUBLISHABLE_KEY: pk_local_fixture
+          SYLPHX_AUTH_SECRET_KEY: sk_local_fixture
+          PORT: '3019'
+          BASE_URL: http://localhost:3019
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/auth
+        run: |
+          set -euo pipefail
+          bun scripts/serve-sign-in-fixture.ts > "$RUNNER_TEMP/fixture-auth.log" 2>&1 &
+          echo "$!" >> "$RUNNER_TEMP/craft.pids"
+          bun run start > "$RUNNER_TEMP/serve-auth.log" 2>&1 &
+          echo "$!" >> "$RUNNER_TEMP/craft.pids"
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 2 "$SOLID_AUTH_FIXTURE_URL/__fixture" >/dev/null &&
+               curl -fsS --max-time 2 "$BASE_URL/sign-in" >/dev/null; then break; fi
+            if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-auth.log" "$RUNNER_TEMP/serve-auth.log"; exit 1; fi
+            sleep 1
+          done
+          bun run test:e2e e2e-tests/solid-sign-in.e2e.ts -g 'GA4 signup' --workers=1 --retries=0 --output=test-results/auth
 
       - name: Stop the served builds and fixture APIs
         if: always()

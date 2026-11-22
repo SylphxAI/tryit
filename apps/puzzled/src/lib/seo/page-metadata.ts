@@ -59,9 +59,11 @@ export function pageMetadata({
 	// These regional editions share many titles with their language's base
 	// edition, but serve different regional experiences at their own URLs.
 	// Distinguish their document titles without changing social cards or hreflang.
-	const region =
-		canonicalLocale === 'en-GB' ? ' (UK)' : canonicalLocale === 'zh-TW' ? '（台灣）' : ''
-	const documentTitle = `${title}${emitAlternates && !noindex ? region : ''} | Tryit`
+	// A UK comparison has local pricing but still belongs to the English-only
+	// editorial canonical. Its rendered document title can differ independently.
+	const region = locale === 'en-GB' ? ' (UK)' : locale === 'zh-TW' ? '（台灣）' : ''
+	const regionalTitle = emitAlternates || (englishOnly && locale === 'en-GB')
+	const documentTitle = `${title}${regionalTitle && !noindex ? region : ''} | Tryit`
 
 	return {
 		documentTitle,

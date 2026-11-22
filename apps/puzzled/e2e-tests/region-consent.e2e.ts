@@ -1,44 +1,13 @@
 import { expect, type Page, test } from '@playwright/test'
 
-const id = 'G-TEST1234'
+import { capture, commands, id } from './google-tag-support'
+
 const key = 'puzzled:consent:cookie'
 const denied = {
 	analytics_storage: 'denied',
 	ad_storage: 'denied',
 	ad_user_data: 'denied',
 	ad_personalization: 'denied',
-}
-
-async function capture(page: Page) {
-	const requests: string[] = []
-	await page.route(
-		/https:\/\/[^/]*(googletagmanager\.com|google-analytics\.com|analytics\.google\.com|googleadservices\.com|googlesyndication\.com|doubleclick\.net)\//,
-		(route) => {
-			requests.push(route.request().url())
-			return route.fulfill({
-				contentType: 'application/javascript',
-				body: '/* test stub, no external traffic */',
-			})
-		},
-	)
-	// Exercise the real endpoint and middleware; inject only a fake destination so
-	// both CI and production-build verification work without measurement secrets.
-	await page.route('**/api/consent-context', async (route) => {
-		const response = await route.fetch()
-		await route.fulfill({
-			response,
-			json: { ...(await response.json()), ids: { ga: id, ads: 'AW-123456789' } },
-		})
-	})
-	return requests
-}
-
-function commands(page: Page) {
-	return page.evaluate(() =>
-		((window as Window & { dataLayer?: Array<ArrayLike<unknown>> }).dataLayer ?? []).map((entry) =>
-			Array.from(entry),
-		),
-	)
 }
 
 const banner = (page: Page) => page.locator('[data-consent-banner]')

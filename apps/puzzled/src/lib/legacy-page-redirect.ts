@@ -20,6 +20,8 @@ const LEGACY_PAGES = new Map<string, `/games/${GameSlug}` | '/vs'>([
 	['/games/cipher', '/games/cryptogram'],
 	['/games/frame', '/games/word-box'],
 	['/games/hive', '/games/word-hive'],
+	['/games/spellbee', '/games/word-hive'],
+	['/games/mini', '/games/crossword'],
 	['/compare', '/vs'],
 ])
 

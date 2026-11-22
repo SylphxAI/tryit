@@ -126,31 +126,32 @@ export function SubscribeButton(props: Props) {
 								: 'once'
 						const planTier = props.planId.startsWith('family_') ? 'family' : 'plus'
 						const option = requiresWaiver ? 'pass' : 'subscription'
-						trackGa4KeyEvent('begin_checkout', {
-							plan: planTier,
-							plan_sku: props.planId,
-							billing_interval: billingInterval,
-							checkout_trigger: checkoutTrigger(),
-							option,
-							value: minorUnitsToMajor(props.amountMinor, props.currency),
-							currency: props.currency.toUpperCase(),
-						})
-						// What the checkout return reports to Google Ads (kept only with consent).
-						if (hasAnalyticsConsent())
-							rememberCheckoutQuote({
-								plan: props.planId,
-								value: minorUnitsToMajor(props.amountMinor, props.currency),
-								currency: props.currency.toUpperCase(),
-							})
-						window.location.assign(
-							await startCheckout(
-								props.planId,
-								props.locale,
-								props.currency,
-								requiresWaiver ? consent() : false,
-								props.callbackUrl,
-							),
+						const plan = props.planId
+						const currency = props.currency.toUpperCase()
+						const value = minorUnitsToMajor(props.amountMinor, currency)
+						const trigger = checkoutTrigger()
+						const consentAtStart = hasAnalyticsConsent()
+						const url = await startCheckout(
+							plan,
+							props.locale,
+							props.currency,
+							requiresWaiver ? consent() : false,
+							props.callbackUrl,
 						)
+						if (consentAtStart && hasAnalyticsConsent()) {
+							trackGa4KeyEvent('begin_checkout', {
+								plan: planTier,
+								plan_sku: plan,
+								billing_interval: billingInterval,
+								checkout_trigger: trigger,
+								option,
+								value,
+								currency,
+							})
+							// What the checkout return reports to Google Ads (kept only with consent).
+							rememberCheckoutQuote({ plan, value, currency })
+						}
+						window.location.assign(url)
 					} catch (err) {
 						logger.error('plus.checkout-failed', { planId: props.planId, error: err })
 						const message = err instanceof Error ? err.message : ''

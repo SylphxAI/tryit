@@ -16,6 +16,8 @@ const pages = [
 	['/games/cipher', '/games/cryptogram'],
 	['/games/frame', '/games/word-box'],
 	['/games/hive', '/games/word-hive'],
+	['/games/spellbee', '/games/word-hive'],
+	['/games/mini', '/games/crossword'],
 	['/compare', '/vs'],
 ] as const
 
@@ -54,6 +56,8 @@ test('both alias families resolve to working pages in all supported locales', as
 			`${prefix}/games/threads/${query}`,
 			`${canonical}/games/word-groups${query}`,
 		)
+		await expectRedirect(request, `${prefix}/games/spellbee/`, `${canonical}/games/word-hive`)
+		await expectRedirect(request, `${prefix}/games/mini/`, `${canonical}/games/crossword`)
 		await expectRedirect(request, `${prefix}/compare/`, `${canonical}/vs`)
 	}
 })

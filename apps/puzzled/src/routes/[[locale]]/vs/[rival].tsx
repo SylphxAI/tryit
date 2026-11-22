@@ -52,6 +52,7 @@ export default function Page() {
 								spec={value}
 								imageSubtitle={value.facts.join(' · ')}
 								origin={data.origin}
+								locale={data.locale}
 								type="article"
 							/>
 							<SiteShell data={data.shell}>
