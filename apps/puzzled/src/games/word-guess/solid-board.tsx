@@ -132,11 +132,12 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		}
 	}
 	onMount(() => {
-		if (playable) window.addEventListener('keydown', handleKey)
+		if (!playable) return
+		window.addEventListener('keydown', handleKey)
+		onCleanup(() => window.removeEventListener('keydown', handleKey))
 	})
 	onCleanup(() => {
 		disposed = true
-		window.removeEventListener('keydown', handleKey)
 	})
 
 	return (

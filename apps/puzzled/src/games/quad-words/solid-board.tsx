@@ -133,10 +133,12 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 		event.preventDefault()
 		if (event.key !== 'Enter' || !event.repeat) press(event.key)
 	}
-	onMount(() => window.addEventListener('keydown', handleKey))
+	onMount(() => {
+		window.addEventListener('keydown', handleKey)
+		onCleanup(() => window.removeEventListener('keydown', handleKey))
+	})
 	onCleanup(() => {
 		disposed = true
-		window.removeEventListener('keydown', handleKey)
 	})
 
 	const feedback = (status: LetterStatus | undefined) =>

@@ -8,11 +8,12 @@ import {
 	For,
 	lazy,
 	Match,
+	onMount,
 	Show,
 	Suspense,
 	Switch,
 } from 'solid-js'
-import { Dynamic, isServer } from 'solid-js/web'
+import { Dynamic } from 'solid-js/web'
 import { sendFunnel } from '@/features/analytics/lib/funnel'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
@@ -49,8 +50,7 @@ const boards = new Map([
 	['quad-words', lazy(() => import('@/games/quad-words/solid-board'))],
 	['word-hive', lazy(() => import('@/games/word-hive/solid-board'))],
 ])
-type Locked = { kind: 'locked' }
-type State = DailySnapshot | Locked
+type State = DailySnapshot | { kind: 'locked' }
 
 const failed = (error: unknown): State =>
 	isPlusRequiredError(ConnectError.from(error).rawMessage)
@@ -62,6 +62,7 @@ export function DailyPlay(props: {
 	day: GameDayRequest
 	difficulty?: PuzzleDifficulty
 	started: boolean
+	initial?: State
 }) {
 	const t = createTranslator(props.data.locale)
 	const slug = props.data.slug
@@ -70,16 +71,21 @@ export function DailyPlay(props: {
 	const board = boards.get(slug)
 	const [starting, setStarting] = createSignal(false)
 	const input = { gameSlug: slug, difficulty: props.difficulty, puzzleDate: props.day.puzzleDate }
+	const [mounted, setMounted] = createSignal(false)
 	const [state, { mutate, refetch }] = createResource(
-		() => !isServer,
-		async (): Promise<State> => {
+		mounted,
+		async (_, { refetching }): Promise<State> => {
+			// Keep the SSR snapshot on hydration; only a fallback or explicit retry reads again.
+			if (!refetching && props.initial) return props.initial
 			try {
 				return await loadDailySnapshot(input)
 			} catch (error) {
 				return failed(error)
 			}
 		},
+		{ initialValue: props.initial, ssrLoadFrom: 'initial' },
 	)
+	onMount(() => setMounted(true))
 	const play = async (puzzleDate: string) => {
 		if (starting() || !board) return
 		setStarting(true)
@@ -100,7 +106,7 @@ export function DailyPlay(props: {
 			void play(value.puzzleDate)
 	})
 	const snapshot = <K extends State['kind']>(kind: K) => {
-		const value = state()
+		const value = state.latest
 		return value?.kind === kind ? (value as Extract<State, { kind: K }>) : undefined
 	}
 	let seen = false
@@ -196,7 +202,7 @@ export function DailyPlay(props: {
 				<Match when={snapshot('closed')}>
 					<p role="status">{t('daily.completedNoResult')}</p>
 				</Match>
-				<Match when={choose && (state() || isServer)}>
+				<Match when={choose}>
 					<div class="mx-auto max-w-xl space-y-3">
 						<h2 class="font-display text-2xl">{t('common.difficulty.selectDifficulty')}</h2>
 						<Show when={snapshot('unavailable')}>

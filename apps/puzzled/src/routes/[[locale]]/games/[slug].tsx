@@ -1,12 +1,13 @@
 /** @jsxImportSource solid-js */
 import {
 	createAsync,
+	type Params,
 	query,
 	type RouteDefinition,
+	type SearchParams,
 	useParams,
 	useSearchParams,
 } from '@solidjs/router'
-import { HttpHeader } from '@solidjs/start'
 import { createMemo, Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
 import { buildGamePage } from '@/features/catalog/solid/game-data'
@@ -20,84 +21,113 @@ import { localizedPath } from '@/lib/seo/urls'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import NotFound from '@/shared/solid/not-found'
 
-const getGamePage = query(async (locale: string, slug: string, date?: string) => {
-	'use server'
-	const request = getRequestEvent()?.request
-	if (!request) throw new Error('Game page requires a request')
-	const now = new Date()
-	const data = buildGamePage(
-		isValidLocale(locale) ? locale : defaultLocale,
-		slug,
-		canonicalSiteOrigin(request.headers),
-		now,
-	)
-	if (!data) return null
-	const { resolveGameDayRequest } = await import('@/features/daily/lib/day-request')
-	const { hasAccountSessionCookie } = await import('@/lib/api/request-connect')
-	return {
-		data,
-		day: resolveGameDayRequest({ date }, now),
-		isGuest: !hasAccountSessionCookie(request.headers),
-	}
-}, 'game-page')
+const getGamePage = query(
+	async (locale: string, slug: string, date?: string, level?: string, start?: string) => {
+		'use server'
+		const event = getRequestEvent()
+		if (!event) throw new Error('Game page requires a request')
+		const { request } = event
+		event.response.headers.set('Cache-Control', 'private, no-store')
+		const now = new Date()
+		const data = buildGamePage(
+			isValidLocale(locale) ? locale : defaultLocale,
+			slug,
+			canonicalSiteOrigin(request.headers),
+			now,
+		)
+		if (!data) return null
+		const { resolveGameDayRequest } = await import('@/features/daily/lib/day-request')
+		const { hasAccountSessionCookie } = await import('@/lib/api/request-connect')
+		const day = resolveGameDayRequest({ date }, now)
+		const difficulty = data.difficultyLevels.length ? asDifficulty(level) : undefined
+		const started = start === START_PARAM_ON
+		// The passive landing can paint an authoritative board or chooser in one response.
+		// Explicit play and archive keep their existing just-in-time browser read.
+		const initialDaily =
+			day.mode === 'daily' && !started
+				? await (await import('@/features/daily/solid/daily-read')).readDailyLanding(
+						request.headers,
+						{ gameSlug: data.slug, difficulty },
+					)
+				: undefined
+		return {
+			data,
+			day,
+			difficulty,
+			started,
+			initialDaily,
+			isGuest: !hasAccountSessionCookie(request.headers),
+		}
+	},
+	'game-page',
+)
 
 const scalar = (value: string | string[] | undefined) =>
 	typeof value === 'string' ? value : undefined
 
+const readGamePage = (params: Params, search: SearchParams) =>
+	getGamePage(
+		params.locale ?? defaultLocale,
+		params.slug ?? '',
+		scalar(search.date),
+		scalar(search.difficulty),
+		scalar(search.start),
+	)
+
 export const route = {
 	matchFilters: { locale: (segment: string) => locales.some((locale) => locale === segment) },
-	preload: ({ params, location }) =>
-		getGamePage(
-			params.locale ?? defaultLocale,
-			params.slug ?? '',
-			new URLSearchParams(location.search).get('date') ?? undefined,
-		),
+	preload: ({ params, location }) => readGamePage(params, location.query),
 } satisfies RouteDefinition
 
 export default function GamePage() {
 	const params = useParams()
 	const [search] = useSearchParams()
-	const data = createAsync(
-		() => getGamePage(params.locale ?? defaultLocale, params.slug ?? '', scalar(search.date)),
-		{ deferStream: true },
-	)
-	const difficulty = () =>
-		data()?.data.difficultyLevels.length ? asDifficulty(scalar(search.difficulty)) : undefined
+	const data = createAsync(() => readGamePage(params, search), { deferStream: true })
 	const playKey = createMemo(() => {
 		const page = data()
-		return page && JSON.stringify([page.data.slug, page.day.puzzleDate, difficulty()])
+		return (
+			page &&
+			JSON.stringify([
+				page.data.locale,
+				page.data.slug,
+				page.day.puzzleDate,
+				page.difficulty,
+				page.started,
+			])
+		)
 	})
 	return (
-		<>
-			<HttpHeader name="Cache-Control" value="private, no-store" />
-			<Show when={data() !== undefined}>
-				<Show when={data()} fallback={<NotFound />}>
-					{(page) => (
-						<GameLanding
-							data={page().data}
-							stage={page().day.mode === 'daily' && search.start === START_PARAM_ON}
-							daily={page().day.mode === 'daily'}
-							isGuest={page().isGuest}
-							playHref={
-								page().day.mode === 'daily'
-									? localizedPath(page().data.locale, todayPlayPath(page().data.slug, difficulty()))
-									: '#play'
-							}
-						>
-							<Show when={playKey()} keyed>
-								{(_playKey) => (
-									<DailyPlay
-										data={page().data}
-										day={page().day}
-										difficulty={difficulty()}
-										started={search.start === START_PARAM_ON}
-									/>
-								)}
-							</Show>
-						</GameLanding>
-					)}
-				</Show>
+		<Show when={data() !== undefined}>
+			<Show when={data()} fallback={<NotFound />}>
+				{(page) => (
+					<GameLanding
+						data={page().data}
+						stage={page().day.mode === 'daily' && page().started}
+						daily={page().day.mode === 'daily'}
+						isGuest={page().isGuest}
+						playHref={
+							page().day.mode === 'daily'
+								? localizedPath(
+										page().data.locale,
+										todayPlayPath(page().data.slug, page().difficulty),
+									)
+								: '#play'
+						}
+					>
+						<Show when={playKey()} keyed>
+							{(_playKey) => (
+								<DailyPlay
+									data={page().data}
+									day={page().day}
+									difficulty={page().difficulty}
+									initial={page().initialDaily}
+									started={page().started}
+								/>
+							)}
+						</Show>
+					</GameLanding>
+				)}
 			</Show>
-		</>
+		</Show>
 	)
 }

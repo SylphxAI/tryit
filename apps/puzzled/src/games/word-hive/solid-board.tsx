@@ -173,10 +173,12 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 			edit(event.key === 'Backspace' ? event.key : event.key.toUpperCase())
 		}
 	}
-	onMount(() => window.addEventListener('keydown', handleKey))
+	onMount(() => {
+		window.addEventListener('keydown', handleKey)
+		onCleanup(() => window.removeEventListener('keydown', handleKey))
+	})
 	onCleanup(() => {
 		disposed = true
-		window.removeEventListener('keydown', handleKey)
 	})
 
 	return (
