@@ -5,7 +5,7 @@
  * remote code. Analytics may use a regional default; advertising signals
  * require a separate stored grant. Ad personalization is always denied.
  *
- * The page address, title and referrer sent to Google are fixed to an
+ * The page address and title sent to Google are limited to an
  * allowlist of public marketing paths; a game, share or account URL never
  * reaches Google. With no ids configured the whole module is inert.
  */
@@ -50,7 +50,7 @@ export function consentSignals(choice: ConsentChoice): ConsentSignals {
 
 const DENIED = consentSignals({ analytics: false, marketing: false })
 
-export const SITE_TITLE = 'Tryit'
+const SITE_TITLE = 'Tryit'
 
 const LOCALE_PREFIX = /^\/(en-GB|zh-HK|zh-CN|zh-TW|ja|es|pt-BR)(?=\/|$)/
 const PUBLIC_PATHS = new Set([
@@ -113,7 +113,7 @@ export type GoogleTagController = {
 	/** Apply the current stored consent: load, configure or withdraw. */
 	sync(allowLoad?: boolean): void
 	/** A page view for a route; only allowlisted public routes are reported. */
-	pageView(pathname: string): boolean
+	pageView(pathname: string, title: string | null): boolean
 	/** A conversion event to the destinations the visitor consented to. */
 	event(name: string, params: Record<string, unknown>): boolean
 	/** Has the visitor granted anything a Google destination could use? */
@@ -180,9 +180,19 @@ export function createGoogleTag(input: {
 	}
 
 	function load(firstId: string) {
+		// Google initializes the destination on the first js/config command, before
+		// the per-destination config is applied. Set this globally before startup.
+		gtag('set', {
+			send_page_view: false,
+			page_location: base,
+			page_referrer: '',
+			page_title: SITE_TITLE,
+		})
+		// Enhanced Measurement history and site search can bypass these defaults
+		// and read the raw URL. Keep the app as the only page-view producer even
+		// if these features are enabled on the stream.
+		gtag('set', 'gtm.blocklist', ['ccd_em_page_view', 'ccd_em_site_search'])
 		gtag('js', new Date())
-		// Fixed before any config so the first hit never carries the real address.
-		gtag('set', { page_location: base, page_referrer: '', page_title: SITE_TITLE })
 		const script = doc.createElement('script')
 		script.async = true
 		script.src = `https://www.googletagmanager.com/gtag/js?id=${firstId}`
@@ -240,22 +250,21 @@ export function createGoogleTag(input: {
 			gaOn = wantGa
 			adsOn = wantAds
 		},
-		pageView(pathname) {
-			const path = trackablePath(pathname)
-			// Back to the base address on every other route.
-			const location = path ? `${win.location.origin}${path}` : base
-			if (loaded)
-				gtag('set', { page_location: location, page_referrer: '', page_title: SITE_TITLE })
-			if (!gaOn || !path || path === lastPath) {
+		pageView(pathname, title) {
+			// Preserve the locale of a public URL, but never include a query or fragment.
+			const path = trackablePath(pathname) !== null ? pathname.replace(/\/+$/, '') || '/' : null
+			const page = {
+				page_location: path && title ? `${win.location.origin}${path}` : base,
+				page_referrer: '',
+				page_title: path && title ? title : SITE_TITLE,
+			}
+			if (loaded) gtag('set', page)
+			if (!gaOn || !path || !title || path === lastPath) {
 				if (!path) lastPath = null
 				return false
 			}
 			lastPath = path
-			gtag('event', 'page_view', {
-				send_to: ids.ga,
-				page_location: location,
-				page_title: SITE_TITLE,
-			})
+			gtag('event', 'page_view', { ...page, send_to: ids.ga })
 			return true
 		},
 		hasConsent() {

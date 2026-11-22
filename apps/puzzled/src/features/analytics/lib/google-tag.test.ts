@@ -91,23 +91,25 @@ describe('loading', () => {
 	test('queues only denied defaults and never loads without permission', () => {
 		const h = harness({ analytics: false, marketing: false })
 		h.tag.sync()
-		expect(h.tag.pageView('/')).toBe(false)
+		expect(h.tag.pageView('/', 'Home | Tryit')).toBe(false)
 		expect(h.tag.event('sign_up', { method: 'email' })).toBe(false)
 		expect(h.scripts).toEqual([])
 		expect(h.calls).toEqual([['consent', 'default', consentSignals(h.state)]])
 	})
 
-	test('consent update, js and the fixed address precede config', () => {
+	test('consent and page-view guards precede Google startup and config', () => {
 		const h = harness({ analytics: true, marketing: true })
 		h.tag.sync()
-		expect(names(h.calls)).toEqual(['consent', 'consent', 'js', 'set', 'config', 'config'])
+		expect(names(h.calls)).toEqual(['consent', 'consent', 'set', 'set', 'js', 'config', 'config'])
 		expect(h.scripts).toEqual(['https://www.googletagmanager.com/gtag/js?id=G-TEST1234'])
-		expect(h.calls[3]?.[1]).toEqual({
+		expect(h.calls[2]?.[1]).toEqual({
+			send_page_view: false,
 			page_location: 'https://tryit.fun/',
 			page_referrer: '',
 			page_title: 'Tryit',
 		})
-		expect(h.calls[4]?.[2]).toMatchObject({
+		expect(h.calls[3]).toEqual(['set', 'gtm.blocklist', ['ccd_em_page_view', 'ccd_em_site_search']])
+		expect(h.calls[5]?.[2]).toMatchObject({
 			send_page_view: false,
 			allow_google_signals: false,
 			allow_ad_personalization_signals: false,
@@ -164,15 +166,20 @@ describe('page views and addresses', () => {
 		const h = harness({ analytics: true, marketing: false })
 		h.tag.sync()
 		h.calls.length = 0
-		expect(h.tag.pageView('/pricing')).toBe(true)
-		expect(h.tag.pageView('/pricing')).toBe(false)
-		expect(h.tag.pageView('/games/sudoku?id=secret')).toBe(false)
+		expect(h.tag.pageView('/en-GB/pricing', null)).toBe(false)
+		expect(h.tag.pageView('/en-GB/pricing', 'Pricing | Tryit')).toBe(true)
+		expect(h.tag.pageView('/en-GB/pricing', 'Updated Pricing | Tryit')).toBe(false)
+		expect(h.tag.pageView('/games/sudoku?id=secret', 'Private game title')).toBe(false)
 		const events = h.calls.filter((c) => c[0] === 'event')
 		expect(events).toHaveLength(1)
-		expect(events[0]?.[2]).toMatchObject({ page_location: 'https://tryit.fun/pricing' })
+		expect(events[0]?.[2]).toMatchObject({
+			page_location: 'https://tryit.fun/en-GB/pricing',
+			page_title: 'Pricing | Tryit',
+			page_referrer: '',
+		})
 		const sets = h.calls.filter((c) => c[0] === 'set')
 		expect(sets[sets.length - 1]?.[1]).toMatchObject({ page_location: 'https://tryit.fun/' })
-		expect(JSON.stringify(h.calls)).not.toContain('secret')
+		expect(JSON.stringify(h.calls)).not.toMatch(/secret|Private game title/)
 	})
 })
 
