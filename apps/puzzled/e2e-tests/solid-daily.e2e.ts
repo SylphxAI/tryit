@@ -4,6 +4,7 @@ import duoGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/duo
 import cageGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/killer-sudoku.json'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
+import wordBoxGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-box.json'
 import fiveGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-guess.json'
 import ladderGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-ladder.json'
 import { productDayKey } from '../src/lib/product-day'
@@ -16,10 +17,16 @@ async function mount(
 	gameSlug: string,
 	data: unknown,
 	failOnce = false,
-	options?: { puzzleId: string; grade?: (body: unknown) => unknown; reveal?: unknown },
+	options?: {
+		puzzleId: string
+		grade?: (body: unknown) => unknown
+		reveal?: unknown
+		persistFinish?: boolean
+	},
 ) {
 	let starts = 0
 	let guests = 0
+	let completed = false
 	const submits: { body: Record<string, unknown>; key?: string }[] = []
 	const snapshot = {
 		gameSlug,
@@ -39,7 +46,14 @@ async function mount(
 		switch (new URL(request.url()).pathname.split('/').pop()) {
 			case 'GetDaily':
 				return r.fulfill({
-					json: { gameSlug, puzzleDate: date, canPlay: true, requiresStart: true },
+					json: completed
+						? {
+								gameSlug,
+								puzzleDate: date,
+								canPlay: false,
+								completedSession: { status: 'won', attempts: 1 },
+							}
+						: { gameSlug, puzzleDate: date, canPlay: true, requiresStart: true },
 				})
 			case 'StartDaily':
 				starts++
@@ -53,6 +67,7 @@ async function mount(
 					: r.fulfill({ json: { resultJson: JSON.stringify(grade) } })
 			}
 			case 'SubmitGuess':
+				if (options?.persistFinish && (!failOnce || submits.length > 0)) completed = true
 				submits.push({ body, key: request.headers()['x-puzzled-idempotency-key'] })
 				return r.fulfill({
 					json:
@@ -859,4 +874,115 @@ test('Five uses six real keyboard guesses and reveals only on an accepted loss',
 	expect(share).toContain(Array(6).fill('⬛⬛⬛⬛⬛').join('\n'))
 	expect(share).toContain('/r/fixture-share?utm_source=share')
 	expect(share).not.toMatch(/forty|crane/i)
+})
+
+test('Cipher checks full substitutions and only celebrates a saved finish', async ({ page }) => {
+	await page.setViewportSize({ width: 360, height: 780 })
+	const puzzleId = '3611a94d-8334-4eba-aa45-468292fe724e'
+	const grades: unknown[] = []
+	const { board, submits } = await mount(
+		page,
+		'cryptogram',
+		{
+			encryptedText: 'AB, BA!',
+			author: 'Fixture author',
+			category: 'Fixture',
+			uniqueLetters: 2,
+			maxHints: 1,
+		},
+		true,
+		{
+			puzzleId,
+			persistFinish: true,
+			grade: (body) => {
+				expect(body).toMatchObject({ gameSlug: 'cryptogram', puzzleId, puzzleDate: date })
+				const guess = JSON.parse((body as { guessJson: string }).guessJson)
+				grades.push(guess)
+				if (guess.hint) return { encrypted: 'A', letter: 'X' }
+				return { solved: guess.guesses.A === 'X' && guess.guesses.B === 'Y' }
+			},
+		},
+	)
+	const cipher = (letter: string) => board.locator(`[data-cipher-letter="${letter}"]`).first()
+	await expect(board.getByText('Quote by Fixture author')).toBeVisible()
+	await cipher('A').click()
+	await page.keyboard.press('M')
+	await expect(board.getByRole('button', { name: 'A: M' })).toHaveCount(2)
+	await cipher('B').click()
+	await board.getByRole('button', { name: 'N', exact: true }).click()
+	await expect(board.getByText('Not solved yet: some letters are wrong.')).toBeVisible()
+	expect(submits).toHaveLength(0)
+	await page.keyboard.press('Backspace')
+	await expect(cipher('B')).toHaveAccessibleName('B: blank')
+	await board.getByRole('button', { name: 'Hint (1)' }).click()
+	await expect(cipher('A')).toBeDisabled()
+	await expect(cipher('A')).toHaveAccessibleName('A: X')
+	await expect(board.getByRole('button', { name: 'Hint (0)' })).toBeDisabled()
+	await cipher('B').click()
+	await page.keyboard.press('Y')
+	await expect(board.getByRole('button', { name: 'Try again' })).toBeVisible()
+	await expect(board.getByText('Quote Solved!')).toHaveCount(0)
+	await board.getByRole('button', { name: 'Try again' }).click()
+	await expect(board.getByText('Quote Solved!', { exact: true })).toBeVisible()
+	expect(grades).toEqual([
+		{ guesses: { A: 'M', B: 'N' } },
+		{ hint: true, guesses: { A: 'M', B: '' }, revealed: [] },
+		{ guesses: { A: 'X', B: 'Y' } },
+	])
+	expect(submits).toHaveLength(2)
+	expect(submits[1]).toEqual(submits[0])
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'won' })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toMatchObject({
+		guesses: { A: 'X', B: 'Y' },
+		hintsUsed: 1,
+	})
+	await page.reload()
+	await expect(page.locator('[data-game-stage="completed"]')).toBeVisible()
+	await expect(board).toHaveCount(0)
+})
+
+test('Frame keeps a legal chain and accepts only a saved full box', async ({ page }) => {
+	await page.setViewportSize({ width: 320, height: 720 })
+	const fixture = wordBoxGoldens[0]
+	const puzzleId = '25a3d645-3b32-4e02-92e6-55967a8b07b4'
+	const { board, submits } = await mount(page, 'word-box', fixture.puzzleData, false, { puzzleId })
+	const field = board.getByRole('textbox', { name: 'Current word' })
+	const addWord = board.getByRole('button', { name: 'Add word' })
+	await board.getByRole('button', { name: 'N', exact: true }).click()
+	await board.getByRole('button', { name: 'R', exact: true }).click()
+	await expect(board.getByText('Choose a letter from a different side.')).toBeVisible()
+	await expect(field).toHaveValue('N')
+	await board.getByRole('button', { name: 'Start over' }).click()
+	await expect(field).toHaveValue('')
+	await field.focus()
+	await page.keyboard.type(fixture.solution.words[0])
+	await page.keyboard.press('Enter')
+	await expect(board.getByRole('list', { name: 'Word chain' })).toHaveText(
+		fixture.solution.words[0],
+	)
+	await field.focus()
+	await page.keyboard.press('R')
+	await expect(board.getByText('Start with the last letter of the previous word.')).toBeVisible()
+	await board.getByRole('button', { name: 'Undo last word' }).click()
+	await expect(field).toHaveValue(fixture.solution.words[0])
+	await addWord.click()
+	for (const word of fixture.solution.words.slice(1)) {
+		await field.focus()
+		await page.keyboard.type(word)
+		await expect(field).toHaveValue(word)
+		await addWord.click()
+	}
+	await expect(board.getByText('12/12 letters used')).toBeVisible()
+	await expect(board.getByText('Puzzle Complete!', { exact: true })).toBeVisible()
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({
+		puzzleId,
+		puzzleDate: date,
+		status: 'won',
+		attempts: fixture.solution.words.length,
+	})
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toMatchObject({
+		words: fixture.solution.words,
+	})
 })

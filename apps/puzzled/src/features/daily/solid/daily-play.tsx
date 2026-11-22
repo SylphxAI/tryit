@@ -39,6 +39,8 @@ const boards = new Map([
 	['killer-sudoku', lazy(() => import('@/games/killer-sudoku/solid-board'))],
 	['word-ladder', lazy(() => import('@/games/word-ladder/solid-board'))],
 	['word-guess', lazy(() => import('@/games/word-guess/solid-board'))],
+	['cryptogram', lazy(() => import('@/games/cryptogram/solid-board'))],
+	['word-box', lazy(() => import('@/games/word-box/solid-board'))],
 ])
 type Locked = { kind: 'locked' }
 type State = DailySnapshot | Locked

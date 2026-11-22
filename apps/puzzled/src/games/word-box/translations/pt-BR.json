@@ -11,5 +11,17 @@
 		"rule3": "Cada nova palavra começa com a última letra da palavra anterior"
 	},
 	"startGame": "Começar jogo",
-	"complete": "Desafio concluído!"
+	"complete": "Desafio concluído!",
+	"progress": "{used}/{total} letras usadas",
+	"input": "Palavra atual",
+	"backspace": "Apagar a última letra",
+	"enter": "Adicionar palavra",
+	"nextLetter": "Comece a próxima palavra com {letter}.",
+	"chain": "Cadeia de palavras",
+	"undo": "Desfazer a última palavra",
+	"invalidLetter": "Use apenas letras do tabuleiro.",
+	"sameSide": "Escolha uma letra de outro lado.",
+	"wrongStart": "Comece com a última letra da palavra anterior.",
+	"tooShort": "Use pelo menos três letras.",
+	"rejected": "A cadeia não foi aceita. Edite e tente novamente."
 }

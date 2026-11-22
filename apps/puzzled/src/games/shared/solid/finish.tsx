@@ -20,7 +20,11 @@ export type DailyBoardProps = {
 }
 
 /** Keep the entire intent, including its key and elapsed time, stable across retries. */
-export function createBoardFinish(props: DailyBoardProps, gameSlug: string) {
+export function createBoardFinish(
+	props: DailyBoardProps,
+	gameSlug: string,
+	options?: { onRejected: () => void },
+) {
 	const mountedAt = Date.now()
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
 	const [shareId, setShareId] = createSignal<string>()
@@ -44,7 +48,19 @@ export function createBoardFinish(props: DailyBoardProps, gameSlug: string) {
 						.then((id) => !disposed && setShareId(id))
 						.catch(() => {})
 				} else if (isAlreadyPlayedError(result.error)) props.onAlreadyPlayed()
-				else setState('failed')
+				else if (
+					options &&
+					!result.valid &&
+					!result.status &&
+					result.gameSlug === gameSlug &&
+					result.error
+				) {
+					// The authority rejected the submission without saving it. Editable games may
+					// issue a new intent after correction; ambiguous outcomes keep their old key.
+					intent = undefined
+					options.onRejected()
+					setState('playing')
+				} else setState('failed')
 			}
 		} catch (error) {
 			if (!disposed) {

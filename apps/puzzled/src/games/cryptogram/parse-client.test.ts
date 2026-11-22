@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import { frozenPuzzle } from '../test-fixtures'
 import { cryptogramConfig } from './config'
 import { parseCryptogramClientPayload } from './parse-client'
+import { type CryptogramClientState, cryptogramReducer, isFullyFilled } from './state'
 import type { CryptogramPuzzleData, CryptogramSolution } from './types'
-import { type CryptogramClientState, cryptogramReducer, isFullyFilled } from './use-cryptogram'
 
 const { puzzleData, solution } = frozenPuzzle(cryptogramConfig) as {
 	puzzleData: CryptogramPuzzleData

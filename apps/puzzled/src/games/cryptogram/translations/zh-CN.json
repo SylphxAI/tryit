@@ -10,5 +10,12 @@
 		"rule3": "同一个字母永远对应同一个替换字母"
 	},
 	"startGame": "开始游戏",
-	"complete": "名言破解！"
+	"complete": "名言破解！",
+	"progress": "已填 {filled}/{total} 个字母",
+	"hint": "提示（{count}）",
+	"author": "引文出自 {name}",
+	"cipherLetter": "{cipher}：{guess}",
+	"blank": "空白",
+	"wrong": "还没解开：有些字母不正确。",
+	"clear": "清除字母"
 }

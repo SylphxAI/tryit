@@ -11,5 +11,17 @@
 		"rule3": "Each new word starts with the last letter of the previous word"
 	},
 	"startGame": "Start Game",
-	"complete": "Puzzle Complete!"
+	"complete": "Puzzle Complete!",
+	"progress": "{used}/{total} letters used",
+	"input": "Current word",
+	"backspace": "Remove last letter",
+	"enter": "Add word",
+	"nextLetter": "Start the next word with {letter}.",
+	"chain": "Word chain",
+	"undo": "Undo last word",
+	"invalidLetter": "Use only letters on the board.",
+	"sameSide": "Choose a letter from a different side.",
+	"wrongStart": "Start with the last letter of the previous word.",
+	"tooShort": "Use at least three letters.",
+	"rejected": "That chain wasn’t accepted. Edit it and try again."
 }

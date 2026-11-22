@@ -10,5 +10,17 @@
 		"rule3": "每个新词以上一个词的最后一个字母开始"
 	},
 	"startGame": "开始游戏",
-	"complete": "谜题完成！"
+	"complete": "谜题完成！",
+	"progress": "已用 {used}/{total} 个字母",
+	"input": "当前单词",
+	"backspace": "删除最后一个字母",
+	"enter": "添加单词",
+	"nextLetter": "下一个单词以 {letter} 开头。",
+	"chain": "单词接龙",
+	"undo": "撤销最后一个单词",
+	"invalidLetter": "只使用棋盘上的字母。",
+	"sameSide": "请选择另一边的字母。",
+	"wrongStart": "请用上一个单词的最后一个字母开头。",
+	"tooShort": "至少使用三个字母。",
+	"rejected": "这组接龙未通过。请修改后重试。"
 }

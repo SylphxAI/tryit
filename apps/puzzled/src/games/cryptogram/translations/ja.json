@@ -11,5 +11,12 @@
 		"rule3": "同じ文字は、いつも同じ文字に置き換えられます"
 	},
 	"startGame": "ゲーム開始",
-	"complete": "名言を解読しました！"
+	"complete": "名言を解読しました！",
+	"progress": "{filled}/{total} 文字",
+	"hint": "ヒント（{count}）",
+	"author": "引用元：{name}",
+	"cipherLetter": "{cipher}：{guess}",
+	"blank": "空欄",
+	"wrong": "まだ解けていません。間違っている文字があります。",
+	"clear": "文字を消す"
 }
