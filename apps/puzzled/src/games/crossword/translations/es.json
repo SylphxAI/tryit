@@ -19,5 +19,6 @@
 	"messages": {
 		"correct": "¡Correcto!",
 		"incorrect": "Inténtalo de nuevo"
-	}
+	},
+	"check": "Comprobar"
 }

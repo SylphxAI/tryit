@@ -3,6 +3,7 @@
 	"tagline": "4 words • 9 guesses",
 	"highlight": "Every guess plays all four words",
 	"description": "Solve 4 hidden words at once",
+	"clearGuess": "Clear guess",
 	"howToPlay": "How to Play",
 	"rules": {
 		"title": "How to Play",

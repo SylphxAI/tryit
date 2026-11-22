@@ -21,4 +21,16 @@ describe('parseWordLadderClientPayload', () => {
 		expect(() => parseWordLadderClientPayload({ startWord: 'damp' })).toThrow('start and end')
 		expect(() => parseWordLadderClientPayload(null)).toThrow('invalid')
 	})
+
+	test('rejects an identical, nonletter or inconsistent clue pair and invalid step counts', () => {
+		for (const malformed of [
+			{ endWord: 'DAMP' },
+			{ startWord: '1234' },
+			{ wordLength: 3 },
+			{ minSteps: 2.5 },
+			{ minSteps: 0 },
+		]) {
+			expect(() => parseWordLadderClientPayload({ ...served, ...malformed })).toThrow()
+		}
+	})
 })

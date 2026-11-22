@@ -159,9 +159,12 @@ export function isSolved(cells: KillerCell[][], cages: Cage[]): boolean {
 		}
 	}
 
-	// All cage sums must be correct
+	// All cage sums must be correct and cage digits must be distinct.
 	for (const cage of cages) {
-		if (isCageSumValid(cells, cage) !== true) {
+		if (
+			isCageSumValid(cells, cage) !== true ||
+			new Set(cage.cells.map(([row, col]) => cells[row][col].value)).size !== cage.cells.length
+		) {
 			return false
 		}
 	}

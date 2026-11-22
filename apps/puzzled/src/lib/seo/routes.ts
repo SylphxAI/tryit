@@ -11,7 +11,6 @@
  * `/zh-CN`, `/ja`, `/es`, `/pt-BR` (exact casing, no trailing slash).
  */
 
-import type { MetadataRoute } from 'next'
 import {
 	COMPARISON_HUB_PATH,
 	COMPARISON_SLUGS,
@@ -19,7 +18,7 @@ import {
 import { defaultLocale, locales } from '@/lib/i18n/config'
 import { SIGN_IN_ALIASES } from '@/lib/identity/return-path'
 
-export type ChangeFrequency = NonNullable<MetadataRoute.Sitemap[number]['changeFrequency']>
+export type ChangeFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
 
 export type PublicRoute = {
 	/** Locale-agnostic pathname (`/` for the home page). */
@@ -44,6 +43,7 @@ export type PublicRoute = {
 export const PUBLIC_ROUTES: readonly PublicRoute[] = [
 	{ path: '/', changeFrequency: 'daily', priority: 1 },
 	{ path: '/games', changeFrequency: 'daily', priority: 0.9 },
+	// Shared archive calendar; account state only controls access to dated play.
 	{ path: '/archive', changeFrequency: 'daily', priority: 0.8 },
 	{ path: '/pricing', changeFrequency: 'weekly', priority: 0.7 },
 	{

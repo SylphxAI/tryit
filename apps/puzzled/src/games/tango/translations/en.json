@@ -11,6 +11,11 @@
 		"rule3": "All rows must be unique, all columns must be unique"
 	},
 	"startGame": "Start Game",
+	"cell": {
+		"sun": "Sun",
+		"moon": "Moon",
+		"blank": "Blank"
+	},
 	"hasConflicts": "Some cells violate the rules",
 	"complete": "Puzzle Complete!"
 }

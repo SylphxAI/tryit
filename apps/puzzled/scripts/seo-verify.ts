@@ -2,7 +2,7 @@
 /**
  * SEO contract harness: asserts the indexed surface of a *served* build.
  *
- * Run from `apps/puzzled` against `next start` (never against dev):
+ * Run from `apps/puzzled` against `bun run start` (never against dev):
  *
  *   bun run build
  *   SYLPHX_PUBLIC_URL=https://tryit.fun bun run start -p 3014 &
@@ -105,7 +105,7 @@ function decodeEntities(value: string): string {
 }
 
 function canonicalOf(html: string): string | null {
-	const match = html.match(/<link rel="canonical" href="([^"]+)"/)
+	const match = html.match(/<link\b(?=[^>]*\srel="canonical")[^>]*\shref="([^"]+)"/i)
 	return match ? decodeEntities(match[1]) : null
 }
 
@@ -114,12 +114,12 @@ function htmlLangOf(html: string): string | null {
 }
 
 function robotsMetaOf(html: string): string | null {
-	return html.match(/<meta name="robots" content="([^"]+)"/)?.[1] ?? null
+	return html.match(/<meta\b(?=[^>]*\sname="robots")[^>]*\scontent="([^"]+)"/i)?.[1] ?? null
 }
 
 function hreflangOf(html: string): Record<string, string> {
 	const cluster: Record<string, string> = {}
-	// React serialises the hreflang attribute as `hrefLang`, and the attribute
+	// Some SSR serializers emit the hreflang attribute as `hrefLang`, and the attribute
 	// order is not fixed, so read the tag rather than assuming a layout.
 	const pattern = /<link\b[^>]*rel="alternate"[^>]*>/gi
 	for (const match of html.matchAll(pattern)) {
@@ -132,7 +132,7 @@ function hreflangOf(html: string): Record<string, string> {
 
 function jsonLdOf(html: string): unknown[] {
 	const blocks: unknown[] = []
-	const pattern = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
+	const pattern = /<script\b[^>]*\stype="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi
 	for (const match of html.matchAll(pattern)) {
 		blocks.push(JSON.parse(match[1]))
 	}
@@ -270,10 +270,16 @@ async function main(): Promise<void> {
 	})
 
 	// ── sitemap.xml ─────────────────────────────────────────────────────────
-	const sitemap = await fetchHtml('/sitemap.xml')
+	const sitemap = await request('/sitemap.xml')
 	assert(sitemap.status === 200, `GET /sitemap.xml answered ${sitemap.status}`)
-	const locs = sitemapLocs(sitemap.html)
-	const clusters = sitemapClusters(sitemap.html)
+	const sitemapXml = await sitemap.text()
+	await check('sitemap is cacheable for one hour', async () => {
+		const cacheControl = sitemap.headers.get('cache-control')
+		assert(cacheControl === 'public, max-age=3600', `unexpected Cache-Control: ${cacheControl}`)
+		return cacheControl
+	})
+	const locs = sitemapLocs(sitemapXml)
+	const clusters = sitemapClusters(sitemapXml)
 	assert(locs.length > 0, 'sitemap is empty')
 	const origin = new URL(locs[0]).origin
 	const locSet = new Set(locs)
@@ -340,7 +346,7 @@ async function main(): Promise<void> {
 	})
 
 	await check('sitemap omits lastmod instead of faking freshness', async () => {
-		assert(!sitemap.html.includes('<lastmod>'), 'sitemap publishes lastmod')
+		assert(!sitemapXml.includes('<lastmod>'), 'sitemap publishes lastmod')
 		return 'no <lastmod> element'
 	})
 

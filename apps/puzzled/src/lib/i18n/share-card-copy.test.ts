@@ -65,7 +65,7 @@ function walk(dir: string, out: string[] = []): string[] {
  * that every card surface builds its strings with (t('x') reads card.x).
  */
 function referencedCardKeys(): string[] {
-	const pattern = /tShare\('(card\.[A-Za-z0-9_]+)'\)/g
+	const pattern = /'share\.(card\.[A-Za-z0-9_]+)'/g
 	const keys = new Set<string>()
 	for (const file of walk(SRC)) {
 		if (file.endsWith('.test.ts') || file.endsWith('.test.tsx')) continue

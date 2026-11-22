@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
+import { createInitialState, quordleReducer } from './play-state'
+import { readQuadGrade } from './read-grade'
 import type { GuessResult } from './types'
 import { MAX_GUESSES } from './types'
-import { createInitialState, quordleReducer } from './use-quad-words'
 
 const solved: GuessResult = ['correct', 'correct', 'correct', 'correct', 'correct']
 const miss: GuessResult = ['absent', 'present', 'absent', 'absent', 'absent']
@@ -47,6 +48,34 @@ describe('quad-words played from server grading', () => {
 			})
 		}
 		expect(lost.gameStatus).toBe('lost')
+	})
+
+	test('a solved board stays fixed and keyboard feedback never downgrades', () => {
+		const first = quordleReducer(createInitialState(), {
+			type: 'APPLY_GUESS',
+			guess: 'punch',
+			results: [miss, miss, solved, miss],
+		})
+		const second = quordleReducer(first, {
+			type: 'APPLY_GUESS',
+			guess: 'piano',
+			results: [miss, miss, miss, miss],
+		})
+		expect(second.boards[2]).toBe(first.boards[2])
+		expect(second.boards[1].guesses).toEqual(['PUNCH', 'PIANO'])
+		expect(second.keyboardStatus.get('P')).toBe('correct')
+	})
+
+	test('rejects malformed CheckGuess tiles without making a move', () => {
+		expect(readQuadGrade({ boards: [miss, miss, solved, miss] })).toEqual([
+			miss,
+			miss,
+			solved,
+			miss,
+		])
+		expect(readQuadGrade({ boards: [miss, miss, solved] })).toBeNull()
+		expect(readQuadGrade({ boards: [miss, miss, solved, 'empty'] })).toBeNull()
+		expect(readQuadGrade({ boards: [miss, miss, solved, ['empty', ...miss.slice(1)]] })).toBeNull()
 	})
 
 	test('input waits while a guess is being graded', () => {

@@ -14,6 +14,10 @@
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
+				"value": "6-digit code",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "Account",
 				"keys": [
 					"nav.account",
@@ -1148,6 +1152,10 @@
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
+				"value": "6-digit code",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "Account",
 				"keys": [
 					"nav.account",
@@ -2280,6 +2288,10 @@
 			{
 				"value": "2026-11-14",
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
+			},
+			{
+				"value": "6 位數驗證碼",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
 			{
 				"value": "All Users",
@@ -3442,6 +3454,10 @@
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
+				"value": "6 位數驗證碼",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "All Users",
 				"keys": ["admin.announcements.allUsers", "admin.users.filterAll"]
 			},
@@ -4599,6 +4615,10 @@
 			{
 				"value": "2026-11-14",
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
+			},
+			{
+				"value": "6 位数字验证码",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
 			{
 				"value": "All Users",
@@ -6028,6 +6048,10 @@
 				"keys": ["settings.compactMode", "settings.preferences.appearance.compactMode"]
 			},
 			{
+				"value": "コードの有効期限が切れました。新しいコードをリクエストしてください。",
+				"keys": ["auth.unified.expired", "reauth.codeExpired"]
+			},
+			{
 				"value": "コードを再生成",
 				"keys": ["settings.recoveryCodes.confirmRegenerate", "settings.recoveryCodes.regenerate"]
 			},
@@ -7371,6 +7395,10 @@
 				]
 			},
 			{
+				"value": "Código de 6 dígitos",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "Códigos de recuperación",
 				"keys": ["settings.recoveryCodes.title", "settings.securityScore.checks.recoveryCodes"]
 			},
@@ -8522,6 +8550,10 @@
 				"keys": ["admin.commandPalette.seedPlans", "admin.plans.seedDefault"]
 			},
 			{
+				"value": "Código de 6 dígitos",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "Códigos de recuperação",
 				"keys": ["settings.recoveryCodes.title", "settings.securityScore.checks.recoveryCodes"]
 			},
@@ -8981,6 +9013,10 @@
 					"settings.security.securityCheckup.securityScore",
 					"settings.securityScore.score"
 				]
+			},
+			{
+				"value": "O código expirou. Solicite um novo.",
+				"keys": ["auth.unified.expired", "reauth.codeExpired"]
 			},
 			{
 				"value": "Outras páginas que você pode precisar",

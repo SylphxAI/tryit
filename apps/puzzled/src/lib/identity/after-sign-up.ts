@@ -7,6 +7,8 @@
  * one marker query param that a calm "saved" note reads once and removes.
  */
 
+import { safeReturnPath } from './return-path'
+
 export const SIGNED_UP_PARAM = 'signedUp'
 
 const MAX_CALLBACK_LENGTH = 280
@@ -14,13 +16,7 @@ const MAX_CALLBACK_LENGTH = 280
 /** The path when `raw` is a safe same-origin relative path, otherwise null. */
 export function safeCallbackPath(raw: string | null | undefined): string | null {
 	if (!raw || raw.length > MAX_CALLBACK_LENGTH) return null
-	if (!raw.startsWith('/') || raw.startsWith('//')) return null
-	// Backslashes and control characters are read as "/" or ignored by browsers.
-	for (const char of raw) {
-		const code = char.charCodeAt(0)
-		if (char === '\\' || code < 0x20 || code === 0x7f) return null
-	}
-	return raw
+	return safeReturnPath(raw)
 }
 
 /** Destination after sign-up: the safe callback (or home) plus the one-shot marker. */

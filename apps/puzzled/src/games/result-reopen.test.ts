@@ -2,35 +2,16 @@ import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const gamesDir = import.meta.dir
-const gameFiles = readdirSync(gamesDir, { withFileTypes: true })
-	.filter((entry) => entry.isDirectory())
-	.map((entry) => ({
-		slug: entry.name,
-		file: join(gamesDir, entry.name, `${entry.name}-game.tsx`),
-	}))
-	.filter(({ file }) => {
-		try {
-			readFileSync(file)
-			return true
-		} catch {
-			return false
+const boardSlugs = readdirSync(import.meta.dir).filter(
+	(name) => Bun.file(join(import.meta.dir, name, 'solid-board.tsx')).size > 0,
+)
+
+describe('every game shares the accepted-result controls', () => {
+	test('all nineteen Solid boards use the shared finish surface', () => {
+		expect(boardSlugs).toHaveLength(19)
+		for (const slug of boardSlugs) {
+			const source = readFileSync(join(import.meta.dir, slug, 'solid-board.tsx'), 'utf8')
+			expect(source).toContain('<BoardFinish')
 		}
 	})
-
-describe('every game reopens its result', () => {
-	test('all nineteen served games are covered', () => {
-		expect(gameFiles).toHaveLength(19)
-	})
-
-	for (const { slug, file } of gameFiles) {
-		test(`${slug} offers SeeResultButton from the shared resultReady signal`, () => {
-			const source = readFileSync(file, 'utf8')
-			expect(source).toContain('<SeeResultButton')
-			expect(source).toContain('finished={resultReady}')
-			expect(source).toContain('modalOpen={showResultModal}')
-			expect(source).toContain('onOpen={() => setShowResultModal(true)}')
-			expect(source).not.toMatch(/<SeeResultButton[^>]*finished=\{game\.state\.isComplete\}/)
-		})
-	}
 })

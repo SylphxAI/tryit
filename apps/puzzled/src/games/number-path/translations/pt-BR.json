@@ -11,5 +11,8 @@
 		"rule3": "As células numeradas são dicas fixas; passe por elas em ordem"
 	},
 	"startGame": "Começar jogo",
-	"complete": "Caminho completo!"
+	"complete": "Caminho completo!",
+	"undo": "Desfazer",
+	"cellClue": "Pista {number}",
+	"cellStep": "Passo {number}"
 }

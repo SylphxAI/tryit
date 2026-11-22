@@ -91,12 +91,12 @@ function isHtmlDocument(contentType, body) {
 async function main() {
 	const hang = await listenHang()
 	const webPort = await freePort()
-	const child = spawn('bunx', ['next', 'start', '-H', '0.0.0.0', '-p', String(webPort)], {
+	const child = spawn(process.execPath, ['.output/server/index.mjs'], {
 		cwd: APP_ROOT,
 		env: {
 			...process.env,
 			NODE_ENV: 'production',
-			HOSTNAME: '0.0.0.0',
+			NITRO_HOST: '127.0.0.1',
 			PORT: String(webPort),
 			API_INTERNAL_URL: `http://127.0.0.1:${hang.port}`,
 		},
@@ -117,7 +117,7 @@ async function main() {
 		await Promise.race([
 			waitForPort(webPort, LISTEN_BUDGET_MS),
 			exitPromise.then((code) => {
-				throw new Error(`next start exited ${code} before listen\n${stdout}\n${stderr}`)
+				throw new Error(`Nitro exited ${code} before listen\n${stdout}\n${stderr}`)
 			}),
 		])
 		const started = Date.now()
@@ -134,7 +134,7 @@ async function main() {
 		if (!body || body.length === 0) {
 			throw new Error(`GET / returned empty body status=${response.status} type=${contentType}`)
 		}
-		if (!isHtmlDocument(contentType, body)) {
+		if (response.status !== 200 || !isHtmlDocument(contentType, body)) {
 			throw new Error(
 				`GET / is not an HTML document status=${response.status} type=${contentType} body=${body.slice(0, 180)}`,
 			)

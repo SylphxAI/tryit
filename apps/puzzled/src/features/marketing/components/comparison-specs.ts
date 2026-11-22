@@ -2,7 +2,7 @@ import { getAllGameMetadata } from '@/games/registry'
 import type { GameCategory } from '@/games/types'
 import { FAMILY_SEATS, listPrice, offerPrice } from './catalogue-prices'
 import { COMPARISON_HUB_PATH, COMPARISON_SLUGS, type ComparisonSlug } from './comparison-slugs'
-import type { MarketingFaqItem } from './marketing-faq'
+import type { MarketingFaqItem } from './marketing-faq-item'
 import type { UseCaseCta, UseCaseOffer } from './use-case-specs'
 
 export type ComparisonRow = {

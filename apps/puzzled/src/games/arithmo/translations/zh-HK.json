@@ -17,5 +17,10 @@
 	"messages": {
 		"notComplete": "字元數目不足",
 		"invalid": "算式無效"
+	},
+	"feedback": {
+		"correct": "字元同位置都啱",
+		"present": "字元啱，但位置唔啱",
+		"absent": "條算式入面冇呢個字元"
 	}
 }

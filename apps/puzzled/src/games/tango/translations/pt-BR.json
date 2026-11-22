@@ -11,6 +11,11 @@
 		"rule3": "Todas as linhas devem ser únicas, e todas as colunas também"
 	},
 	"startGame": "Começar jogo",
+	"cell": {
+		"sun": "Sol",
+		"moon": "Lua",
+		"blank": "Vazia"
+	},
 	"hasConflicts": "Algumas células violam as regras",
 	"complete": "Desafio concluído!"
 }

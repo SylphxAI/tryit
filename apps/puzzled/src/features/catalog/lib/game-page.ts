@@ -2,12 +2,11 @@
  * Game page resolution (presentation layer).
  *
  * A module page is only reachable through the registry: `resolveGamePage`
- * canonicalises inbound aliases and returns `null` for anything unregistered,
- * and `requireGamePage` turns that `null` into a real 404 during metadata
+ * canonicalises inbound aliases and returns `null` for anything unregistered.
+ * Route presenters translate that result to an HTTP 404 during route
  * resolution, before any content is rendered.
  */
 
-import { notFound } from 'next/navigation'
 import { type GameMetadata, type GameSlug, getGameMetadata } from '@/games/registry'
 
 export type ResolvedGamePage = {
@@ -22,12 +21,6 @@ export function resolveGamePage(slug: string): ResolvedGamePage | null {
 	// The registry maps the canonical slug to this config, so the config's own
 	// slug is the registered key.
 	return { slug: metadata.slug as GameSlug, metadata }
-}
-
-export function requireGamePage(slug: string): ResolvedGamePage {
-	const resolved = resolveGamePage(slug)
-	if (!resolved) notFound()
-	return resolved
 }
 
 export type GameFaqItem = {

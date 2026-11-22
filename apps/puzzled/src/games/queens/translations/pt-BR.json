@@ -12,6 +12,7 @@
 		"rule4": "As coroas não podem se tocar (nem na diagonal)"
 	},
 	"startGame": "Começar jogo",
+	"region": "Região {index}",
 	"hasConflicts": "Algumas coroas estão em conflito",
 	"complete": "Desafio concluído!",
 	"difficulty": {

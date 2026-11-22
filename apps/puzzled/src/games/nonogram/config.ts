@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type DifficultyLevelConfig, type GameConfig } from '../types'
-import { NonogramIcon } from './icon'
 import type {
 	NonogramGuess,
 	NonogramGuessResult,
@@ -54,7 +53,7 @@ export const nonogramConfig: GameConfig<
 	slug: 'nonogram',
 	name: 'Paint',
 	description: 'Fill cells to reveal the hidden picture using number clues',
-	IconComponent: NonogramIcon,
+
 	sortOrder: 6,
 	category: 'logic',
 	skills: ['logic', 'pattern', 'spatial'],

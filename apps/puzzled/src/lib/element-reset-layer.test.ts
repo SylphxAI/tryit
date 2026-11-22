@@ -14,31 +14,54 @@
  * they override utilities on purpose (WCAG 2.4.7).
  */
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import postcss from 'postcss'
+import { transform } from 'lightningcss'
+import { buildGlobalCss } from './test-support/build-global-css'
 
-const GLOBALS_CSS = join(import.meta.dir, '..', 'app', 'globals.css')
-const ELEMENT = /(^|[\s>+~,(])(button|input|select|textarea|a|label)(?=$|[\s:[.,>+~)])/
+const ELEMENTS = new Set(['button', 'input', 'select', 'textarea', 'a', 'label'])
 const BOX_PROPERTY = /^(border|background|padding|margin|width|height|min-|max-|display|color$)/
 
-describe('globals.css element resets', () => {
-	test('no unlayered element rule overrides a utility-owned property', () => {
-		const root = postcss.parse(readFileSync(GLOBALS_CSS, 'utf8'))
-		const offenders: string[] = []
-		for (const node of root.nodes) {
-			if (node.type !== 'rule') continue
-			if (!node.selectors.some((selector) => ELEMENT.test(selector))) continue
-			node.walkDecls((decl) => {
-				if (BOX_PROPERTY.test(decl.prop)) offenders.push(`${node.selector} { ${decl.prop} }`)
-			})
-		}
-		expect(offenders).toEqual([])
+function unlayeredResets(css: string): string[] {
+	const offenders: string[] = []
+	transform({
+		filename: 'globals.css',
+		code: Buffer.from(css),
+		visitor: {
+			StyleSheet({ rules }) {
+				for (const rule of rules) {
+					if (rule.type !== 'style') continue
+					const { selectors, declarations } = rule.value
+					if (
+						!selectors.some((selector) =>
+							selector.some((part) => part.type === 'type' && ELEMENTS.has(part.name)),
+						)
+					)
+						continue
+					for (const decl of [
+						...(declarations?.declarations ?? []),
+						...(declarations?.importantDeclarations ?? []),
+					]) {
+						const property =
+							decl.property === 'unparsed' ? decl.value.propertyId.property : decl.property
+						if (BOX_PROPERTY.test(property)) offenders.push(property)
+					}
+				}
+			},
+		},
 	})
+	return offenders
+}
 
-	test('the check catches the original defect', () => {
-		const root = postcss.parse('button { border: none; cursor: pointer; }')
-		const rule = root.nodes[0]
-		expect(rule?.type === 'rule' && rule.selectors.some((s) => ELEMENT.test(s))).toBe(true)
+describe('globals.css element resets', () => {
+	test('no unlayered element rule overrides a utility-owned property', async () => {
+		expect(unlayeredResets(await buildGlobalCss())).toEqual([])
+	}, 15_000)
+
+	test('detects the original defect while allowing a layered reset and focus styling', () => {
+		expect(unlayeredResets('button { border: none; cursor: pointer }')).toEqual(['border'])
+		expect(
+			unlayeredResets(
+				'@layer base { button { border: none } } button:focus { outline: 1px solid }',
+			),
+		).toEqual([])
 	})
 })

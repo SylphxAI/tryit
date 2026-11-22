@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type DifficultyLevelConfig, type GameConfig } from '../types'
-import { QueensIcon } from './icon'
 import type { QueensGuess, QueensGuessResult, QueensPuzzleData, QueensSolution } from './types'
 
 export type { QueensPuzzleData, QueensSolution }
@@ -44,7 +43,7 @@ export const queensConfig: GameConfig<
 	slug: 'crowns',
 	name: 'Crowns',
 	description: 'Place one crown per row, column, and color region',
-	IconComponent: QueensIcon,
+
 	sortOrder: 11,
 	category: 'logic',
 	skills: ['logic', 'spatial'],

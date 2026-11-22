@@ -8,7 +8,7 @@ import {
 	listPriceMinor,
 	offerPrice,
 } from './catalogue-prices'
-import type { MarketingFaqItem } from './marketing-faq'
+import type { MarketingFaqItem } from './marketing-faq-item'
 
 export type UseCaseCta = {
 	label: string

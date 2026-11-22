@@ -11,5 +11,8 @@
 		"rule3": "Numbered cells are locked clues; visit them in order"
 	},
 	"startGame": "Start Game",
-	"complete": "Path complete!"
+	"complete": "Path complete!",
+	"undo": "Undo",
+	"cellClue": "Clue {number}",
+	"cellStep": "Step {number}"
 }

@@ -20,7 +20,14 @@ const inGrid = (n: unknown): n is number =>
 	typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < SIZE
 
 function parseCage(value: unknown): Cage {
-	if (!isRecord(value) || !Array.isArray(value.cells) || typeof value.sum !== 'number') {
+	if (
+		!isRecord(value) ||
+		!Array.isArray(value.cells) ||
+		typeof value.sum !== 'number' ||
+		!Number.isInteger(value.sum) ||
+		value.sum < 1 ||
+		value.sum > 45
+	) {
 		throw new Error('[killer-sudoku] invalid cage')
 	}
 	const cells = value.cells.map((cell): [number, number] => {
@@ -51,5 +58,15 @@ export function parseKillerSudokuClientPayload(data: unknown): KillerSudokuPuzzl
 	if (!Array.isArray(cages) || cages.length === 0) {
 		throw new Error('[killer-sudoku] cages missing')
 	}
-	return { grid: givens, cages: cages.map(parseCage) }
+	const parsedCages = cages.map(parseCage)
+	const covered = new Set<number>()
+	for (const cage of parsedCages) {
+		for (const [row, col] of cage.cells) {
+			const index = row * SIZE + col
+			if (covered.has(index)) throw new Error('[killer-sudoku] overlapping cage cells')
+			covered.add(index)
+		}
+	}
+	if (covered.size !== SIZE * SIZE) throw new Error('[killer-sudoku] cages must cover the grid')
+	return { grid: givens, cages: parsedCages }
 }

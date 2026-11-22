@@ -14,3 +14,6 @@ Provenance of the self-hosted faces. All are SIL Open Font License 1.1.
   (`fontTools.varLib.instancer`, then `pyftsubset`) from google/fonts. Licence:
   `OFL.txt`. The wordmark in `brand/svg/puzzled-wordmark.svg` (repo root, see
   `brand/README.md`) is the weight-620 outline of the word "Tryit".
+
+The PNG social-card renderer also uses Latin Figtree 400 and 600 in WOFF format,
+from Fontsource Figtree 5.2.8, under the same Figtree OFL. It cannot read WOFF2.

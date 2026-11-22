@@ -4,7 +4,6 @@
  */
 
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { ArithmoIcon } from './icon'
 import type { ArithmoGuess, ArithmoGuessResult, ArithmoPuzzleData, ArithmoSolution } from './types'
 
 // Client-side puzzle data
@@ -19,7 +18,7 @@ export const arithmoConfig: GameConfig<
 	slug: 'arithmo',
 	name: 'Arithmo',
 	description: 'Guess the equation in 6 tries',
-	IconComponent: ArithmoIcon,
+
 	sortOrder: 8,
 	category: 'math',
 	skills: ['arithmetic', 'logic'],

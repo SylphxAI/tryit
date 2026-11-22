@@ -12,6 +12,7 @@
 	},
 	"startGame": "ゲーム開始",
 	"complete": "パズルクリア！",
+	"cageTotal": "ケージの合計 {sum}",
 	"notes": "メモ",
 	"notesMode": "メモモード",
 	"difficulty": {

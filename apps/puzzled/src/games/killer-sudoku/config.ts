@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type DifficultyLevelConfig, type GameConfig } from '../types'
-import { KillerSudokuIcon } from './icon'
 import type {
 	KillerSudokuGuessInput,
 	KillerSudokuGuessResult,
@@ -47,7 +46,7 @@ export const killerSudokuConfig: GameConfig<
 	slug: 'killer-sudoku',
 	name: 'Cage Sudoku',
 	description: 'Sudoku with cage sums',
-	IconComponent: KillerSudokuIcon,
+
 	sortOrder: 16,
 	category: 'math',
 	skills: ['arithmetic', 'logic'],

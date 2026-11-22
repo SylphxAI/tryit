@@ -17,5 +17,10 @@
 	"messages": {
 		"notComplete": "字符数量不足",
 		"invalid": "算式无效"
+	},
+	"feedback": {
+		"correct": "字符和位置均正确",
+		"present": "字符正确，但位置不对",
+		"absent": "等式中没有这个字符"
 	}
 }

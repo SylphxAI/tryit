@@ -3,6 +3,7 @@
 	"tagline": "4 palavras • 9 palpites",
 	"highlight": "Cada palpite vale para as quatro palavras",
 	"description": "Resolva 4 palavras ocultas ao mesmo tempo",
+	"clearGuess": "Limpar palpite",
 	"howToPlay": "Como jogar",
 	"rules": {
 		"title": "Como jogar",

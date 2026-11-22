@@ -16,6 +16,18 @@
 	"giveUp": "Give Up",
 	"hint": "Select 3 cards to check if they form a valid set",
 	"complete": "All sets found!",
+	"card": {
+		"label": "{count}, {color}, {shape}, {fill}",
+		"diamond": "diamond",
+		"oval": "oval",
+		"squiggle": "squiggle",
+		"red": "red",
+		"green": "green",
+		"purple": "purple",
+		"solid": "solid",
+		"striped": "striped",
+		"empty": "empty"
+	},
 	"messages": {
 		"correct": "Valid set!",
 		"notASet": "Not a valid set",

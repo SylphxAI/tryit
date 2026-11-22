@@ -7,7 +7,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { PatternMatchIcon } from './icon'
 import type { Card, PatternMatchSolution } from './types'
 
 // ==========================================
@@ -51,7 +50,7 @@ export const patternMatchConfig: GameConfig<
 	slug: 'pattern-match',
 	name: 'Match',
 	description: 'Find sets of 3 cards with matching patterns',
-	IconComponent: PatternMatchIcon,
+
 	sortOrder: 9,
 	category: 'spatial',
 	skills: ['pattern', 'logic'],

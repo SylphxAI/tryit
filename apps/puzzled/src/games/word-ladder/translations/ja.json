@@ -15,6 +15,8 @@
 	"submit": "決定",
 	"undo": "元に戻す",
 	"complete": "クリア！",
+	"target": "目標：",
+	"steps": "{count} 手 · 最短 {minimum} 手",
 	"messages": {
 		"notInList": "有効な単語ではありません",
 		"wrongLength": "同じ文字数の単語にしてください",

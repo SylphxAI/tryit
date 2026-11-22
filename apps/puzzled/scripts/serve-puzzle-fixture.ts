@@ -7,6 +7,7 @@ import catalogue from '../../../config/commercial/catalogue.json'
 import { frozenPuzzle } from '../src/games/test-fixtures'
 import type { PuzzleDifficulty } from '../src/games/types'
 import { isValidDayKey, productDayKey } from '../src/lib/product-day'
+import { fixtureShareId } from './share-fixture-facts'
 
 const DIFFICULTIES = new Set<PuzzleDifficulty>(['easy', 'medium', 'hard'])
 
@@ -62,6 +63,22 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 			}
 			if (options.openPlans && url.pathname === '/puzzled.v1.BillingService/ListPlans') {
 				return Response.json(OPEN_PLANS)
+			}
+			if (
+				url.pathname === '/puzzled.v1.PuzzleService/GetSharedResult' &&
+				request.method === 'POST'
+			) {
+				const body = await request.json().catch(() => null)
+				if (request.headers.has('cookie') || body?.shareId !== fixtureShareId) {
+					return connectError(404, 'not_found', 'not_found')
+				}
+				return Response.json({
+					gameSlug: 'sudoku',
+					puzzleDate: productDayKey(),
+					status: 'won',
+					attempts: 1,
+					score: 37,
+				})
 			}
 			if (url.pathname !== '/puzzled.v1.PuzzleService/GetDaily') {
 				return connectError(404, 'not_found', 'not_found')

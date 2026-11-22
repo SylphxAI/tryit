@@ -11,5 +11,12 @@
 		"rule3": "A mesma letra sempre corresponde à mesma substituta"
 	},
 	"startGame": "Começar jogo",
-	"complete": "Citação resolvida!"
+	"complete": "Citação resolvida!",
+	"progress": "{filled}/{total} letras",
+	"hint": "Dica ({count})",
+	"author": "Citação de {name}",
+	"cipherLetter": "{cipher}: {guess}",
+	"blank": "em branco",
+	"wrong": "Ainda não foi resolvido: algumas letras estão erradas.",
+	"clear": "Apagar letra"
 }

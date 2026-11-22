@@ -15,6 +15,18 @@
 	"giveUp": "放棄",
 	"hint": "選 3 張卡，檢查是否組成有效組合",
 	"complete": "全部組合找到！",
+	"card": {
+		"label": "{count} 個{color}{shape}，{fill}",
+		"diamond": "菱形",
+		"oval": "橢圓",
+		"squiggle": "波浪形",
+		"red": "紅色",
+		"green": "綠色",
+		"purple": "紫色",
+		"solid": "實心",
+		"striped": "間紋",
+		"empty": "空心"
+	},
 	"messages": {
 		"correct": "有效組合！",
 		"notASet": "不是有效組合",

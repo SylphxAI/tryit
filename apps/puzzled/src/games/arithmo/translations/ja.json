@@ -18,5 +18,10 @@
 	"messages": {
 		"notComplete": "文字数が足りません",
 		"invalid": "正しい数式ではありません"
+	},
+	"feedback": {
+		"correct": "正しい位置にある文字",
+		"present": "別の位置にある文字",
+		"absent": "式に含まれない文字"
 	}
 }

@@ -11,5 +11,8 @@
 		"rule3": "数字のあるマスは固定のヒントです。順番どおりに通ってください"
 	},
 	"startGame": "ゲーム開始",
-	"complete": "パスが完成しました！"
+	"complete": "パスが完成しました！",
+	"undo": "元に戻す",
+	"cellClue": "ヒント {number}",
+	"cellStep": "{number} 手目"
 }

@@ -12,6 +12,7 @@
 	},
 	"startGame": "Start Game",
 	"complete": "Puzzle Complete!",
+	"cageTotal": "Cage total {sum}",
 	"notes": "Notes",
 	"notesMode": "Notes Mode",
 	"difficulty": {

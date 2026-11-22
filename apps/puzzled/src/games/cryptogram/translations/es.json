@@ -11,5 +11,12 @@
 		"rule3": "Una misma letra siempre se sustituye por la misma"
 	},
 	"startGame": "Empezar partida",
-	"complete": "¡Cita resuelta!"
+	"complete": "¡Cita resuelta!",
+	"progress": "{filled}/{total} letras",
+	"hint": "Pista ({count})",
+	"author": "Cita de {name}",
+	"cipherLetter": "{cipher}: {guess}",
+	"blank": "en blanco",
+	"wrong": "Aún no está resuelto: hay letras incorrectas.",
+	"clear": "Borrar letra"
 }

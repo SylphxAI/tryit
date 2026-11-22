@@ -61,7 +61,7 @@ jobs:
           only: ${{ inputs.lanes }}
           global-patterns: ''
           lanes: |
-            build: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile packages/* proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
+            build: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mts apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile packages/* proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
             rust: crates/* proto/* Cargo.toml Cargo.lock rust-toolchain* .cargo/* apps/puzzled/atlas/* apps/puzzled/atlas.hcl scripts/check-dockerfile-puzzled-core.sh scripts/check-migration-order* .github/workflows/ci.yml .github/workflows/verify.yml
             browser: apps/puzzled/playwright.config.ts apps/puzzled/e2e-tests/* apps/puzzled/scripts/serve-puzzle-fixture.ts scripts/ci-contract.test.ts package.json apps/puzzled/package.json bun.lock .github/workflows/ci.yml .github/workflows/verify.yml
 
@@ -71,7 +71,7 @@ jobs:
       actions: read
       checks: read
       id-token: write
-    name: Build (Next.js)
+    name: Build (SolidStart / Nitro)
     runs-on: sylphx-linux-standard
     timeout-minutes: 30
     needs: plan
@@ -109,7 +109,7 @@ jobs:
           echo "bun install failed after retries"
           exit 1
 
-      - name: Build web (next build, typecheck enforced)
+      - name: Build web (SolidStart Nitro)
         run: bun run build
         working-directory: apps/puzzled
         env:
@@ -117,13 +117,9 @@ jobs:
           NODE_ENV: production
           SYLPHX_PUBLIC_URL: https://puzzled.gg
 
-      # The one web build: the SEO, a11y and Lighthouse harnesses serve this
-      # artifact instead of each running next build again.
-      # Tarred, not uploaded as a tree: Turbopack links external server
-      # packages as symlinks under .next/node_modules, and an artifact upload
-      # would copy them away from their dependencies.
+      # The SEO and browser jobs serve the same Nitro production build.
       - name: Pack the web build
-        run: tar -C apps/puzzled --exclude=.next/cache --exclude=.next/standalone -cf web-build.tar .next
+        run: tar -C apps/puzzled -cf web-build.tar .output
 
       - name: Checksum the web build
         run: sha256sum web-build.tar > web-build.tar.sha256
@@ -293,7 +289,15 @@ jobs:
           SYLPHX_PUBLIC_URL: https://puzzled.gg
         run: |
           set -euo pipefail
-          bun run start -p 3014 > "$RUNNER_TEMP/serve-seo.log" 2>&1 &
+          # Nitro's production SSR transport requires a private Connect origin.
+          bun scripts/serve-puzzle-fixture.ts > "$RUNNER_TEMP/fixture-seo.log" 2>&1 &
+          echo "FIXTURE_API_PID=$!" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 http://127.0.0.1:8787/healthz > /dev/null 2>&1; then break; fi
+            if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-seo.log"; exit 1; fi
+            sleep 1
+          done
+          API_INTERNAL_URL=http://127.0.0.1:8787 PORT=3014 bun run start > "$RUNNER_TEMP/serve-seo.log" 2>&1 &
           echo "SERVE_PID=$!" >> "$GITHUB_ENV"
           for attempt in $(seq 1 60); do
             status="$(curl -s -o "$RUNNER_TEMP/probe.html" -w '%{http_code}' http://localhost:3014/ || true)"
@@ -325,6 +329,7 @@ jobs:
         if: always()
         run: |
           if [ -n "${SERVE_PID:-}" ]; then kill "$SERVE_PID" 2>/dev/null || :; fi
+          if [ -n "${FIXTURE_API_PID:-}" ]; then kill "$FIXTURE_API_PID" 2>/dev/null || :; fi
 
   a11y:
     permissions:
@@ -401,7 +406,15 @@ jobs:
           SYLPHX_PUBLIC_URL: https://puzzled.gg
         run: |
           set -euo pipefail
-          bun run start -p 3015 > "$RUNNER_TEMP/serve-a11y.log" 2>&1 &
+          # Nitro's production SSR transport requires a private Connect origin.
+          bun scripts/serve-puzzle-fixture.ts > "$RUNNER_TEMP/fixture-a11y.log" 2>&1 &
+          echo "FIXTURE_API_PID=$!" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 http://127.0.0.1:8787/healthz > /dev/null 2>&1; then break; fi
+            if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-a11y.log"; exit 1; fi
+            sleep 1
+          done
+          API_INTERNAL_URL=http://127.0.0.1:8787 PORT=3015 bun run start > "$RUNNER_TEMP/serve-a11y.log" 2>&1 &
           echo "SERVE_PID=$!" >> "$GITHUB_ENV"
           for attempt in $(seq 1 60); do
             status="$(curl -s -o "$RUNNER_TEMP/probe.html" -w '%{http_code}' http://localhost:3015/ || true)"
@@ -461,6 +474,7 @@ jobs:
         if: always()
         run: |
           if [ -n "${SERVE_PID:-}" ]; then kill "$SERVE_PID" 2>/dev/null || :; fi
+          if [ -n "${FIXTURE_API_PID:-}" ]; then kill "$FIXTURE_API_PID" 2>/dev/null || :; fi
 
   lighthouse:
     permissions:
@@ -603,7 +617,7 @@ jobs:
           SYLPHX_PUBLIC_URL: https://puzzled.gg
         run: |
           set -euo pipefail
-          bun run start -p 3016 > "$RUNNER_TEMP/serve-vitals.log" 2>&1 &
+          PORT=3016 bun run start > "$RUNNER_TEMP/serve-vitals.log" 2>&1 &
           echo "SERVE_PID=$!" >> "$GITHUB_ENV"
           for attempt in $(seq 1 60); do
             status="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3016/ || true)"
@@ -739,7 +753,7 @@ jobs:
               if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-$1.log"; exit 1; fi
               sleep 1
             done
-            API_INTERNAL_URL="http://127.0.0.1:$2" bun run start -p "$3" > "$RUNNER_TEMP/serve-$1.log" 2>&1 &
+            API_INTERNAL_URL="http://127.0.0.1:$2" PORT="$3" bun run start > "$RUNNER_TEMP/serve-$1.log" 2>&1 &
             echo "$!" >> "$RUNNER_TEMP/craft.pids"
             for attempt in $(seq 1 60); do
               status="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$3/" || true)"

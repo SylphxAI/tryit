@@ -15,6 +15,18 @@
 	"giveUp": "放弃",
 	"hint": "选 3 张卡，检查是否组成有效组合",
 	"complete": "全部组合找到！",
+	"card": {
+		"label": "{count} 个{color}{shape}，{fill}",
+		"diamond": "菱形",
+		"oval": "椭圆",
+		"squiggle": "波浪形",
+		"red": "红色",
+		"green": "绿色",
+		"purple": "紫色",
+		"solid": "实心",
+		"striped": "条纹",
+		"empty": "空心"
+	},
 	"messages": {
 		"correct": "有效组合！",
 		"notASet": "不是有效组合",

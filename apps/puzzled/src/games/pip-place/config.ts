@@ -5,7 +5,6 @@
 
 import { compareByTime, formatTimeScore, isPerfectGame } from '@/games/shared'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { PipPlaceIcon } from './icon'
 import type {
 	PipPlaceGuess,
 	PipPlaceGuessResult,
@@ -22,7 +21,7 @@ export const pipPlaceConfig: GameConfig<
 	slug: 'pip-place',
 	name: 'Spots',
 	description: 'Place dominoes to satisfy regions',
-	IconComponent: PipPlaceIcon,
+
 	sortOrder: 21,
 	category: 'spatial',
 	skills: ['spatial', 'logic'],

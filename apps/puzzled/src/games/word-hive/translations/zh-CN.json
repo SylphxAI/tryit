@@ -20,6 +20,8 @@
 	"shuffle": "洗牌",
 	"delete": "删除",
 	"enter": "输入",
+	"showAll": "显示所有单词",
+	"showLess": "显示较少单词",
 	"foundWords": "已找到的词",
 	"pangram": "全字母句",
 	"pangramBonus": "+7 奖励",

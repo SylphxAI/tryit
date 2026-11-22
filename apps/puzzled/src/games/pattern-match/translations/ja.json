@@ -16,6 +16,18 @@
 	"giveUp": "ギブアップ",
 	"hint": "3枚のカードを選ぶと、セットかどうか判定します",
 	"complete": "すべてのセットを発見！",
+	"card": {
+		"label": "{shape} {count}個、{color}、{fill}",
+		"diamond": "ひし形",
+		"oval": "楕円",
+		"squiggle": "波形",
+		"red": "赤",
+		"green": "緑",
+		"purple": "紫",
+		"solid": "塗りつぶし",
+		"striped": "しま模様",
+		"empty": "枠のみ"
+	},
 	"messages": {
 		"correct": "正しいセットです！",
 		"notASet": "セットではありません",

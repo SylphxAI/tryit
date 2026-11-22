@@ -25,7 +25,13 @@ function pick<T>(allowed: readonly T[], value: unknown, what: string): T {
 }
 
 function parseCard(value: unknown): Card {
-	if (!isRecord(value) || typeof value.id !== 'number') {
+	if (
+		!isRecord(value) ||
+		typeof value.id !== 'number' ||
+		!Number.isInteger(value.id) ||
+		value.id < 0 ||
+		value.id > 65535
+	) {
 		throw new Error('[pattern-match] invalid card')
 	}
 	return {
@@ -44,6 +50,9 @@ export function parsePatternMatchClientPayload(data: unknown): PatternMatchClien
 		throw new Error('[pattern-match] cards are required')
 	}
 	const cards = inner.cards.map(parseCard)
+	if (new Set(cards.map(({ id }) => id)).size !== cards.length) {
+		throw new Error('[pattern-match] duplicate card ID')
+	}
 	const totalSets = inner.totalSets
 	if (typeof totalSets !== 'number' || !Number.isInteger(totalSets) || totalSets < 1) {
 		throw new Error('[pattern-match] totalSets must be a positive integer')

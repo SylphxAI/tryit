@@ -4,7 +4,6 @@
  */
 
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { WordBoxIcon } from './icon'
 import type {
 	LetterBoxedGuessInput,
 	LetterBoxedGuessResult,
@@ -21,7 +20,7 @@ export const wordBoxConfig: GameConfig<
 	slug: 'word-box',
 	name: 'Frame',
 	description: 'Connect letters around the box',
-	IconComponent: WordBoxIcon,
+
 	sortOrder: 14,
 	category: 'word',
 	skills: ['vocabulary', 'spatial'],

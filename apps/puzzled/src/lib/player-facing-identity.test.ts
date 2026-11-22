@@ -5,7 +5,7 @@
  *  1. messages:      all JSON under src/messages (all eight locales)
  *  2. translations:  all JSON under a game `translations` folder
  *  3. manifest:      public/manifest.webmanifest
- *  4. TSX copy:      every TSX file under src/app, src/features, src/games and
+ *  4. TSX copy:      every TSX file under src/routes, src/features, src/games and
  *                    src/shared (hardcoded game screens, settings and
  *                    notification copy, home-page title maps, layout metadata)
  *  5. game metadata: game `config.ts` `name` / `description` fields
@@ -286,7 +286,7 @@ function configCopy(source: string): string[] {
 }
 
 /** TSX roots whose hardcoded copy is player-visible. */
-const TSX_COPY_ROOTS = ['src/app', 'src/features', 'src/games', 'src/shared']
+const TSX_COPY_ROOTS = ['src/routes', 'src/features', 'src/games', 'src/shared']
 
 function buildCorpus(): CorpusString[] {
 	const entries: CorpusString[] = []
@@ -381,11 +381,11 @@ describe('player-facing mark corpus', () => {
 		}
 		for (const surface of [
 			'public/manifest.webmanifest',
-			'src/app/[locale]/layout.tsx',
-			'src/app/[locale]/(main)/page.tsx',
-			'src/features/push/components/notification-preferences.tsx',
-			'src/games/cryptogram/cryptogram-game.tsx',
-			'src/games/word-search/word-search-game.tsx',
+			'src/shared/solid/site-shell.tsx',
+			'src/features/marketing/solid/home-page.tsx',
+			'src/features/settings/solid/security-settings.tsx',
+			'src/games/cryptogram/solid-board.tsx',
+			'src/games/word-search/solid-board.tsx',
 			'src/games/crossword/config.ts',
 			'src/games/word-groups/puzzles.ts',
 			'src/features/gamification/lib/achievements.ts',

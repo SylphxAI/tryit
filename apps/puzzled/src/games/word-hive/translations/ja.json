@@ -21,6 +21,8 @@
 	"shuffle": "シャッフル",
 	"delete": "削除",
 	"enter": "決定",
+	"showAll": "すべての単語を表示",
+	"showLess": "表示する単語を減らす",
 	"foundWords": "見つけた単語",
 	"pangram": "パングラム",
 	"pangramBonus": "+7ボーナス",

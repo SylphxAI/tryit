@@ -5,7 +5,6 @@
 
 import { MINUTE_MS } from '@/lib/constants/time'
 import { DEFAULT_LAUNCH_DATE, type GameConfig } from '../types'
-import { CryptogramIcon } from './icon'
 import type {
 	CryptogramGuess,
 	CryptogramGuessResult,
@@ -22,7 +21,7 @@ export const cryptogramConfig: GameConfig<
 	slug: 'cryptogram',
 	name: 'Cipher',
 	description: 'Decrypt famous quotes by letter substitution',
-	IconComponent: CryptogramIcon,
+
 	sortOrder: 18,
 	category: 'word',
 	skills: ['pattern', 'logic'],

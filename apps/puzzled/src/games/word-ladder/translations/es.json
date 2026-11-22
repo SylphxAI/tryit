@@ -15,6 +15,8 @@
 	"submit": "Ir",
 	"undo": "Deshacer",
 	"complete": "¡Lo lograste!",
+	"target": "Meta:",
+	"steps": "{count, plural, one {# paso} other {# pasos}} · Mínimo: {minimum}",
 	"messages": {
 		"notInList": "No es una palabra válida",
 		"wrongLength": "La palabra debe tener la misma longitud",

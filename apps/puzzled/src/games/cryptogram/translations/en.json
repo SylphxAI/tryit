@@ -11,5 +11,12 @@
 		"rule3": "The same letter always maps to the same replacement"
 	},
 	"startGame": "Start Game",
-	"complete": "Quote Solved!"
+	"complete": "Quote Solved!",
+	"progress": "{filled}/{total} letters",
+	"hint": "Hint ({count})",
+	"author": "Quote by {name}",
+	"cipherLetter": "{cipher}: {guess}",
+	"blank": "blank",
+	"wrong": "Not solved yet: some letters are wrong.",
+	"clear": "Clear letter"
 }

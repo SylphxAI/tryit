@@ -76,12 +76,14 @@ async function call<T>(
 		},
 		body: init.body === undefined ? undefined : JSON.stringify(init.body),
 		cache: 'no-store',
+		redirect: 'error',
 		signal: AbortSignal.timeout(10_000),
 	})
 	const text = await response.text()
 	let body: Record<string, unknown> = {}
 	try {
-		body = text ? (JSON.parse(text) as Record<string, unknown>) : {}
+		const parsed: unknown = text ? JSON.parse(text) : null
+		if (parsed && typeof parsed === 'object') body = parsed as Record<string, unknown>
 	} catch {
 		body = {}
 	}
@@ -130,8 +132,7 @@ export async function passwordTicket(
 		userAgent: input.userAgent,
 		body: { email: input.email, password: input.password, session_mode: 'server' },
 	})
-	if (!body.ticket) throw new AuthCallError(502, 'no_ticket')
-	return body.ticket
+	return requireTicket(body)
 }
 
 export type RedeemedSession = {
@@ -215,12 +216,8 @@ export async function sessionTimes(
 	}
 }
 
-export async function authClient<T>(
-	config: AuthConfig,
-	path: string,
-	userAgent: string,
-	body?: unknown,
-): Promise<T> {
+/** Client API calls use only the published key, never a secret or a session credential. */
+export function authClient<T>(config: AuthConfig, path: string, userAgent: string, body?: unknown) {
 	return call<T>(config, `/v1/client/${path}`, {
 		method: body === undefined ? 'GET' : 'POST',
 		bearer: config.publishableKey,
@@ -229,27 +226,134 @@ export async function authClient<T>(
 	})
 }
 
-type ClientConfig = {
-	methods?: Record<string, boolean>
-	social?: Array<{ provider?: unknown }>
+/** Instance-wide client config, never an email/account eligibility lookup. */
+async function readClientConfig(config: AuthConfig, userAgent: string) {
+	const body = await authClient<{
+		methods?: Record<string, unknown>
+		social?: Array<{ provider?: unknown } | null>
+	}>(config, 'config', userAgent)
+	if (!Array.isArray(body?.social)) throw new AuthCallError(502, 'invalid_config')
+	const providers = body.social.flatMap((entry) =>
+		typeof entry?.provider === 'string' && entry.provider ? [entry.provider] : [],
+	)
+	return { methods: body.methods, providers }
 }
 
-export async function clientSignInConfig(config: AuthConfig, userAgent: string) {
-	const body = await authClient<ClientConfig>(config, 'config', userAgent)
+export async function clientMethods(config: AuthConfig, userAgent = 'puzzled-web') {
+	const { methods, providers } = await readClientConfig(config, userAgent)
+	if (!methods || typeof methods !== 'object' || Array.isArray(methods)) {
+		throw new AuthCallError(502, 'invalid_config')
+	}
 	return {
-		google: body.social?.some((entry) => entry.provider === 'google') ?? false,
-		password: body.methods?.password === true,
-		emailOtp: body.methods?.email_otp === true,
-		passkey: body.methods?.passkey === true,
+		emailCode: methods.email_otp === true,
+		password: methods.password === true,
+		passkey: methods.passkey === true,
+		google: providers.includes('google'),
 	}
 }
 
-/** Social methods for the existing settings/account surfaces. */
-export async function socialProviders(config: AuthConfig): Promise<string[]> {
-	const body = await authClient<ClientConfig>(config, 'config', 'puzzled-web')
-	return (body.social ?? []).flatMap((entry) =>
-		typeof entry.provider === 'string' && entry.provider ? [entry.provider] : [],
+/** Public Continue API; the browser never receives an Auth session or ticket. */
+export async function beginEmailCode(config: AuthConfig, userAgent: string, email: string) {
+	const body = await call<{ step?: unknown; flow?: unknown; expires_in?: unknown }>(
+		config,
+		'/v1/client/continue',
+		{
+			bearer: config.publishableKey,
+			userAgent,
+			body: { email, method: 'email_otp', session_mode: 'server' },
+		},
 	)
+	if (
+		body.step !== 'email_otp' ||
+		typeof body.flow !== 'string' ||
+		!/^[A-Za-z0-9_-]{43}$/.test(body.flow) ||
+		typeof body.expires_in !== 'number' ||
+		!Number.isInteger(body.expires_in) ||
+		body.expires_in <= 0
+	)
+		throw new AuthCallError(502, 'invalid_continue')
+	return { flow: body.flow, expiresIn: body.expires_in }
+}
+
+function requireTicket(body: { ticket?: unknown }) {
+	if (typeof body.ticket !== 'string' || !body.ticket) throw new AuthCallError(502, 'no_ticket')
+	return body.ticket
+}
+
+export async function emailCodeTicket(
+	config: AuthConfig,
+	userAgent: string,
+	proof: { flow: string; code: string },
+) {
+	return requireTicket(
+		await call<{ ticket?: unknown }>(config, '/v1/client/continue/verify', {
+			bearer: config.publishableKey,
+			userAgent,
+			body: proof,
+		}),
+	)
+}
+
+export async function beginPasskey(config: AuthConfig, userAgent: string, origin: URL) {
+	const rpId = origin.hostname
+	const body = await call<{
+		challenge_id?: unknown
+		challenge?: unknown
+		rp_id?: unknown
+		allowed_credential_ids?: unknown
+		expires_at?: unknown
+	}>(config, '/v1/client/sign-in/passkey/begin', {
+		bearer: config.publishableKey,
+		userAgent,
+		// No identifier hint: decide availability in the browser's authenticator.
+		body: { rp_id: rpId, origin: origin.origin },
+	})
+	const { challenge_id, challenge, rp_id, allowed_credential_ids, expires_at } = body
+	if (
+		typeof challenge_id !== 'string' ||
+		!challenge_id ||
+		typeof challenge !== 'string' ||
+		!/^[A-Za-z0-9_-]{22,512}$/.test(challenge) ||
+		rp_id !== rpId ||
+		!Array.isArray(allowed_credential_ids) ||
+		!allowed_credential_ids.every(
+			(id) => typeof id === 'string' && /^[A-Za-z0-9_-]{1,2048}$/.test(id),
+		) ||
+		typeof expires_at !== 'number' ||
+		!Number.isFinite(expires_at)
+	)
+		throw new AuthCallError(502, 'invalid_passkey_challenge')
+	return {
+		challengeId: challenge_id,
+		challenge,
+		rpId,
+		credentialIds: allowed_credential_ids as string[],
+		expiresAt: expires_at,
+	}
+}
+
+export type PasskeyProof = {
+	challenge_id: string
+	credential_id: string
+	client_data_json: string
+	authenticator_data: string
+	signature: string
+	user_handle: string
+}
+
+export async function passkeyTicket(config: AuthConfig, userAgent: string, proof: PasskeyProof) {
+	return requireTicket(
+		await call<{ ticket?: unknown }>(config, '/v1/client/sign-in/passkey/verify', {
+			bearer: config.publishableKey,
+			userAgent,
+			body: { ...proof, session_mode: 'server' },
+		}),
+	)
+}
+
+/** Legacy pages only need the provider list, even when methods are absent. */
+export async function socialProviders(config: AuthConfig): Promise<string[]> {
+	return (await readClientConfig(config, 'puzzled-web')).providers
 }
 
 /** Auth's Google start door; Auth returns to `returnUrl` with `sylphx_ticket`. */

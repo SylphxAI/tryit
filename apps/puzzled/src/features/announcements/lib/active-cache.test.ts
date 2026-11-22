@@ -117,14 +117,27 @@ describe('active announcements cache', () => {
 	})
 
 	test('the public read forwards no cookies or user agent', async () => {
-		const source = await Bun.file(new URL('../../../lib/api/server.ts', import.meta.url)).text()
-		const block = source.slice(
-			source.indexOf('createActiveAnnouncementsCache({'),
-			source.indexOf('export const getServerActiveAnnouncements'),
-		)
-		expect(block).toContain("mergeServerConnectInit(init, '', SERVER_CONNECT_TIMEOUT_MS)")
-		expect(block).not.toContain('getServerTransport')
-		expect(block).not.toContain('cookies()')
-		expect(block).not.toContain('headers()')
+		const originalBase = process.env.API_INTERNAL_URL
+		const originalFetch = globalThis.fetch
+		const seen: Request[] = []
+		process.env.API_INTERNAL_URL = 'http://api.test'
+		globalThis.fetch = (async (input, init) => {
+			seen.push(new Request(input, init))
+			return Response.json({ announcements: [n('public-notice')] })
+		}) as typeof fetch
+		try {
+			const { getServerActiveAnnouncements } = await import('./public-announcements')
+			expect(await getServerActiveAnnouncements()).toEqual([{ ...n('public-notice'), endsAt: '' }])
+			expect(seen).toHaveLength(1)
+			expect(seen[0].url).toBe(
+				'http://api.test/puzzled.v1.AnnouncementService/ListActiveAnnouncements',
+			)
+			expect(seen[0].headers.has('cookie')).toBe(false)
+			expect(seen[0].headers.has('user-agent')).toBe(false)
+		} finally {
+			globalThis.fetch = originalFetch
+			if (originalBase === undefined) delete process.env.API_INTERNAL_URL
+			else process.env.API_INTERNAL_URL = originalBase
+		}
 	})
 })

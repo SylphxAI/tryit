@@ -3,19 +3,13 @@
  * documents built from it, and the canonical/hreflang helper.
  *
  * These are pure: no network, no server. The served-HTML contract is asserted
- * separately by `scripts/seo-verify.ts` against a `next start` build.
+ * separately by `scripts/seo-verify.ts` against a `Nitro` build.
  */
 
-import { afterAll, describe, expect, test } from 'bun:test'
-import robots from '@/app/robots'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { getGameSlugs } from '@/games/registry'
 import { defaultLocale, locales } from '@/lib/i18n/config'
-import {
-	buildPageMetadata,
-	hreflangLanguages,
-	localizedPath,
-	ogImagePath,
-} from '@/lib/seo/metadata'
+import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import {
 	CRAWL_BLOCKED_ROUTE_PREFIXES,
 	isEnglishOnlyRoute,
@@ -26,18 +20,22 @@ import {
 	robotsDisallowPaths,
 	stripLocalePrefix,
 } from '@/lib/seo/routes'
-import sitemap from '@/lib/seo/sitemap'
+import { buildSitemap } from '@/lib/seo/sitemap'
+import { hreflangLanguages, localizedPath } from '@/lib/seo/urls'
+import { GET as robotsResponse } from '@/server/robots-response'
+import { GET as sitemapResponse } from '@/server/sitemap-response'
 
 // Deterministic origin for the documents and metadata under test. Held only
 // for this file: the relay and canonical resolvers read these values live, so
 // leaving `https://tryit.fun` set would make another file's loopback requests
-// fail closed (relay.ts -> site-origin.ts). `sitemap()` runs while the suites
-// are collected, so this cannot move into a `beforeAll`.
+// fail closed (relay.ts -> site-origin.ts).
 const PREVIOUS_ORIGIN = {
 	SYLPHX_PUBLIC_URL: process.env.SYLPHX_PUBLIC_URL,
 	NODE_ENV: process.env.NODE_ENV,
 }
-process.env.SYLPHX_PUBLIC_URL = 'https://tryit.fun'
+beforeAll(() => {
+	process.env.SYLPHX_PUBLIC_URL = 'https://tryit.fun'
+})
 afterAll(() => {
 	for (const [key, value] of Object.entries(PREVIOUS_ORIGIN)) {
 		if (value === undefined) delete process.env[key]
@@ -172,11 +170,14 @@ describe('route truth table', () => {
 		expect(isPrivateRoutePath('/stats-and-more')).toBe(false)
 	})
 
-	test('publishes the public archive calendar', () => {
-		expect(isPrivateRoutePath('/archive')).toBe(false)
-		expect(isPrivateRoutePath('/zh-HK/archive')).toBe(false)
-		expect(sitemap().map((entry) => new URL(entry.url).pathname)).toContain('/archive')
-		expect(robotsDisallowPaths()).not.toContain('/archive')
+	test('makes the shared archive calendar indexable in every locale', () => {
+		const urls = new Set(buildSitemap(BASE).map((entry) => entry.url))
+		for (const locale of locales) {
+			const path = locale === defaultLocale ? '/archive' : `/${locale}/archive`
+			expect(isPrivateRoutePath(path)).toBe(false)
+			expect(robotsDisallowPaths()).not.toContain(path)
+			expect(urls.has(`${BASE}${path}`)).toBe(true)
+		}
 	})
 
 	test('strips locale prefixes for path matching', () => {
@@ -188,7 +189,7 @@ describe('route truth table', () => {
 })
 
 describe('sitemap', () => {
-	const entries = sitemap()
+	const entries = buildSitemap(BASE)
 	const gameCount = getGameSlugs().length
 	const localizedPublicCount = PUBLIC_ROUTES.filter((route) => !route.englishOnly).length
 	const englishOnlyCount = PUBLIC_ROUTES.filter((route) => route.englishOnly).length
@@ -255,24 +256,35 @@ describe('sitemap', () => {
 		}
 	})
 
-	test('omits lastModified rather than inventing one', () => {
-		for (const entry of entries) {
-			expect(entry.lastModified).toBeUndefined()
-		}
+	test('serves cacheable XML without inventing lastmod', async () => {
+		const response = sitemapResponse()
+		expect(response.status).toBe(200)
+		expect(response.headers.get('Content-Type')).toBe('application/xml; charset=utf-8')
+		expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600')
+		const xml = await response.text()
+		expect(xml).not.toContain('<lastmod>')
+		expect(xml.match(/<loc>/g)).toHaveLength(expectedUrls)
+		expect(xml).toContain('<loc>https://tryit.fun/archive</loc>')
+		expect(xml).toContain('<loc>https://tryit.fun/zh-HK/archive</loc>')
+		expect(xml).toContain('hreflang="x-default" href="https://tryit.fun/archive"')
 	})
 })
 
 describe('robots', () => {
-	const document = robots()
-	const rules = Array.isArray(document.rules) ? document.rules : [document.rules]
-	const disallow = rules.flatMap((rule) => rule.disallow ?? [])
+	let lines: string[]
+	let disallow: string[]
+	beforeAll(async () => {
+		const response = robotsResponse()
+		expect(response.status).toBe(200)
+		expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8')
+		lines = (await response.text()).split('\n')
+		disallow = lines.filter((line) => line.startsWith('Disallow: ')).map((line) => line.slice(10))
+	})
 
 	test('points at the sitemap and allows crawling by default', () => {
-		expect(document.sitemap).toBe(`${BASE}/sitemap.xml`)
-		for (const rule of rules) {
-			expect(rule.userAgent).toBe('*')
-			expect(rule.allow).toBe('/')
-		}
+		expect(lines).toContain(`Sitemap: ${BASE}/sitemap.xml`)
+		expect(lines).toContain('User-Agent: *')
+		expect(lines).toContain('Allow: /')
 	})
 
 	test('disallows the crawl-blocked prefixes under every locale', () => {
@@ -344,8 +356,8 @@ describe('metadata helper', () => {
 		})
 	})
 
-	test('emits a self-referencing canonical with a complete social card', async () => {
-		const metadata = await buildPageMetadata({
+	test('emits a self-referencing canonical with a complete social card', () => {
+		const metadata = pageMetadata({
 			locale: 'zh-HK',
 			path: '/games/sudoku',
 			title: 'Sudoku',
@@ -365,8 +377,8 @@ describe('metadata helper', () => {
 		expect(metadata.robots).toBeUndefined()
 	})
 
-	test('marks private surfaces noindex', async () => {
-		const metadata = await buildPageMetadata({
+	test('marks private surfaces noindex', () => {
+		const metadata = pageMetadata({
 			locale: 'en-US',
 			path: '/unsubscribe',
 			title: 'Unsubscribe',
@@ -381,9 +393,9 @@ describe('metadata helper', () => {
 		expect(metadata.alternates?.languages).toBeUndefined()
 	})
 
-	test('canonicalises English-only routes to en-US and drops hreflang alternates across locales', async () => {
+	test('canonicalises English-only routes to en-US and drops hreflang alternates across locales', () => {
 		for (const locale of locales) {
-			const metadata = await buildPageMetadata({
+			const metadata = pageMetadata({
 				locale,
 				path: '/vs/wordle',
 				title: 'Tryit vs Wordle',
@@ -399,8 +411,8 @@ describe('metadata helper', () => {
 		}
 	})
 
-	test('honours an absolute image override', async () => {
-		const metadata = await buildPageMetadata({
+	test('honours an absolute image override', () => {
+		const metadata = pageMetadata({
 			locale: 'en-US',
 			title: 'Tryit',
 			description: 'Daily puzzles',

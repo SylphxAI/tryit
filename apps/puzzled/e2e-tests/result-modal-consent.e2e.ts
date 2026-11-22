@@ -34,11 +34,11 @@ test('result modal actions are tappable and the banner can be declined with the 
 	await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) =>
 		route.fulfill({ json: { valid: true, status: 'won', score: 900, gameSlug: 'sudoku' } }),
 	)
-	await page.goto('/en-US/games/sudoku?difficulty=easy')
-	await page.getByRole('button', { name: /start game/i }).click({ timeout: 60_000 })
+	await page.goto('/games/sudoku?difficulty=easy&start=1#play')
 	const board = page.getByRole('group', { name: 'Sudoku', exact: true })
 	await board.getByRole('button', { name: 'Row 9, Column 9', exact: true }).click()
 	await page.keyboard.press(String(solution[8][8]))
+	await page.getByRole('button', { name: 'See your result', exact: true }).click()
 	const dialog = page.getByRole('dialog')
 	await expect(dialog).toBeVisible()
 	await expect(page.locator('button', { hasText: /^Decline$/ })).toHaveCount(1)
@@ -68,5 +68,5 @@ test('result modal actions are tappable and the banner can be declined with the 
 	}
 	await expect(dialog).toHaveCount(0)
 	await page.locator('button', { hasText: /^Decline$/ }).click()
-	await expect(page.locator('button', { hasText: /^Decline$/ })).toHaveCount(0)
+	await expect(page.locator('[data-consent-banner]')).toBeHidden()
 })
