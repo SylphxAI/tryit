@@ -11,5 +11,10 @@
 		"rule3": "Tiles may only sit on two cells that share a side"
 	},
 	"startGame": "Start Game",
-	"complete": "Board complete!"
+	"complete": "Board complete!",
+	"rotate": "Rotate",
+	"undo": "Undo",
+	"region": "Region",
+	"tile": "Tile {a}–{b}",
+	"rejected": "Not quite. Pick up a tile to keep playing."
 }

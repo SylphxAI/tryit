@@ -11,5 +11,10 @@
 		"rule3": "Las fichas solo pueden ocupar dos casillas que compartan un lado"
 	},
 	"startGame": "Empezar partida",
-	"complete": "¡Tablero completado!"
+	"complete": "¡Tablero completado!",
+	"rotate": "Girar",
+	"undo": "Deshacer",
+	"region": "Región",
+	"tile": "Ficha {a}–{b}",
+	"rejected": "Aún no. Retira una ficha para seguir jugando."
 }

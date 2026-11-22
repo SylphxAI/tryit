@@ -24,7 +24,7 @@ mock.module('next-intl', () => ({
 }))
 
 const { ClueList } = await import('./components/clue-list')
-const { crosswordReducer } = await import('./use-crossword')
+const { crosswordReducer } = await import('./board-state')
 
 const clue = (number: number, row: number, col: number, text: string): CrosswordClue => ({
 	number,

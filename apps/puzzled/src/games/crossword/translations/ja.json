@@ -19,5 +19,6 @@
 	"messages": {
 		"correct": "正解！",
 		"incorrect": "もう一度挑戦"
-	}
+	},
+	"check": "答え合わせ"
 }

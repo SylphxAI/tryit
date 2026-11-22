@@ -10,5 +10,10 @@
 		"rule3": "骨牌只能放在相邻的两格上"
 	},
 	"startGame": "开始游戏",
-	"complete": "棋盘完成！"
+	"complete": "棋盘完成！",
+	"rotate": "翻转",
+	"undo": "撤销",
+	"region": "区域",
+	"tile": "骨牌 {a}–{b}",
+	"rejected": "还没完成。拿起一块骨牌继续吧。"
 }

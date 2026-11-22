@@ -11,5 +11,10 @@
 		"rule3": "As peças só podem ficar sobre duas células que dividem um lado"
 	},
 	"startGame": "Começar jogo",
-	"complete": "Tabuleiro completo!"
+	"complete": "Tabuleiro completo!",
+	"rotate": "Girar",
+	"undo": "Desfazer",
+	"region": "Região",
+	"tile": "Peça {a}–{b}",
+	"rejected": "Ainda não. Retire uma peça para continuar."
 }
