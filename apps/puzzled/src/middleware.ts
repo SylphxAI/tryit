@@ -1,5 +1,6 @@
 import { createMiddleware } from '@solidjs/start/middleware'
 import { googleTagIds } from '@/features/analytics/lib/google-tag'
+import { legacyChallengeRedirect } from '@/features/identity/solid/challenge-redirect'
 import { legacySignInRedirect } from '@/features/identity/solid/sign-in-redirect'
 import { adsConfig } from '@/lib/ads'
 import { buildCsp, createNonce } from '@/lib/csp'
@@ -27,7 +28,11 @@ export default createMiddleware({
 		headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
 		headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
 		headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
-		return legacySignInRedirect(event.request) ?? canonicalPageRedirect(event.request)
+		return (
+			legacySignInRedirect(event.request) ??
+			legacyChallengeRedirect(event.request) ??
+			canonicalPageRedirect(event.request)
+		)
 	},
 	onBeforeResponse(event, { body }) {
 		const { pathname } = new URL(event.request.url)
