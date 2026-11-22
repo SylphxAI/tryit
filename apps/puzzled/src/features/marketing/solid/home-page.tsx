@@ -17,7 +17,6 @@ import {
 	serializeDismissedCookie,
 } from '@/features/announcements/lib/dismissed'
 import { CATALOG_CATEGORIES } from '@/features/catalog/lib/catalog'
-import { playButton } from '@/features/catalog/solid/game-landing'
 import {
 	DAILY_FREE_PICKS,
 	picksLeft,
@@ -137,6 +136,72 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		document.cookie = serializeDismissedCookie(ids, location.protocol === 'https:')
 		setDismissed(ids)
 	}
+	const featuredCard = (cta: Accessor<'play' | 'result'>, showsNote: Accessor<boolean>) => (
+		<div
+			data-day-puzzle-card=""
+			class="home-featured-card tactile-card grid grid-cols-[6.5rem_minmax(0,1fr)] overflow-hidden sm:block"
+		>
+			<div
+				class={cn(
+					'home-featured-art relative flex items-center justify-center border-r-[1.5px] border-[var(--tactile-line)] sm:border-b-[1.5px] sm:border-r-0',
+					getGameColors(page.featured.theme).bg,
+				)}
+				aria-hidden="true"
+			>
+				<img
+					src={`/motifs/${page.featured.slug}.svg`}
+					alt=""
+					width="160"
+					height="100"
+					class="home-featured-motif block h-full w-full object-contain"
+				/>
+				<span class="absolute left-3 top-3 hidden rounded-full bg-[#1a1712] px-2.5 py-1 text-xs font-semibold text-[#fbf9f4] sm:block">
+					{t('home.lineup.freeToday')}
+				</span>
+				<span class="numeral absolute right-3 top-3 hidden rounded-full bg-[#fbf9f4]/80 px-2 py-0.5 text-xs font-semibold text-[#1a1712] sm:block">
+					#{format.format(page.puzzleNumber)}
+				</span>
+			</div>
+			<div class="home-featured-content p-3 sm:p-5">
+				<div class="flex items-baseline justify-between gap-3">
+					<p class="home-featured-title font-display text-[1.375rem] leading-tight sm:text-[1.75rem]">
+						{page.featured.name}
+					</p>
+					<Show when={page.featured.duration}>
+						<span class="numeral hidden shrink-0 text-sm text-muted-foreground sm:inline">
+							{page.featured.duration}
+						</span>
+					</Show>
+				</div>
+				<p class="mt-0.5 line-clamp-1 text-[14px] text-muted-foreground sm:text-[15px]">
+					{page.featured.tagline}
+				</p>
+				<a
+					data-day-primary-action=""
+					data-home-featured={page.featured.slug}
+					class="pressable home-featured-action mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#1a1712] bg-cta px-4 text-[15px] font-bold text-cta-foreground shadow-[0_3px_0_0_#1a1712] transition-colors hover:bg-cta-hover sm:mt-4 sm:text-[16px]"
+					href={href(
+						cta() === 'result'
+							? todayResultPath(page.featured.slug)
+							: todayPlayPath(page.featured.slug),
+					)}
+					onClick={(event) => cta() === 'play' && markStart(event, page.featured.slug)}
+				>
+					<Play size={16} fill="currentColor" class="shrink-0" aria-hidden="true" />
+					<span class="truncate">
+						{cta() === 'result'
+							? t('gameResult.seeResult')
+							: t('home.day.playToday', { game: page.featured.name })}
+					</span>
+				</a>
+				<Show when={showsNote()}>
+					<p class="mt-2 text-center text-xs text-muted-foreground sm:mt-2.5 sm:text-[13px]">
+						{t('home.day.guestNote')}
+					</p>
+				</Show>
+			</div>
+		</div>
+	)
 	const lead = () => (
 		<div class="min-w-0 space-y-4">
 			<h1 class="max-w-xl font-display text-[clamp(2.35rem,5vw,4rem)] leading-[1.02] text-balance">
@@ -149,36 +214,10 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 			<p class="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
 				{t(props.facts()?.member ? 'home.day.bodyMember' : 'home.day.bodyGuest')}
 			</p>
-			<div
-				class={cn(
-					'game-tint tactile-card flex flex-wrap items-center gap-3 p-4',
-					getGameColors(page.featured.theme).bgLight,
-				)}
-			>
-				<GameIcon slug={page.featured.slug} size={38} />
-				<div class="min-w-0 flex-1">
-					<p class="eyebrow">{t('home.lineup.freeToday')}</p>
-					<p class="font-display text-xl">{page.featured.name}</p>
-				</div>
-				<a
-					data-home-featured={page.featured.slug}
-					class={playButton}
-					href={href(
-						copy().cta === 'result'
-							? todayResultPath(page.featured.slug)
-							: todayPlayPath(page.featured.slug),
-					)}
-					onClick={(event) => copy().cta === 'play' && markStart(event, page.featured.slug)}
-				>
-					<Play size={16} aria-hidden="true" />
-					{copy().cta === 'result'
-						? t('gameResult.seeResult')
-						: t('home.day.playToday', { game: page.featured.name })}
-				</a>
-			</div>
-			<Show when={copy().showsNote}>
-				<p class="text-xs text-muted-foreground">{t('home.day.guestNote')}</p>
-			</Show>
+			{featuredCard(
+				() => copy().cta,
+				() => copy().showsNote,
+			)}
 			<Show when={props.facts()?.hasIdentity && status().unread}>
 				<p class="text-sm text-muted-foreground">{t('home.hero.progressUnverified')}</p>
 			</Show>
@@ -324,13 +363,10 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 								fallback={
 									<div class="min-w-0">
 										<h1 class="font-display text-4xl">{t('home.day.guestTitle', { count })}</h1>
-										<a
-											class={playButton}
-											href={href(todayPlayPath(page.featured.slug))}
-											onClick={(event) => markStart(event, page.featured.slug)}
-										>
-											{t('home.day.playToday', { game: page.featured.name })}
-										</a>
+										{featuredCard(
+											() => 'play',
+											() => true,
+										)}
 									</div>
 								}
 							>

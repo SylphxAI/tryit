@@ -1,4 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
+import sudokuGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/sudoku.json'
+import { productDayKey } from '../src/lib/product-day'
 
 // Run against a locally served production build with serve-puzzle-fixture.ts.
 // Every browser mutation is intercepted; this suite never submits a live finish.
@@ -7,16 +9,26 @@ test.beforeEach(async ({ page, baseURL }) => {
 	if (!['localhost', '127.0.0.1'].includes(host))
 		throw new Error('Board craft requires a local fixture')
 	await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+	const puzzleDate = productDayKey()
+	const puzzleData = sudokuGoldens.find((puzzle) => puzzle.difficulty === 'easy')?.puzzleData
+	if (!puzzleData) throw new Error('Missing easy Sudoku golden')
+	const daily = { gameSlug: 'sudoku', puzzleDate, canPlay: true }
+	await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+		route.fulfill({ json: { ...daily, requiresStart: true } }),
+	)
+	await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) =>
+		route.fulfill({ json: { daily: { ...daily, puzzleDataJson: JSON.stringify(puzzleData) } } }),
+	)
 	await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) =>
 		route.fulfill({ json: { valid: false, error: 'Craft fixture: no finish accepted' } }),
 	)
 })
 
 async function start(page: Page, locale = 'en-US') {
-	await page.goto(`/${locale}/games/sudoku?difficulty=easy`)
+	await page.goto(`/${locale}/games/sudoku?difficulty=easy&start=1#play`)
 	const decline = page.getByRole('button', { name: /^(Decline|拒絕)$/ })
 	if (await decline.isVisible()) await decline.click()
-	await page.getByRole('button', { name: /^(Start game|開始遊戲)$/i }).click()
+	await page.locator('[data-game-stage="start"]').getByRole('button').click()
 	const board = page.locator('[role="group"]').filter({ has: page.locator('button[data-given]') })
 	await expect(board).toBeVisible()
 	await expect(board.locator('button')).toHaveCount(81)

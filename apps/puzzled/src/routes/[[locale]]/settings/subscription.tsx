@@ -20,8 +20,8 @@ import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
 
 function signIn(locale: string, returnTo: string) {
-	const callbackUrl = localizedPath(locale, returnTo)
-	return localizedPath(locale, `/sign-in?${new URLSearchParams({ callbackUrl })}`)
+	const next = localizedPath(locale, returnTo)
+	return localizedPath(locale, `/sign-in?${new URLSearchParams({ next })}`)
 }
 
 const getSubscription = query(async (localeParam: string, search: string) => {

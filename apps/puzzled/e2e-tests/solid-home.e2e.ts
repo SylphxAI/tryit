@@ -44,6 +44,8 @@ test('home serves the localized daily lineup, canonical metadata and FAQ without
 			const schema = await page.locator('main script[type="application/ld+json"]').allTextContents()
 			expect(schema.map((value) => JSON.parse(value)['@type'])).toEqual([
 				'WebApplication',
+				'SoftwareApplication',
+				'Product',
 				'FAQPage',
 			])
 			await faq.locator('summary').first().focus()

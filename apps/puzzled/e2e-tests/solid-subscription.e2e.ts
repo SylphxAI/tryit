@@ -35,7 +35,7 @@ test.describe('Solid subscription and family settings', () => {
 	}) => {
 		const guest = await request.get('/es/settings/subscription', { maxRedirects: 0 })
 		expect(guest.status()).toBe(302)
-		expect(guest.headers().location).toBe('/es/sign-in?callbackUrl=%2Fes%2Fsettings%2Fsubscription')
+		expect(guest.headers().location).toBe('/es/sign-in?next=%2Fes%2Fsettings%2Fsubscription')
 		const returned = await request.get(
 			'/es/settings/subscription?checkout_session_id=fixture_checkout&callbackUrl=%2Fes%2Fgames%2Fsudoku',
 		)
@@ -44,7 +44,7 @@ test.describe('Solid subscription and family settings', () => {
 		expect(returned.headers()['referrer-policy']).toBe('no-referrer')
 		const html = await returned.text()
 		expect(html).toContain(
-			'/es/sign-in?callbackUrl=%2Fes%2Fsettings%2Fsubscription%3Fcheckout%3Dsuccess%26s%3Dfixture_checkout%26callbackUrl%3D%252Fes%252Fgames%252Fsudoku',
+			'/es/sign-in?next=%2Fes%2Fsettings%2Fsubscription%3Fcheckout%3Dsuccess%26s%3Dfixture_checkout%26callbackUrl%3D%252Fes%252Fgames%252Fsudoku',
 		)
 		expect(html).not.toContain('old-fixture-invite')
 		const unavailable = await request.get('/settings/subscription', {

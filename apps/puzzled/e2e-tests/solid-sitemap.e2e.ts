@@ -21,6 +21,8 @@ test('Solid sitemap serves cacheable XML with archive and game URLs', async ({ p
 		},
 		await response.text(),
 	)
+	expect(urls).toHaveLength(226)
+	expect(new Set(urls).size).toBe(226)
 	expect(urls).toEqual(
 		expect.arrayContaining(['/archive', '/zh-HK/archive', '/games/sudoku', '/games/word-guess']),
 	)

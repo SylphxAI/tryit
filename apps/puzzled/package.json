@@ -63,6 +63,7 @@
 		"dotenv": "^17.2.3",
 		"drizzle-kit": "^0.31.8",
 		"happy-dom": "20.14.6",
+		"lightningcss": "1.33.0",
 		"nitro": "3.0.261103-rc",
 		"playwright": "^1.58.0",
 		"tailwindcss": "4.3.5",
