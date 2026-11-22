@@ -10,6 +10,6 @@ export default defineConfig({
 	plugins: [
 		tailwindcss(),
 		solidStart({ middleware: './src/middleware.ts' }),
-		nitro({ preset: 'node-server' }),
+		nitro({ preset: 'node-server', compressPublicAssets: { brotli: true, gzip: true } }),
 	],
 })
