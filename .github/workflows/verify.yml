@@ -71,7 +71,7 @@ jobs:
       actions: read
       checks: read
       id-token: write
-    name: Build (Next.js)
+    name: Build (SolidStart / Nitro)
     runs-on: sylphx-linux-standard
     timeout-minutes: 30
     needs: plan
@@ -289,7 +289,15 @@ jobs:
           SYLPHX_PUBLIC_URL: https://puzzled.gg
         run: |
           set -euo pipefail
-          PORT=3014 bun run start > "$RUNNER_TEMP/serve-seo.log" 2>&1 &
+          # Nitro's production SSR transport requires a private Connect origin.
+          bun scripts/serve-puzzle-fixture.ts > "$RUNNER_TEMP/fixture-seo.log" 2>&1 &
+          echo "FIXTURE_API_PID=$!" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 http://127.0.0.1:8787/healthz > /dev/null 2>&1; then break; fi
+            if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-seo.log"; exit 1; fi
+            sleep 1
+          done
+          API_INTERNAL_URL=http://127.0.0.1:8787 PORT=3014 bun run start > "$RUNNER_TEMP/serve-seo.log" 2>&1 &
           echo "SERVE_PID=$!" >> "$GITHUB_ENV"
           for attempt in $(seq 1 60); do
             status="$(curl -s -o "$RUNNER_TEMP/probe.html" -w '%{http_code}' http://localhost:3014/ || true)"
@@ -321,6 +329,7 @@ jobs:
         if: always()
         run: |
           if [ -n "${SERVE_PID:-}" ]; then kill "$SERVE_PID" 2>/dev/null || :; fi
+          if [ -n "${FIXTURE_API_PID:-}" ]; then kill "$FIXTURE_API_PID" 2>/dev/null || :; fi
 
   a11y:
     permissions:
@@ -397,7 +406,15 @@ jobs:
           SYLPHX_PUBLIC_URL: https://puzzled.gg
         run: |
           set -euo pipefail
-          PORT=3015 bun run start > "$RUNNER_TEMP/serve-a11y.log" 2>&1 &
+          # Nitro's production SSR transport requires a private Connect origin.
+          bun scripts/serve-puzzle-fixture.ts > "$RUNNER_TEMP/fixture-a11y.log" 2>&1 &
+          echo "FIXTURE_API_PID=$!" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 http://127.0.0.1:8787/healthz > /dev/null 2>&1; then break; fi
+            if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-a11y.log"; exit 1; fi
+            sleep 1
+          done
+          API_INTERNAL_URL=http://127.0.0.1:8787 PORT=3015 bun run start > "$RUNNER_TEMP/serve-a11y.log" 2>&1 &
           echo "SERVE_PID=$!" >> "$GITHUB_ENV"
           for attempt in $(seq 1 60); do
             status="$(curl -s -o "$RUNNER_TEMP/probe.html" -w '%{http_code}' http://localhost:3015/ || true)"
@@ -457,6 +474,7 @@ jobs:
         if: always()
         run: |
           if [ -n "${SERVE_PID:-}" ]; then kill "$SERVE_PID" 2>/dev/null || :; fi
+          if [ -n "${FIXTURE_API_PID:-}" ]; then kill "$FIXTURE_API_PID" 2>/dev/null || :; fi
 
   lighthouse:
     permissions:

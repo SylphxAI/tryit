@@ -105,7 +105,7 @@ function decodeEntities(value: string): string {
 }
 
 function canonicalOf(html: string): string | null {
-	const match = html.match(/<link rel="canonical" href="([^"]+)"/)
+	const match = html.match(/<link\b(?=[^>]*\srel="canonical")[^>]*\shref="([^"]+)"/i)
 	return match ? decodeEntities(match[1]) : null
 }
 
@@ -114,12 +114,12 @@ function htmlLangOf(html: string): string | null {
 }
 
 function robotsMetaOf(html: string): string | null {
-	return html.match(/<meta name="robots" content="([^"]+)"/)?.[1] ?? null
+	return html.match(/<meta\b(?=[^>]*\sname="robots")[^>]*\scontent="([^"]+)"/i)?.[1] ?? null
 }
 
 function hreflangOf(html: string): Record<string, string> {
 	const cluster: Record<string, string> = {}
-	// React serialises the hreflang attribute as `hrefLang`, and the attribute
+	// Some SSR serializers emit the hreflang attribute as `hrefLang`, and the attribute
 	// order is not fixed, so read the tag rather than assuming a layout.
 	const pattern = /<link\b[^>]*rel="alternate"[^>]*>/gi
 	for (const match of html.matchAll(pattern)) {
@@ -132,7 +132,7 @@ function hreflangOf(html: string): Record<string, string> {
 
 function jsonLdOf(html: string): unknown[] {
 	const blocks: unknown[] = []
-	const pattern = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
+	const pattern = /<script\b[^>]*\stype="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi
 	for (const match of html.matchAll(pattern)) {
 		blocks.push(JSON.parse(match[1]))
 	}

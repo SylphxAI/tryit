@@ -1,15 +1,29 @@
 /** @jsxImportSource solid-js */
 import { Meta, Title } from '@solidjs/meta'
+import { useLocation } from '@solidjs/router'
 import { HttpStatusCode } from '@solidjs/start'
+import { pageLocale } from '@/lib/i18n/page-locale'
+import { createTranslator } from '@/lib/i18n/translate'
+import { localizedPath } from '@/lib/seo/urls'
 
-/** Incomplete cutover routes must not be served as successful product pages. */
 export default function NotFound() {
+	const location = useLocation()
+	const locale = () => pageLocale(location.pathname)
+	const t = () => createTranslator(locale())
 	return (
-		<main>
+		<main class="page-shell-wide space-y-4 py-16">
 			<HttpStatusCode code={404} />
-			<Title>Page not found</Title>
+			<Title>{t()('common.notFound.title')}</Title>
 			<Meta name="robots" content="noindex, nofollow" />
-			<h1>Page not found</h1>
+			<p class="text-sm font-semibold text-muted-foreground">{t()('common.notFound.eyebrow')}</p>
+			<h1 class="font-display text-3xl">{t()('common.notFound.title')}</h1>
+			<p>{t()('common.notFound.description')}</p>
+			<a
+				class="inline-flex min-h-11 items-center underline"
+				href={localizedPath(locale(), '/games')}
+			>
+				{t()('common.notFound.browseCta')}
+			</a>
 		</main>
 	)
 }

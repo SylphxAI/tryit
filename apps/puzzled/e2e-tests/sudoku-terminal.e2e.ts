@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
-import { GUEST_GAMES_KEY } from '../src/lib/storage-keys'
+import { productDayKey } from '../src/lib/product-day'
+import { FIRST_FINISH_DAY_KEY } from '../src/lib/storage-keys'
 
 // The dev transport uses :3001 while production is same-origin. Only local
 // intercepted-RPC runs opt out of CSP; the served production CI build does not.
@@ -22,28 +23,11 @@ const solution = Array.from({ length: 9 }, (_, r) =>
 	Array.from({ length: 9 }, (_, c) => ((r * 3 + Math.floor(r / 3) + c) % 9) + 1),
 )
 
-// This also solves an SSR-served board when the local API is available.
-function solve(grid: number[][]): boolean {
-	for (let r = 0; r < 9; r++) {
-		for (let c = 0; c < 9; c++) {
-			if (grid[r][c]) continue
-			for (let value = 1; value <= 9; value++) {
-				if (grid[r].includes(value) || grid.some((row) => row[c] === value)) continue
-				const boxR = Math.floor(r / 3) * 3
-				const boxC = Math.floor(c / 3) * 3
-				if (grid.slice(boxR, boxR + 3).some((row) => row.slice(boxC, boxC + 3).includes(value)))
-					continue
-				grid[r][c] = value
-				if (solve(grid)) return true
-				grid[r][c] = 0
-			}
-			return false
-		}
-	}
-	return true
-}
+const today = productDayKey()
+const firstFinish = (page: Page) =>
+	page.evaluate((key) => localStorage.getItem(key), FIRST_FINISH_DAY_KEY)
 
-test('Sudoku waits for acceptance, shows rejection, and retries without false guest completion', async ({
+test('Sudoku waits for acceptance, shows rejection, and retries without false local completion', async ({
 	page,
 }) => {
 	await page.route('**/puzzled.v1.PuzzleService/GetDaily', async (route) => {
@@ -52,7 +36,7 @@ test('Sudoku waits for acceptance, shows rejection, and retries without false gu
 				gameSlug: 'sudoku',
 				difficulty: 'easy',
 				canPlay: true,
-				mode: 'daily',
+				puzzleDate: today,
 				puzzleDataJson: JSON.stringify({
 					grid: solution.map((row, r) => row.map((v, c) => (r === 8 && c === 8 ? null : v))),
 					difficulty: 'easy',
@@ -76,57 +60,29 @@ test('Sudoku waits for acceptance, shows rejection, and retries without false gu
 			await route.fulfill({ json: { valid: true, status: 'won', score: 900, gameSlug: 'sudoku' } })
 		}
 	})
-	await page.goto('/en-US/games/sudoku?difficulty=easy')
-	const start = page.getByRole('button', { name: /start game/i })
-	await expect(start).toBeVisible({ timeout: 60_000 })
-	await start.click()
+	await page.goto('/games/sudoku?difficulty=easy&start=1#play')
 	const board = page.getByRole('group', { name: 'Sudoku', exact: true })
 	await expect(board).toBeVisible()
-	const grid = Array.from({ length: 9 }, () => Array<number>(9).fill(0))
-	const blanks: [number, number][] = []
-	for (let r = 0; r < 9; r++) {
-		for (let c = 0; c < 9; c++) {
-			const cell = board.getByRole('button', {
-				name: new RegExp(`^Row ${r + 1}, Column ${c + 1}(,|$)`),
-			})
-			const label = await cell.getAttribute('aria-label')
-			const value = label?.match(/, ([1-9])$/)?.[1]
-			if (value) grid[r][c] = Number(value)
-			else blanks.push([r, c])
-		}
-	}
-	expect(blanks.length).toBeGreaterThan(0)
-	expect(solve(grid)).toBe(true)
-	for (const [r, c] of blanks) {
-		await board.getByRole('button', { name: `Row ${r + 1}, Column ${c + 1}`, exact: true }).click()
-		await page.keyboard.press(String(grid[r][c]))
-	}
+	const finish = page.getByText('Puzzle Complete!', { exact: true })
+	const retry = page.getByRole('button', { name: 'Try again', exact: true })
+	await cell(board, 9, 9).click()
+	await page.keyboard.press(String(solution[8][8]))
 	await expect.poll(() => submissions).toBe(1)
-	await expect(page.getByText('Congratulations!', { exact: true })).toHaveCount(0)
-	const markers = () =>
-		page.evaluate(
-			({ games }) => ({
-				games: JSON.parse(localStorage.getItem(games) || '{"games":[]}').games,
-			}),
-			{ games: GUEST_GAMES_KEY },
-		)
-	const before = await markers()
-	expect(before.games).toEqual([])
+	await expect(finish).toHaveCount(0)
+	expect(await firstFinish(page)).toBeNull()
 	release?.()
-	await expect(page.locator('main [role="alert"]')).toHaveText(
-		/Sudoku test authority rejected this finish/,
-	)
-	await expect(page.getByText('Congratulations!', { exact: true })).toHaveCount(0)
-	expect(await markers()).toEqual(before)
+	await expect(retry).toBeVisible()
+	await expect(finish).toHaveCount(0)
+	expect(await firstFinish(page)).toBeNull()
 	await expect(board).toBeVisible()
-	await page.getByRole('button', { name: 'Try again', exact: true }).click()
-	await expect(page.getByText('Congratulations!', { exact: true })).toBeVisible()
+	await retry.click()
+	await expect(finish).toBeVisible()
 	expect(submissions).toBe(2)
-	await expect.poll(async () => (await markers()).games.length).toBe(1)
+	await expect.poll(() => firstFinish(page)).toBe(today)
 })
 
 for (const slug of ['nonogram', 'crowns'] as const) {
-	test(`${slug} rejection keeps the board and retries without congratulations or guest completion`, async ({
+	test(`${slug} rejection keeps the board and retries without a result or local completion`, async ({
 		page,
 	}) => {
 		const puzzle =
@@ -139,7 +95,7 @@ for (const slug of ['nonogram', 'crowns'] as const) {
 					gameSlug: slug,
 					difficulty: 'easy',
 					canPlay: true,
-					mode: 'daily',
+					puzzleDate: today,
 					puzzleDataJson: JSON.stringify(puzzle),
 				},
 			}),
@@ -154,38 +110,24 @@ for (const slug of ['nonogram', 'crowns'] as const) {
 						: { valid: true, status: 'won', score: 900, gameSlug: slug },
 			})
 		})
-		await page.goto(`/games/${slug}?difficulty=easy`)
-		await page
-			.getByRole('button', {
-				name: slug === 'nonogram' ? /start game/i : 'Play',
-				exact: slug === 'crowns',
-			})
-			.click()
-		const cells =
-			slug === 'nonogram'
-				? page
-						.locator('button')
-						.filter({ hasText: /^$/ })
-						.filter({ visible: true })
-						.and(page.locator('button.w-6'))
-				: page.locator('div.grid[style*="repeat(4"] > button')
+		await page.goto(`/games/${slug}?difficulty=easy&start=1#play`)
+		const board = page.locator('[data-game-stage="board"]')
+		const finish = board.getByText(slug === 'nonogram' ? 'Picture Complete!' : 'Puzzle Complete!', {
+			exact: true,
+		})
+		const cells = board.getByRole('button', { name: /^Row \d+, Column \d+/ })
 		await expect(cells).toHaveCount(slug === 'nonogram' ? 1 : 16)
 		if (slug === 'nonogram') await cells.first().click()
 		else for (const index of [1, 7, 8, 14]) await cells.nth(index).click()
-		await expect(page.locator('main [role="alert"]')).toContainText(
-			`${slug} test authority rejected this finish`,
-		)
-		await expect(page.getByText('Congratulations!', { exact: true })).toHaveCount(0)
-		expect(
-			await page.evaluate(
-				(key) => JSON.parse(localStorage.getItem(key) || '{"games":[]}').games,
-				GUEST_GAMES_KEY,
-			),
-		).toEqual([])
+		const retry = board.getByRole('button', { name: 'Try again', exact: true })
+		await expect(retry).toBeVisible()
+		await expect(finish).toHaveCount(0)
+		expect(await firstFinish(page)).toBeNull()
 		await expect(cells.first()).toBeVisible()
-		await page.getByRole('button', { name: 'Try again', exact: true }).click()
-		await expect(page.getByText('Congratulations!', { exact: true })).toBeVisible()
+		await retry.click()
+		await expect(finish).toBeVisible()
 		expect(submissions).toBe(2)
+		await expect.poll(() => firstFinish(page)).toBe(today)
 	})
 }
 
@@ -201,14 +143,12 @@ async function openBoard(page: Page) {
 				gameSlug: 'sudoku',
 				difficulty: 'hard',
 				canPlay: true,
-				mode: 'daily',
-				puzzleDate: '2026-10-30',
+				puzzleDate: today,
 				puzzleDataJson: JSON.stringify({ grid: undoGrid, difficulty: 'hard' }),
 			},
 		}),
 	)
-	await page.goto('/en-US/games/sudoku?difficulty=hard')
-	await page.getByRole('button', { name: /start game/i }).click({ timeout: 60_000 })
+	await page.goto('/games/sudoku?difficulty=hard&start=1#play')
 	return page.getByRole('group', { name: 'Sudoku', exact: true })
 }
 
