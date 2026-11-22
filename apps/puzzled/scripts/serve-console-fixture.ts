@@ -18,6 +18,12 @@ Bun.serve({
 		if (request.method !== 'POST' || pairs.includes('unrelated_cookie=must-not-forward')) {
 			return Response.json({ code: 'invalid_argument' }, { status: 400 })
 		}
+		if (path === '/puzzled.v1.PreferencesService/GetNotificationPreferences' && authenticated) {
+			if (privateReadsUnavailable) return unavailable()
+			return Response.json({
+				preferences: { pushEnabled: true, pushDailyReminder: true, dailyReminderTime: '09:30' },
+			})
+		}
 		if (path === '/puzzled.v1.StatsService/GetUserStats' && hasRecord) {
 			if (privateReadsUnavailable) return unavailable()
 			return Response.json({
