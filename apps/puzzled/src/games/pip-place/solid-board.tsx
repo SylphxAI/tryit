@@ -120,9 +120,9 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 			if (empty) cellButtons[cellKey(empty)]?.focus()
 		}
 	}
-	function touchCell(cell: Cell, event: MouseEvent) {
+	function touchCell({ row, col }: Cell, event: MouseEvent) {
 		const previous = board()
-		const next = dispatch({ type: 'TOUCH_CELL', cell })
+		const next = dispatch({ type: 'TOUCH_CELL', cell: { row, col } })
 		if (next && next.tray.length < previous.tray.length && event.detail === 0 && playing()) {
 			tileButtons[0]?.focus()
 		}

@@ -13,7 +13,7 @@ describe('Arithmo wire boundaries', () => {
 	})
 
 	test('reads only eight recognized grades, ignoring unsolicited answers', () => {
-		const tiles = [
+		const tiles: NonNullable<ReturnType<typeof parseGrade>> = [
 			'correct',
 			'present',
 			'correct',

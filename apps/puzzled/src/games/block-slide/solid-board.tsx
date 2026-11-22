@@ -146,46 +146,46 @@ function Slides(
 					{text('howToPlay')}
 				</a>
 			</div>
-			<fieldset
-				dir="ltr"
-				class="relative min-w-0 rounded-lg border-2 border-border bg-muted"
-				aria-label={text('name')}
-				style={{
-					'aspect-ratio': `${gridWidth} / ${gridHeight}`,
-					'background-image':
-						'linear-gradient(to right, var(--color-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)',
-					'background-size': `${100 / gridWidth}% ${100 / gridHeight}%`,
-				}}
-			>
-				<For each={ids}>
-					{(id, index) => {
-						const block = createMemo(() => blocks()[index()])
-						return (
-							<SlideBlock
-								block={block()}
-								gridWidth={gridWidth}
-								gridHeight={gridHeight}
-								label={`${block().isTarget ? text('target') : t('games.blockSlide.block', { index: index() + 1 })}, ${t('common.cellRow', { index: block().y + 1 })}, ${t('common.cellColumn', { index: block().x + 1 })}`}
-								selected={selected() === id}
-								disabled={!playing()}
-								onSelect={() => {
-									setBlocked(false)
-									setSelected(selected() === id ? undefined : id)
-								}}
-								onDrag={(direction) => move(id, direction, true)}
-							/>
-						)
-					}}
-				</For>
-				<span
-					class="absolute top-full mt-0.5 rounded-b-md bg-primary px-1 py-0.5 text-center text-xs font-bold text-primary-foreground"
+			<fieldset dir="ltr" class="min-w-0" aria-label={text('name')}>
+				<div
+					class="relative w-full rounded-lg border-2 border-border bg-muted"
 					style={{
-						left: `${(100 * exitX) / gridWidth}%`,
-						width: `${(100 * (target?.width ?? 2)) / gridWidth}%`,
+						'aspect-ratio': `${gridWidth} / ${gridHeight}`,
+						'background-image':
+							'linear-gradient(to right, var(--color-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)',
+						'background-size': `${100 / gridWidth}% ${100 / gridHeight}%`,
 					}}
 				>
-					{text('exit')}
-				</span>
+					<For each={ids}>
+						{(id, index) => {
+							const block = createMemo(() => blocks()[index()])
+							return (
+								<SlideBlock
+									block={block()}
+									gridWidth={gridWidth}
+									gridHeight={gridHeight}
+									label={`${block().isTarget ? text('target') : t('games.blockSlide.block', { index: index() + 1 })}, ${t('common.cellRow', { index: block().y + 1 })}, ${t('common.cellColumn', { index: block().x + 1 })}`}
+									selected={selected() === id}
+									disabled={!playing()}
+									onSelect={() => {
+										setBlocked(false)
+										setSelected(selected() === id ? undefined : id)
+									}}
+									onDrag={(direction) => move(id, direction, true)}
+								/>
+							)
+						}}
+					</For>
+					<span
+						class="pointer-events-none absolute top-full mt-0.5 rounded-b-md bg-primary px-1 py-0.5 text-center text-xs font-bold text-primary-foreground"
+						style={{
+							left: `${(100 * exitX) / gridWidth}%`,
+							width: `${(100 * (target?.width ?? 2)) / gridWidth}%`,
+						}}
+					>
+						{text('exit')}
+					</span>
+				</div>
 			</fieldset>
 			<Show when={playing()}>
 				<p class="mt-6 text-center text-sm text-muted-foreground">{text('hint')}</p>

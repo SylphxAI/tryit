@@ -41,6 +41,12 @@ const boards = new Map([
 	['word-guess', lazy(() => import('@/games/word-guess/solid-board'))],
 	['cryptogram', lazy(() => import('@/games/cryptogram/solid-board'))],
 	['word-box', lazy(() => import('@/games/word-box/solid-board'))],
+	['arithmo', lazy(() => import('@/games/arithmo/solid-board'))],
+	['block-slide', lazy(() => import('@/games/block-slide/solid-board'))],
+	['crossword', lazy(() => import('@/games/crossword/solid-board'))],
+	['pip-place', lazy(() => import('@/games/pip-place/solid-board'))],
+	['quad-words', lazy(() => import('@/games/quad-words/solid-board'))],
+	['word-hive', lazy(() => import('@/games/word-hive/solid-board'))],
 ])
 type Locked = { kind: 'locked' }
 type State = DailySnapshot | Locked

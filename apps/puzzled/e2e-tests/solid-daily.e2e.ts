@@ -1,9 +1,11 @@
 import { expect, type Page, test } from '@playwright/test'
+import crosswordGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/crossword.json'
 import crownsGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/crowns.json'
 import duoGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/duo.json'
 import cageGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/killer-sudoku.json'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
+import pipGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pip-place.json'
 import wordBoxGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-box.json'
 import fiveGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-guess.json'
 import ladderGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-ladder.json'
@@ -22,6 +24,7 @@ async function mount(
 		grade?: (body: unknown) => unknown
 		reveal?: unknown
 		persistFinish?: boolean
+		rejectFirst?: boolean
 	},
 ) {
 	let starts = 0
@@ -66,15 +69,19 @@ async function mount(
 					? r.fulfill({ status: 503, json: { code: 'unavailable', message: 'fixture outage' } })
 					: r.fulfill({ json: { resultJson: JSON.stringify(grade) } })
 			}
-			case 'SubmitGuess':
-				if (options?.persistFinish && (!failOnce || submits.length > 0)) completed = true
+			case 'SubmitGuess': {
+				const rejected = options?.rejectFirst && submits.length === 0
+				if (options?.persistFinish && !rejected && (!failOnce || submits.length > 0))
+					completed = true
 				submits.push({ body, key: request.headers()['x-puzzled-idempotency-key'] })
 				return r.fulfill({
-					json:
-						failOnce && submits.length === 1
+					json: rejected
+						? { valid: false, gameSlug, error: 'invalid_submission' }
+						: failOnce && submits.length === 1
 							? { valid: false, error: 'unavailable', revealJson: JSON.stringify(options?.reveal) }
 							: { valid: true, status: body.status, revealJson: JSON.stringify(options?.reveal) },
 				})
+			}
 			case 'ShareResult':
 				return r.fulfill({ json: { shareId: 'fixture-share' } })
 			default:
@@ -84,7 +91,7 @@ async function mount(
 	const path =
 		gameSlug === 'killer-sudoku'
 			? `${gameSlug}?difficulty=medium&start=1`
-			: ['nonogram', 'crowns'].includes(gameSlug)
+			: ['nonogram', 'crowns', 'block-slide'].includes(gameSlug)
 				? `${gameSlug}?difficulty=easy&start=1`
 				: `${gameSlug}?start=1`
 	await page.goto(`/games/${path}#play`)
@@ -985,4 +992,266 @@ test('Frame keeps a legal chain and accepts only a saved full box', async ({ pag
 	expect(JSON.parse(String(submits[0].body.submissionJson))).toMatchObject({
 		words: fixture.solution.words,
 	})
+})
+
+test('Arithmo grades valid equations and reveals the answer only after accepting a loss', async ({
+	page,
+}) => {
+	const puzzleId = '05f1afc1-155d-4083-8728-4b83ab31838a'
+	const grades: string[] = []
+	const equation = '12+34=46'
+	const { board, submits } = await mount(page, 'arithmo', { length: 8 }, true, {
+		puzzleId,
+		reveal: { equation },
+		grade: (body) => {
+			expect(body).toMatchObject({ gameSlug: 'arithmo', puzzleDate: date, puzzleId })
+			grades.push(JSON.parse((body as { guessJson: string }).guessJson).equation)
+			if (grades.length === 1) return undefined
+			return { tiles: Array.from({ length: 8 }, () => 'absent') }
+		},
+	})
+	const native = board.locator('[data-arithmo-board]')
+	const enter = native.getByRole('button', { name: 'Enter' })
+	await enter.click()
+	await expect(native.getByText('Not enough characters')).toBeVisible()
+	expect(grades).toHaveLength(0)
+	const guesses = ['12+35=47', '12+36=48', '12+37=49', '12+38=50', '12+39=51', '12+40=52']
+	await page.keyboard.type(guesses[0])
+	await enter.click()
+	await native.getByRole('button', { name: 'Try again' }).click()
+	await expect(native.locator('[data-arithmo-grid] [data-grade="absent"]')).toHaveCount(8)
+	for (const [index, guess] of guesses.slice(1).entries()) {
+		await page.keyboard.type(guess)
+		await enter.click()
+		await expect(native.locator('[data-arithmo-grid] [data-grade="absent"]')).toHaveCount(
+			(index + 2) * 8,
+		)
+	}
+	const retry = board.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(board.getByText(equation, { exact: false })).toHaveCount(0)
+	await expect(board.getByRole('button', { name: 'Share' })).toHaveCount(0)
+	await retry.click()
+	await expect(board.getByText(equation, { exact: false })).toBeVisible()
+	expect(grades).toEqual([guesses[0], ...guesses])
+	expect(submits).toHaveLength(2)
+	expect(submits[1]).toEqual(submits[0])
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'lost', attempts: 6 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ guesses })
+})
+
+test('Slides blocks illegal moves and submits the accepted move count', async ({ page }) => {
+	await page.setViewportSize({ width: 350, height: 790 })
+	const puzzleId = 'fc47b542-e60e-40b9-850b-5ce4982b8945'
+	const { board, submits } = await mount(
+		page,
+		'block-slide',
+		{
+			gridWidth: 4,
+			gridHeight: 5,
+			exitX: 1,
+			exitY: 3,
+			minMoves: 2,
+			blocks: [
+				{ id: 'target', x: 1, y: 1, width: 2, height: 2, isTarget: true },
+				{ id: 'a', x: 0, y: 2, width: 1, height: 1, isTarget: false },
+			],
+		},
+		false,
+		{ puzzleId, persistFinish: true },
+	)
+	const target = board.locator('[data-block-id="target"]')
+	const count = board.locator('[data-move-count]')
+	await target.click()
+	await board.getByRole('button', { name: 'Move left' }).click()
+	await expect(board.getByText('That block cannot move in this direction.')).toBeVisible()
+	await expect(count).toHaveText('0')
+	await page.keyboard.press('ArrowDown')
+	await expect(count).toHaveText('1')
+	expect(submits).toHaveLength(0)
+	await board.getByRole('button', { name: 'Reset' }).click()
+	await expect(count).toHaveText('0')
+	await target.click()
+	await page.keyboard.press('s')
+	await expect(count).toHaveText('1')
+	await board.getByRole('button', { name: 'Move down' }).click()
+	await expect(board.getByRole('button', { name: 'Share' })).toBeVisible()
+	expect(submits).toHaveLength(1)
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[0].body).toMatchObject({
+		puzzleId,
+		puzzleDate: date,
+		status: 'won',
+		attempts: 2,
+		difficulty: 'easy',
+	})
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ moveCount: 2 })
+	await page.reload()
+	await expect(page.locator('[data-game-stage="completed"]')).toBeVisible()
+	await expect(board).toHaveCount(0)
+})
+
+test('Mini Grid lets a player correct a rejected filled grid without losing entries', async ({
+	page,
+}) => {
+	const fixture = crosswordGoldens[0]
+	const puzzleId = 'f362b0af-18ae-47b7-976e-f9246a8bf4c5'
+	const { board, submits } = await mount(page, 'crossword', fixture.puzzleData, false, {
+		puzzleId,
+		rejectFirst: true,
+		persistFinish: true,
+	})
+	const check = board.getByRole('button', { name: 'Check', exact: true })
+	const clueForRow = (row: number) => {
+		const clue = fixture.puzzleData.clues.across.find((clue) => clue.row === row)
+		if (!clue) throw new Error(`Missing Across clue for row ${row}`)
+		return board.getByRole('button', { name: `${clue.number}. ${clue.clue}`, exact: true })
+	}
+	await expect(check).toBeDisabled()
+	await expect(board.getByText('Gem weight unit', { exact: false }).first()).toBeVisible()
+	for (const [row, letters] of fixture.solution.grid.entries()) {
+		await clueForRow(row).click()
+		await page.keyboard.type(row === 0 ? `X${letters.slice(1).join('')}` : letters.join(''))
+	}
+	await check.click()
+	await expect(board.getByText('Try again', { exact: true })).toBeVisible()
+	await expect(board.getByRole('button', { name: 'Share' })).toHaveCount(0)
+	await clueForRow(0).click()
+	await page.keyboard.press('C')
+	await check.click()
+	await expect(board.getByText('Puzzle Complete!', { exact: true })).toBeVisible()
+	expect(submits).toHaveLength(2)
+	expect(submits[0].key).toBeTruthy()
+	expect(submits[1].key).toBeTruthy()
+	expect(submits[1].key).not.toBe(submits[0].key)
+	expect(submits[1].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'won' })
+	expect(JSON.parse(String(submits[0].body.submissionJson)).finalGrid[0][0]).toBe('X')
+	expect(JSON.parse(String(submits[1].body.submissionJson))).toEqual({
+		finalGrid: fixture.solution.grid,
+	})
+	await page.reload()
+	await expect(page.locator('[data-game-stage="completed"]')).toBeVisible()
+})
+
+test('Spots places, rotates and undoes dominoes before the server accepts the filled regions', async ({
+	page,
+}) => {
+	const fixture = pipGoldens[0]
+	const puzzleId = 'ba0927e7-1405-4888-9967-83901d6272a3'
+	const { board, submits } = await mount(page, 'pip-place', fixture.puzzleData, false, { puzzleId })
+	const cell = (row: number, col: number) => board.locator(`[data-pip-cell="${row},${col}"]`)
+	const tile = (pa: number, pb: number) =>
+		board.locator(`[data-pip-tile="${Math.min(pa, pb)}-${Math.max(pa, pb)}"]`)
+	const first = fixture.solution.tiles[0]
+	await tile(first.pa, first.pb).click()
+	await cell(first.a.row, first.a.col).click()
+	await cell(first.b.row, first.b.col).click()
+	await board.getByRole('button', { name: 'Undo', exact: true }).click()
+	await expect(tile(first.pa, first.pb)).toBeVisible()
+	expect(submits).toHaveLength(0)
+	for (const { a, b, pa, pb } of fixture.solution.tiles) {
+		await tile(pa, pb).click()
+		if (pa > pb) await board.getByRole('button', { name: 'Rotate', exact: true }).click()
+		await cell(a.row, a.col).click()
+		await cell(b.row, b.col).click()
+	}
+	await expect(board.getByText('Board complete!', { exact: true })).toBeVisible()
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'won' })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		tiles: fixture.solution.tiles,
+	})
+})
+
+test('Quad preserves graded guesses and saves only the four-board result', async ({ page }) => {
+	const words = ['NAVAL', 'ROCKY', 'PUNCH', 'LAUGH']
+	const grades: string[] = []
+	const puzzleId = '55ad0f6a-87d2-4dd9-9f86-9b3b695e31d1'
+	const { board, submits } = await mount(page, 'quad-words', {}, false, {
+		puzzleId,
+		persistFinish: true,
+		grade: (body) => {
+			expect(body).toMatchObject({ gameSlug: 'quad-words', puzzleId, puzzleDate: date })
+			const { word } = JSON.parse((body as { guessJson: string }).guessJson)
+			grades.push(word)
+			return {
+				boards: words.map((answer) =>
+					Array.from({ length: 5 }, () => (word === answer ? 'correct' : 'absent')),
+				),
+			}
+		},
+	})
+	const native = board.locator('[data-quad-board]')
+	const enter = native.locator('[data-key="Enter"]')
+	for (const [index, word] of words.entries()) {
+		await page.keyboard.type(word)
+		await enter.click()
+		await expect(native.getByText(`${index + 1}/4`, { exact: false }).first()).toBeVisible()
+		if (index < 3) expect(submits).toHaveLength(0)
+	}
+	await expect(native.getByText('Puzzle Complete!', { exact: true })).toBeVisible()
+	expect(grades).toEqual(words)
+	expect(submits).toHaveLength(1)
+	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'won', attempts: 4 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ guessHistory: words })
+	await page.reload()
+	await expect(page.locator('[data-game-stage="completed"]')).toBeVisible()
+})
+
+test('Hive checks its center letter and records only a verified pangram finish', async ({
+	page,
+}) => {
+	const puzzleId = '68e8ed0e-00ec-4a4d-9013-c11f96f1140a'
+	const grades: string[] = []
+	const { board, submits } = await mount(
+		page,
+		'word-hive',
+		{
+			centerLetter: 'E',
+			outerLetters: ['C', 'D', 'S', 'T', 'A', 'L'],
+			maxScore: 14,
+			totalWords: 1,
+			totalPangrams: 1,
+		},
+		true,
+		{
+			puzzleId,
+			grade: (body) => {
+				expect(body).toMatchObject({ gameSlug: 'word-hive', puzzleId, puzzleDate: date })
+				const { word } = JSON.parse((body as { guessJson: string }).guessJson)
+				grades.push(word)
+				return {
+					valid: word === 'CASTLED',
+					pangram: word === 'CASTLED',
+					totalWords: 1,
+					totalPangrams: 1,
+				}
+			},
+		},
+	)
+	const native = board.locator('[data-hive-board]')
+	const enter = native.getByRole('button', { name: 'Enter', exact: true })
+	for (const letter of 'CALA') await native.locator(`[data-letter="${letter}"]`).click()
+	await enter.click()
+	await expect(native.getByText('Missing center letter', { exact: true })).toBeVisible()
+	expect(grades).toHaveLength(0)
+	for (let i = 0; i < 4; i++) await page.keyboard.press('Backspace')
+	await page.keyboard.type('CELA')
+	await enter.click()
+	await expect(native.getByText('Not in word list', { exact: true })).toBeVisible()
+	expect(submits).toHaveLength(0)
+	for (let i = 0; i < 4; i++) await page.keyboard.press('Backspace')
+	await page.keyboard.type('CASTLED')
+	await enter.click()
+	const retry = native.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(native.getByRole('button', { name: 'Share' })).toHaveCount(0)
+	await retry.click()
+	await expect(native.getByRole('button', { name: 'Share' })).toBeVisible()
+	expect(grades).toEqual(['CELA', 'CASTLED'])
+	expect(submits).toHaveLength(2)
+	expect(submits[1]).toEqual(submits[0])
+	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'won', attempts: 1 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ foundWords: ['CASTLED'] })
 })
