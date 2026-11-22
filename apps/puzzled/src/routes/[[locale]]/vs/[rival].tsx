@@ -1,18 +1,36 @@
 /** @jsxImportSource solid-js */
-import { createAsync, type RouteDefinition, useParams } from '@solidjs/router'
+import { createAsync, query, type RouteDefinition, useParams } from '@solidjs/router'
+import { HttpHeader } from '@solidjs/start'
 import { Show } from 'solid-js'
+import { getRequestEvent } from 'solid-js/web'
 import { isComparisonSlug } from '@/features/marketing/components/comparison-slugs'
 import { COMPARISON_SPECS } from '@/features/marketing/components/comparison-specs'
 import { ComparisonLanding } from '@/features/marketing/solid/comparison-landing'
 import { EditorialMeta } from '@/features/marketing/solid/editorial-meta'
-import { editorialPage, editorialRoute } from '@/features/marketing/solid/editorial-route'
-import { defaultLocale } from '@/lib/i18n/config'
+import { editorialRoute } from '@/features/marketing/solid/editorial-route'
+import { defaultLocale, isValidLocale } from '@/lib/i18n/config'
 import NotFound from '@/shared/solid/not-found'
 import { SiteShell } from '@/shared/solid/site-shell'
 
+const getComparisonPage = query(async (localeParam: string, rival: string) => {
+	'use server'
+	const request = getRequestEvent()?.request
+	if (!request) throw new Error('Comparison page requires a request')
+	if (!isComparisonSlug(rival)) return null
+	const locale = isValidLocale(localeParam) ? localeParam : defaultLocale
+	const { readComparisonPricing } = await import(
+		'@/features/marketing/solid/comparison-pricing-data'
+	)
+	const { editorialPageData } = await import('@/features/marketing/solid/editorial-page-data')
+	return {
+		...editorialPageData(request, locale, `/vs/${rival}`),
+		...(await readComparisonPricing(request.headers, locale)),
+	}
+}, 'comparison-page')
+
 export const route = {
 	...editorialRoute,
-	preload: ({ params }) => editorialPage(params.locale ?? defaultLocale, `/vs/${params.rival}`),
+	preload: ({ params }) => getComparisonPage(params.locale ?? defaultLocale, params.rival ?? ''),
 } satisfies RouteDefinition
 
 export default function Page() {
@@ -20,23 +38,29 @@ export default function Page() {
 	const spec = () =>
 		params.rival && isComparisonSlug(params.rival) ? COMPARISON_SPECS[params.rival] : undefined
 	const page = createAsync(
-		() => editorialPage(params.locale ?? defaultLocale, `/vs/${params.rival}`),
+		() => getComparisonPage(params.locale ?? defaultLocale, params.rival ?? ''),
 		{ deferStream: true },
 	)
 	return (
 		<Show when={spec()} keyed fallback={<NotFound />}>
 			{(value) => (
-				<Show when={page()}>
-					{(base) => (
+				<Show when={page()} keyed>
+					{(data) => (
 						<>
+							<HttpHeader name="Cache-Control" value="private, no-store" />
 							<EditorialMeta
 								spec={value}
 								imageSubtitle={value.facts.join(' · ')}
-								origin={base().origin}
+								origin={data.origin}
 								type="article"
 							/>
-							<SiteShell data={base().shell}>
-								<ComparisonLanding spec={value} origin={base().origin} />
+							<SiteShell data={data.shell}>
+								<ComparisonLanding
+									spec={value}
+									origin={data.origin}
+									locale={data.locale}
+									pricing={data.pricing}
+								/>
 							</SiteShell>
 						</>
 					)}
