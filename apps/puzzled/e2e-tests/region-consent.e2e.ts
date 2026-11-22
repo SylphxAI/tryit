@@ -122,7 +122,12 @@ for (const viewport of [
 			expect(data).toContainEqual([
 				'event',
 				'page_view',
-				{ send_to: id, page_location: `${new URL(page.url()).origin}/`, page_title: 'Tryit' },
+				{
+					send_to: id,
+					page_location: `${new URL(page.url()).origin}/`,
+					page_title: 'Free Daily Brain Games & Puzzles | Tryit',
+					page_referrer: '',
+				},
 			])
 			expect(JSON.stringify(data)).not.toContain('private')
 			await page.goto('/games/sudoku?gameId=secret')
@@ -236,4 +241,111 @@ test('mobile opt-in bar fits every supported locale and Decline does not load Go
 	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
 	await expect(banner(page)).toBeHidden()
 	expect(requests).toEqual([])
+})
+
+// A fake dataLayer consumer cannot reproduce the destination's startup hit.
+// Fetch only the public script; intercept every cross-origin browser request
+// before it reaches Google (including POST batches and beacon transports).
+test.describe('GA4 collector', () => {
+	test.use({ bypassCSP: true, serviceWorkers: 'block' })
+	const measurementId = 'G-J5P11P794N'
+	const script = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`
+	const windowMs = 7000 // The existing duplicate arrived about 5s after the first hit.
+
+	async function intercept(page: Page, origin: string, loadScript: () => Promise<string>) {
+		let loads = 0
+		const events: URLSearchParams[] = []
+		await page.context().route('**/*', async (route) => {
+			const next = route.request()
+			const url = new URL(next.url())
+			if (url.origin === origin) return route.continue()
+			if (url.href === script) {
+				loads++
+				return route.fulfill({ contentType: 'application/javascript', body: await loadScript() })
+			}
+			if (url.pathname.endsWith('/collect')) {
+				for (const line of (next.postData() ?? '').split('\n')) {
+					const params = new URLSearchParams(url.search)
+					for (const [key, value] of new URLSearchParams(line)) params.set(key, value)
+					events.push(params)
+				}
+			}
+			return route.fulfill({ status: 204 })
+		})
+		await page.route('**/api/consent-context', async (route) => {
+			const response = await route.fetch()
+			await route.fulfill({
+				response,
+				json: { ...(await response.json()), ids: { ga: measurementId, ads: null } },
+			})
+		})
+		return {
+			loads: () => loads,
+			events,
+			views: () =>
+				events
+					.filter((event) => event.get('en') === 'page_view')
+					.map((event) => ({
+						title: event.get('dt'),
+						location: event.get('dl'),
+					})),
+		}
+	}
+
+	test('EEA Accept sends one canonical page view, then one per committed public SPA route', async ({
+		page,
+		request,
+		baseURL,
+	}) => {
+		const origin = new URL(baseURL!).origin
+		const loaded = await request.get(script, { timeout: 15000 })
+		expect(loaded.ok()).toBe(true)
+		const source = await loaded.text()
+		const collector = await intercept(page, origin, async () => source)
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		await page.goto('/?q=synthetic-search#synthetic-fragment')
+		await expect(banner(page)).toBeVisible()
+		await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+		expect(collector.loads()).toBe(0)
+		expect(collector.events).toEqual([])
+
+		const home = { title: 'Free Daily Brain Games & Puzzles | Tryit', location: `${origin}/` }
+		await banner(page).getByRole('button', { name: 'Accept', exact: true }).click()
+		await expect.poll(collector.views, { timeout: 12000 }).toContainEqual(home)
+		await page.waitForTimeout(windowMs)
+		expect(collector.loads()).toBe(1)
+		expect(collector.views()).toEqual([home])
+
+		// The real footer link must keep the same document to test SPA tracking.
+		await page.evaluate(() => {
+			document.documentElement.dataset.ga4SpaTest = 'same'
+		})
+		await page.locator('a[href="/privacy"]').first().click()
+		await expect(page).toHaveURL(`${origin}/privacy`)
+		await expect(page.locator('html')).toHaveAttribute('data-ga4-spa-test', 'same')
+		await expect(page).toHaveTitle('Privacy Policy | Tryit')
+		const privacy = { title: 'Privacy Policy | Tryit', location: `${origin}/privacy` }
+		await expect.poll(collector.views, { timeout: 12000 }).toContainEqual(privacy)
+		await page.waitForTimeout(windowMs)
+		expect(collector.loads()).toBe(1)
+		expect(collector.views()).toEqual([home, privacy])
+		expect(collector.events.some((event) => event.get('en') === 'view_search_results')).toBe(false)
+		expect(collector.events.map((event) => event.toString()).join(' ')).not.toMatch(
+			/synthetic-search|synthetic-fragment/,
+		)
+	})
+
+	test('GPC does not load the script or reach the collector despite a stored grant', async ({
+		page,
+		baseURL,
+	}) => {
+		const collector = await intercept(page, new URL(baseURL!).origin, async () => '')
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US', 'Sec-GPC': '1' })
+		await page.addInitScript((consentKey) => localStorage.setItem(consentKey, 'accepted'), key)
+		await page.goto('/')
+		await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+		await expect(banner(page)).toBeHidden()
+		expect(collector.loads()).toBe(0)
+		expect(collector.events).toEqual([])
+	})
 })

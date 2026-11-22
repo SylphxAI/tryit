@@ -235,14 +235,16 @@ Off until `GA_MEASUREMENT_ID` (GA4, `G-...`) or `GOOGLE_ADS_ID` (`AW-...`) is se
 the web environment; with neither, no Google script, request or CSP host exists.
 The cookie banner has three equal choices: Decline, Settings (separate Analytics and
 Advertising switches, both off) and Accept (analytics only, never advertising). gtag.js is
-injected, and `config` sent, only after a stored choice grants something: GA4 needs
-Analytics, Ads needs Advertising (`ad_storage`, `ad_user_data`); `ad_personalization`
-is always denied and Google signals are off. Basic consent mode: unanswered or declined
-loads nothing. There is no geo signal, so the denied defaults apply everywhere.
-Google sees only the site origin plus public paths (`/`, `/pricing`, `/privacy`, `/terms`,
-`/support`, `/login`, `/signup`), a fixed title and no referrer; game, share and account
-addresses never reach it. Turn **enhanced measurement** and **Google signals** off in the
-GA4 property. Events: `sign_up` (new account only, from Auth's new-account answer),
+injected only when an effective consent choice permits it. In strict regions, with
+an unknown region, or with Global Privacy Control active, no Google tag loads
+without permission (GPC always denies). In other regions the unanswered default
+permits analytics only. Ads always need a separate opt-in, and ad personalization
+and Google signals are disabled. Tryit emits its own GA4 page views with the
+public page's locale, pathname and document title, omitting the query, fragment,
+and referrer. Games, shares and account routes do not emit page views. Keep
+Enhanced Measurement and Google signals disabled in GA4. Tryit also suppresses
+automatic page views (including history changes) and site search before tag startup. Events: `sign_up` (new
+account only, from Auth's new-account answer),
 `trial_start` (value = the plan's post-trial price in the checkout currency, plan as item id)
 and `purchase` on the checkout return, each once per Money checkout session (`s`); mark them as
 Ads conversions. "Change cookie choice" on the privacy page withdraws consent, deletes

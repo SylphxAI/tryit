@@ -1,4 +1,4 @@
-import { useLocation } from '@solidjs/router'
+import { useIsRouting, useLocation } from '@solidjs/router'
 import { createEffect, onCleanup, onMount } from 'solid-js'
 import { subscriptionReturn } from '@/features/settings/solid/subscription-return'
 import { CONSENT_KEY, MARKETING_CONSENT_KEY } from '@/lib/storage-keys'
@@ -19,10 +19,24 @@ import {
 	trackablePath,
 } from '../lib/google-tag'
 
+function publicDocumentTitle(path: string): string | null {
+	const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+	if (!canonical?.href) return null
+	// The canonical host can differ from the request host on a preview. Match
+	// the path so the outgoing route's head cannot label the incoming view.
+	const canonicalPath = new URL(canonical.href).pathname
+	return canonicalPath.replace(/\/+$/, '') === path.replace(/\/+$/, '')
+		? document.title.trim() || null
+		: null
+}
+
 export function ConsentRuntime() {
 	const location = useLocation()
+	const isRouting = useIsRouting()
 	let tag: GoogleTagController | null = null
-	function sync(path: string, search: string) {
+	function sync() {
+		const routing = isRouting()
+		const { pathname: path, search } = location
 		const consent = cookieConsent()
 		// Only public paths track page views. Tag initialization also supports the
 		// explicit conversion on the subscription return page.
@@ -30,16 +44,27 @@ export function ConsentRuntime() {
 			consent.status === 'accepted' &&
 			/^(?:\/[^/]+)?\/settings\/subscription\/?$/.test(path) &&
 			subscriptionReturn(new URLSearchParams(search)).session !== null
-		tag?.sync(trackablePath(path) !== null || checkoutReturn)
-		tag?.pageView(path)
+		const isPublic = trackablePath(path) !== null
+		tag?.sync(!routing && (isPublic || checkoutReturn))
+		if (!routing) tag?.pageView(path, isPublic ? publicDocumentTitle(path) : null)
 		if (!tag && !consent.analytics && (consent.ready || consent.gpc)) {
 			deleteGoogleCookies(document, window.location.hostname)
 		}
 	}
 
-	createEffect(() => sync(location.pathname, location.search))
+	createEffect(sync)
 	onMount(() => {
-		const stop = onConsentChange(() => sync(location.pathname, location.search))
+		const stop = onConsentChange(sync)
+		// SolidStart may insert the new title and canonical link after the
+		// location has committed. Recheck only after head content changes.
+		const metadata = new MutationObserver(sync)
+		metadata.observe(document.head, {
+			subtree: true,
+			childList: true,
+			characterData: true,
+			attributes: true,
+			attributeFilter: ['href'],
+		})
 		const storageChanged = (event: StorageEvent) => {
 			if (event.key === null || event.key === CONSENT_KEY || event.key === MARKETING_CONSENT_KEY) {
 				notifyConsentChange()
@@ -80,6 +105,7 @@ export function ConsentRuntime() {
 		})()
 		onCleanup(() => {
 			abort.abort()
+			metadata.disconnect()
 			stop()
 			window.removeEventListener('storage', storageChanged)
 			setActiveGoogleTag(null)
