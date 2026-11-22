@@ -36,7 +36,10 @@ export function hasProgressCookie(headers: Headers): boolean {
 }
 
 /** Private, request-local transport. Never forwards unrelated cookies or browser headers. */
-export function requestConnectTransport(headers = new Headers()) {
+export function requestConnectTransport(
+	headers = new Headers(),
+	timeoutMs = SERVER_CONNECT_TIMEOUT_MS,
+) {
 	const cookie = cookieParts(headers.get('cookie'))
 		.filter(({ name }) => isProgressCookie(name) || name === CHECKOUT_CLAIM_COOKIE)
 		.map(({ pair }) => pair)
@@ -46,9 +49,6 @@ export function requestConnectTransport(headers = new Headers()) {
 		baseUrl: resolveServerConnectBaseUrl(),
 		useBinaryFormat: false,
 		fetch: ((input: RequestInfo | URL, init?: RequestInit) =>
-			fetch(
-				input,
-				mergeServerConnectInit(init, cookie, SERVER_CONNECT_TIMEOUT_MS, userAgent),
-			)) as typeof fetch,
+			fetch(input, mergeServerConnectInit(init, cookie, timeoutMs, userAgent))) as typeof fetch,
 	})
 }

@@ -72,7 +72,8 @@ function PricingBody({ data }: { data: PricingData }) {
 		'underline underline-offset-4 hover:text-foreground',
 	].join(' ')
 
-	if (cards.length === 0) {
+	if (data.planState !== 'open') {
+		const closed = data.planState === 'closed'
 		return (
 			<main
 				id="main-content"
@@ -103,9 +104,19 @@ function PricingBody({ data }: { data: PricingData }) {
 							/>
 							{tPlus('name')}
 						</p>
-						<h2 class="mt-2 font-display text-2xl">{t('closedTitle')}</h2>
-						<p class="mt-2 text-[15px] text-muted-foreground">{t('closedBody')}</p>
-						<p class="mt-1 text-[15px] font-semibold">{t('purchasesSoon')}</p>
+						<h2 class="mt-2 font-display text-2xl">
+							{t(closed ? 'closedTitle' : 'unavailableTitle')}
+						</h2>
+						<p class="mt-2 text-[15px] text-muted-foreground">
+							{t(closed ? 'closedBody' : 'unavailableBody')}
+						</p>
+						{closed ? (
+							<p class="mt-1 text-[15px] font-semibold">{t('purchasesSoon')}</p>
+						) : (
+							<button class={textLinkClass} type="button" onClick={() => window.location.reload()}>
+								{t('retryPlans')}
+							</button>
+						)}
 						<ul class="mt-5 space-y-2.5 border-t border-border pt-5">
 							<For each={includes(true)}>
 								{(line) => (

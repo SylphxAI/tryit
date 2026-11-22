@@ -175,18 +175,6 @@ export function PlusOffer(props: Props) {
 							}}
 						</For>
 					</fieldset>
-					{features().length > 0 ? (
-						<ul class={styles.features}>
-							<For each={features()}>
-								{(line) => (
-									<li class="flex items-start gap-2">
-										<Check class="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
-										{line}
-									</li>
-								)}
-							</For>
-						</ul>
-					) : null}
 					<Show when={current()} keyed>
 						{(selected) => {
 							const trialDays = () => (props.signedIn ? selected.trialDays : 0)
@@ -228,6 +216,18 @@ export function PlusOffer(props: Props) {
 							)
 						}}
 					</Show>
+					{features().length > 0 ? (
+						<ul class={styles.features}>
+							<For each={features()}>
+								{(line) => (
+									<li class="flex items-start gap-2">
+										<Check class="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+										{line}
+									</li>
+								)}
+							</For>
+						</ul>
+					) : null}
 				</div>
 				{props.footerSlot}
 			</div>

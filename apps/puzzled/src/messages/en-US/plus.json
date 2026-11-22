@@ -1,6 +1,9 @@
 {
 	"name": "Tryit Plus",
 	"pricing": {
+		"unavailableTitle": "Tryit Plus plans are temporarily unavailable",
+		"unavailableBody": "We couldn’t load plans or prices. Try again in a moment.",
+		"retryPlans": "Reload plans",
 		"metaTitle": "Tryit Plus: every game and the full archive",
 		"metaDescription": "Play any 3 games free every day. Tryit Plus opens every game, every past day, and a family plan.",
 		"title": "Every game, every day",
