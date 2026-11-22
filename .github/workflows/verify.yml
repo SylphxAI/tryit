@@ -444,11 +444,11 @@ jobs:
           BASE_URL: http://localhost:3015
         run: bun run test:e2e e2e-tests/sudoku-terminal.e2e.ts e2e-tests/result-modal-consent.e2e.ts --workers=1 --retries=0
 
-      - name: Discovery structured data, catalog and statutory disclosures
+      - name: Discovery structured data, catalog, redirects and statutory disclosures
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3015
-        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts --workers=1 --retries=0
+        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts --workers=1 --retries=0
 
       - name: Stage the Playwright report
         id: playwright-report
@@ -792,7 +792,7 @@ jobs:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/pricing
         run: |
           set -euo pipefail
-          bun run test:e2e e2e-tests/pricing.e2e.ts --workers=1 --retries=0 --output=test-results/pricing 2>&1 | tee "$RUNNER_TEMP/craft-pricing.log"
+          bun run test:e2e e2e-tests/pricing.e2e.ts e2e-tests/seo-conversion-layout.e2e.ts --workers=1 --retries=0 --output=test-results/pricing 2>&1 | tee "$RUNNER_TEMP/craft-pricing.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-pricing.log"; then echo "a pricing test skipped"; exit 1; fi
 
       - name: Stop the served builds and fixture APIs
