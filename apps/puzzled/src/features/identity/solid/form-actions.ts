@@ -1,9 +1,16 @@
 import { createSignal } from 'solid-js'
 import { POLICY_ACCEPTANCE } from '@/lib/identity/policy-consent'
 
-type Endpoint = 'login' | 'signup' | 'oidc/begin' | 'recovery' | 'recovery/complete'
+type Endpoint =
+	| 'login'
+	| 'sign-in'
+	| 'oidc/begin'
+	| 'recovery'
+	| 'recovery/complete'
+	| 'verify-email'
+	| 'verify-email/resend'
 
-async function postIdentity(endpoint: Endpoint, data: object) {
+export async function postIdentity(endpoint: Endpoint, data: object) {
 	const response = await fetch(`/api/identity/${endpoint}`, {
 		method: 'POST',
 		credentials: 'same-origin',
@@ -13,6 +20,7 @@ async function postIdentity(endpoint: Endpoint, data: object) {
 	const body: unknown = await response.json().catch(() => null)
 	return {
 		ok: response.ok,
+		retryAfter: response.headers.get('retry-after'),
 		body: body && typeof body === 'object' ? (body as Record<string, unknown>) : {},
 	}
 }
@@ -35,13 +43,13 @@ export function createIdentityAction() {
 			setPending(false)
 		}
 	}
-	function oauth(provider: string, redirectUrl: string, signup = false) {
+	function oauth(provider: string, redirectUrl: string, acceptPolicy = false) {
 		return run(async () => {
 			setLoadingProvider(provider)
 			const result = await postIdentity('oidc/begin', {
 				provider,
 				redirectUrl,
-				...(signup ? { acceptance: POLICY_ACCEPTANCE } : {}),
+				...(acceptPolicy ? { acceptance: POLICY_ACCEPTANCE } : {}),
 			})
 			if (
 				!result.ok ||
@@ -55,33 +63,11 @@ export function createIdentityAction() {
 	return { pending, error, clearError: () => setError(null), loadingProvider, run, oauth }
 }
 
-class IdentityRefusal extends Error {}
+export class IdentityRefusal extends Error {}
 
 export async function signIn(email: string, password: string, destination: string) {
 	const result = await postIdentity('login', { email, password })
 	if (!result.ok) throw new IdentityRefusal('sign_in_failed')
-	window.location.assign(destination)
-}
-
-export async function signUp(
-	fields: { email: string; password: string; name: string },
-	destination: string,
-	remember: () => void,
-) {
-	let result: Awaited<ReturnType<typeof postIdentity>>
-	try {
-		result = await postIdentity('signup', { ...fields, ...POLICY_ACCEPTANCE })
-	} catch {
-		// The request may already have created the account. Recover by sign-in only.
-		remember()
-		throw new IdentityRefusal('signup_signin_failed')
-	}
-	if (result.ok || result.body.retrySignIn === true) remember()
-	if (!result.ok)
-		throw new IdentityRefusal(
-			typeof result.body.error === 'string' ? result.body.error : 'sign_up_failed',
-		)
-	if (result.body.signedIn !== true) throw new IdentityRefusal('signup_signin_failed')
 	window.location.assign(destination)
 }
 

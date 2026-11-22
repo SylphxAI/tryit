@@ -23,6 +23,9 @@ type Field = {
 	error?: string
 	enterkeyhint?: 'enter' | 'next' | 'done' | 'go'
 	required?: boolean
+	inputmode?: 'email'
+	readonly?: boolean
+	inputRef?: (input: HTMLInputElement) => void
 }
 
 function FieldInput(props: Field & { reveal?: boolean }) {
@@ -30,6 +33,7 @@ function FieldInput(props: Field & { reveal?: boolean }) {
 	return (
 		<>
 			<input
+				ref={props.inputRef}
 				id={props.id}
 				name={props.id}
 				type={props.type ?? 'text'}
@@ -37,6 +41,8 @@ function FieldInput(props: Field & { reveal?: boolean }) {
 				onInput={(event) => props.onChange(event.currentTarget.value)}
 				onBlur={props.onBlur}
 				autocomplete={props.autocomplete}
+				inputmode={props.inputmode}
+				readOnly={props.readonly}
 				placeholder={props.placeholder}
 				disabled={props.disabled}
 				enterkeyhint={props.enterkeyhint}

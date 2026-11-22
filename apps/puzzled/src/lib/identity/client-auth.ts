@@ -74,12 +74,14 @@ async function call<T>(
 		},
 		body: init.body === undefined ? undefined : JSON.stringify(init.body),
 		cache: 'no-store',
+		redirect: 'error',
 		signal: AbortSignal.timeout(10_000),
 	})
 	const text = await response.text()
 	let body: Record<string, unknown> = {}
 	try {
-		body = text ? (JSON.parse(text) as Record<string, unknown>) : {}
+		const parsed: unknown = text ? JSON.parse(text) : null
+		if (parsed && typeof parsed === 'object') body = parsed as Record<string, unknown>
 	} catch {
 		body = {}
 	}
@@ -128,8 +130,7 @@ export async function passwordTicket(
 		userAgent: input.userAgent,
 		body: { email: input.email, password: input.password, session_mode: 'server' },
 	})
-	if (!body.ticket) throw new AuthCallError(502, 'no_ticket')
-	return body.ticket
+	return requireTicket(body)
 }
 
 export type RedeemedSession = {
@@ -213,25 +214,133 @@ export async function sessionTimes(
 	}
 }
 
-/**
- * Social providers the instance can use now (`GET /v1/client/config`), e.g.
- * `["google"]`. Empty while Auth is not enabled or on any failure.
- */
-export async function socialProviders(config: AuthConfig): Promise<string[]> {
+/** Instance-wide capabilities, never an email/account eligibility lookup. */
+export async function clientMethods(config: AuthConfig) {
 	const query = new URLSearchParams({ publishable_key: config.publishableKey })
 	const response = await fetch(`${config.url}/v1/client/config?${query}`, {
+		cache: 'no-store',
+		redirect: 'error',
 		signal: AbortSignal.timeout(5_000),
 	})
-	if (!response.ok) return []
-	let body: { social?: Array<{ provider?: unknown }> } = {}
-	try {
-		body = JSON.parse(await response.text())
-	} catch {
-		return []
+	if (!response.ok) throw new AuthCallError(502, 'config_unavailable')
+	const body = (await response.json()) as {
+		methods?: Record<string, unknown>
+		social?: Array<{ provider?: unknown } | null>
+	} | null
+	if (!body?.methods || typeof body.methods !== 'object' || !Array.isArray(body.social)) {
+		throw new AuthCallError(502, 'invalid_config')
 	}
-	return (body.social ?? []).flatMap((entry) =>
-		typeof entry.provider === 'string' && entry.provider ? [entry.provider] : [],
+	return {
+		emailCode: body.methods.email_otp === true,
+		password: body.methods.password === true,
+		passkey: body.methods.passkey === true,
+		google: body.social.some((entry) => entry?.provider === 'google'),
+	}
+}
+
+/** Public Continue API; the browser never receives an Auth session or ticket. */
+export async function beginEmailCode(config: AuthConfig, userAgent: string, email: string) {
+	const body = await call<{ step?: unknown; flow?: unknown; expires_in?: unknown }>(
+		config,
+		'/v1/client/continue',
+		{
+			bearer: config.publishableKey,
+			userAgent,
+			body: { email, method: 'email_otp', session_mode: 'server' },
+		},
 	)
+	if (
+		body.step !== 'email_otp' ||
+		typeof body.flow !== 'string' ||
+		!/^[A-Za-z0-9_-]{43}$/.test(body.flow) ||
+		typeof body.expires_in !== 'number' ||
+		!Number.isInteger(body.expires_in) ||
+		body.expires_in <= 0
+	)
+		throw new AuthCallError(502, 'invalid_continue')
+	return { flow: body.flow, expiresIn: body.expires_in }
+}
+
+function requireTicket(body: { ticket?: unknown }) {
+	if (typeof body.ticket !== 'string' || !body.ticket) throw new AuthCallError(502, 'no_ticket')
+	return body.ticket
+}
+
+export async function emailCodeTicket(
+	config: AuthConfig,
+	userAgent: string,
+	proof: { flow: string; code: string },
+) {
+	return requireTicket(
+		await call<{ ticket?: unknown }>(config, '/v1/client/continue/verify', {
+			bearer: config.publishableKey,
+			userAgent,
+			body: proof,
+		}),
+	)
+}
+
+export async function beginPasskey(config: AuthConfig, userAgent: string, origin: URL) {
+	const rpId = origin.hostname
+	const body = await call<{
+		challenge_id?: unknown
+		challenge?: unknown
+		rp_id?: unknown
+		allowed_credential_ids?: unknown
+		expires_at?: unknown
+	}>(config, '/v1/client/sign-in/passkey/begin', {
+		bearer: config.publishableKey,
+		userAgent,
+		// No identifier hint: decide availability in the browser's authenticator.
+		body: { rp_id: rpId, origin: origin.origin },
+	})
+	const { challenge_id, challenge, rp_id, allowed_credential_ids, expires_at } = body
+	if (
+		typeof challenge_id !== 'string' ||
+		!challenge_id ||
+		typeof challenge !== 'string' ||
+		!/^[A-Za-z0-9_-]{22,512}$/.test(challenge) ||
+		rp_id !== rpId ||
+		!Array.isArray(allowed_credential_ids) ||
+		!allowed_credential_ids.every(
+			(id) => typeof id === 'string' && /^[A-Za-z0-9_-]{1,2048}$/.test(id),
+		) ||
+		typeof expires_at !== 'number' ||
+		!Number.isFinite(expires_at)
+	)
+		throw new AuthCallError(502, 'invalid_passkey_challenge')
+	return {
+		challengeId: challenge_id,
+		challenge,
+		rpId,
+		credentialIds: allowed_credential_ids as string[],
+		expiresAt: expires_at,
+	}
+}
+
+export type PasskeyProof = {
+	challenge_id: string
+	credential_id: string
+	client_data_json: string
+	authenticator_data: string
+	signature: string
+	user_handle: string
+}
+
+export async function passkeyTicket(config: AuthConfig, userAgent: string, proof: PasskeyProof) {
+	return requireTicket(
+		await call<{ ticket?: unknown }>(config, '/v1/client/sign-in/passkey/verify', {
+			bearer: config.publishableKey,
+			userAgent,
+			body: { ...proof, session_mode: 'server' },
+		}),
+	)
+}
+
+/** Social providers for legacy pages. */
+export async function socialProviders(config: AuthConfig): Promise<string[]> {
+	const methods = await clientMethods(config).catch(() => null)
+	return methods?.google ? ['google'] : []
 }
 
 /** Auth's Google start door; Auth returns to `returnUrl` with `sylphx_ticket`. */

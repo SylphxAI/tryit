@@ -8,16 +8,15 @@ import { getTodaysFreeGame } from '@/lib/free-rotation'
 import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
-import { authConfig, socialProviders } from '@/lib/identity/client-auth'
+import { authConfig, clientMethods } from '@/lib/identity/client-auth'
 import { withPresentationDeadline } from '@/lib/presentation-document'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 
 export const authPages = {
-	login: ['signInTitle', 'signInDescription'],
-	signup: ['signUpTitle', 'signUpDescription'],
-	'forgot-password': ['forgotPasswordTitle', 'forgotPasswordDescription'],
+	'sign-in': ['signInTitle', 'signInDescription'],
 	'reset-password': ['resetPasswordTitle', 'resetPasswordDescription'],
+	'verify-email': ['confirmEmailTitle', 'verifiedSignInGuidance'],
 } as const
 
 async function readTodayOverview() {
@@ -32,10 +31,10 @@ export async function readAuthPage(locale: Locale, kind: keyof typeof authPages,
 	const gameKey = `games.${slugToCamelCase(freeGameSlug)}.name`
 	const freeGameName = t.has(gameKey) ? t(gameKey) : freeGameSlug
 	const overview = withPresentationDeadline(readTodayOverview(), null)
-	const config = kind === 'login' || kind === 'signup' ? authConfig() : null
-	const [result, providers] = await Promise.all([
+	const config = kind === 'sign-in' ? authConfig() : null
+	const [result, methods] = await Promise.all([
 		overview,
-		config ? socialProviders(config).catch(() => []) : [],
+		config ? clientMethods(config).catch(() => null) : null,
 	])
 	const [titleKey, descriptionKey] = authPages[kind]
 	const title = t(`auth.${titleKey}`)
@@ -44,7 +43,7 @@ export async function readAuthPage(locale: Locale, kind: keyof typeof authPages,
 		freeGameSlug,
 		freeGameName,
 		playersToday: result ? Number(result.playerCount) : null,
-		providers,
+		methods,
 		meta: pageMetadata({
 			locale,
 			path: `/${kind}`,

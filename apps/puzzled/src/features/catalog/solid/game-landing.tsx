@@ -157,7 +157,7 @@ export function GameLanding(
 												class="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4"
 												href={localizedPath(
 													d().locale,
-													`/signup?${new URLSearchParams({ callbackUrl: d().canonicalPath })}`,
+													`/sign-in?${new URLSearchParams({ callbackUrl: d().canonicalPath })}`,
 												)}
 											>
 												{t().signup}

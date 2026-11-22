@@ -1,5 +1,5 @@
 import type { APIEvent } from '@solidjs/start/server'
-import { POST as handlePOST } from '@/server/api/identity/signup'
+import { POST as handlePOST } from '@/server/api/identity/sign-in'
 import { apiMethodResponses } from '@/server/api-methods'
 
 export const POST = ({ request }: APIEvent) => handlePOST(request)
