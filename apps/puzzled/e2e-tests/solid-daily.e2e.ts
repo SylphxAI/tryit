@@ -4,6 +4,7 @@ import duoGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/duo
 import cageGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/killer-sudoku.json'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import matchGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pattern-match.json'
+import fiveGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-guess.json'
 import ladderGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-ladder.json'
 import { productDayKey } from '../src/lib/product-day'
 
@@ -738,4 +739,124 @@ test('Rungs validates steps, preserves undo and waits for the exact saved path',
 	await expect(board.getByText('You made it!')).toBeVisible()
 	await expect(board.getByRole('button', { name: 'Share' })).toBeVisible()
 	expect(submits).toEqual([submits[0], submits[0]])
+})
+
+test('Five freezes the pending guess and uses only server tile grades', async ({ page }) => {
+	await page.setViewportSize({ width: 360, height: 750 })
+	const puzzleId = '5bcd0c76-f347-469a-a344-a96ef6b409e2'
+	const fixture = fiveGoldens[0]
+	const grades: string[] = []
+	let release = () => {}
+	const delayed = new Promise<void>((resolve) => {
+		release = resolve
+	})
+	const { board, submits } = await mount(page, 'word-guess', fixture.puzzleData, true, {
+		puzzleId,
+		async grade(raw) {
+			const body = raw as { guessJson: string }
+			expect(body).toMatchObject({ gameSlug: 'word-guess', puzzleDate: date, puzzleId })
+			const { word } = JSON.parse(body.guessJson)
+			grades.push(word)
+			if (grades.length === 1) {
+				await delayed
+				return undefined
+			}
+			return word === 'crane'
+				? { tiles: ['absent', 'present', 'absent', 'absent', 'absent'] }
+				: { tiles: Array(5).fill('correct') }
+		},
+	})
+	const table = board.getByRole('table', { name: 'Five' })
+	const rows = table.getByRole('row')
+	const key = (letter: string) => board.getByRole('button', { name: letter, exact: true })
+	const enter = key('Enter')
+	await expect(rows).toHaveCount(6)
+	await expect(rows.first().getByRole('cell')).toHaveCount(5)
+	await expect(board.getByText(fixture.solution.word, { exact: true })).toHaveCount(0)
+	await enter.click()
+	await expect(board.getByRole('alert')).toHaveText('Not enough letters')
+	await page.keyboard.type('zzzzz')
+	await enter.click()
+	await expect(board.getByRole('alert')).toHaveText('Not in word list')
+	expect(grades).toEqual([])
+	for (let i = 0; i < 5; i++) await page.keyboard.press('Backspace')
+	await page.keyboard.type('crane')
+	await enter.click()
+	try {
+		await expect(enter).toBeDisabled()
+		await page.keyboard.press('Backspace')
+		await page.keyboard.press('X')
+		await page.keyboard.press('Enter')
+		await expect(rows.first().getByRole('cell').last()).toHaveText('E')
+		expect(grades).toEqual(['crane'])
+	} finally {
+		release()
+	}
+	await expect(board.getByRole('alert')).toHaveText('Something went wrong')
+	await expect(rows.first().getByRole('cell').last()).toHaveText('E')
+	await expect(rows.locator('[data-grade]')).toHaveCount(0)
+	await enter.click()
+	await expect(rows.first().locator('[data-grade="present"]')).toHaveAccessibleName(/Yellow means/)
+	await expect(key('R')).toHaveAttribute('data-grade', 'present')
+	expect(submits).toHaveLength(0)
+	for (const letter of 'FORTZ') await key(letter).click()
+	await key('Delete').click()
+	await key('Y').click()
+	await enter.click()
+	const retry = board.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(board.getByText('Excellent!')).toHaveCount(0)
+	await expect(key('Share')).toHaveCount(0)
+	expect(grades).toEqual(['crane', 'crane', 'forty'])
+	expect(submits[0].body).toMatchObject({
+		gameSlug: 'word-guess',
+		puzzleDate: date,
+		puzzleId,
+		status: 'won',
+		attempts: 2,
+	})
+	expect(submits[0].key).toBeTruthy()
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({
+		guesses: ['crane', 'forty'],
+	})
+	await retry.click()
+	await expect(board.getByText('Excellent!')).toBeVisible()
+	await expect(key('Share')).toBeVisible()
+	expect(submits).toEqual([submits[0], submits[0]])
+})
+
+test('Five uses six real keyboard guesses and reveals only on an accepted loss', async ({
+	page,
+}) => {
+	const puzzleId = 'e64664cb-3a76-4888-ab8b-daae90821cab'
+	const fixture = fiveGoldens[0]
+	const guesses = ['crane', 'raise', 'blush', 'flame', 'sugar', 'lemon']
+	const { board, submits } = await mount(page, 'word-guess', fixture.puzzleData, true, {
+		puzzleId,
+		grade: () => ({ tiles: ['absent', 'absent', 'absent', 'absent', 'absent'] }),
+		reveal: fixture.solution,
+	})
+	const table = board.getByRole('table', { name: 'Five' })
+	await table.getByRole('cell').first().click()
+	for (const [i, word] of guesses.entries()) {
+		await page.keyboard.type(word)
+		await page.keyboard.press('Enter')
+		await expect(table.getByRole('row').nth(i).locator('[data-grade="absent"]')).toHaveCount(5)
+		if (i < 5) expect(submits).toHaveLength(0)
+	}
+	const retry = board.getByRole('button', { name: 'Try again' })
+	await expect(retry).toBeVisible()
+	await expect(board.getByRole('button', { name: 'Enter' })).toHaveCount(0)
+	await expect(board.getByText('The word was FORTY')).toHaveCount(0)
+	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'lost', attempts: 6 })
+	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ guesses })
+	await retry.click()
+	await expect(board.getByText('The word was FORTY')).toBeVisible()
+	expect(submits).toEqual([submits[0], submits[0]])
+	await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+	await board.getByRole('button', { name: 'Share' }).click()
+	const share = await page.evaluate(() => navigator.clipboard.readText())
+	expect(share).toContain(Array(6).fill('⬛⬛⬛⬛⬛').join('\n'))
+	expect(share).toContain('/r/fixture-share?utm_source=share')
+	expect(share).not.toMatch(/forty|crane/i)
 })

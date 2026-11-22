@@ -74,15 +74,15 @@ export function createBoardFinish(props: DailyBoardProps, gameSlug: string) {
 			void send()
 		},
 		retry: send,
-		async share(title: string) {
+		async share(title: string, text?: string) {
 			if (state() !== 'accepted') return
 			const puzzleDate = intent?.puzzleDate
 			const archiveDate = puzzleDate === productDayKey() ? undefined : puzzleDate
 			const url = ritualShareDeepLink(window.location.origin, gameSlug, archiveDate, shareId())
 			void shareResult({ gameSlug, puzzleDate, tap: true }).catch(() => {})
 			// Invoke native share synchronously with the tap; the count must not block it.
-			if (navigator.share) await navigator.share({ title, url })
-			else await navigator.clipboard.writeText(url)
+			if (navigator.share) await navigator.share({ title, text, url })
+			else await navigator.clipboard.writeText(text ? `${text}\n\n${url}` : url)
 		},
 	}
 }
@@ -91,6 +91,8 @@ export function BoardFinish(props: {
 	finish: ReturnType<typeof createBoardFinish>
 	locale: Locale
 	message: string
+	shareTitle?: string
+	shareText?: string
 }) {
 	const t = createTranslator(props.locale)
 	const [sharing, setSharing] = createSignal(false)
@@ -100,7 +102,7 @@ export function BoardFinish(props: {
 		setSharing(true)
 		setNotice(undefined)
 		try {
-			await props.finish.share(props.message)
+			await props.finish.share(props.shareTitle ?? props.message, props.shareText)
 			if (!navigator.share) setNotice('copied')
 		} catch (error) {
 			if (!(error instanceof DOMException && error.name === 'AbortError')) setNotice('error')
