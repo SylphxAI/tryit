@@ -29,7 +29,7 @@ export type UseCaseComparisonRow = {
 export type UseCaseOffer = {
 	name: string
 	price: string
-	priceCurrency: 'USD' | 'GBP'
+	priceCurrency: string
 }
 
 export type UseCaseSpec = {

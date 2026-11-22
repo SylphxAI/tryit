@@ -1,4 +1,13 @@
 import { Code, ConnectError } from '@connectrpc/connect'
+import { parseCookie } from 'cookie-es'
+import type { ListPlansResponse } from '@/gen/connect/puzzled/v1/billing_pb'
+import {
+	availableCurrencies,
+	COUNTRY_HEADER,
+	CURRENCY_COOKIE,
+	chooseCurrency,
+} from '@/lib/billing/currency'
+import { planCards } from '@/lib/billing/plus'
 import { withPresentationDeadline } from '@/lib/presentation-document'
 
 const transientCodes = new Set([
@@ -40,4 +49,21 @@ export function pricingPlanState(plans: { salesOpen: boolean } | null, cardCount
 	if (plans?.salesOpen === false) return 'closed'
 	if (!plans || cardCount === 0) return 'unavailable'
 	return 'open'
+}
+
+/** Pricing and comparisons resolve the catalogue against the same request preference. */
+export function selectPricingPlans(
+	plans: ListPlansResponse | null,
+	headers: Headers,
+	locale: string,
+) {
+	const currencies = plans?.salesOpen ? availableCurrencies(plans.plans) : []
+	const currency = chooseCurrency({
+		cookie: parseCookie(headers.get('cookie') ?? '')[CURRENCY_COOKIE],
+		country: headers.get(COUNTRY_HEADER),
+		locale,
+		available: currencies,
+	})
+	const cards = plans?.salesOpen ? planCards(plans.plans, currency) : []
+	return { currencies, currency, cards, planState: pricingPlanState(plans, cards.length) }
 }

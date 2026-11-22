@@ -12,7 +12,7 @@ export function PageMeta(props: { value: PageMetadata }) {
 	return (
 		<>
 			<SiteSchema origin={new URL(value().alternates.canonical).origin} />
-			<Title>{value().title} | Tryit</Title>
+			<Title>{value().documentTitle}</Title>
 			<Meta name="description" content={value().description} />
 			{value().robots && <Meta name="robots" content="noindex, nofollow" />}
 			<Link rel="canonical" href={value().alternates.canonical} />

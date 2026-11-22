@@ -1,9 +1,12 @@
 /** @jsxImportSource solid-js */
 
 import { For } from 'solid-js'
+import { CurrencySwitcher } from '@/features/plus/solid/currency-switcher'
 import { getGameMetadata } from '@/games/registry'
 import { getGameColors } from '@/games/theme-colors'
+import type { Locale } from '@/lib/i18n/config'
 import { JsonLd } from '@/shared/solid/json-ld'
+import { type comparisonPricing, comparisonPricingFaqs } from '../components/comparison-pricing'
 import { COMPARISON_HUB_PATH } from '../components/comparison-slugs'
 import { COMPARISON_HUB, type ComparisonSpec } from '../components/comparison-specs'
 import {
@@ -24,8 +27,19 @@ import { MarketingSection } from './marketing-section'
  * An honest "Tryit vs X" page: a short verdict first, the side-by-side table,
  * credit where the other product is stronger, then closest-match games.
  */
-export function ComparisonLanding({ spec, origin }: { spec: ComparisonSpec; origin: string }) {
-	const landing = buildUseCaseJsonLd(spec, origin)
+export function ComparisonLanding({
+	spec,
+	origin,
+	locale,
+	pricing,
+}: {
+	spec: ComparisonSpec
+	origin: string
+	locale: Locale
+	pricing: ReturnType<typeof comparisonPricing>
+}) {
+	const faqs = comparisonPricingFaqs(spec, pricing)
+	const landing = buildUseCaseJsonLd({ ...spec, faqs, offers: pricing.offers }, origin)
 	const structuredData = {
 		...landing,
 		'@graph': [...landing['@graph'], comparisonBreadcrumbJsonLd(spec, origin)],
@@ -85,8 +99,20 @@ export function ComparisonLanding({ spec, origin }: { spec: ComparisonSpec; orig
 				id="side-by-side"
 				title={spec.tableTitle}
 				subtitle={spec.tableSubtitle}
+				action={
+					pricing.currencies.length > 1 ? (
+						<div lang={locale}>
+							<CurrencySwitcher
+								locale={locale}
+								currencies={pricing.currencies}
+								current={pricing.currency}
+							/>
+						</div>
+					) : undefined
+				}
 				flush
 			>
+				{pricing.note && <p class="mb-3 text-sm text-muted-foreground">{pricing.note}</p>}
 				<div class="surface-card overflow-hidden">
 					<table class="block w-full border-collapse text-left text-sm md:table">
 						<caption class="sr-only">{spec.tableTitle}</caption>
@@ -122,7 +148,7 @@ export function ComparisonLanding({ spec, origin }: { spec: ComparisonSpec; orig
 										</td>
 										<td class="mt-3 block rounded-xl bg-accent-warm-soft p-3 font-medium text-foreground md:mt-0 md:table-cell md:rounded-none md:px-5 md:py-4 md:align-top">
 											<span class="eyebrow block md:hidden">Tryit</span>
-											{row.us}
+											{row.pricing ? pricing.rows[row.pricing] : row.us}
 										</td>
 									</tr>
 								)}
@@ -205,7 +231,7 @@ export function ComparisonLanding({ spec, origin }: { spec: ComparisonSpec; orig
 				</ul>
 			</MarketingSection>
 
-			<MarketingFaq id="faq" title={spec.faqTitle} items={spec.faqs} emitStructuredData={false} />
+			<MarketingFaq id="faq" title={spec.faqTitle} items={faqs} emitStructuredData={false} />
 
 			<MarketingCta title={spec.closingCta.title} body={spec.closingCta.body}>
 				<EditorialLink href={spec.primaryCta.href} class={PLAY_CTA}>

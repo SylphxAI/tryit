@@ -1,14 +1,7 @@
-import { parseCookie } from 'cookie-es'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
 import { getAllGameMetadata } from '@/games/registry'
 import { readBillingPlans, requestBilling } from '@/lib/api/request-billing'
-import {
-	availableCurrencies,
-	COUNTRY_HEADER,
-	CURRENCY_COOKIE,
-	chooseCurrency,
-} from '@/lib/billing/currency'
-import { planCards, showsCurrentPlan } from '@/lib/billing/plus'
+import { showsCurrentPlan } from '@/lib/billing/plus'
 import { getTodaysFreeGame } from '@/lib/free-rotation'
 import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
@@ -20,7 +13,7 @@ import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import { siteShellData } from '@/shared/solid/site-shell-data'
 
-import { loadPricingPlans, pricingPlanState } from '../lib/pricing-plans'
+import { loadPricingPlans, selectPricingPlans } from '../lib/pricing-plans'
 
 export async function readPricingPage(
 	locale: Locale,
@@ -41,13 +34,11 @@ export async function readPricingPage(
 		pricingPlans,
 		user.then((viewer) => withPresentationDeadline(billing.access(Boolean(viewer)), null)),
 	])
-	const currencies = plans?.salesOpen ? availableCurrencies(plans.plans) : []
-	const currency = chooseCurrency({
-		cookie: parseCookie(request.headers.get('cookie') ?? '')[CURRENCY_COOKIE],
-		country: request.headers.get(COUNTRY_HEADER),
+	const { currencies, currency, cards, planState } = selectPricingPlans(
+		plans,
+		request.headers,
 		locale,
-		available: currencies,
-	})
+	)
 	const trigger = (fallback: string) =>
 		resolvePricingCheckoutTrigger({
 			trigger: search.get('trigger') ?? undefined,
@@ -55,10 +46,9 @@ export async function readPricingPage(
 			entrySurface: search.get('entry_surface') ?? undefined,
 			fallback,
 		})
-	const cards = plans?.salesOpen ? planCards(plans.plans, currency) : []
 	return {
 		locale,
-		planState: pricingPlanState(plans, cards.length),
+		planState,
 		gameCount,
 		freeSlug,
 		freeName: translate(`games.${slugToCamelCase(freeSlug)}.name`),

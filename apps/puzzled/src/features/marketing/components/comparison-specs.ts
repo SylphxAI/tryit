@@ -1,15 +1,18 @@
 import { getAllGameMetadata } from '@/games/registry'
 import type { GameCategory } from '@/games/types'
-import { FAMILY_SEATS, listPrice, offerPrice } from './catalogue-prices'
+import { FAMILY_SEATS } from './catalogue-prices'
 import { COMPARISON_HUB_PATH, COMPARISON_SLUGS, type ComparisonSlug } from './comparison-slugs'
 import type { MarketingFaqItem } from './marketing-faq-item'
-import type { UseCaseCta, UseCaseOffer } from './use-case-specs'
+import type { UseCaseCta } from './use-case-specs'
 
 export type ComparisonRow = {
 	feature: string
 	them: string
-	us: string
-}
+} & ({ us: string; pricing?: never } | { pricing: ComparisonPricingRow; us?: never })
+
+export type ComparisonPricingRow = 'pass' | 'subscriptions'
+
+type ComparisonFaq = MarketingFaqItem & { withTryitPricing?: boolean }
 
 export type ComparisonPoint = {
 	title: string
@@ -50,7 +53,7 @@ export type ComparisonSpec = {
 	pairingsSubtitle: string
 	pairings: readonly ComparisonPairing[]
 	faqTitle: string
-	faqs: readonly MarketingFaqItem[]
+	faqs: readonly ComparisonFaq[]
 	closingCta: { title: string; body: string }
 	/** Independence and trademark notice, plus the date the rival's facts were read. */
 	disclaimer: string
@@ -58,18 +61,12 @@ export type ComparisonSpec = {
 	llmsSummary: string
 	softwareName: string
 	softwareDescription: string
-	offers: readonly UseCaseOffer[]
 }
 
 const GAMES = getAllGameMetadata()
 const TOTAL_GAMES = GAMES.length
 const countIn = (category: GameCategory) =>
 	GAMES.filter((game) => game.category === category).length
-const PASS = listPrice('puzzled_starter_unlock')
-const PLUS_MONTH = listPrice('plus_individual_monthly')
-const PLUS_YEAR = listPrice('plus_individual_yearly')
-const FAMILY_MONTH = listPrice('plus_family_monthly')
-const FAMILY_YEAR = listPrice('plus_family_yearly')
 
 /** Query string that attributes a visit to one comparison page. */
 const entry = (slug: ComparisonSlug) => `entry_surface=seo_vs-${slug}`
@@ -77,47 +74,20 @@ const entry = (slug: ComparisonSlug) => `entry_surface=seo_vs-${slug}`
 /** Every registered game counted once, by category ("9 word, 4 logic, ..."). */
 const LINEUP = `${countIn('word')} word, ${countIn('logic')} logic, ${countIn('math')} number and ${countIn('spatial')} spatial`
 
-/** Tryit's side of the price question, the same on every comparison. */
-const TRYIT_PRICES = `Tryit's 3 daily picks are free. To open all ${TOTAL_GAMES} games and the archive: a 3-Day Pass is ${PASS} once, Tryit Plus is ${PLUS_MONTH}/month or ${PLUS_YEAR}/year, and Tryit Family (up to ${FAMILY_SEATS} people) is ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year, VAT included.`
-
 const NEW_PUZZLES_FAQ: MarketingFaqItem = {
 	question: 'When do new Tryit puzzles come out?',
 	answer: `Every day at midnight Hong Kong time (UTC+8). All ${TOTAL_GAMES} games refresh together, and everyone gets the same set.`,
 }
 
 const PASS_STRENGTH: ComparisonPoint = {
-	title: `A ${PASS} pass, not a contract`,
+	title: 'A pass, not a subscription',
 	body: 'The 3-Day Pass opens every game and every past day for 3 days with one payment and no renewal. Perfect for a long weekend of catching up.',
 }
 
 const SOFTWARE = {
 	softwareName: 'Tryit',
 	softwareDescription: `${TOTAL_GAMES} daily word, logic, number and spatial puzzles in one web app. Pick any 3 to play free every day with no account; Tryit Plus opens every game and the full archive.`,
-	offers: [
-		{ name: 'Free (any 3 games a day)', price: '0', priceCurrency: 'USD' },
-		{ name: '3-Day Pass', price: offerPrice('puzzled_starter_unlock'), priceCurrency: 'USD' },
-		{
-			name: 'Tryit Plus (Monthly)',
-			price: offerPrice('plus_individual_monthly'),
-			priceCurrency: 'USD',
-		},
-		{
-			name: 'Tryit Plus (Yearly)',
-			price: offerPrice('plus_individual_yearly'),
-			priceCurrency: 'USD',
-		},
-		{
-			name: 'Tryit Family (Monthly)',
-			price: offerPrice('plus_family_monthly'),
-			priceCurrency: 'USD',
-		},
-		{
-			name: 'Tryit Family (Yearly)',
-			price: offerPrice('plus_family_yearly'),
-			priceCurrency: 'USD',
-		},
-	],
-} as const satisfies Pick<ComparisonSpec, 'softwareName' | 'softwareDescription' | 'offers'>
+} satisfies Pick<ComparisonSpec, 'softwareName' | 'softwareDescription'>
 
 /**
  * Rival facts are limited to what each company states itself, read 2026-11-18:
@@ -162,7 +132,7 @@ export const COMPARISON_SPECS = {
 		path: '/vs/nyt-games',
 		rival: 'NYT Games',
 		metaTitle: `Tryit vs NYT Games: ${TOTAL_GAMES} Daily Puzzles, Any 3 Free`,
-		metaDescription: `Tryit vs NYT Games, honestly compared. Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles; pick any 3 free every day with no login and no ads while you play. ${PASS} one-time 3-Day Pass.`,
+		metaDescription: `Tryit vs NYT Games, honestly compared. Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles; pick any 3 free every day with no login and no ads while you play. A one-time 3-Day Pass opens the archive.`,
 		eyebrow: 'Tryit vs NYT Games · An honest comparison',
 		h1: `Love NYT Games? Meet ${TOTAL_GAMES} more daily puzzles, any 3 free.`,
 		lead: `NYT Games is the home of Wordle, Connections, Spelling Bee and the Crossword. Tryit is a different daily habit: ${TOTAL_GAMES} word, logic, number and spatial puzzles in one place, and you pick any 3 to play free every day with no login and no ads while you play.`,
@@ -170,17 +140,17 @@ export const COMPARISON_SPECS = {
 			`${TOTAL_GAMES} daily games`,
 			'Any 3 free every day',
 			'No account needed',
-			`${PASS} 3-Day Pass, one time`,
+			'One-time 3-Day Pass',
 		],
 		verdictTitle: 'The short answer',
 		verdict: [
 			'Choose NYT Games for the full-size, edited daily Crossword, the Spelling Bee and native iOS and Android apps.',
-			`Choose Tryit for ${TOTAL_GAMES} daily puzzle types in one place, 3 free picks a day without an account, and a ${PASS} pass with no renewal.`,
+			`Choose Tryit for ${TOTAL_GAMES} daily puzzle types in one place, 3 free picks a day without an account, and a one-time pass with no renewal.`,
 			'Plenty of puzzle fans do both: keep the Crossword, add three Tryit games for variety.',
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('nyt-games')}` },
 		secondaryCta: {
-			label: `See the ${PASS} 3-Day Pass`,
+			label: 'See the 3-Day Pass',
 			href: `/pricing?${entry('nyt-games')}`,
 		},
 		tableTitle: 'Tryit and NYT Games side by side',
@@ -210,12 +180,12 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Try everything, no commitment',
 				them: 'Games subscription, billed every 4 weeks or yearly',
-				us: `3-Day Pass: ${PASS} once, no renewal. All ${TOTAL_GAMES} games and every past day`,
+				pricing: 'pass',
 			},
 			{
 				feature: 'Ongoing plans',
 				them: 'Prices vary by country and current offer; see nytimes.com',
-				us: `Plus ${PLUS_MONTH}/month or ${PLUS_YEAR}/year. Family for up to ${FAMILY_SEATS} people ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year. VAT included`,
+				pricing: 'subscriptions',
 			},
 			{
 				feature: 'Where you play',
@@ -256,7 +226,7 @@ export const COMPARISON_SPECS = {
 			PASS_STRENGTH,
 			{
 				title: `One plan for up to ${FAMILY_SEATS} people`,
-				body: `Tryit Family covers up to ${FAMILY_SEATS} accounts, each with their own streaks and stats, for ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year.`,
+				body: `Tryit Family covers up to ${FAMILY_SEATS} accounts, each with their own streaks and stats.`,
 			},
 		],
 		pairingsTitle: 'If you like these, try these',
@@ -296,7 +266,9 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'How much does Tryit cost compared with NYT Games?',
-				answer: `${TRYIT_PRICES} NYT Games prices vary by country and offer, so check nytimes.com for current rates.`,
+				withTryitPricing: true,
+				answer:
+					'NYT Games prices vary by country and offer, so check nytimes.com for current rates.',
 			},
 			{
 				question: 'Does Tryit have a full-size crossword like the NYT Crossword?',
@@ -319,7 +291,7 @@ export const COMPARISON_SPECS = {
 		path: '/vs/lumosity',
 		rival: 'Lumosity',
 		metaTitle: `Tryit vs Lumosity: A Free Alternative, ${TOTAL_GAMES} Daily Puzzles`,
-		metaDescription: `Looking for a free Lumosity alternative? Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles in your browser. Pick any 3 free every day: no app, no sign-up, no test first. Tryit Plus ${PLUS_MONTH}/month.`,
+		metaDescription: `Looking for a free Lumosity alternative? Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles in your browser. Pick any 3 free every day: no app, no sign-up, no test first.`,
 		eyebrow: 'Tryit vs Lumosity · An honest comparison',
 		h1: `Daily brain games with no app and no sign-up. Pick any 3 of ${TOTAL_GAMES}, free.`,
 		lead: `Lumosity is a brain-training program: you make an account, take a Fit Test, then play the workouts it picks for you. Tryit is a lighter daily habit: ${TOTAL_GAMES} word, logic, number and spatial puzzles in your browser, and you choose any 3 to play free every day, with no account and no ads while you play.`,
@@ -327,12 +299,12 @@ export const COMPARISON_SPECS = {
 			`${TOTAL_GAMES} daily games`,
 			'Any 3 free every day',
 			'No app, no account',
-			`Tryit Plus ${PLUS_MONTH}/month`,
+			'Optional Tryit Plus',
 		],
 		verdictTitle: 'The short answer',
 		verdict: [
 			'Choose Lumosity for a structured training program: 40+ adaptive games, personalized workouts, detailed performance insights and apps for iPhone, iPad and Android.',
-			`Choose Tryit for ${TOTAL_GAMES} daily puzzles you pick yourself, 3 free a day in any browser with no account, and all of them with Tryit Plus for ${PLUS_MONTH}/month.`,
+			`Choose Tryit for ${TOTAL_GAMES} daily puzzles you pick yourself, 3 free a day in any browser with no account, and all of them with an optional Tryit Plus subscription.`,
 			'Tryit makes no brain-training claims. It is a fresh set of good puzzles every day, ready in one tap.',
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('lumosity')}` },
@@ -364,12 +336,12 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Paid plans',
 				them: 'Premium monthly, yearly, two-year and lifetime plans; the US App Store lists them from $11.99 to $89.00. Family plans for up to 5 people',
-				us: `Plus ${PLUS_MONTH}/month or ${PLUS_YEAR}/year. Family for up to ${FAMILY_SEATS} people ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year. VAT included`,
+				pricing: 'subscriptions',
 			},
 			{
 				feature: 'Try everything, no commitment',
 				them: 'A Premium plan, from one month to lifetime',
-				us: `3-Day Pass: ${PASS} once, no renewal. All ${TOTAL_GAMES} games and every past day`,
+				pricing: 'pass',
 			},
 			{
 				feature: 'Progress',
@@ -452,7 +424,9 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'How much does Tryit cost compared with Lumosity?',
-				answer: `${TRYIT_PRICES} Lumosity Premium prices vary by plan, platform and country; the US App Store lists them from $11.99 to $89.00.`,
+				withTryitPricing: true,
+				answer:
+					'Lumosity Premium prices vary by plan, platform and country; the US App Store lists them from $11.99 to $89.00.',
 			},
 			{
 				question: 'Is Tryit brain training?',
@@ -483,7 +457,7 @@ export const COMPARISON_SPECS = {
 			`${TOTAL_GAMES} daily games`,
 			'Any 3 free every day',
 			'No login, no feed',
-			`${PASS} 3-Day Pass, one time`,
+			'One-time 3-Day Pass',
 		],
 		verdictTitle: 'The short answer',
 		verdict: [
@@ -493,7 +467,7 @@ export const COMPARISON_SPECS = {
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('linkedin-games')}` },
 		secondaryCta: {
-			label: `See the ${PASS} 3-Day Pass`,
+			label: 'See the 3-Day Pass',
 			href: `/pricing?${entry('linkedin-games')}`,
 		},
 		tableTitle: 'Tryit and LinkedIn Games side by side',
@@ -528,7 +502,7 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Try everything, no commitment',
 				them: 'Nothing to buy: every daily game is free',
-				us: `3-Day Pass: ${PASS} once, no renewal. All ${TOTAL_GAMES} games and every past day`,
+				pricing: 'pass',
 			},
 		],
 		theirStrengthsTitle: 'Where LinkedIn Games shines',
@@ -562,7 +536,7 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				title: 'Every past day, too',
-				body: `Tryit Plus and the 3-Day Pass open the archive, so a day you missed is still there to play. Plus is ${PLUS_MONTH}/month or ${PLUS_YEAR}/year.`,
+				body: 'Tryit Plus and the 3-Day Pass open the archive, so a day you missed is still there to play.',
 			},
 		],
 		pairingsTitle: 'If you like these, try these',
@@ -615,7 +589,8 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'How much does Tryit cost compared with LinkedIn Games?',
-				answer: `LinkedIn's daily games are free. ${TRYIT_PRICES}`,
+				withTryitPricing: true,
+				answer: "LinkedIn's daily games are free.",
 			},
 			NEW_PUZZLES_FAQ,
 		],
@@ -633,7 +608,7 @@ export const COMPARISON_SPECS = {
 		path: '/vs/elevate',
 		rival: 'Elevate',
 		metaTitle: `Tryit vs Elevate: A Free Alternative, ${TOTAL_GAMES} Daily Puzzles`,
-		metaDescription: `Looking for a free Elevate alternative? Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles in any browser, on your phone or your computer. Pick any 3 free every day with no app and no account. Tryit Plus ${PLUS_MONTH}/month.`,
+		metaDescription: `Looking for a free Elevate alternative? Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles in any browser, on your phone or your computer. Pick any 3 free every day with no app and no account.`,
 		eyebrow: 'Tryit vs Elevate · An honest comparison',
 		h1: `Brain games in your browser, on any screen. Pick any 3 of ${TOTAL_GAMES}, free.`,
 		lead: `Elevate is a phone app for skill training: you sign up, and the free version gives you one three-game workout a day. Tryit runs in any browser, on your phone or your computer: ${TOTAL_GAMES} word, logic, number and spatial puzzles, and you choose any 3 to play free every day, with no account and no ads while you play.`,
@@ -641,7 +616,7 @@ export const COMPARISON_SPECS = {
 			`${TOTAL_GAMES} daily games`,
 			'Any 3 free every day',
 			'Phone, tablet or computer',
-			`Tryit Plus ${PLUS_MONTH}/month`,
+			'Optional Tryit Plus',
 		],
 		verdictTitle: 'The short answer',
 		verdict: [
@@ -683,12 +658,12 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Paid plans',
 				them: 'Premium $39.99/year with a 7-day free trial, or $9.99/month, on the US App Store',
-				us: `Plus ${PLUS_MONTH}/month or ${PLUS_YEAR}/year. Family for up to ${FAMILY_SEATS} people ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year. VAT included`,
+				pricing: 'subscriptions',
 			},
 			{
 				feature: 'Try everything, no commitment',
 				them: 'A 7-day free trial of the yearly plan',
-				us: `3-Day Pass: ${PASS} once, no renewal. All ${TOTAL_GAMES} games and every past day`,
+				pricing: 'pass',
 			},
 		],
 		theirStrengthsTitle: 'Where Elevate shines',
@@ -762,7 +737,9 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'How much does Tryit cost compared with Elevate?',
-				answer: `${TRYIT_PRICES} Elevate Premium is $39.99 a year with a 7-day free trial, or $9.99 a month, on the US App Store; prices vary by country.`,
+				withTryitPricing: true,
+				answer:
+					'Elevate Premium is $39.99 a year with a 7-day free trial, or $9.99 a month, on the US App Store; prices vary by country.',
 			},
 			{
 				question: 'Is Tryit brain training?',
@@ -785,7 +762,7 @@ export const COMPARISON_SPECS = {
 		path: '/vs/puzzmo',
 		rival: 'Puzzmo',
 		metaTitle: `Tryit vs Puzzmo: ${TOTAL_GAMES} Daily Puzzles, Any 3 Free`,
-		metaDescription: `Tryit vs Puzzmo, honestly compared. Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles; pick any 3 free every day with no login and no ads while you play. Every past day with Tryit Plus or a ${PASS} 3-Day Pass.`,
+		metaDescription: `Tryit vs Puzzmo, honestly compared. Tryit has ${TOTAL_GAMES} daily word, logic, number and spatial puzzles; pick any 3 free every day with no login and no ads while you play. Every past day with Tryit Plus or a 3-Day Pass.`,
 		eyebrow: 'Tryit vs Puzzmo · An honest comparison',
 		h1: `Finished today's Puzzmo? Here are ${TOTAL_GAMES} more daily puzzles, any 3 free.`,
 		lead: `Puzzmo is a daily puzzle page with original games like Cross|word, SpellTower, Typeshift and Flipart. Tryit is ${TOTAL_GAMES} word, logic, number and spatial puzzles in one daily set, and you pick any 3 to play free every day, with no login and no ads while you play.`,
@@ -793,16 +770,16 @@ export const COMPARISON_SPECS = {
 			`${TOTAL_GAMES} daily games`,
 			'Any 3 free every day',
 			'No ads while you play',
-			`${PASS} 3-Day Pass, one time`,
+			'One-time 3-Day Pass',
 		],
 		verdictTitle: 'The short answer',
 		verdict: [
 			'Choose Puzzmo for its edited daily Cross|word, original games like SpellTower and Typeshift, and leaderboards with friends.',
-			`Choose Tryit for ${TOTAL_GAMES} daily puzzle types across word, logic, number and spatial, any 3 free every day with no ads while you play, and a ${PASS} pass with no renewal.`,
+			`Choose Tryit for ${TOTAL_GAMES} daily puzzle types across word, logic, number and spatial, any 3 free every day with no ads while you play, and a one-time pass with no renewal.`,
 			'Or do both: finish the Cross|word, then pick three Tryit games for something different.',
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('puzzmo')}` },
-		secondaryCta: { label: `See the ${PASS} 3-Day Pass`, href: `/pricing?${entry('puzzmo')}` },
+		secondaryCta: { label: 'See the 3-Day Pass', href: `/pricing?${entry('puzzmo')}` },
 		tableTitle: 'Tryit and Puzzmo side by side',
 		tableSubtitle:
 			'What each one offers a daily puzzle player today. Puzzmo details come from puzzmo.com, its FAQ and the US App Store.',
@@ -835,12 +812,12 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Paid plans',
 				them: 'Puzzmo Plus $3.99/month or $39.99/year on the US App Store, with a second profile for a family member',
-				us: `Plus ${PLUS_MONTH}/month or ${PLUS_YEAR}/year. Family for up to ${FAMILY_SEATS} people ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year. VAT included`,
+				pricing: 'subscriptions',
 			},
 			{
 				feature: 'Try everything, no commitment',
 				them: 'Puzzmo Plus by the month or the year',
-				us: `3-Day Pass: ${PASS} once, no renewal. All ${TOTAL_GAMES} games and every past day`,
+				pricing: 'pass',
 			},
 		],
 		theirStrengthsTitle: 'Where Puzzmo shines',
@@ -871,7 +848,7 @@ export const COMPARISON_SPECS = {
 			PASS_STRENGTH,
 			{
 				title: `One plan for up to ${FAMILY_SEATS} people`,
-				body: `Tryit Family covers up to ${FAMILY_SEATS} accounts, each with their own streaks and stats, for ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year.`,
+				body: `Tryit Family covers up to ${FAMILY_SEATS} accounts, each with their own streaks and stats.`,
 			},
 		],
 		pairingsTitle: 'If you like these, try these',
@@ -914,7 +891,8 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'How much does Tryit cost compared with Puzzmo?',
-				answer: `${TRYIT_PRICES} Puzzmo Plus is $3.99 a month or $39.99 a year on the US App Store.`,
+				withTryitPricing: true,
+				answer: 'Puzzmo Plus is $3.99 a month or $39.99 a year on the US App Store.',
 			},
 			{
 				question: 'Can I play past Tryit puzzles?',
@@ -936,7 +914,7 @@ export const COMPARISON_SPECS = {
 		path: '/vs/brilliant',
 		rival: 'Brilliant',
 		metaTitle: `Tryit vs Brilliant: ${TOTAL_GAMES} Daily Logic Puzzles, Any 3 Free`,
-		metaDescription: `Tryit vs Brilliant, honestly compared. Brilliant teaches math and coding; Tryit has ${TOTAL_GAMES} daily logic, number, word and spatial puzzles, any 3 free in your browser with no account or app. ${PASS} one-time 3-Day Pass.`,
+		metaDescription: `Tryit vs Brilliant, honestly compared. Brilliant teaches math and coding; Tryit has ${TOTAL_GAMES} daily logic, number, word and spatial puzzles, any 3 free in your browser with no account or app. A one-time 3-Day Pass opens the archive.`,
 		eyebrow: 'Tryit vs Brilliant · An honest comparison',
 		h1: `Like Brilliant's logic problems? Play ${TOTAL_GAMES} daily puzzles, any 3 free.`,
 		lead: `Brilliant is a personal tutor for math and coding, with guided, interactive lessons from fractions to calculus and Python. Tryit is a daily puzzle habit: ${TOTAL_GAMES} word, logic, number and spatial puzzles on one page, and you pick any 3 to play free every day with no account, no app and no ads while you play.`,
@@ -944,17 +922,17 @@ export const COMPARISON_SPECS = {
 			`${TOTAL_GAMES} daily games`,
 			'Any 3 free every day',
 			'No account or app',
-			`${PASS} 3-Day Pass, one time`,
+			'One-time 3-Day Pass',
 		],
 		verdictTitle: 'The short answer',
 		verdict: [
 			'Choose Brilliant for structured, tutor-guided lessons in math, data, science and coding, from fractions to calculus and Python.',
-			`Choose Tryit for ${TOTAL_GAMES} daily logic, number, word and spatial puzzles, any 3 free in your browser right now with no account, and a ${PASS} pass with no renewal.`,
+			`Choose Tryit for ${TOTAL_GAMES} daily logic, number, word and spatial puzzles, any 3 free in your browser right now with no account, and a one-time pass with no renewal.`,
 			'Or do both: a Brilliant lesson to learn something new, then three Tryit puzzles to put your reasoning to work.',
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('brilliant')}` },
 		secondaryCta: {
-			label: `See the ${PASS} 3-Day Pass`,
+			label: 'See the 3-Day Pass',
 			href: `/pricing?${entry('brilliant')}`,
 		},
 		tableTitle: 'Tryit and Brilliant side by side',
@@ -984,12 +962,12 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Try everything, no commitment',
 				them: 'Premium by the month or the year; free trials are sometimes offered and ask for payment details',
-				us: `3-Day Pass: ${PASS} once, no renewal. All ${TOTAL_GAMES} games and every past day`,
+				pricing: 'pass',
 			},
 			{
 				feature: 'Ongoing plans',
 				them: 'Premium monthly or annual, and a Family Plan for up to 6; current prices on brilliant.org',
-				us: `Plus ${PLUS_MONTH}/month or ${PLUS_YEAR}/year. Family for up to ${FAMILY_SEATS} people ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year. VAT included`,
+				pricing: 'subscriptions',
 			},
 			{
 				feature: 'Where you play',
@@ -1081,7 +1059,9 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'How much does Tryit cost compared with Brilliant?',
-				answer: `${TRYIT_PRICES} Brilliant Premium is sold monthly, annually or as a Family Plan for up to 6 people, with current prices on Brilliant's subscription page.`,
+				withTryitPricing: true,
+				answer:
+					"Brilliant Premium is sold monthly, annually or as a Family Plan for up to 6 people, with current prices on Brilliant's subscription page.",
 			},
 			{
 				question: 'Will Tryit teach me math or coding?',
@@ -1104,7 +1084,7 @@ export const COMPARISON_SPECS = {
 		path: '/vs/wordle',
 		rival: 'Wordle',
 		metaTitle: `Tryit vs Wordle: ${TOTAL_GAMES} Daily Puzzles, Any 3 Free`,
-		metaDescription: `Finished today's Wordle? Tryit has Five plus ${TOTAL_GAMES - 1} more daily word, logic, number and spatial puzzles. Pick any 3 free every day with no login and no ads while you play. ${PASS} one-time 3-Day Pass.`,
+		metaDescription: `Finished today's Wordle? Tryit has Five plus ${TOTAL_GAMES - 1} more daily word, logic, number and spatial puzzles. Pick any 3 free every day with no login and no ads while you play. A one-time 3-Day Pass opens the archive.`,
 		eyebrow: 'Tryit vs Wordle · An honest comparison',
 		h1: `Finished today's Wordle? Play ${TOTAL_GAMES} more daily puzzles, any 3 free.`,
 		lead: `Wordle is the iconic once-a-day 5-letter word puzzle from The New York Times. Tryit gives your daily puzzle break room to grow: ${TOTAL_GAMES} word, logic, number and spatial puzzles in one place, and you pick any 3 to play free every day with no login and no ads while you play.`,
@@ -1112,17 +1092,17 @@ export const COMPARISON_SPECS = {
 			`${TOTAL_GAMES} daily games`,
 			'Any 3 free every day',
 			'No account needed',
-			`${PASS} 3-Day Pass, one time`,
+			'One-time 3-Day Pass',
 		],
 		verdictTitle: 'The short answer',
 		verdict: [
 			'Choose Wordle for the original daily 5-letter word puzzle that millions of friends share every morning, plus Wordle Bot and the NYT archive with a Games subscription.',
-			`Choose Tryit for ${TOTAL_GAMES} daily puzzle formats in one clean web suite — including Five, Quad, Threads and Hive — with any 3 free every day and a ${PASS} pass with no renewal.`,
+			`Choose Tryit for ${TOTAL_GAMES} daily puzzle formats in one clean web suite — including Five, Quad, Threads and Hive — with any 3 free every day and a one-time pass with no renewal.`,
 			'Most Wordle fans play both: solve Wordle first, then pick three Tryit puzzles for the rest of your coffee.',
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('wordle')}` },
 		secondaryCta: {
-			label: `See the ${PASS} 3-Day Pass`,
+			label: 'See the 3-Day Pass',
 			href: `/pricing?${entry('wordle')}`,
 		},
 		tableTitle: 'Tryit and Wordle side by side',
@@ -1142,7 +1122,7 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Past puzzles',
 				them: 'Wordle archive back to June 2021 and Wordle Bot require an NYT Games subscription',
-				us: `Every past day of all ${TOTAL_GAMES} games with Tryit Plus or the ${PASS} 3-Day Pass`,
+				us: `Every past day of all ${TOTAL_GAMES} games with Tryit Plus or the 3-Day Pass`,
 			},
 			{
 				feature: 'Account to start',
@@ -1157,12 +1137,12 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Try everything, no commitment',
 				them: 'NYT Games subscription, billed every 4 weeks or yearly',
-				us: `3-Day Pass: ${PASS} once, no renewal. All ${TOTAL_GAMES} games and every past day`,
+				pricing: 'pass',
 			},
 			{
 				feature: 'Ongoing plans',
 				them: 'NYT Games prices vary by country and current offer; see nytimes.com',
-				us: `Plus ${PLUS_MONTH}/month or ${PLUS_YEAR}/year. Family for up to ${FAMILY_SEATS} people ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year. VAT included`,
+				pricing: 'subscriptions',
 			},
 			{
 				feature: 'Sharing',
@@ -1198,7 +1178,7 @@ export const COMPARISON_SPECS = {
 			PASS_STRENGTH,
 			{
 				title: `One plan for up to ${FAMILY_SEATS} people`,
-				body: `Tryit Family covers up to ${FAMILY_SEATS} accounts, each with their own streaks and stats, for ${FAMILY_MONTH}/month or ${FAMILY_YEAR}/year.`,
+				body: `Tryit Family covers up to ${FAMILY_SEATS} accounts, each with their own streaks and stats.`,
 			},
 		],
 		pairingsTitle: 'If you like Wordle, try these',
@@ -1248,11 +1228,13 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'How does Tryit pricing compare with Wordle and NYT Games?',
-				answer: `Wordle's daily puzzle is free, while its archive and Wordle Bot sit inside an NYT Games subscription (prices vary by country on nytimes.com). ${TRYIT_PRICES}`,
+				withTryitPricing: true,
+				answer:
+					"Wordle's daily puzzle is free, while its archive and Wordle Bot sit inside an NYT Games subscription (prices vary by country on nytimes.com).",
 			},
 			{
 				question: 'Can I play past puzzles like the Wordle archive?',
-				answer: `Yes. Tryit Plus and the ${PASS} 3-Day Pass open every past day across all ${TOTAL_GAMES} games, including Five and Quad.`,
+				answer: `Yes. Tryit Plus and the 3-Day Pass open every past day across all ${TOTAL_GAMES} games, including Five and Quad.`,
 			},
 			NEW_PUZZLES_FAQ,
 		],
@@ -1317,7 +1299,7 @@ export const COMPARISON_HUB = {
 		'No account needed',
 	],
 	primaryCta: { label: 'Pick your 3 free games', href: `/?${HUB_ENTRY}` },
-	secondaryCta: { label: `See the ${PASS} 3-Day Pass`, href: `/pricing?${HUB_ENTRY}` },
+	secondaryCta: { label: 'See the 3-Day Pass', href: `/pricing?${HUB_ENTRY}` },
 	masthead: [
 		`${COMPARISONS.length} comparisons`,
 		'Facts from their own pages',
