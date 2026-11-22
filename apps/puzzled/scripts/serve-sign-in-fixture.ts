@@ -1,9 +1,9 @@
 /** Local only: Auth response fixture for the real SolidStart routes. No credentials, email or accounts. */
 import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
+import { fixtureToken } from './auth-fixture-facts'
 
 export const org = 'organization-00000000-0000-4000-8000-000000000123'
 export const flow = 'A'.repeat(43)
-export const fixtureToken = 'fixture-session'
 const email = 'synthetic@example.test'
 const user = { principal_id: 'fixture-user', project_id: org, primary_email: email }
 const response = (data: object, status = 200) => Response.json(data, { status })
