@@ -100,62 +100,7 @@ const PAGES: readonly PageCase[] = [
 		],
 	},
 	{ name: 'word-guess', path: '/games/word-guess', shell: true },
-	{
-		name: 'login',
-		path: '/login',
-		shell: false,
-		owned: [
-			{
-				rule: 'button-name',
-				selector: '.right-3',
-				nodes: 1,
-				owner: 'app/[locale]/(auth)/_components/auth-fields.tsx (fixed in PR #145)',
-			},
-			{
-				rule: 'landmark-one-main',
-				selector: 'html',
-				nodes: 0,
-				owner: 'app/[locale]/(auth)/_components/auth-shell.tsx (fixed in PR #145)',
-			},
-			{
-				rule: 'region',
-				selector: 'div.w-full.max-w-',
-				nodes: 0,
-				owner: 'auth shell regions (fixed in PR #145)',
-			},
-		],
-	},
-	{
-		name: 'signup',
-		path: '/signup',
-		shell: false,
-		owned: [
-			{
-				rule: 'button-name',
-				selector: '.right-3',
-				nodes: 1,
-				owner: 'app/[locale]/(auth)/_components/auth-fields.tsx (fixed in PR #145)',
-			},
-			{
-				rule: 'landmark-one-main',
-				selector: 'html',
-				nodes: 0,
-				owner: 'app/[locale]/(auth)/_components/auth-shell.tsx (fixed in PR #145)',
-			},
-			{
-				rule: 'link-in-text-block',
-				selector: 'a[href$="terms"], a[href$="privacy"]',
-				nodes: 2,
-				owner: 'app/[locale]/(auth)/signup/signup-form.tsx (PR #145)',
-			},
-			{
-				rule: 'region',
-				selector: 'div.w-full.max-w-',
-				nodes: 0,
-				owner: 'auth shell regions (fixed in PR #145)',
-			},
-		],
-	},
+	{ name: 'sign-in', path: '/sign-in', shell: false },
 	{
 		name: 'stats',
 		path: '/stats',

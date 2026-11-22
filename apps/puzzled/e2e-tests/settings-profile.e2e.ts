@@ -9,23 +9,6 @@ import { expect, test } from '@playwright/test'
  */
 
 test.describe('Profile Settings - Username', () => {
-	// These tests run on the public signup page which shows username validation
-	test.describe('Username validation (public)', () => {
-		test('should show username format requirements', async ({ page }) => {
-			await page.goto('/signup')
-
-			// Username field might be on signup
-			const usernameInput = page.getByRole('textbox', { name: /username/i })
-			if (await usernameInput.isVisible()) {
-				await usernameInput.fill('UPPERCASE')
-				// Should show lowercase conversion or error
-				await expect(page.getByText(/lowercase/i)).toBeVisible({
-					timeout: 5000,
-				})
-			}
-		})
-	})
-
 	test.describe('Username Flow (authenticated)', () => {
 		// Skip these tests unless we have auth cookies set up
 		test.skip(({ page }) => !process.env.TEST_AUTH_COOKIE, 'Requires authenticated session')
@@ -335,7 +318,7 @@ test.describe('Settings Page - Navigation', () => {
 		await page.goto('/settings')
 
 		// Should redirect to login
-		await page.waitForURL(/login|signin/, { timeout: 5000 })
+		await page.waitForURL(/sign-in/, { timeout: 5000 })
 	})
 
 	test('should show settings navigation sidebar', async ({ page }) => {

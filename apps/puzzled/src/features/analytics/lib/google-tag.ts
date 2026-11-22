@@ -75,8 +75,7 @@ const PUBLIC_PATHS = new Set([
 	'/terms',
 	'/delete-account',
 	'/support',
-	'/login',
-	'/signup',
+	'/sign-in',
 ])
 
 /** The path Google may see for this route, or null for any other route. */

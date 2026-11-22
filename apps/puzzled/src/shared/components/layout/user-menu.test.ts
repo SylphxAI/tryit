@@ -32,10 +32,10 @@ mock.module('@/lib/i18n/routing', () => ({
 const { UserMenu } = await import('./user-menu')
 
 describe('UserMenu SSR', () => {
-	test('renders Sign In immediately for guests without stray Loading... text', () => {
+	test('renders Sign in immediately for guests without stray Loading... text', () => {
 		const html = renderToStaticMarkup(createElement(UserMenu, { initialUser: null }))
-		expect(html).toContain('Sign In')
-		expect(html).toContain('href="/login"')
+		expect(html).toContain('Sign in')
+		expect(html).toContain('href="/sign-in"')
 		expect(html).not.toContain('Loading...')
 	})
 

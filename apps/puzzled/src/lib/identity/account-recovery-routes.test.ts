@@ -567,6 +567,6 @@ test('OAuth failure redirect never exposes the internal Knative host', async () 
 	requestHeaders = { host, 'x-forwarded-host': 'puzzled.gg', 'x-forwarded-proto': 'https' }
 	const response = await oauthCallback(browserRequest(`http://${host}/api/identity/oauth/callback`))
 	expect(response.status).toBe(303)
-	expect(response.headers.get('location')).toBe('/login?error=oauth_failed')
+	expect(response.headers.get('location')).toBe('/sign-in?error=oauth_failed')
 	expect(calls).toHaveLength(0)
 })

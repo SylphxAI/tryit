@@ -135,7 +135,7 @@ export function UserMenu({
 
 	return (
 		<Link
-			href="/login"
+			href="/sign-in"
 			className={cn(
 				'flex items-center gap-2 rounded-lg bg-primary font-medium text-primary-foreground transition-colors hover:bg-primary/90',
 				size === 'sm' ? 'h-11 gap-1.5 rounded-full px-3 text-sm' : 'h-11 px-4 text-sm',

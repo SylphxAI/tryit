@@ -14,6 +14,10 @@
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
+				"value": "6-digit code",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "Account",
 				"keys": [
 					"nav.account",
@@ -428,6 +432,10 @@
 			{
 				"value": "Last Updated",
 				"keys": ["legal.privacy.lastUpdated", "legal.terms.lastUpdated"]
+			},
+			{
+				"value": "Last used",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "Leaderboard",
@@ -887,11 +895,15 @@
 			},
 			{
 				"value": "Sign In",
-				"keys": ["auth.signIn", "common.signIn", "stats.signIn"]
+				"keys": ["auth.signIn", "stats.signIn"]
 			},
 			{
 				"value": "Sign Up",
 				"keys": ["auth.signUp", "common.signUp"]
+			},
+			{
+				"value": "Sign in",
+				"keys": ["auth.unified.verify", "common.signIn", "plus.unlock.signIn"]
 			},
 			{
 				"value": "Sign out",
@@ -1140,6 +1152,10 @@
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
+				"value": "6-digit code",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "Account",
 				"keys": [
 					"nav.account",
@@ -1554,6 +1570,10 @@
 			{
 				"value": "Last Updated",
 				"keys": ["legal.privacy.lastUpdated", "legal.terms.lastUpdated"]
+			},
+			{
+				"value": "Last used",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "Leaderboard",
@@ -2013,11 +2033,15 @@
 			},
 			{
 				"value": "Sign In",
-				"keys": ["auth.signIn", "common.signIn", "stats.signIn"]
+				"keys": ["auth.signIn", "stats.signIn"]
 			},
 			{
 				"value": "Sign Up",
 				"keys": ["auth.signUp", "common.signUp"]
+			},
+			{
+				"value": "Sign in",
+				"keys": ["auth.unified.verify", "common.signIn", "plus.unlock.signIn"]
 			},
 			{
 				"value": "Sign out",
@@ -2266,6 +2290,10 @@
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
+				"value": "6 位數驗證碼",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "All Users",
 				"keys": ["admin.announcements.allUsers", "admin.users.filterAll"]
 			},
@@ -2422,12 +2450,20 @@
 				]
 			},
 			{
+				"value": "{seconds} 秒後可重新發送",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
+			},
+			{
 				"value": "一般",
 				"keys": ["auth.passwordStrength.fair", "settings.overview.protectionLevels.fair"]
 			},
 			{
 				"value": "上一頁",
 				"keys": ["admin.auditLogs.pagination.previous", "pagination.previous"]
+			},
+			{
+				"value": "上次使用",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "上載相片",
@@ -3056,6 +3092,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -3284,6 +3321,10 @@
 				"keys": ["settings.recoveryCodes.confirmRegenerate", "settings.recoveryCodes.regenerate"]
 			},
 			{
+				"value": "重新發送驗證碼",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
 				"value": "重設密碼",
 				"keys": [
 					"auth.forgotPasswordTitle",
@@ -3411,6 +3452,10 @@
 			{
 				"value": "2026-11-14",
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
+			},
+			{
+				"value": "6 位數驗證碼",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
 			{
 				"value": "All Users",
@@ -3579,6 +3624,10 @@
 			{
 				"value": "上傳照片",
 				"keys": ["settings.profile.avatarUpload.uploadPhoto", "settings.profile.uploadPhoto"]
+			},
+			{
+				"value": "上次使用",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "下一頁",
@@ -4206,6 +4255,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -4511,6 +4561,10 @@
 				]
 			},
 			{
+				"value": "電子郵件地址",
+				"keys": ["auth.unified.emailAddress", "settings.email.title"]
+			},
+			{
 				"value": "電子郵件已驗證",
 				"keys": [
 					"settings.security.securityCheckup.emailVerified",
@@ -4561,6 +4615,10 @@
 			{
 				"value": "2026-11-14",
 				"keys": ["legal.privacy.revision", "legal.terms.revision"]
+			},
+			{
+				"value": "6 位数字验证码",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
 			{
 				"value": "All Users",
@@ -4733,6 +4791,10 @@
 			{
 				"value": "上传照片",
 				"keys": ["settings.profile.avatarUpload.uploadPhoto", "settings.profile.uploadPhoto"]
+			},
+			{
+				"value": "上次使用",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "下一页",
@@ -5039,10 +5101,6 @@
 			{
 				"value": "尝试次数",
 				"keys": ["gameResult.attempts", "share.card.attemptsLabel"]
-			},
-			{
-				"value": "尝试次数过多，请稍后重试。",
-				"keys": ["auth.unified.rateLimited", "settings.account.password.rateLimited"]
 			},
 			{
 				"value": "已关联",
@@ -5442,6 +5500,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -5620,6 +5679,10 @@
 					"settings.overview.quickNotifications.email",
 					"settings.profile.email"
 				]
+			},
+			{
+				"value": "邮箱地址",
+				"keys": ["auth.unified.emailAddress", "settings.email.title"]
 			},
 			{
 				"value": "邮箱已验证",
@@ -5993,6 +6056,10 @@
 				"keys": ["settings.recoveryCodes.confirmRegenerate", "settings.recoveryCodes.regenerate"]
 			},
 			{
+				"value": "コードを再送信",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
 				"value": "サポート",
 				"keys": ["nav.support", "support.hero.eyebrow"]
 			},
@@ -6295,7 +6362,12 @@
 			},
 			{
 				"value": "メールアドレス",
-				"keys": ["auth.email", "settings.email.title", "settings.profile.email"]
+				"keys": [
+					"auth.email",
+					"auth.unified.emailAddress",
+					"settings.email.title",
+					"settings.profile.email"
+				]
 			},
 			{
 				"value": "メールアドレスを入力してください",
@@ -6376,6 +6448,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -7290,6 +7363,10 @@
 				]
 			},
 			{
+				"value": "Correo electrónico",
+				"keys": ["auth.email", "auth.unified.emailAddress"]
+			},
+			{
 				"value": "Correo verificado",
 				"keys": [
 					"settings.security.securityCheckup.emailVerified",
@@ -7316,6 +7393,10 @@
 					"settings.connectedAccounts.title",
 					"settings.overview.sections.account"
 				]
+			},
+			{
+				"value": "Código de 6 dígitos",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
 			{
 				"value": "Códigos de recuperación",
@@ -7560,7 +7641,13 @@
 			},
 			{
 				"value": "Iniciar sesión",
-				"keys": ["auth.signIn", "common.signIn", "plus.unlock.signIn", "stats.signIn"]
+				"keys": [
+					"auth.signIn",
+					"auth.unified.verify",
+					"common.signIn",
+					"plus.unlock.signIn",
+					"stats.signIn"
+				]
 			},
 			{
 				"value": "Intentos",
@@ -8463,6 +8550,10 @@
 				"keys": ["admin.commandPalette.seedPlans", "admin.plans.seedDefault"]
 			},
 			{
+				"value": "Código de 6 dígitos",
+				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
+			},
+			{
 				"value": "Códigos de recuperação",
 				"keys": ["settings.recoveryCodes.title", "settings.securityScore.checks.recoveryCodes"]
 			},
@@ -8573,8 +8664,18 @@
 				"keys": ["admin.auditLogs.details.ipAddress", "admin.auditLogs.table.ip"]
 			},
 			{
+				"value": "Endereço de e-mail",
+				"keys": ["auth.unified.emailAddress", "settings.email.title"]
+			},
+			{
 				"value": "Entrar",
-				"keys": ["auth.signIn", "common.signIn", "plus.unlock.signIn", "stats.signIn"]
+				"keys": [
+					"auth.signIn",
+					"auth.unified.verify",
+					"common.signIn",
+					"plus.unlock.signIn",
+					"stats.signIn"
+				]
 			},
 			{
 				"value": "Enviando...",
@@ -9044,6 +9145,10 @@
 			{
 				"value": "Reenviar código",
 				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Reenviar em {seconds}s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
 			},
 			{
 				"value": "Remover",

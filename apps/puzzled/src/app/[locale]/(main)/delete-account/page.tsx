@@ -37,7 +37,7 @@ export default async function DeleteAccountPage({ params }: Props) {
 						href={
 							user
 								? '/settings/account'
-								: { pathname: '/login', query: { callbackUrl: '/settings/account' } }
+								: { pathname: '/sign-in', query: { next: '/settings/account' } }
 						}
 					>
 						{user ? t('account.deleteCta') : t('deletePage.signIn')}

@@ -18,7 +18,7 @@ export async function requireMember(input: {
 	const user = await withPresentationDeadline(currentUser(), null)
 	if (!user) {
 		redirect({
-			href: { pathname: '/login', query: { callbackUrl: input.returnTo } },
+			href: { pathname: '/sign-in', query: { next: input.returnTo } },
 			locale: input.locale,
 		})
 		// `redirect` throws; returning keeps narrowing honest if it ever resolves.

@@ -49,7 +49,7 @@ Bun.serve({
 		calls.push({ path, body })
 		const enabled = !['legacy', 'off'].includes(mode)
 		if (path === '/v1/client/config') {
-			if (url.searchParams.get('publishable_key') !== 'pk_local_fixture') return response({}, 403)
+			if (auth !== 'Bearer pk_local_fixture') return response({}, 403)
 			return response({
 				methods: { email_otp: enabled, passkey: enabled, password: mode !== 'off' },
 				social: mode === 'off' ? [] : [{ provider: 'google' }],

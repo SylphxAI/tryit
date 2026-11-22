@@ -215,7 +215,7 @@ export async function GamePageHero({
 						<HeroGuestNote isGuest={isGuest} locked={locked}>
 							{t('gamePage.guestNote')}{' '}
 							<Link
-								href={{ pathname: '/signup', query: { callbackUrl: `/games/${slug}` } }}
+								href={{ pathname: '/sign-in', query: { next: `/games/${slug}` } }}
 								className="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4"
 							>
 								{t('gamePage.guestSignIn')}

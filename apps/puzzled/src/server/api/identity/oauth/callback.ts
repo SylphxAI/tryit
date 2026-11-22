@@ -4,8 +4,13 @@ import { authConfig, safeNext } from '@/lib/identity/client-auth'
 import { issueSession } from '@/lib/identity/session-response'
 import { completeSignIn } from '@/lib/identity/sign-in'
 
-function oauthFailed() {
-	return new Response(null, { status: 303, headers: { location: '/login?error=oauth_failed' } })
+function oauthFailed(next: string) {
+	const query = new URLSearchParams({ error: 'oauth_failed' })
+	if (next !== '/') query.set('next', next)
+	return new Response(null, {
+		status: 303,
+		headers: { location: `/sign-in?${query}`, 'cache-control': 'no-store' },
+	})
 }
 
 /**
@@ -19,7 +24,7 @@ export async function GET(request: Request) {
 	const ticket = url.searchParams.get('sylphx_ticket')?.trim()
 	const config = authConfig()
 	if (!config || !ticket) {
-		return oauthFailed()
+		return oauthFailed(next)
 	}
 	try {
 		const { token, newAccount } = await completeSignIn(config, request, ticket)
@@ -28,6 +33,6 @@ export async function GET(request: Request) {
 		if (newAccount) response.headers.append('set-cookie', signUpCookieHeader('oauth'))
 		return issueSession(response, token, env.NODE_ENV === 'production')
 	} catch {
-		return oauthFailed()
+		return oauthFailed(next)
 	}
 }

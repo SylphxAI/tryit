@@ -282,15 +282,13 @@ for (const viewport of VIEWPORTS) {
 			await expect(
 				page.getByRole('heading', { name: 'Payment received — link your Tryit Plus' }),
 			).toBeVisible()
-			const createLink = page.getByRole('link', { name: 'Create account to activate Plus' })
 			const signInLink = page.getByRole('link', { name: 'Sign in to link subscription' })
-			await expect(createLink).toBeVisible()
 			await expect(signInLink).toBeVisible()
-			const createCallback = new URL(
-				(await createLink.getAttribute('href')) ?? '',
+			const next = new URL(
+				(await signInLink.getAttribute('href')) ?? '',
 				page.url(),
-			).searchParams.get('callbackUrl')
-			expect(createCallback).toBe(
+			).searchParams.get('next')
+			expect(next).toBe(
 				'/settings/subscription?checkout=success&s=cs_e2e_guest_1&callbackUrl=%2Fgames%2Fsudoku',
 			)
 			expect(page.url()).not.toContain('clm_')
@@ -447,7 +445,7 @@ for (const viewport of CAPTURE_VIEWPORTS) {
 test.describe('Post-payment verified-email handoff and auth brand panel contrast', () => {
 	test.use({ viewport: { width: 1440, height: 900 } })
 
-	test('preserves session_id across signed-out /settings/subscription -> /login -> /signup without claim cookie', async ({
+	test('preserves session_id across signed-out /settings/subscription → /sign-in without claim cookie', async ({
 		page,
 	}) => {
 		await page.goto('/settings/subscription?checkout=success&session_id=cs_live_verify_probe', {
@@ -461,17 +459,12 @@ test.describe('Post-payment verified-email handoff and auth brand panel contrast
 		const expectedCallback = encodeURIComponent(
 			'/settings/subscription?checkout=success&session_id=cs_live_verify_probe',
 		)
-		const createAccount = page.getByRole('link', { name: 'Create account to activate Plus' })
 		const signIn = page.getByRole('link', { name: 'Sign in to link subscription' })
-		await expect(createAccount).toHaveAttribute('href', `/signup?callbackUrl=${expectedCallback}`)
-		await expect(signIn).toHaveAttribute('href', `/login?callbackUrl=${expectedCallback}`)
+		await expect(signIn).toHaveAttribute('href', `/sign-in?next=${expectedCallback}`)
 
 		await signIn.click()
-		await page.waitForURL(`**/login?callbackUrl=${expectedCallback}`)
-		await expect(page.getByRole('link', { name: 'Sign up' })).toHaveAttribute(
-			'href',
-			`/signup?callbackUrl=${expectedCallback}`,
-		)
+		await page.waitForURL(`**/sign-in?next=${expectedCallback}`)
+		await expect(page.getByRole('heading', { name: 'Sign in to Tryit' })).toBeVisible()
 	})
 
 	for (const colorScheme of ['light', 'dark'] as const) {
@@ -479,7 +472,7 @@ test.describe('Post-payment verified-email handoff and auth brand panel contrast
 			page,
 		}) => {
 			await page.emulateMedia({ colorScheme })
-			for (const authPath of ['/login', '/signup']) {
+			for (const authPath of ['/sign-in']) {
 				await page.goto(authPath, { waitUntil: 'domcontentloaded' })
 				await settle(page)
 				const panel = page.locator('aside.surface-ink')

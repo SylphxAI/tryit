@@ -18,7 +18,7 @@ test.describe('Settings', () => {
 			await page.goto(`/${LOCALE}/settings`)
 
 			// Should redirect to login page
-			await page.waitForURL(/login/, { timeout: 10000 })
+			await page.waitForURL(/sign-in/, { timeout: 10000 })
 
 			// Login page should have auth form
 			const loginForm = page.locator('form')
@@ -27,17 +27,17 @@ test.describe('Settings', () => {
 
 		test('should redirect to login for preferences page without auth', async ({ page }) => {
 			await page.goto(`/${LOCALE}/settings/preferences`)
-			await page.waitForURL(/login/, { timeout: 10000 })
+			await page.waitForURL(/sign-in/, { timeout: 10000 })
 		})
 
 		test('should redirect to login for account page without auth', async ({ page }) => {
 			await page.goto(`/${LOCALE}/settings/account`)
-			await page.waitForURL(/login/, { timeout: 10000 })
+			await page.waitForURL(/sign-in/, { timeout: 10000 })
 		})
 
 		test('should redirect to login for security page without auth', async ({ page }) => {
 			await page.goto(`/${LOCALE}/settings/security`)
-			await page.waitForURL(/login/, { timeout: 10000 })
+			await page.waitForURL(/sign-in/, { timeout: 10000 })
 		})
 	})
 

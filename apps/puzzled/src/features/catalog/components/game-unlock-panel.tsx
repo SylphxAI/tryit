@@ -73,7 +73,7 @@ export async function GameUnlockPanel({
 				<div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
 					{isGuest ? (
 						<Link
-							href={{ pathname: '/login', query: { callbackUrl: returnTo } }}
+							href={{ pathname: '/sign-in', query: { next: returnTo } }}
 							className="inline-flex h-12 items-center justify-center rounded-xl border-[1.5px] border-[var(--tactile-line)] bg-card px-5 font-semibold hover:bg-muted"
 						>
 							{t('signIn')}

@@ -8,7 +8,7 @@ test('signed-out visitors can reach the web deletion route from the footer', asy
 		page.getByRole('heading', { level: 1, name: 'Delete your Tryit account' }),
 	).toBeVisible()
 	const signIn = page.getByRole('link', { name: 'Sign in to delete your account' })
-	await expect(signIn).toHaveAttribute('href', '/login?callbackUrl=%2Fsettings%2Faccount')
+	await expect(signIn).toHaveAttribute('href', '/sign-in?next=%2Fsettings%2Faccount')
 	await expect(page.getByRole('link', { name: 'Recover your account' })).toHaveAttribute(
 		'href',
 		'/forgot-password',

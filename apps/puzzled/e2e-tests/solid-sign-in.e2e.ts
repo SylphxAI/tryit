@@ -117,7 +117,7 @@ test('mobile OTP stays inline, masks recipient, preserves rejected input, and re
 	await expect(code).toBeFocused()
 	await expect(code).toHaveAttribute('autocomplete', 'one-time-code')
 	await expect(
-		page.getByText('Code sent to s•••@example.test.', { exact: true }).first(),
+		page.getByText('Code sent to s•••@example.test', { exact: true }).first(),
 	).toBeVisible()
 	await expect(page.getByRole('button', { name: /^Resend in/ })).toBeDisabled()
 	await expect(page.getByRole('button', { name: 'Use password instead' })).toBeVisible()

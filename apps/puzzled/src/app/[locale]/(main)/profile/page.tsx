@@ -58,7 +58,7 @@ export default async function ProfilePage({ params }: Props) {
 
 	const user = await withPresentationDeadline(currentUser(), null)
 	if (!user) {
-		redirect({ href: { pathname: '/login', query: { callbackUrl: '/profile' } }, locale })
+		redirect({ href: { pathname: '/sign-in', query: { next: '/profile' } }, locale })
 		// `redirect` throws; returning keeps the type narrowing honest if it ever
 		// resolves instead.
 		return null

@@ -16,6 +16,7 @@ import {
 	COMPARISON_SLUGS,
 } from '@/features/marketing/components/comparison-slugs'
 import { defaultLocale, locales } from '@/lib/i18n/config'
+import { SIGN_IN_ALIASES } from '@/lib/identity/return-path'
 
 export type ChangeFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
 
@@ -99,7 +100,7 @@ export const CRAWL_BLOCKED_ROUTE_PREFIXES = ['/api', '/admin'] as const
  * crawler and hides the `noindex` that is supposed to control it, so the URL
  * can still be indexed from an inbound link with no content behind it. The
  * directive — not the block — is what keeps them out of the index, and
- * `/stats`, `/leaderboard` and `/login` are real navigation destinations whose
+ * `/stats`, `/leaderboard` and `/sign-in` are real navigation destinations whose
  * links have to resolve for visitors.
  */
 export const NOINDEX_ROUTE_PREFIXES = [
@@ -108,9 +109,8 @@ export const NOINDEX_ROUTE_PREFIXES = [
 	'/profile',
 	'/stats',
 	'/leaderboard',
-	'/login',
-	'/signup',
-	'/forgot-password',
+	'/sign-in',
+	...SIGN_IN_ALIASES,
 	'/reset-password',
 	'/verify-email',
 	'/unsubscribe',

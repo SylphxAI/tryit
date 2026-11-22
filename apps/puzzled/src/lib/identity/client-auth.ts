@@ -3,6 +3,8 @@ import 'server-only'
 import { authIdValue, destIdentityOrigin } from './dest'
 import { isPolicyAcceptance, type PolicyAcceptance } from './policy-consent'
 
+export { safeNext } from './return-path'
+
 /**
  * Tryit's players are end users of its own Sylphx Auth instance, reached
  * through the Auth client API in server mode:
@@ -214,19 +216,22 @@ export async function sessionTimes(
 	}
 }
 
-/** Instance-wide client config, never an email/account eligibility lookup. */
-async function readClientConfig(config: AuthConfig) {
-	const query = new URLSearchParams({ publishable_key: config.publishableKey })
-	const response = await fetch(`${config.url}/v1/client/config?${query}`, {
-		cache: 'no-store',
-		redirect: 'error',
-		signal: AbortSignal.timeout(5_000),
+/** Client API calls use only the published key, never a secret or a session credential. */
+export function authClient<T>(config: AuthConfig, path: string, userAgent: string, body?: unknown) {
+	return call<T>(config, `/v1/client/${path}`, {
+		method: body === undefined ? 'GET' : 'POST',
+		bearer: config.publishableKey,
+		userAgent,
+		body,
 	})
-	if (!response.ok) throw new AuthCallError(502, 'config_unavailable')
-	const body = (await response.json()) as {
+}
+
+/** Instance-wide client config, never an email/account eligibility lookup. */
+async function readClientConfig(config: AuthConfig, userAgent: string) {
+	const body = await authClient<{
 		methods?: Record<string, unknown>
 		social?: Array<{ provider?: unknown } | null>
-	} | null
+	}>(config, 'config', userAgent)
 	if (!Array.isArray(body?.social)) throw new AuthCallError(502, 'invalid_config')
 	const providers = body.social.flatMap((entry) =>
 		typeof entry?.provider === 'string' && entry.provider ? [entry.provider] : [],
@@ -234,8 +239,8 @@ async function readClientConfig(config: AuthConfig) {
 	return { methods: body.methods, providers }
 }
 
-export async function clientMethods(config: AuthConfig) {
-	const { methods, providers } = await readClientConfig(config)
+export async function clientMethods(config: AuthConfig, userAgent = 'puzzled-web') {
+	const { methods, providers } = await readClientConfig(config, userAgent)
 	if (!methods || typeof methods !== 'object' || Array.isArray(methods)) {
 		throw new AuthCallError(502, 'invalid_config')
 	}
@@ -348,7 +353,7 @@ export async function passkeyTicket(config: AuthConfig, userAgent: string, proof
 
 /** Legacy pages only need the provider list, even when methods are absent. */
 export async function socialProviders(config: AuthConfig): Promise<string[]> {
-	return (await readClientConfig(config)).providers
+	return (await readClientConfig(config, 'puzzled-web')).providers
 }
 
 /** Auth's Google start door; Auth returns to `returnUrl` with `sylphx_ticket`. */
@@ -367,12 +372,4 @@ export function googleStartUrl(
 		for (const [key, value] of Object.entries(acceptance)) query.set(key, String(value))
 	}
 	return `${config.url}/v1/client/oauth/google/start?${query}`
-}
-
-/** A same-site path to return to after sign-in; anything else becomes `/`. */
-export function safeNext(raw: string | null | undefined): string {
-	const value = (raw ?? '').trim()
-	const unsafe = [...value].some((char) => char === '\\' || char.charCodeAt(0) < 0x20)
-	if (!value.startsWith('/') || value.startsWith('//') || unsafe) return '/'
-	return value
 }
