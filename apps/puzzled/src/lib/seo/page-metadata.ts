@@ -56,8 +56,15 @@ export function pageMetadata({
 
 	const emitAlternates = withAlternates && !englishOnly
 	const languages = emitAlternates ? hreflangLanguages(baseUrl, path) : undefined
+	// These regional editions share many titles with their language's base
+	// edition, but serve different regional experiences at their own URLs.
+	// Distinguish their document titles without changing social cards or hreflang.
+	const region =
+		canonicalLocale === 'en-GB' ? ' (UK)' : canonicalLocale === 'zh-TW' ? '（台灣）' : ''
+	const documentTitle = `${title}${emitAlternates && !noindex ? region : ''} | Tryit`
 
 	return {
+		documentTitle,
 		title,
 		description,
 		...(noindex ? { robots: { index: false, follow: false } } : {}),

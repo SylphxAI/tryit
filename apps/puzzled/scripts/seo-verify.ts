@@ -411,6 +411,29 @@ async function main(): Promise<void> {
 		return `${pages.length} URLs answered 200`
 	})
 
+	await check('every sitemap URL has a unique document title', async () => {
+		const locByTitle = new Map<string, string>()
+		const failures: string[] = []
+		for (const { html, loc } of pages) {
+			const titles = [...html.matchAll(/<title\b[^>]*>([^<]*)<\/title>/gi)]
+			const title = decodeEntities(titles[0]?.[1] ?? '')
+				.replace(/\s+/g, ' ')
+				.trim()
+			if (titles.length !== 1 || !title) {
+				failures.push(`${localPath(loc)} does not have exactly one nonempty title`)
+				continue
+			}
+			const previous = locByTitle.get(title)
+			if (previous) {
+				failures.push(`${localPath(previous)} and ${localPath(loc)} share ${JSON.stringify(title)}`)
+			} else {
+				locByTitle.set(title, loc)
+			}
+		}
+		assert(failures.length === 0, failures.slice(0, 5).join('; '))
+		return `${pages.length} unique titles`
+	})
+
 	await check('every indexable page canonicalises to itself', async () => {
 		const broken = pages.filter((page) => canonicalOf(page.html) !== page.loc)
 		assert(

@@ -377,6 +377,22 @@ describe('metadata helper', () => {
 		expect(metadata.robots).toBeUndefined()
 	})
 
+	test.each([
+		['en-US', 'Daily puzzles', 'Daily puzzles | Tryit', BASE],
+		['en-GB', 'Daily puzzles', 'Daily puzzles (UK) | Tryit', `${BASE}/en-GB`],
+		['zh-HK', '每日謎題', '每日謎題 | Tryit', `${BASE}/zh-HK`],
+		['zh-TW', '每日謎題', '每日謎題（台灣） | Tryit', `${BASE}/zh-TW`],
+	])(
+		'distinguishes the document title for %s without changing the social title or canonical',
+		(locale, title, expected, canonical) => {
+			const metadata = pageMetadata({ locale, title, description: 'Description', baseUrl: BASE })
+			expect(metadata.documentTitle).toBe(expected)
+			expect(metadata.openGraph.title).toBe(title)
+			expect(metadata.twitter.title).toBe(title)
+			expect(metadata.alternates.canonical).toBe(canonical)
+		},
+	)
+
 	test('marks private surfaces noindex', () => {
 		const metadata = pageMetadata({
 			locale: 'en-US',
@@ -403,6 +419,7 @@ describe('metadata helper', () => {
 				englishOnly: true,
 				baseUrl: BASE,
 			})
+			expect(metadata.documentTitle).toBe('Tryit vs Wordle | Tryit')
 			expect(metadata.alternates?.canonical).toBe(`${BASE}/vs/wordle`)
 			expect(metadata.alternates?.languages).toBeUndefined()
 			expect(metadata.openGraph?.url).toBe(`${BASE}/vs/wordle`)
