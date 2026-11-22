@@ -176,8 +176,11 @@ describe('Identity dest HTTP', () => {
 		const config = await getAppConfig()
 		// Auth's client config is the only config read.
 		expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
-			'https://bound-auth.example/v1/client/config?publishable_key=sylphx_pk_test_a',
+			'https://bound-auth.example/v1/client/config',
 		])
+		expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('authorization')).toBe(
+			'Bearer sylphx_pk_test_a',
+		)
 		expect(config.oauthProviders).toEqual(['google'])
 		expect(config.consentTypes).toContain('analytics')
 	})

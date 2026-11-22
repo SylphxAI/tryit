@@ -27,7 +27,7 @@ const routes = [
 	'/games',
 	'/games/[slug]',
 	'/leaderboard',
-	'/login',
+	'/sign-in',
 	'/pricing',
 	'/privacy',
 	'/profile',

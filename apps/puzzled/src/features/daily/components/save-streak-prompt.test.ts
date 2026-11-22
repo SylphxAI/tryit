@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { shouldOfferStreakSave, shouldShowStreakCard, signupHref } from './save-streak-prompt'
+import { shouldOfferStreakSave, shouldShowStreakCard, signInHref } from './save-streak-prompt'
 
 describe('save your streak after a finish', () => {
 	test('a guest with two days qualifies, but one day or archive play does not', () => {
@@ -20,11 +20,11 @@ describe('the first-finish card', () => {
 		expect(shouldOfferStreakSave(false, true, 1)).toBe(false)
 	})
 	test('sign-up returns the player to the game they finished', () => {
-		expect(signupHref('sudoku')).toEqual({
-			pathname: '/signup',
-			query: { callbackUrl: '/games/sudoku' },
+		expect(signInHref('sudoku')).toEqual({
+			pathname: '/sign-in',
+			query: { next: '/games/sudoku' },
 		})
-		expect(signupHref()).toEqual({ pathname: '/signup' })
+		expect(signInHref()).toEqual({ pathname: '/sign-in' })
 	})
 })
 

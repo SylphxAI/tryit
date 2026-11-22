@@ -114,14 +114,8 @@ function VerifyEmailContent() {
 						</div>
 						<div className="space-y-2">
 							<Link
-								href="/forgot-password"
+								href="/sign-in"
 								className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-							>
-								{t('setNewPassword')}
-							</Link>
-							<Link
-								href="/login"
-								className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 							>
 								{tCommon('signIn')}
 							</Link>
@@ -154,7 +148,7 @@ function VerifyEmailContent() {
 									{resent ? t('emailSent') : t('resendEmail')}
 								</Button>
 							)}
-							<Link href="/login">
+							<Link href="/sign-in">
 								<Button variant="outline" className="w-full">
 									{tCommon('signIn')}
 								</Button>
@@ -193,7 +187,7 @@ function VerifyEmailContent() {
 								</Button>
 							)}
 							{resent && <p className="text-sm text-correct">{t('emailSent')}</p>}
-							<Link href="/login">
+							<Link href="/sign-in">
 								<Button variant="ghost" className="w-full">
 									{tCommon('back')}
 								</Button>

@@ -114,14 +114,8 @@ export default async function SubscriptionSettingsPage({ params, searchParams }:
 						<p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t('claimBody')}</p>
 						<div className="mt-6 flex w-full flex-col gap-3">
 							<Link
-								href={{ pathname: '/signup', query: { callbackUrl: returnTo } }}
+								href={{ pathname: '/sign-in', query: { next: returnTo } }}
 								className="pressable inline-flex min-h-12 w-full items-center justify-center rounded-full bg-primary px-5 font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-							>
-								{t('claimCreateAccount')}
-							</Link>
-							<Link
-								href={{ pathname: '/login', query: { callbackUrl: returnTo } }}
-								className="pressable inline-flex min-h-12 w-full items-center justify-center rounded-full border border-border bg-background px-5 font-semibold transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 							>
 								{t('claimSignIn')}
 							</Link>

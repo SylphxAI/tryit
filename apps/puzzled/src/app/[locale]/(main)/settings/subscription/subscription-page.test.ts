@@ -175,8 +175,7 @@ describe('SubscriptionSettingsPage guest checkout claim handoff', () => {
 		const expectedCallback = encodeURIComponent(
 			'/settings/subscription?checkout=success&s=cs_live_guest_session_123&callbackUrl=%2Fgames%2Fsudoku',
 		)
-		expect(html).toContain(`/signup?callbackUrl=${expectedCallback}`)
-		expect(html).toContain(`/login?callbackUrl=${expectedCallback}`)
+		expect(html).toContain(`/sign-in?next=${expectedCallback}`)
 		expect(html).not.toContain('encoded_secret_cookie_only')
 		expect(html).not.toContain('clm_')
 	})
@@ -204,8 +203,7 @@ describe('SubscriptionSettingsPage guest checkout claim handoff', () => {
 		const expectedCallback = encodeURIComponent(
 			'/settings/subscription?checkout=success&session_id=cs_live_verify_probe',
 		)
-		expect(html).toContain(`/signup?callbackUrl=${expectedCallback}`)
-		expect(html).toContain(`/login?callbackUrl=${expectedCallback}`)
+		expect(html).toContain(`/sign-in?next=${expectedCallback}`)
 	})
 
 	test('redirects unauthenticated visitors on normal /settings/subscription without checkout=success', async () => {

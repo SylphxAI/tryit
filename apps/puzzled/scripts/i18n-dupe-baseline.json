@@ -188,6 +188,10 @@
 				"keys": ["footer.contact", "legal.terms.sections.contact.title"]
 			},
 			{
+				"value": "Continue",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "Conversion Rate",
 				"keys": ["admin.analytics.conversionRate", "admin.dashboard.conversionRate"]
 			},
@@ -424,6 +428,10 @@
 			{
 				"value": "Last Updated",
 				"keys": ["legal.privacy.lastUpdated", "legal.terms.lastUpdated"]
+			},
+			{
+				"value": "Last used",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "Leaderboard",
@@ -740,6 +748,14 @@
 				"keys": ["admin.users.removeAdmin", "admin.users.removeAdminBulk"]
 			},
 			{
+				"value": "Resend code",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Resend in {seconds}s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
+			},
+			{
 				"value": "Reset your password",
 				"keys": ["auth.resetPasswordTitle", "support.resources.reset.title"]
 			},
@@ -875,11 +891,15 @@
 			},
 			{
 				"value": "Sign In",
-				"keys": ["auth.signIn", "common.signIn", "stats.signIn"]
+				"keys": ["auth.signIn", "stats.signIn"]
 			},
 			{
 				"value": "Sign Up",
 				"keys": ["auth.signUp", "common.signUp"]
+			},
+			{
+				"value": "Sign in",
+				"keys": ["auth.unified.verify", "common.signIn", "plus.unlock.signIn"]
 			},
 			{
 				"value": "Sign out",
@@ -1302,6 +1322,10 @@
 				"keys": ["footer.contact", "legal.terms.sections.contact.title"]
 			},
 			{
+				"value": "Continue",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "Conversion Rate",
 				"keys": ["admin.analytics.conversionRate", "admin.dashboard.conversionRate"]
 			},
@@ -1538,6 +1562,10 @@
 			{
 				"value": "Last Updated",
 				"keys": ["legal.privacy.lastUpdated", "legal.terms.lastUpdated"]
+			},
+			{
+				"value": "Last used",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "Leaderboard",
@@ -1854,6 +1882,14 @@
 				"keys": ["admin.users.removeAdmin", "admin.users.removeAdminBulk"]
 			},
 			{
+				"value": "Resend code",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Resend in {seconds}s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
+			},
+			{
 				"value": "Reset your password",
 				"keys": ["auth.resetPasswordTitle", "support.resources.reset.title"]
 			},
@@ -1989,11 +2025,15 @@
 			},
 			{
 				"value": "Sign In",
-				"keys": ["auth.signIn", "common.signIn", "stats.signIn"]
+				"keys": ["auth.signIn", "stats.signIn"]
 			},
 			{
 				"value": "Sign Up",
 				"keys": ["auth.signUp", "common.signUp"]
+			},
+			{
+				"value": "Sign in",
+				"keys": ["auth.unified.verify", "common.signIn", "plus.unlock.signIn"]
 			},
 			{
 				"value": "Sign out",
@@ -2398,12 +2438,20 @@
 				]
 			},
 			{
+				"value": "{seconds} 秒後可重新發送",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
+			},
+			{
 				"value": "一般",
 				"keys": ["auth.passwordStrength.fair", "settings.overview.protectionLevels.fair"]
 			},
 			{
 				"value": "上一頁",
 				"keys": ["admin.auditLogs.pagination.previous", "pagination.previous"]
+			},
+			{
+				"value": "上次使用",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "上載相片",
@@ -2614,6 +2662,10 @@
 			{
 				"value": "嘗試次數",
 				"keys": ["gameResult.attempts", "share.card.attemptsLabel"]
+			},
+			{
+				"value": "嘗試次數過多，請稍後再試。",
+				"keys": ["auth.unified.rateLimited", "settings.account.password.rateLimited"]
 			},
 			{
 				"value": "天",
@@ -3028,6 +3080,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -3110,6 +3163,10 @@
 			{
 				"value": "總覽",
 				"keys": ["settings.nav.overview", "settings.security.tabs.overview"]
+			},
+			{
+				"value": "繼續",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
 			},
 			{
 				"value": "聯絡我們",
@@ -3250,6 +3307,10 @@
 			{
 				"value": "重新產生代碼",
 				"keys": ["settings.recoveryCodes.confirmRegenerate", "settings.recoveryCodes.regenerate"]
+			},
+			{
+				"value": "重新發送驗證碼",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
 			},
 			{
 				"value": "重設密碼",
@@ -3549,6 +3610,10 @@
 				"keys": ["settings.profile.avatarUpload.uploadPhoto", "settings.profile.uploadPhoto"]
 			},
 			{
+				"value": "上次使用",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
+			},
+			{
 				"value": "下一頁",
 				"keys": ["admin.auditLogs.pagination.next", "pagination.next"]
 			},
@@ -3765,6 +3830,10 @@
 			{
 				"value": "嘗試次數",
 				"keys": ["gameResult.attempts", "share.card.attemptsLabel"]
+			},
+			{
+				"value": "嘗試次數過多，請稍後再試。",
+				"keys": ["auth.unified.rateLimited", "settings.account.password.rateLimited"]
 			},
 			{
 				"value": "天",
@@ -4170,6 +4239,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -4239,6 +4309,10 @@
 			{
 				"value": "總覽",
 				"keys": ["settings.nav.overview", "settings.security.tabs.overview"]
+			},
+			{
+				"value": "繼續",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
 			},
 			{
 				"value": "聯絡我們",
@@ -4471,6 +4545,10 @@
 				]
 			},
 			{
+				"value": "電子郵件地址",
+				"keys": ["auth.unified.emailAddress", "settings.email.title"]
+			},
+			{
 				"value": "電子郵件已驗證",
 				"keys": [
 					"settings.security.securityCheckup.emailVerified",
@@ -4679,6 +4757,10 @@
 				]
 			},
 			{
+				"value": "{seconds} 秒后可重新发送",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
+			},
+			{
 				"value": "一般",
 				"keys": ["auth.passwordStrength.fair", "settings.overview.protectionLevels.fair"]
 			},
@@ -4689,6 +4771,10 @@
 			{
 				"value": "上传照片",
 				"keys": ["settings.profile.avatarUpload.uploadPhoto", "settings.profile.uploadPhoto"]
+			},
+			{
+				"value": "上次使用",
+				"keys": ["auth.unified.lastUsed", "settings.streakFreeze.lastUsed"]
 			},
 			{
 				"value": "下一页",
@@ -5394,6 +5480,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -5422,6 +5509,10 @@
 			{
 				"value": "紧凑模式",
 				"keys": ["settings.compactMode", "settings.preferences.appearance.compactMode"]
+			},
+			{
+				"value": "继续",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
 			},
 			{
 				"value": "编辑",
@@ -5570,11 +5661,19 @@
 				]
 			},
 			{
+				"value": "邮箱地址",
+				"keys": ["auth.unified.emailAddress", "settings.email.title"]
+			},
+			{
 				"value": "邮箱已验证",
 				"keys": [
 					"settings.security.securityCheckup.emailVerified",
 					"settings.securityScore.checks.emailVerified"
 				]
+			},
+			{
+				"value": "重新发送验证码",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
 			},
 			{
 				"value": "重新生成代码",
@@ -5933,6 +6032,10 @@
 				"keys": ["settings.recoveryCodes.confirmRegenerate", "settings.recoveryCodes.regenerate"]
 			},
 			{
+				"value": "コードを再送信",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
 				"value": "サポート",
 				"keys": ["nav.support", "support.hero.eyebrow"]
 			},
@@ -6235,7 +6338,12 @@
 			},
 			{
 				"value": "メールアドレス",
-				"keys": ["auth.email", "settings.email.title", "settings.profile.email"]
+				"keys": [
+					"auth.email",
+					"auth.unified.emailAddress",
+					"settings.email.title",
+					"settings.profile.email"
+				]
 			},
 			{
 				"value": "メールアドレスを入力してください",
@@ -6244,6 +6352,10 @@
 			{
 				"value": "メールアドレスを入力してください。パスワードを再設定するためのリンクをお送りします。",
 				"keys": ["auth.forgotPasswordDescription", "auth.resetInstructions"]
+			},
+			{
+				"value": "メールアドレスを変更",
+				"keys": ["auth.unified.changeEmail", "settings.email.changeEmail"]
 			},
 			{
 				"value": "メール認証済み",
@@ -6312,6 +6424,7 @@
 				"keys": [
 					"admin.auditLogs.actions.login",
 					"auth.signIn",
+					"auth.unified.verify",
 					"common.signIn",
 					"plus.unlock.signIn",
 					"stats.signIn"
@@ -6772,6 +6885,10 @@
 				"keys": ["nav.stats", "stats.title"]
 			},
 			{
+				"value": "続ける",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "総ユーザー数",
 				"keys": ["admin.dashboard.totalUsers", "admin.system.totalUsers", "admin.users.totalUsers"]
 			},
@@ -7084,6 +7201,10 @@
 				"keys": ["settings.search.ariaLabel", "settings.search.searchSettings"]
 			},
 			{
+				"value": "Cambiar correo",
+				"keys": ["auth.unified.changeEmail", "settings.email.changeEmail"]
+			},
+			{
 				"value": "Cambiar idioma",
 				"keys": ["common.changeLanguage", "common.switchLanguage"]
 			},
@@ -7171,6 +7292,10 @@
 				]
 			},
 			{
+				"value": "Continuar",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "Contraseña",
 				"keys": [
 					"auth.password",
@@ -7212,6 +7337,10 @@
 					"settings.overview.quickNotifications.email",
 					"settings.profile.email"
 				]
+			},
+			{
+				"value": "Correo electrónico",
+				"keys": ["auth.email", "auth.unified.emailAddress"]
 			},
 			{
 				"value": "Correo verificado",
@@ -7484,7 +7613,13 @@
 			},
 			{
 				"value": "Iniciar sesión",
-				"keys": ["auth.signIn", "common.signIn", "plus.unlock.signIn", "stats.signIn"]
+				"keys": [
+					"auth.signIn",
+					"auth.unified.verify",
+					"common.signIn",
+					"plus.unlock.signIn",
+					"stats.signIn"
+				]
 			},
 			{
 				"value": "Intentos",
@@ -7803,6 +7938,14 @@
 			{
 				"value": "Reducir movimiento",
 				"keys": ["settings.preferences.appearance.reduceMotion", "settings.reduceMotion"]
+			},
+			{
+				"value": "Reenviar código",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Reenviar en {seconds} s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
 			},
 			{
 				"value": "Regenerar códigos",
@@ -8138,6 +8281,10 @@
 				"keys": ["settings.notifications.push.streakAlert", "settings.pushStreakAlert"]
 			},
 			{
+				"value": "Alterar e-mail",
+				"keys": ["auth.unified.changeEmail", "settings.email.changeEmail"]
+			},
+			{
 				"value": "Anterior",
 				"keys": ["admin.auditLogs.pagination.previous", "pagination.previous"]
 			},
@@ -8347,6 +8494,10 @@
 				"keys": ["footer.contact", "legal.terms.sections.contact.title"]
 			},
 			{
+				"value": "Continuar",
+				"keys": ["auth.unified.continue", "settings.security.continue"]
+			},
+			{
 				"value": "Cookies",
 				"keys": ["footer.cookies", "legal.privacy.sections.cookies.title"]
 			},
@@ -8481,8 +8632,18 @@
 				"keys": ["admin.auditLogs.details.ipAddress", "admin.auditLogs.table.ip"]
 			},
 			{
+				"value": "Endereço de e-mail",
+				"keys": ["auth.unified.emailAddress", "settings.email.title"]
+			},
+			{
 				"value": "Entrar",
-				"keys": ["auth.signIn", "common.signIn", "plus.unlock.signIn", "stats.signIn"]
+				"keys": [
+					"auth.signIn",
+					"auth.unified.verify",
+					"common.signIn",
+					"plus.unlock.signIn",
+					"stats.signIn"
+				]
 			},
 			{
 				"value": "Enviando...",
@@ -8944,6 +9105,14 @@
 			{
 				"value": "Reduzir movimento",
 				"keys": ["settings.preferences.appearance.reduceMotion", "settings.reduceMotion"]
+			},
+			{
+				"value": "Reenviar código",
+				"keys": ["auth.unified.resend", "reauth.resendCode"]
+			},
+			{
+				"value": "Reenviar em {seconds}s",
+				"keys": ["auth.unified.resendIn", "reauth.resendIn"]
 			},
 			{
 				"value": "Remover",

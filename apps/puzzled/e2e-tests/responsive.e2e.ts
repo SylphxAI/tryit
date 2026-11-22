@@ -23,8 +23,7 @@ const VIEWPORTS = [
 const PAGES = [
 	{ path: '/', name: 'Home Page' },
 	{ path: '/games', name: 'Catalog Page' },
-	{ path: '/login', name: 'Login Page' },
-	{ path: '/signup', name: 'Signup Page' },
+	{ path: '/sign-in', name: 'Sign-in Page' },
 	{ path: '/stats', name: 'Stats Page' },
 	{ path: '/leaderboard', name: 'Leaderboard Page' },
 	{ path: '/support', name: 'Support Page' },
@@ -111,7 +110,7 @@ test.describe('Responsive Design - Game pages', () => {
 })
 
 test.describe('Responsive Design - Forms', () => {
-	for (const path of ['/login', '/signup']) {
+	for (const path of ['/sign-in']) {
 		test(`${path} fits every viewport`, async ({ page }) => {
 			for (const viewport of VIEWPORTS) {
 				await page.setViewportSize({ width: viewport.width, height: viewport.height })

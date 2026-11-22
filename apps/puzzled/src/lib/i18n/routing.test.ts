@@ -13,7 +13,7 @@ import { redirect } from './routing'
  */
 function redirectTarget(locale: string): string {
 	try {
-		redirect({ href: { pathname: '/login', query: { callbackUrl: '/settings' } }, locale })
+		redirect({ href: { pathname: '/sign-in', query: { next: '/settings' } }, locale })
 	} catch (error) {
 		// Next's redirect() throws `NEXT_REDIRECT;<mode>;<url>;<status>;`.
 		const url = (error as { digest?: string }).digest?.split(';')[2]
@@ -24,12 +24,12 @@ function redirectTarget(locale: string): string {
 }
 
 describe('locale-aware console redirect', () => {
-	test('the default locale redirects to an unprefixed /login (one hop)', () => {
-		expect(redirectTarget(defaultLocale)).toBe('/login?callbackUrl=%2Fsettings')
+	test('the default locale redirects to an unprefixed /sign-in (one hop)', () => {
+		expect(redirectTarget(defaultLocale)).toBe('/sign-in?next=%2Fsettings')
 	})
 
 	test('non-default locales keep their prefix', () => {
-		expect(redirectTarget('en-GB')).toBe('/en-GB/login?callbackUrl=%2Fsettings')
-		expect(redirectTarget('zh-HK')).toBe('/zh-HK/login?callbackUrl=%2Fsettings')
+		expect(redirectTarget('en-GB')).toBe('/en-GB/sign-in?next=%2Fsettings')
+		expect(redirectTarget('zh-HK')).toBe('/zh-HK/sign-in?next=%2Fsettings')
 	})
 })

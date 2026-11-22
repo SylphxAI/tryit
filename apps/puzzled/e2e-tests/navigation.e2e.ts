@@ -141,7 +141,7 @@ test.describe('Navigation', () => {
 			await page.goto(`/${LOCALE}/settings`)
 
 			// Should redirect to login
-			await page.waitForURL(/login/, { timeout: 10000 })
+			await page.waitForURL(/sign-in/, { timeout: 10000 })
 		})
 
 		test('should show login prompt on stats page when unauthenticated', async ({ page }) => {

@@ -42,7 +42,7 @@ export function ResetPasswordForm() {
 		token,
 		challengeId,
 		minPasswordLength: MIN_PASSWORD_LENGTH,
-		afterResetUrl: '/login',
+		afterResetUrl: '/sign-in',
 	})
 
 	// An incomplete link, or one Auth refused (expired, used, forged): ask for a new one.
@@ -77,7 +77,7 @@ export function ResetPasswordForm() {
 					{t('passwordResetSuccessDescription')}
 				</p>
 				<Link
-					href="/login"
+					href="/sign-in"
 					className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 				>
 					{t('backToLogin')}
@@ -152,7 +152,7 @@ export function ResetPasswordForm() {
 			</form>
 
 			<Link
-				href="/login"
+				href="/sign-in"
 				className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 			>
 				<ArrowLeft className="h-4 w-4" aria-hidden="true" />

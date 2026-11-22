@@ -13,10 +13,13 @@ export async function GET(request: Request) {
 	const url = new URL(request.url)
 	const origin = await getRequestSiteOrigin()
 	const next = safeNext(url.searchParams.get('next'))
+	const failed = new URL('/sign-in', origin)
+	failed.searchParams.set('error', 'oauth_failed')
+	if (next !== '/') failed.searchParams.set('next', next)
 	const ticket = url.searchParams.get('sylphx_ticket')?.trim()
 	const config = authConfig()
 	if (!config || !ticket) {
-		return NextResponse.redirect(`${origin}/login?error=oauth_failed`, 303)
+		return NextResponse.redirect(failed, 303)
 	}
 	try {
 		const { newAccount } = await completeSignIn(config, request, ticket)
@@ -25,6 +28,6 @@ export async function GET(request: Request) {
 		if (newAccount) response.headers.append('set-cookie', signUpCookieHeader('oauth'))
 		return response
 	} catch {
-		return NextResponse.redirect(`${origin}/login?error=oauth_failed`, 303)
+		return NextResponse.redirect(failed, 303)
 	}
 }
