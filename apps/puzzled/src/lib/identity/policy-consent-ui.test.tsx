@@ -3,7 +3,6 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { createElement, type ReactNode } from 'react'
 
 let pathname = '/games'
-let signupTermsAccepted: unknown
 const requests: { url: string; init?: RequestInit }[] = []
 const originalFetch = globalThis.fetch
 let respond: (url: string, init?: RequestInit) => Promise<Response>
@@ -23,50 +22,9 @@ function TestLink({ href, children }: { href: string; children: ReactNode }) {
 	return createElement('a', { href }, children)
 }
 mock.module('@/lib/i18n/routing', () => ({ Link: TestLink }))
-mock.module('@/lib/identity/react', () => ({
-	useSafeAuth: () => ({ signInWithOAuth: async () => undefined }),
-	useSignUpForm: (options: { termsAccepted?: boolean }) => {
-		signupTermsAccepted = options.termsAccepted
-		return {
-			form: { name: 'Player', email: 'player@example.com', password: 'long-enough-password' },
-			setName() {},
-			setEmail() {},
-			setPassword() {},
-			isSignInRetry: false,
-			isLoading: false,
-			loadingProvider: null,
-			error: null,
-			passwordValid: true,
-			handleSubmit: async () => undefined,
-			handleOAuthSignUp: async () => undefined,
-		}
-	},
-}))
-function EmptyField() {
-	return null
-}
-function TestSubmit({ disabled, label }: { disabled: boolean; label: string }) {
-	return createElement('button', { type: 'submit', disabled }, label)
-}
-function TestOAuth({ disabled }: { disabled: boolean }) {
-	return createElement('button', { type: 'button', disabled, 'data-oauth': true }, 'Google')
-}
-// Keep this test about the form's consent wiring, not shared field styling.
-mock.module('@/app/[locale]/(auth)/_components/auth-fields', () => ({
-	MIN_PASSWORD_LENGTH: 12,
-	emailProblem: () => null,
-	passwordProblem: () => null,
-	AuthField: EmptyField,
-	PasswordField: EmptyField,
-	FormAlert: EmptyField,
-	AuthSubmit: TestSubmit,
-	OAuthButtons: TestOAuth,
-}))
-
 let React: typeof import('react')
 let createRoot: typeof import('react-dom/client').createRoot
 let PolicyConsentGate: typeof import('./policy-consent-gate').PolicyConsentGate
-let SignUpForm: typeof import('@/app/[locale]/(auth)/signup/signup-form').SignUpForm
 let root: ReturnType<typeof createRoot> | null = null
 let host: HTMLDivElement
 
@@ -93,12 +51,10 @@ beforeAll(async () => {
 	React = await import('react')
 	;({ createRoot } = await import('react-dom/client'))
 	;({ PolicyConsentGate } = await import('./policy-consent-gate'))
-	;({ SignUpForm } = await import('@/app/[locale]/(auth)/signup/signup-form'))
 })
 beforeEach(() => {
 	pathname = '/games'
 	requests.length = 0
-	signupTermsAccepted = undefined
 	respond = async () => Response.json(currentStatus)
 	globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
 		requests.push({ url: String(url), init })
@@ -267,25 +223,5 @@ describe('versioned policy consent gate', () => {
 		await React.act(async () => checkbox().click())
 		await React.act(async () => submit().click())
 		expectBlocked()
-	})
-})
-
-describe('affirmative signup checkbox', () => {
-	test('starts unchecked with both signup methods disabled and passes the assertion to the hook', async () => {
-		await mount(createElement(SignUpForm, { providers: ['google'] }))
-		const terms = host.querySelector<HTMLInputElement>('#signup-terms')
-		expect(terms).not.toBeNull()
-		expect(terms?.checked).toBe(false)
-		expect(signupTermsAccepted).toBe(false)
-		expect(submit().disabled).toBe(true)
-		expect(host.querySelector<HTMLButtonElement>('[data-oauth]')?.disabled).toBe(true)
-		await React.act(async () => terms?.click())
-		expect(signupTermsAccepted).toBe(true)
-		expect(submit().disabled).toBe(false)
-		expect(host.querySelector<HTMLButtonElement>('[data-oauth]')?.disabled).toBe(false)
-		await React.act(async () => terms?.click())
-		expect(signupTermsAccepted).toBe(false)
-		expect(submit().disabled).toBe(true)
-		expect(host.querySelector<HTMLButtonElement>('[data-oauth]')?.disabled).toBe(true)
 	})
 })

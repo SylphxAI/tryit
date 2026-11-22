@@ -21,6 +21,7 @@ import { buildCsp, createNonce, NONCE_HEADER } from '@/lib/csp'
 import { env } from '@/lib/env'
 import { defaultLocale, isValidLocale, type Locale, locales } from '@/lib/i18n/config'
 import { routing } from '@/lib/i18n/routing'
+import { SIGN_IN_ALIASES, safeReturnPath } from '@/lib/identity/return-path'
 import {
 	LEGACY_SESSION_COOKIE,
 	legacySessionToMigrate,
@@ -124,7 +125,23 @@ function migrateSessionCookie(request: NextRequest, response: NextResponse): voi
 }
 
 async function route(request: NextRequest): Promise<NextResponse> {
-	const { pathname } = request.nextUrl
+	const { pathname, searchParams } = request.nextUrl
+	const locale = localeFromPathname(pathname)
+	const unprefixed = locale ? pathname.slice(locale.length + 1) : pathname
+	if (SIGN_IN_ALIASES.some((path) => path === unprefixed)) {
+		const next = safeReturnPath(searchParams.get('next') ?? searchParams.get('callbackUrl'))
+		const prefix = locale && locale !== defaultLocale ? `/${locale}` : ''
+		const query = new URLSearchParams()
+		if (next) query.set('next', next)
+		if (searchParams.get('error') === 'oauth_failed') query.set('error', 'oauth_failed')
+		return new NextResponse(null, {
+			status: 308,
+			headers: {
+				'cache-control': 'private, no-store',
+				location: new URL(`${prefix}/sign-in${query.size ? `?${query}` : ''}`, request.url).href,
+			},
+		})
+	}
 
 	// =========================================================================
 	// Skip non-page routes
@@ -147,7 +164,7 @@ async function route(request: NextRequest): Promise<NextResponse> {
 	}
 
 	// Inbound aliases stay public presentation. Identity dest owns sessions;
-	// suite-door middleware must not send /crowns or /duo to /login.
+	// suite-door middleware must not send /crowns or /duo to sign-in.
 	if (isInboundPublicPath(pathname)) {
 		return intlMiddleware(request)
 	}
@@ -157,7 +174,8 @@ async function route(request: NextRequest): Promise<NextResponse> {
 	// =========================================================================
 
 	const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value
-	const remembered = rememberedLocaleRedirect(pathname, cookieLocale)
+	const remembered =
+		pathname === '/sign-in' ? null : rememberedLocaleRedirect(pathname, cookieLocale)
 	if (remembered) {
 		const url = request.nextUrl.clone()
 		url.pathname = remembered

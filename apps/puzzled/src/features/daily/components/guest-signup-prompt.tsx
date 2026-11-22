@@ -12,7 +12,7 @@ import {
 import { Sparkles } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from '@/lib/i18n/routing'
-import { signupHref } from './save-streak-prompt'
+import { signInHref } from './save-streak-prompt'
 
 type GuestSignupPromptProps = {
 	open: boolean
@@ -34,10 +34,11 @@ export function GuestSignupPrompt({
 	gameSlug,
 }: GuestSignupPromptProps) {
 	const t = useTranslations('onboarding')
+	const auth = useTranslations('auth.unified')
 	const router = useRouter()
 
 	const handleSignup = () => {
-		router.push(signupHref(gameSlug))
+		router.push(signInHref(gameSlug))
 	}
 
 	return (
@@ -90,7 +91,7 @@ export function GuestSignupPrompt({
 				<DialogFooter className="flex-col gap-2 sm:flex-col">
 					<Button onClick={handleSignup} className="w-full gap-2">
 						<Sparkles className="h-4 w-4" />
-						{t('createFreeAccount')}
+						{auth('verify')}
 					</Button>
 					<button
 						type="button"

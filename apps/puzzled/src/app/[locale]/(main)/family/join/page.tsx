@@ -40,7 +40,7 @@ export default async function JoinFamilyPage({ params, searchParams }: Props) {
 					<JoinFamilyButton code={code} />
 				) : (
 					<Link
-						href={{ pathname: '/login', query: { callbackUrl: returnTo } }}
+						href={{ pathname: '/sign-in', query: { next: returnTo } }}
 						className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-primary px-5 font-semibold text-primary-foreground"
 					>
 						{t('signInToJoin')}

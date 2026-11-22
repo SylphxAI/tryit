@@ -94,7 +94,7 @@ async function mount() {
 describe('email proof confirmation', () => {
 	for (const name of locales) {
 		for (const hasSession of [false, true]) {
-			test(`${name}: ${hasSession ? 'signed-in' : 'sessionless'} proof keeps explicit recovery and sign-in actions`, async () => {
+			test(`${name}: ${hasSession ? 'signed-in' : 'sessionless'} proof offers unified sign-in`, async () => {
 				locale = name
 				signedIn = hasSession
 				const { container, root } = await mount()
@@ -109,13 +109,11 @@ describe('email proof confirmation', () => {
 					])
 					expect(container.textContent).toContain(catalogue(name).auth.emailVerified)
 					expect(container.textContent).toContain(catalogue(name).auth.verifiedSignInGuidance)
-					const reset = container.querySelector('a[href="/forgot-password"]')
-					expect(reset?.textContent).toBe(catalogue(name).auth.setNewPassword)
-					expect(reset?.className).toContain('min-h-11')
-					expect(reset?.className).toContain('bg-primary')
-					expect(container.querySelector('a[href="/login"]')?.textContent).toBe(
-						catalogue(name).common.signIn,
-					)
+					const signIn = container.querySelector('a[href="/sign-in"]')
+					expect(signIn?.textContent).toBe(catalogue(name).common.signIn)
+					expect(signIn?.className).toContain('min-h-11')
+					expect(signIn?.className).toContain('bg-primary')
+					expect(container.querySelector('a[href="/forgot-password"]')).toBeNull()
 					expect(container.querySelector('a[href="/"]')?.textContent).toBe(
 						catalogue(name).auth.backToPlay,
 					)
@@ -135,7 +133,7 @@ describe('email proof confirmation', () => {
 			await React.act(async () => container.querySelector('button')?.click())
 			await new Promise((resolve) => setTimeout(resolve, 2100))
 			expect(navigations).toHaveLength(0)
-			expect(container.querySelector('a[href="/forgot-password"]')).not.toBeNull()
+			expect(container.querySelector('a[href="/sign-in"]')).not.toBeNull()
 		} finally {
 			await React.act(async () => root.unmount())
 		}

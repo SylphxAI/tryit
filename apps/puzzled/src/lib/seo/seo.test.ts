@@ -8,7 +8,6 @@
 
 import { afterAll, describe, expect, test } from 'bun:test'
 import robots from '@/app/robots'
-import sitemap from '@/app/sitemap'
 import { getGameSlugs } from '@/games/registry'
 import { defaultLocale, locales } from '@/lib/i18n/config'
 import {
@@ -27,6 +26,7 @@ import {
 	robotsDisallowPaths,
 	stripLocalePrefix,
 } from '@/lib/seo/routes'
+import sitemap from '@/lib/seo/sitemap'
 
 // Deterministic origin for the documents and metadata under test. Held only
 // for this file: the relay and canonical resolvers read these values live, so
@@ -60,6 +60,7 @@ describe('route truth table', () => {
 		expect(paths).toEqual([
 			'/',
 			'/games',
+			'/archive',
 			'/pricing',
 			'/use-cases/daily-word-and-logic-puzzles-online',
 			'/use-cases/family-brain-games-no-ads',
@@ -89,8 +90,11 @@ describe('route truth table', () => {
 			'/profile',
 			'/stats',
 			'/leaderboard',
+			'/sign-in',
 			'/login',
 			'/signup',
+			'/sign-up',
+			'/register',
 			'/forgot-password',
 			'/reset-password',
 			'/verify-email',
@@ -113,13 +117,15 @@ describe('route truth table', () => {
 		expect([...PRIVATE_ROUTE_PREFIXES]).toEqual([
 			'/api',
 			'/admin',
-			'/archive',
 			'/settings',
 			'/profile',
 			'/stats',
 			'/leaderboard',
+			'/sign-in',
 			'/login',
 			'/signup',
+			'/sign-up',
+			'/register',
 			'/forgot-password',
 			'/reset-password',
 			'/verify-email',
@@ -166,14 +172,10 @@ describe('route truth table', () => {
 		expect(isPrivateRoutePath('/stats-and-more')).toBe(false)
 	})
 
-	test('keeps the archive reachable but out of the index', () => {
-		// The archive surface is per-identity, so it must not be
-		// listed for crawlers — while staying crawlable so its own noindex is
-		// readable (a Disallow would hide the directive).
-		expect(isPrivateRoutePath('/archive')).toBe(true)
-		expect(isPrivateRoutePath('/zh-HK/archive')).toBe(true)
-		expect(PUBLIC_ROUTES.map((route) => route.path)).not.toContain('/archive')
-		expect(sitemap().some((entry) => new URL(entry.url).pathname.endsWith('/archive'))).toBe(false)
+	test('publishes the public archive calendar', () => {
+		expect(isPrivateRoutePath('/archive')).toBe(false)
+		expect(isPrivateRoutePath('/zh-HK/archive')).toBe(false)
+		expect(sitemap().map((entry) => new URL(entry.url).pathname)).toContain('/archive')
 		expect(robotsDisallowPaths()).not.toContain('/archive')
 	})
 

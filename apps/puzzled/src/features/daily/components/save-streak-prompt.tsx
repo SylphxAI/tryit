@@ -32,19 +32,20 @@ export function shouldOfferStreakSave(signedIn: boolean, daily: boolean, streak:
 	return !signedIn && daily && streak >= 2
 }
 
-/** Sign-up that returns the player to the game they just finished. */
-export function signupHref(gameSlug?: string): {
-	pathname: '/signup'
-	query?: { callbackUrl: string }
+/** Sign-in that returns the player to the game they just finished. */
+export function signInHref(gameSlug?: string): {
+	pathname: '/sign-in'
+	query?: { next: string }
 } {
 	return gameSlug
-		? { pathname: '/signup', query: { callbackUrl: `/games/${gameSlug}` } }
-		: { pathname: '/signup' }
+		? { pathname: '/sign-in', query: { next: `/games/${gameSlug}` } }
+		: { pathname: '/sign-in' }
 }
 
 /** Runs only on a finished daily screen, not in the middle of play. */
 export function SaveStreakPrompt({ daily, gameSlug }: { daily: boolean; gameSlug?: string }) {
 	const t = useTranslations('onboarding')
+	const auth = useTranslations('auth.unified')
 	const { isSignedIn, isLoaded } = useSafeUser()
 	const [streak, setStreak] = useState(0)
 	const [dismissed, setDismissed] = useState(false)
@@ -76,7 +77,7 @@ export function SaveStreakPrompt({ daily, gameSlug }: { daily: boolean; gameSlug
 					<p className="mt-1 text-sm text-muted-foreground">{t('keepStreak', { days: streak })}</p>
 					<p className="mt-1 text-xs text-muted-foreground">{t('saveStreakNote')}</p>
 					<Button asChild className="mt-3 w-full" size="lg">
-						<Link href={signupHref(gameSlug)}>{t('createFreeAccount')}</Link>
+						<Link href={signInHref(gameSlug)}>{auth('verify')}</Link>
 					</Button>
 				</section>
 			) : null}

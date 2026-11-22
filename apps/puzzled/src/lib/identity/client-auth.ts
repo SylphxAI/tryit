@@ -3,6 +3,8 @@ import 'server-only'
 import { authIdValue, destIdentityOrigin } from './dest'
 import { isPolicyAcceptance, type PolicyAcceptance } from './policy-consent'
 
+export { safeNext } from './return-path'
+
 /**
  * Tryit's players are end users of its own Sylphx Auth instance, reached
  * through the Auth client API in server mode:
@@ -213,22 +215,38 @@ export async function sessionTimes(
 	}
 }
 
-/**
- * Social providers the instance can use now (`GET /v1/client/config`), e.g.
- * `["google"]`. Empty while Auth is not enabled or on any failure.
- */
-export async function socialProviders(config: AuthConfig): Promise<string[]> {
-	const query = new URLSearchParams({ publishable_key: config.publishableKey })
-	const response = await fetch(`${config.url}/v1/client/config?${query}`, {
-		signal: AbortSignal.timeout(5_000),
+export async function authClient<T>(
+	config: AuthConfig,
+	path: string,
+	userAgent: string,
+	body?: unknown,
+): Promise<T> {
+	return call<T>(config, `/v1/client/${path}`, {
+		method: body === undefined ? 'GET' : 'POST',
+		bearer: config.publishableKey,
+		userAgent,
+		body,
 	})
-	if (!response.ok) return []
-	let body: { social?: Array<{ provider?: unknown }> } = {}
-	try {
-		body = JSON.parse(await response.text())
-	} catch {
-		return []
+}
+
+type ClientConfig = {
+	methods?: Record<string, boolean>
+	social?: Array<{ provider?: unknown }>
+}
+
+export async function clientSignInConfig(config: AuthConfig, userAgent: string) {
+	const body = await authClient<ClientConfig>(config, 'config', userAgent)
+	return {
+		google: body.social?.some((entry) => entry.provider === 'google') ?? false,
+		password: body.methods?.password === true,
+		emailOtp: body.methods?.email_otp === true,
+		passkey: body.methods?.passkey === true,
 	}
+}
+
+/** Social methods for the existing settings/account surfaces. */
+export async function socialProviders(config: AuthConfig): Promise<string[]> {
+	const body = await authClient<ClientConfig>(config, 'config', 'puzzled-web')
 	return (body.social ?? []).flatMap((entry) =>
 		typeof entry.provider === 'string' && entry.provider ? [entry.provider] : [],
 	)
@@ -250,12 +268,4 @@ export function googleStartUrl(
 		for (const [key, value] of Object.entries(acceptance)) query.set(key, String(value))
 	}
 	return `${config.url}/v1/client/oauth/google/start?${query}`
-}
-
-/** A same-site path to return to after sign-in; anything else becomes `/`. */
-export function safeNext(raw: string | null | undefined): string {
-	const value = (raw ?? '').trim()
-	const unsafe = [...value].some((char) => char === '\\' || char.charCodeAt(0) < 0x20)
-	if (!value.startsWith('/') || value.startsWith('//') || unsafe) return '/'
-	return value
 }

@@ -149,7 +149,7 @@ mock.module('@/lib/api/server', () => ({
 const { default: SubscriptionSettingsPage } = await import('./page')
 
 describe('SubscriptionSettingsPage guest checkout claim handoff', () => {
-	test('prompts unauthenticated post-payment buyer to create account or sign in with preserved return URL and zero secrets', async () => {
+	test('prompts unauthenticated post-payment buyer to sign in with preserved return URL and zero secrets', async () => {
 		mockSignedIn = false
 		mockClaimCookie = 'encoded_secret_cookie_only'
 		mockEntitled = false
@@ -170,13 +170,12 @@ describe('SubscriptionSettingsPage guest checkout claim handoff', () => {
 		expect(redirectedTo).toHaveLength(0)
 		expect(claimCalls).toHaveLength(0)
 		expect(html).toContain('Payment received — link your Tryit Plus')
-		expect(html).toContain('Create account to activate Plus')
+		expect(html).not.toContain('Create account to activate Plus')
 		expect(html).toContain('Sign in to link subscription')
 		const expectedCallback = encodeURIComponent(
 			'/settings/subscription?checkout=success&s=cs_live_guest_session_123&callbackUrl=%2Fgames%2Fsudoku',
 		)
-		expect(html).toContain(`/signup?callbackUrl=${expectedCallback}`)
-		expect(html).toContain(`/login?callbackUrl=${expectedCallback}`)
+		expect(html).toContain(`/sign-in?next=${expectedCallback}`)
 		expect(html).not.toContain('encoded_secret_cookie_only')
 		expect(html).not.toContain('clm_')
 	})
@@ -204,8 +203,7 @@ describe('SubscriptionSettingsPage guest checkout claim handoff', () => {
 		const expectedCallback = encodeURIComponent(
 			'/settings/subscription?checkout=success&session_id=cs_live_verify_probe',
 		)
-		expect(html).toContain(`/signup?callbackUrl=${expectedCallback}`)
-		expect(html).toContain(`/login?callbackUrl=${expectedCallback}`)
+		expect(html).toContain(`/sign-in?next=${expectedCallback}`)
 	})
 
 	test('redirects unauthenticated visitors on normal /settings/subscription without checkout=success', async () => {

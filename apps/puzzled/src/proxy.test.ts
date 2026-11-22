@@ -68,7 +68,7 @@ describe('public landing locale cookies', () => {
 	})
 
 	test('other routes retain their existing locale-cookie behaviour', async () => {
-		const response = await proxy(new NextRequest('https://puzzled.gg/login'))
+		const response = await proxy(new NextRequest('https://puzzled.gg/sign-in'))
 		expect(response.cookies.get('NEXT_LOCALE')?.value).toBe('en-US')
 	})
 

@@ -158,7 +158,7 @@ export async function LeaderboardBoard({
 				{!viewerSignedIn ? (
 					<p className="mt-1 text-xs leading-relaxed text-muted-foreground">
 						{t('notes.guest')}{' '}
-						<Link href="/login" className="font-semibold text-primary hover:underline">
+						<Link href="/sign-in" className="font-semibold text-primary hover:underline">
 							{t('notes.signIn')}
 						</Link>
 					</p>
