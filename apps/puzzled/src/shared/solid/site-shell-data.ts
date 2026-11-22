@@ -1,4 +1,4 @@
-import { type Locale, localeNames, locales } from '@/lib/i18n/config'
+import { type Locale, localeNames, localeShortNames, locales } from '@/lib/i18n/config'
 import type { Translate } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 
@@ -39,12 +39,15 @@ export function siteShellData(locale: Locale, path: string, t: Translate, now: D
 				tab.path === '/' ? path === '/' : path === tab.path || path.startsWith(`${tab.path}/`),
 		})),
 		plus: { title: t('nav.plus'), href: localizedPath(locale, '/pricing') },
+		signIn: { title: t('common.signIn'), href: localizedPath(locale, '/profile') },
 		languages: locales.map((code) => ({
 			code,
 			name: localeNames[code],
 			href: localizedPath(code, path),
 		})),
 		language: locale,
+		languageName: localeNames[locale],
+		languageShortName: localeShortNames[locale],
 		changeLanguage: t('common.changeLanguage'),
 		footer: {
 			tagline: t('footer.tagline'),

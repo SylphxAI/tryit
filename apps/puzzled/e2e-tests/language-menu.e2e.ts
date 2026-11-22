@@ -9,6 +9,7 @@ test('language links are navigable even without hydration', async ({ browser, ba
 	try {
 		const page = await context.newPage()
 		await page.goto('/')
+		await expect(languageTrigger(page)).toHaveText('English')
 		await expect(languageOptions(page)).toBeHidden()
 		await languageTrigger(page).press('Enter')
 		const spanish = languageOptions(page).getByRole('link', { name: 'Español' })

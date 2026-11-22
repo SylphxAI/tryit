@@ -16,7 +16,7 @@ import type { PricingData } from './pricing-data'
 
 export function PricingPage(props: { data: PricingData }) {
 	return (
-		<SiteShell data={props.data.shell}>
+		<SiteShell data={props.data.shell} signedIn={props.data.signedIn}>
 			<PageMeta value={props.data.meta} />
 			<PricingBody data={props.data} />
 		</SiteShell>
