@@ -8,6 +8,17 @@ const email = 'synthetic@example.test'
 const user = { principal_id: 'fixture-user', project_id: org, primary_email: email }
 const response = (data: object, status = 200) => Response.json(data, { status })
 
+function browserSession(id: string, name: string, state = 'active') {
+	return {
+		session_id: id,
+		device: { display_name: name },
+		created_at_unix_seconds: 1_773_000_000,
+		expires_at_unix_seconds: 1_999_000_000,
+		state,
+	}
+}
+
+let tabletEnded = false
 let mode = 'enabled'
 let calls: { path: string; body: unknown }[] = []
 let counter = 0
@@ -29,6 +40,7 @@ Bun.serve({
 		if (path === '/__fixture') {
 			if (request.method === 'POST') {
 				mode = String(body?.mode)
+				tabletEnded = false
 				calls = []
 				tickets = new Set()
 			}
@@ -91,7 +103,37 @@ Bun.serve({
 			auth === `Bearer ${fixtureToken}` &&
 			request.headers.get('x-sylphx-caller-key') === 'pk_local_fixture'
 		) {
-			return response({ principal: user })
+			return response({
+				principal: user,
+				session: browserSession('this-browser', 'Fixture Chromium'),
+			})
+		}
+		if (auth === `Bearer ${fixtureToken}` && path === '/v1/sessions') {
+			if (mode === 'sessions-unavailable') return response({}, 503)
+			if (body?.cursor === 'page-two') {
+				return response({
+					sessions: [browserSession('older', 'Old phone', 'expired')],
+					next_cursor: '',
+				})
+			}
+			return response({
+				sessions: [
+					browserSession('this-browser', 'Fixture Chromium'),
+					browserSession('tablet', 'Fixture tablet', tabletEnded ? 'revoked' : 'active'),
+				],
+				next_cursor: 'page-two',
+			})
+		}
+		if (
+			auth === `Bearer ${fixtureToken}` &&
+			path === '/v1/sessions/tablet/revoke' &&
+			body?.session_id === 'tablet'
+		) {
+			tabletEnded = true
+			return response({ session: browserSession('tablet', 'Fixture tablet', 'revoked') })
+		}
+		if (auth === `Bearer ${fixtureToken}` && path === '/v1/client/sign-out') {
+			return response({})
 		}
 		if (
 			path === '/v1/auth/consent:accept' &&

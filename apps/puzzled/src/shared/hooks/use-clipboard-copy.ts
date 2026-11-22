@@ -2,19 +2,9 @@
 
 import { type RefObject, useRef, useState } from 'react'
 
-export function selectCopyText(element: HTMLElement | null) {
-	if (!element) return
-	element.focus()
-	if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-		element.select()
-		return
-	}
-	const range = document.createRange()
-	range.selectNodeContents(element)
-	const selection = window.getSelection()
-	selection?.removeAllRanges()
-	selection?.addRange(range)
-}
+import { selectCopyText } from './select-copy-text'
+
+export { selectCopyText } from './select-copy-text'
 
 /** A success belongs to the text actually written, never an earlier copy attempt. */
 export function useClipboardCopy(text: string, target: RefObject<HTMLElement | null>) {
