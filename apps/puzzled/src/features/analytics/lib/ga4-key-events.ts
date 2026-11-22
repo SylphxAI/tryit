@@ -5,7 +5,7 @@ import { trustedCheckoutTrigger, trustedEntrySurface } from './checkout-entry-su
 import { hasAnalyticsConsent } from './consent'
 import { sendGa4Event } from './google-tag'
 
-export type Ga4KeyEventName = 'sign_up' | 'begin_checkout' | 'purchase'
+export type Ga4KeyEventName = 'sign_up' | 'begin_checkout'
 
 export type Ga4KeyEventParamsMap = {
 	sign_up: {
@@ -22,24 +22,10 @@ export type Ga4KeyEventParamsMap = {
 		value?: number
 		currency?: string
 	}
-	purchase: {
-		transaction_id?: string
-		session_id?: string
-		value: number
-		currency: string
-		plan?: string
-		plan_sku?: string
-		billing_interval?: string
-		entry_surface?: string
-		items?: { item_id: string }[]
-	}
 }
 
 export type Ga4KeyEventParams<E extends Ga4KeyEventName> = Ga4KeyEventParamsMap[E] &
 	Record<string, unknown>
-
-const PURCHASE_FIRED_PREFIX = 'puzzled:ga4:purchase:'
-const firedPurchaseKeys = new Set<string>()
 
 const ALLOWED_KEYS = new Set([
 	'method',
@@ -49,10 +35,8 @@ const ALLOWED_KEYS = new Set([
 	'billing_interval',
 	'option',
 	'checkout_trigger',
-	'transaction_id',
 	'value',
 	'currency',
-	'items',
 ])
 
 const FORBIDDEN_PII_KEYS = new Set([
@@ -108,16 +92,6 @@ function sanitizeParams(raw: Record<string, unknown>): Record<string, unknown> {
 			if (clean) out.currency = clean.toUpperCase()
 			continue
 		}
-		if (key === 'items' && Array.isArray(value)) {
-			const items = value
-				.map((entry) => {
-					const itemId = sanitizeToken((entry as { item_id?: unknown } | null)?.item_id)
-					return itemId ? { item_id: itemId } : null
-				})
-				.filter((entry): entry is { item_id: string } => entry !== null)
-			if (items.length > 0) out.items = items
-			continue
-		}
 		const clean = sanitizeToken(value)
 		if (clean) out[key] = clean
 	}
@@ -133,32 +107,9 @@ function sessionStore(): Storage | undefined {
 	}
 }
 
-function isPurchaseRecorded(dedupeId: string): boolean {
-	if (firedPurchaseKeys.has(dedupeId)) return true
-	try {
-		return sessionStore()?.getItem(`${PURCHASE_FIRED_PREFIX}${dedupeId}`) === '1'
-	} catch {
-		return false
-	}
-}
-
-function markPurchaseRecorded(dedupeId: string): void {
-	firedPurchaseKeys.add(dedupeId)
-	try {
-		sessionStore()?.setItem(`${PURCHASE_FIRED_PREFIX}${dedupeId}`, '1')
-	} catch {
-		// Private mode: in-memory set still prevents duplicates in this document.
-	}
-}
-
-/** Test-only: clears in-memory purchase deduplication marks. */
-export function resetGa4KeyEventsForTests(): void {
-	firedPurchaseKeys.clear()
-}
-
 /**
- * Emits a consent-gated GA4 Key Event (`sign_up`, `begin_checkout`, `purchase`).
- * Returns `true` if the GA destination accepted dispatch, `false` if gated or deduplicated.
+ * Emits a consent-gated GA4 Key Event (`sign_up`, `begin_checkout`).
+ * Returns `true` if the GA destination accepted dispatch, `false` if gated.
  */
 export function trackGa4KeyEvent<E extends Ga4KeyEventName>(
 	event: E,
@@ -177,14 +128,5 @@ export function trackGa4KeyEvent<E extends Ga4KeyEventName>(
 		if (surface) clean.entry_surface = surface
 	}
 
-	if (event === 'purchase') {
-		const dedupeId = sanitizeToken(clean.transaction_id, 255) ?? sanitizeToken(raw.session_id, 255)
-		if (!dedupeId) return false
-		if (!clean.transaction_id) clean.transaction_id = dedupeId
-		if (isPurchaseRecorded(dedupeId)) return false
-		if (!sendGa4Event(event, clean)) return false
-		markPurchaseRecorded(dedupeId)
-		return true
-	}
 	return sendGa4Event(event, clean)
 }

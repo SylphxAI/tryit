@@ -3,18 +3,7 @@ import { parseCookie } from 'cookie-es'
 import { consolePresentation } from '@/features/console/solid/read-context'
 import { requestBilling } from '@/lib/api/request-billing'
 import { CHECKOUT_CLAIM_COOKIE } from '@/lib/billing/checkout-claim-cookie'
-import {
-	availableCurrencies,
-	COUNTRY_HEADER,
-	CURRENCY_COOKIE,
-	chooseCurrency,
-} from '@/lib/billing/currency'
-import {
-	checkoutConfirmed,
-	minorUnitsToMajor,
-	planCards,
-	subscriptionView,
-} from '@/lib/billing/plus'
+import { checkoutConfirmed, subscriptionView } from '@/lib/billing/plus'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { requestUser } from '@/lib/identity/request-identity'
@@ -71,35 +60,13 @@ export async function readSubscriptionPage(
 				? ('trialing' as const)
 				: ('paid' as const)
 			: null
-	const planId = status ? (view?.planId ?? undefined) : undefined
-	let quote: { value: number; currency: string } | undefined
-	if (status === 'paid' && planId) {
-		try {
-			const { plans } = await billing.listPlans()
-			const currency = chooseCurrency({
-				cookie: cookies[CURRENCY_COOKIE],
-				country: request.headers.get(COUNTRY_HEADER),
-				locale,
-				available: availableCurrencies(plans),
-			})
-			const card = planCards(plans, currency).find((entry) => entry.id === planId)
-			if (card)
-				quote = {
-					value: minorUnitsToMajor(card.amountMinor, card.currency),
-					currency: card.currency.toUpperCase(),
-				}
-		} catch (error) {
-			logger.warn('plus.subscription-plans-read-failed', { error })
-		}
-	}
 	return {
 		...presentation,
 		kind: 'member' as const,
 		handoff,
 		hasClaimCookie,
 		view,
-		conversion:
-			status && sessionId ? { status, sessionId, userId: user.id, planId, ...quote } : null,
+		conversion: status && sessionId ? { status, sessionId, userId: user.id } : null,
 	}
 }
 

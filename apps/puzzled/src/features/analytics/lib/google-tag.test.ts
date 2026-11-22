@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { reportCheckoutReturn } from '@/features/plus/lib/checkout-return'
+import { CONSENT_KEY } from '@/lib/storage-keys'
+import { CHECKOUT_QUOTE_KEY, setConsentContext } from './consent'
 import {
 	cleanEventParams,
 	consentSignals,
@@ -11,7 +14,7 @@ import {
 	type TagDocument,
 	type TagWindow,
 	trackablePath,
-	trackCheckoutReturn,
+	trackCheckoutTrialStart,
 	trackSignUp,
 } from './google-tag'
 
@@ -225,6 +228,7 @@ describe('conversions', () => {
 		const items = new Map<string, string>()
 		// biome-ignore lint/suspicious/noExplicitAny: stub browser window
 		;(globalThis as any).window = {
+			dispatchEvent: () => {},
 			localStorage: {
 				getItem: (k: string) => items.get(k) ?? null,
 				setItem: (k: string, v: string) => void items.set(k, v),
@@ -240,8 +244,8 @@ describe('conversions', () => {
 	test('trial_start carries the post-trial price once per checkout session and clears the quote', () => {
 		const { h, items } = install()
 		rememberCheckoutQuote({ plan: 'individual_yearly', value: 39.99, currency: 'USD' })
-		expect(trackCheckoutReturn({ sessionId: 'cs_test_1', status: 'trialing' })).toBe(true)
-		expect(trackCheckoutReturn({ sessionId: 'cs_test_1', status: 'trialing' })).toBe(false)
+		expect(trackCheckoutTrialStart({ sessionId: 'cs_test_1' })).toBe(true)
+		expect(trackCheckoutTrialStart({ sessionId: 'cs_test_1' })).toBe(false)
 		expect(sent(h)).toEqual([
 			[
 				'trial_start',
@@ -257,38 +261,36 @@ describe('conversions', () => {
 		expect([...items.keys()].filter((k) => k.includes('checkout-quote'))).toEqual([])
 	})
 
-	test('purchase carries the Money session id as transaction id, once', () => {
-		const { h } = install()
-		rememberCheckoutQuote({ plan: 'individual_monthly', value: 4.99, currency: 'GBP' })
-		expect(
-			trackCheckoutReturn({ sessionId: 'cs_live_9', status: 'paid', userId: 'u_opaque123' }),
-		).toBe(true)
-		expect(sent(h)[0]).toEqual([
-			'purchase',
-			{
-				transaction_id: 'cs_live_9',
-				value: 4.99,
-				currency: 'GBP',
-				items: [{ item_id: 'individual_monthly' }],
-				user_id: 'u_opaque123',
-				send_to: ['G-TEST1234', 'AW-123456789'],
-			},
-		])
+	test('confirmed paid return emits no browser purchase even with both destinations live', () => {
+		const { h, items } = install()
+		setConsentContext({ region: 'eea', gpc: false })
+		try {
+			items.set(CONSENT_KEY, 'accepted')
+			rememberCheckoutQuote({ plan: 'individual_monthly', value: 4.99, currency: 'GBP' })
+			expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(true)
+			const paid = { sessionId: 'cs_fixture_paid_1', status: 'paid' as const }
+			reportCheckoutReturn(paid)
+			reportCheckoutReturn(paid)
+			expect(sent(h)).toEqual([])
+			expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(false)
+		} finally {
+			setConsentContext(null)
+		}
 	})
 
 	test('without consent nothing is stored or sent, and the quote is not consumed', () => {
 		const { h, items } = install({ analytics: false, marketing: false })
 		rememberCheckoutQuote({ plan: 'individual_yearly', value: 39.99, currency: 'USD' })
 		expect(items.size).toBe(0)
-		expect(trackCheckoutReturn({ sessionId: 'cs_test_2', status: 'trialing' })).toBe(false)
+		expect(trackCheckoutTrialStart({ sessionId: 'cs_test_2' })).toBe(false)
 		expect(sent(h)).toEqual([])
 	})
 
 	test('no quote or a malformed session id fires nothing', () => {
 		const { h } = install()
-		expect(trackCheckoutReturn({ sessionId: 'cs_test_3', status: 'paid' })).toBe(false)
+		expect(trackCheckoutTrialStart({ sessionId: 'cs_test_3' })).toBe(false)
 		rememberCheckoutQuote({ plan: 'individual_yearly', value: 39.99, currency: 'USD' })
-		expect(trackCheckoutReturn({ sessionId: 'x y@z', status: 'paid' })).toBe(false)
+		expect(trackCheckoutTrialStart({ sessionId: 'x y@z' })).toBe(false)
 		expect(sent(h)).toEqual([])
 	})
 
@@ -304,7 +306,7 @@ describe('conversions', () => {
 	test('with no tag configured the helpers are inert', () => {
 		setActiveGoogleTag(null)
 		expect(trackSignUp('email')).toBe(false)
-		expect(trackCheckoutReturn({ sessionId: 'cs_test_4', status: 'paid' })).toBe(false)
+		expect(trackCheckoutTrialStart({ sessionId: 'cs_test_4' })).toBe(false)
 	})
 })
 
