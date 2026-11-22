@@ -8,6 +8,7 @@ import { buildCsp, createNonce } from '@/lib/csp'
 import { env } from '@/lib/env'
 import { canonicalPageRedirect, preferredPageRedirect } from '@/lib/i18n/page-redirect'
 import { migratedSessionHeaders } from '@/lib/identity/session-response'
+import { legacyPageRedirect } from '@/lib/legacy-page-redirect'
 import { isProxySkippedPath } from '@/lib/proxy-paths'
 
 export default createMiddleware({
@@ -32,6 +33,8 @@ export default createMiddleware({
 		return (
 			legacySignInRedirect(event.request) ??
 			legacyChallengeRedirect(event.request) ??
+			// Resolve legacy aliases and locale spelling in one permanent redirect.
+			legacyPageRedirect(event.request) ??
 			canonicalPageRedirect(event.request) ??
 			dailyEntryRedirect(event.request) ??
 			preferredPageRedirect(event.request)
