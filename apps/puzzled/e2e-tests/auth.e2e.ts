@@ -3,9 +3,10 @@ import { expect, type Page, test } from '@playwright/test'
 const api = '**/api/identity/sign-in'
 const config = { google: true, emailOtp: true, passkey: false, password: true }
 const email = 'player@example.test'
-const pathOf = (url: string) => {
-	const { pathname, search } = new URL(url)
-	return pathname + search
+function redirectPath(location: string, from: string) {
+	const target = new URL(location, from)
+	expect(target.origin).toBe(new URL(from).origin)
+	return target.pathname + target.search
 }
 const destination = '/support?from=sign-in'
 
@@ -54,7 +55,7 @@ test('legacy aliases preserve safe same-origin destinations and are not cacheabl
 			maxRedirects: 0,
 		})
 		expect(response.status(), alias).toBe(308)
-		expect(pathOf(response.headers().location)).toBe(
+		expect(redirectPath(response.headers().location, response.url())).toBe(
 			`/sign-in?next=${encodeURIComponent(destination)}`,
 		)
 		expect(response.headers()['cache-control']).toBe('private, no-store')
@@ -68,11 +69,13 @@ test('legacy aliases preserve safe same-origin destinations and are not cacheabl
 		const response = await request.get(`/login?next=${encodeURIComponent(next)}`, {
 			maxRedirects: 0,
 		})
-		expect(pathOf(response.headers().location)).toBe('/sign-in')
+		expect(redirectPath(response.headers().location, response.url())).toBe('/sign-in')
 	}
 	const old = await request.get('/en-GB/login?callbackUrl=%2Fen-GB%2Fsettings', { maxRedirects: 0 })
 	expect(old.status()).toBe(308)
-	expect(pathOf(old.headers().location)).toBe('/en-GB/sign-in?next=%2Fen-GB%2Fsettings')
+	expect(redirectPath(old.headers().location, old.url())).toBe(
+		'/en-GB/sign-in?next=%2Fen-GB%2Fsettings',
+	)
 })
 
 test('sitemap advertises the archive, not auth or private routes', async ({ request }) => {
