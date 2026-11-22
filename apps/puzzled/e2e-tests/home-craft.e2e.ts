@@ -119,11 +119,12 @@ test('the lineup delivers 19 distinct illustrated keys with a stationary hit tar
 	await expect(cards).toHaveCount(19)
 	const slugs = new Set<string>()
 	const tints = new Set<string>()
-	for (const card of await cards.all()) {
+	for (const [index, card] of (await cards.all()).entries()) {
 		const slug = (await card.getAttribute('data-home-game'))!
 		const motif = card.locator('img')
 		await expect(motif).toHaveAttribute('src', `/motifs/${slug}-zoom.svg`)
 		await expect(motif).toHaveAttribute('alt', '')
+		await expect(motif).toHaveAttribute('loading', index < 8 ? 'eager' : 'lazy')
 		await motif.scrollIntoViewIfNeeded()
 		await expect
 			.poll(() => motif.evaluate((img: HTMLImageElement) => img.naturalWidth))

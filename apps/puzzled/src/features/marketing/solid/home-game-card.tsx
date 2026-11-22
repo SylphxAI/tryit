@@ -29,7 +29,7 @@ export function HomeGameCard(props: {
 							alt=""
 							width={132}
 							height={84}
-							loading="lazy"
+							loading={props.index < 8 ? 'eager' : 'lazy'}
 							decoding="async"
 						/>
 					</div>

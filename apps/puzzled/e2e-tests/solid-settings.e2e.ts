@@ -59,6 +59,44 @@ test.describe('Solid signed-in settings', () => {
 		}
 	})
 
+	test('member-aware pages use the resolved session in the site header', async ({
+		page,
+		context,
+		baseURL,
+	}) => {
+		const publicMemberAwarePaths = [
+			'/delete-account',
+			'/stats',
+			'/family/join',
+			'/leaderboard',
+			'/archive',
+		]
+		const header = page.locator('header').first()
+		const signIn = header.getByRole('link', { name: 'Sign in', exact: true })
+		const account = header.getByRole('link', { name: 'Account', exact: true })
+
+		for (const path of publicMemberAwarePaths) {
+			await page.goto(path)
+			await expect(signIn).toBeVisible()
+		}
+
+		await context.addCookies([memberCookie(baseURL!)])
+		for (const path of ['/settings', '/settings/subscription', ...publicMemberAwarePaths]) {
+			const response = await page.goto(path)
+			expect(response?.headers()['cache-control']).toBe('private, no-store')
+			await expect(account).toHaveAttribute('href', '/profile')
+			await expect(signIn).toHaveCount(0)
+		}
+
+		// The public catalog stays independent of session reads.
+		await page.goto('/games')
+		await expect(signIn).toBeVisible()
+
+		await context.addCookies([{ ...memberCookie(baseURL!), value: 'expired-fixture-session' }])
+		await page.goto('/stats')
+		await expect(signIn).toBeVisible()
+	})
+
 	test('renders a single h1, mobile navigation, localized privacy links and no account id outside Account', async ({
 		page,
 		context,

@@ -53,7 +53,7 @@ export default function LeaderboardPage() {
 				{(data) => (
 					<>
 						<PageMeta value={data().meta} />
-						<SiteShell data={data().shell}>
+						<SiteShell data={data().shell} signedIn={data().viewerSignedIn}>
 							<Board data={data()} />
 						</SiteShell>
 					</>

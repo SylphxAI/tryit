@@ -20,8 +20,8 @@ import { archiveDayKeys } from '../lib/archive-days'
 export async function readArchivePage(locale: Locale, request: Request, now = new Date()) {
 	const t = createTranslator(locale)
 	const billing = requestBilling(request.headers)
-	const viewer = await withPresentationDeadline(requestUser(request), null)
-	const access = await withPresentationDeadline(billing.access(Boolean(viewer)), OPEN_ACCESS)
+	const signedIn = Boolean(await withPresentationDeadline(requestUser(request), null))
+	const access = await withPresentationDeadline(billing.access(signedIn), OPEN_ACCESS)
 	const locked = access.salesOpen && !access.entitled
 	const plans = locked ? await withPresentationDeadline(billing.listPlans(), null) : null
 	const offer = buildCheckoutOffer(locale, request.headers, plans)
@@ -36,6 +36,7 @@ export async function readArchivePage(locale: Locale, request: Request, now = ne
 	}))
 	return {
 		locale,
+		signedIn,
 		games,
 		categories: CATALOG_CATEGORIES.filter((category) =>
 			games.some((game) => game.category === category),

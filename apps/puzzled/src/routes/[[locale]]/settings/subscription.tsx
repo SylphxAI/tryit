@@ -81,7 +81,7 @@ export default function Subscription() {
 					return (
 						<>
 							<PageMeta value={page.meta} />
-							<SiteShell data={page.shell}>
+							<SiteShell data={page.shell} signedIn={page.kind === 'member'}>
 								<SettingsShell
 									locale={page.locale}
 									section="subscription"

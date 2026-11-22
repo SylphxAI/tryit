@@ -132,7 +132,7 @@ export default function FamilyJoinPage() {
 				{(page) => (
 					<>
 						<PageMeta value={page.meta} />
-						<SiteShell data={page.shell}>
+						<SiteShell data={page.shell} signedIn={page.signedIn}>
 							<Invite locale={page.locale} code={code()} signedIn={page.signedIn} />
 						</SiteShell>
 					</>
