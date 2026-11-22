@@ -1,5 +1,6 @@
 import { createMiddleware } from '@solidjs/start/middleware'
 import { googleTagIds } from '@/features/analytics/lib/google-tag'
+import { dailyEntryRedirect } from '@/features/daily/lib/daily-entry'
 import { legacyChallengeRedirect } from '@/features/identity/solid/challenge-redirect'
 import { legacySignInRedirect } from '@/features/identity/solid/sign-in-redirect'
 import { adsConfig } from '@/lib/ads'
@@ -31,7 +32,8 @@ export default createMiddleware({
 		return (
 			legacySignInRedirect(event.request) ??
 			legacyChallengeRedirect(event.request) ??
-			canonicalPageRedirect(event.request)
+			canonicalPageRedirect(event.request) ??
+			dailyEntryRedirect(event.request)
 		)
 	},
 	onBeforeResponse(event, { body }) {
