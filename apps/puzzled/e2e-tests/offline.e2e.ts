@@ -15,6 +15,14 @@ test('offline navigation uses the URL language and retry recovers the original U
 	page,
 	context,
 }) => {
+	let disconnected = false
+	// Chromium's page-level offline mode alone does not block a service
+	// worker's network fetch. Cut that connection too, without stubbing its response.
+	await context.route('**/*', (route) =>
+		disconnected && route.request().serviceWorker()
+			? route.abort('internetdisconnected')
+			: route.continue(),
+	)
 	await page.goto('/')
 	await page.evaluate(async () => {
 		await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
@@ -27,10 +35,12 @@ test('offline navigation uses the URL language and retry recovers the original U
 			)
 		}
 	})
+	disconnected = true
 	await context.setOffline(true)
 	for (const [locale, [heading, retry]] of Object.entries(offlineCopy)) {
 		const prefix = locale === 'en-US' ? '' : '/' + locale
-		await page.goto(prefix + '/games/sudoku?offline-check=1')
+		const response = await page.goto(prefix + '/games/sudoku?offline-check=1')
+		expect(response?.fromServiceWorker()).toBe(true)
 		await expect(page.locator('html')).toHaveAttribute('lang', locale)
 		await expect(page.getByRole('heading', { name: heading })).toBeVisible()
 		await expect(page.getByRole('img', { name: 'Tryit' })).toBeVisible()
@@ -49,6 +59,7 @@ test('offline navigation uses the URL language and retry recovers the original U
 		}),
 	)
 	expect(cached).toEqual(['/offline.html?format=bundle'])
+	disconnected = false
 	await context.setOffline(false)
 	await retry.click()
 	await expect(heading).toHaveCount(0)
