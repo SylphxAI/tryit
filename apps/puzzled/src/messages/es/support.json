@@ -41,7 +41,7 @@
 		},
 		"dayStart": {
 			"question": "¿Cuándo empieza un nuevo día de puzzles?",
-			"answer": "Todo funciona con la hora de Hong Kong (UTC+8, sin horario de verano): un nuevo conjunto diario aparece a medianoche y todos los jugadores reciben el mismo conjunto ese día. Los resultados y las rachas usan ese mismo reloj."
+			"answer": "Los puzles se renuevan cada día a las 16:00 UTC. Todos reciben el mismo conjunto. A esa hora empieza un nuevo día para los resultados y las rachas."
 		},
 		"streak": {
 			"question": "¿Por qué terminó mi racha?",

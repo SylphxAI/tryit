@@ -41,7 +41,7 @@
 		},
 		"dayStart": {
 			"question": "When does a new puzzle day start?",
-			"answer": "Everything runs on Hong Kong time (UTC+8, no daylight saving): a new daily set appears at midnight, and every player gets the same set for that day. Results and streaks use that same clock."
+			"answer": "New puzzles arrive at 16:00 UTC every day, with the same set for everyone. That’s also when the next day starts for results and streaks."
 		},
 		"streak": {
 			"question": "Why did my streak end?",

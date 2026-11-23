@@ -2,7 +2,7 @@
 	"metaTitle": "Todos os jogos",
 	"metaDescription": "Veja todos os desafios diários do Tryit — escolha 3 grátis por dia em toda a coleção de rituais de palavras, lógica e números.",
 	"title": "Todos os jogos",
-	"subtitle": "{count} desafios diários em um só ritual. Escolha 3 grátis todos os dias, e todo mundo joga a mesma seleção — renovada à meia-noite, no horário de Hong Kong.",
+	"subtitle": "{count} desafios diários. Escolha 3 grátis e jogue a mesma seleção que todo mundo.",
 	"heroEyebrow": "Coleção de desafios diários",
 	"searchLabel": "Filtrar jogos pelo título",
 	"searchPlaceholder": "Filtrar jogos pelo título…",
@@ -44,7 +44,7 @@
 		},
 		"rotation": {
 			"question": "Como o destaque de hoje muda?",
-			"answer": "Todo dia você pode escolher 3 dos 19 desafios grátis; além disso, um desafio em destaque lidera a página e muda à meia-noite, no horário de Hong Kong. Todos jogam o mesmo conjunto diário."
+			"answer": "Todo dia você pode escolher 3 dos 19 desafios grátis; além disso, um desafio em destaque lidera a página e muda às 16:00 UTC. Todos jogam o mesmo conjunto diário."
 		},
 		"account": {
 			"question": "Preciso de uma conta?",
@@ -88,7 +88,7 @@
 				},
 				{
 					"question": "A palavra diária do Five é a mesma para todos os jogadores?",
-					"answer": "Sim. Todo mundo joga a mesma palavra no mesmo dia, e a seleção vira à meia-noite, no horário de Hong Kong."
+					"answer": "Sim. Todo mundo joga a mesma palavra no mesmo dia, e a seleção vira às 16:00 UTC."
 				}
 			]
 		},
@@ -309,7 +309,7 @@
 				},
 				{
 					"question": "Todo mundo joga as mesmas quatro palavras por dia?",
-					"answer": "Sim. Todo mundo joga as mesmas quatro palavras no mesmo dia, e a seleção muda à meia-noite, no horário de Hong Kong."
+					"answer": "Sim. Todo mundo joga as mesmas quatro palavras no mesmo dia, e a seleção muda às 16:00 UTC."
 				}
 			]
 		},
@@ -360,7 +360,7 @@
 				},
 				{
 					"question": "Todo mundo recebe a mesma grade do Hunt?",
-					"answer": "Sim. A grade diária e o tema são idênticos para todos os jogadores e se renovam à meia-noite, no horário de Hong Kong."
+					"answer": "Sim. A grade diária e o tema são idênticos para todos os jogadores e se renovam às 16:00 UTC."
 				}
 			]
 		},

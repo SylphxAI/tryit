@@ -2,7 +2,7 @@
 	"metaTitle": "Todos los juegos",
 	"metaDescription": "Explora todos los puzzles diarios de Tryit: elige 3 gratis cada día entre la colección completa de rituales de palabras, lógica y números.",
 	"title": "Todos los juegos",
-	"subtitle": "{count} puzzles diarios en un solo ritual. Elige 3 gratis cada día y todo el mundo juega el mismo conjunto, que se renueva a medianoche, hora de Hong Kong.",
+	"subtitle": "{count} puzles diarios. Elige 3 gratis y juega el mismo conjunto que los demás.",
 	"heroEyebrow": "Colección de puzzles diarios",
 	"searchLabel": "Filtrar juegos por título",
 	"searchPlaceholder": "Filtrar juegos por título…",
@@ -44,7 +44,7 @@
 		},
 		"rotation": {
 			"question": "¿Cómo cambia el juego del día?",
-			"answer": "Cada día puedes elegir 3 de los 19 puzzles gratis; además, un puzzle destacado encabeza la página y rota a medianoche, hora de Hong Kong. Todos juegan el mismo conjunto diario."
+			"answer": "Cada día puedes elegir 3 de los 19 puzzles gratis; además, un puzzle destacado encabeza la página y rota a las 16:00 UTC. Todos juegan el mismo conjunto diario."
 		},
 		"account": {
 			"question": "¿Necesito una cuenta?",
@@ -88,7 +88,7 @@
 				},
 				{
 					"question": "¿La palabra diaria de Five es la misma para todos los jugadores?",
-					"answer": "Sí. Todo el mundo juega la misma palabra el mismo día, y el conjunto cambia a medianoche, hora de Hong Kong."
+					"answer": "Sí. Todo el mundo juega la misma palabra el mismo día, y el conjunto cambia a las 16:00 UTC."
 				}
 			]
 		},
@@ -309,7 +309,7 @@
 				},
 				{
 					"question": "¿Todo el mundo juega las mismas cuatro palabras cada día?",
-					"answer": "Sí. Todos juegan las mismas cuatro palabras el mismo día, y el conjunto cambia a medianoche, hora de Hong Kong."
+					"answer": "Sí. Todos juegan las mismas cuatro palabras el mismo día, y el conjunto cambia a las 16:00 UTC."
 				}
 			]
 		},
@@ -360,7 +360,7 @@
 				},
 				{
 					"question": "¿Todo el mundo recibe la misma cuadrícula de Hunt?",
-					"answer": "Sí. La cuadrícula diaria y su tema son idénticos para todos los jugadores y se renuevan a medianoche, hora de Hong Kong."
+					"answer": "Sí. La cuadrícula diaria y su tema son idénticos para todos los jugadores y se renuevan a las 16:00 UTC."
 				}
 			]
 		},

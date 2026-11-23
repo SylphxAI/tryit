@@ -41,7 +41,7 @@
 		},
 		"dayStart": {
 			"question": "Quando começa um novo dia de desafios?",
-			"answer": "Tudo funciona no horário de Hong Kong (UTC+8, sem horário de verão): uma nova seleção diária aparece à meia-noite, e todos os jogadores recebem a mesma seleção naquele dia. Resultados e sequências usam esse mesmo relógio."
+			"answer": "Os desafios são renovados todos os dias às 16:00 UTC. Todos recebem a mesma seleção. É também a hora em que começa um novo dia para resultados e sequências."
 		},
 		"streak": {
 			"question": "Por que minha sequência acabou?",

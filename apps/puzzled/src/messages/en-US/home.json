@@ -27,7 +27,7 @@
 	},
 	"value": {
 		"dailyTitle": "A fresh set every day",
-		"dailyBody": "New puzzles land at midnight, Hong Kong time — the same set for everyone, so results compare fairly.",
+		"dailyBody": "Everyone gets the same new puzzles each day, so you can compare results fairly.",
 		"honestTitle": "Scores worth comparing",
 		"honestBody": "Compare your time, build a streak, and see where you place. Completed puzzles are checked before results count.",
 		"shareTitle": "Share without spoilers",
@@ -57,11 +57,11 @@
 		},
 		"schedule": {
 			"question": "When do new puzzles appear?",
-			"answer": "Every day at midnight, Hong Kong time. Take on the same daily puzzles as your friends and compare how you did."
+			"answer": "Every day at 16:00 UTC. Take on the same puzzles as your friends and compare results."
 		},
 		"streak": {
 			"question": "How do streaks work?",
-			"answer": "Finish any of the 19 games in daily mode before the next refresh at midnight, Hong Kong time, to keep your streak going. Wins and losses both count; archive and practice play do not."
+			"answer": "Finish any of the 19 games in daily mode before the next daily reset to keep your streak going. Wins and losses both count; archive and practice play do not."
 		},
 		"share": {
 			"question": "Can I share my result without spoiling it?",
@@ -76,7 +76,7 @@
 	"day": {
 		"puzzleNumber": "Puzzle #{number}",
 		"resetsIn": "Resets in",
-		"resetsAt": "midnight in Hong Kong",
+		"resetsAt": "Daily reset: 16:00 UTC",
 		"guestTitle": "{count} daily puzzles. Pick any 3, free.",
 		"titleMemberReady": "Today's {game} is ready",
 		"titleMemberStreak": "Your {days}-day streak is waiting",

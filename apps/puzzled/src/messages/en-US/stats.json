@@ -55,7 +55,7 @@
 	"unavailableFootnote": "Nothing you have finished is lost — only this page could not read it.",
 	"today": {
 		"title": "Today",
-		"description": "The puzzles you can play today, on the Hong Kong puzzle day.",
+		"description": "Puzzles you can play today.",
 		"playCta": "Go to today's puzzle",
 		"done": "Finished",
 		"open": "Not yet"
@@ -75,7 +75,7 @@
 	},
 	"calendar": {
 		"title": "Last 8 weeks",
-		"description": "Each square is one day on the puzzle clock (Hong Kong time). A filled square means you finished that day's puzzle.",
+		"description": "Each square represents one puzzle day. A filled square means you finished that day’s puzzle.",
 		"unavailableTitle": "Activity did not load",
 		"unavailableBody": "Your finish history did not come back, so the calendar stays empty.",
 		"weekday": {

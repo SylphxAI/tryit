@@ -1,12 +1,17 @@
 // Never cache puzzle RPCs, account pages or credentials. The network remains
 // authoritative for the product day and accepted finishes.
-// Only this public, self-contained document is cached — never visited pages.
-const OFFLINE_CACHE = 'puzzled-offline-v1'
-const OFFLINE_URL = '/offline.html'
+// Only this public, self-contained fallback bundle is cached — never visited pages.
+const OFFLINE_CACHE = 'puzzled-offline-v2'
+const OFFLINE_URL = '/offline.html?format=bundle'
 self.addEventListener('install', (event) => {
 	event.waitUntil(
 		caches.open(OFFLINE_CACHE).then(async (cache) => {
-			await cache.add(new Request(OFFLINE_URL, { cache: 'reload', credentials: 'omit' }))
+			const request = new Request(OFFLINE_URL, { cache: 'reload', credentials: 'omit' })
+			const response = await fetch(request)
+			if (!response.ok || !response.headers.get('Content-Type')?.startsWith('application/json')) {
+				throw new Error('Offline fallback bundle unavailable')
+			}
+			await cache.put(request, response)
 			await self.skipWaiting()
 		}),
 	)
@@ -25,12 +30,18 @@ self.addEventListener('activate', (event) => {
 })
 self.addEventListener('fetch', (event) => {
 	if (event.request.mode !== 'navigate' || event.request.method !== 'GET') return
-	if (new URL(event.request.url).origin !== self.location.origin) return
+	const url = new URL(event.request.url)
+	if (url.origin !== self.location.origin) return
 
 	event.respondWith(
 		fetch(event.request).catch(async () => {
 			const cache = await caches.open(OFFLINE_CACHE)
-			return (await cache.match(OFFLINE_URL)) || Response.error()
+			const asset = await cache.match(OFFLINE_URL)
+			if (!asset) return Response.error()
+			const pages = await asset.json()
+			const segment = url.pathname.split('/')[1].toLowerCase()
+			const html = Object.hasOwn(pages, segment) ? pages[segment] : pages['en-us']
+			return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
 		}),
 	)
 })

@@ -27,7 +27,7 @@
 	},
 	"value": {
 		"dailyTitle": "Un conjunto nuevo cada día",
-		"dailyBody": "Los puzzles nuevos llegan a medianoche, hora de Hong Kong: el mismo conjunto para todos, así los resultados se comparan con justicia.",
+		"dailyBody": "Todos reciben los mismos puzles nuevos cada día, así que puedes comparar los resultados en igualdad de condiciones.",
 		"honestTitle": "Puntuaciones que vale la pena comparar",
 		"honestBody": "Compara tu tiempo, alarga tu racha y consulta tu posición. Los puzzles completados se comprueban antes de que cuenten los resultados.",
 		"shareTitle": "Comparte sin spoilers",
@@ -57,11 +57,11 @@
 		},
 		"schedule": {
 			"question": "¿Cuándo aparecen los puzzles nuevos?",
-			"answer": "Cada día a medianoche, hora de Hong Kong. Resuelve los mismos puzzles diarios que tus amigos y compara los resultados."
+			"answer": "Cada día a las 16:00 UTC. Resuelve los mismos puzles que tus amigos y compara los resultados."
 		},
 		"streak": {
 			"question": "¿Cómo funcionan las rachas?",
-			"answer": "Termina cualquiera de los 19 juegos en modo diario antes de la próxima actualización, a medianoche en Hong Kong, para mantener tu racha. Cuentan tanto las victorias como las derrotas; el archivo y el modo de práctica no cuentan."
+			"answer": "Termina cualquiera de los 19 juegos en modo diario antes de la próxima actualización para mantener tu racha. Cuentan tanto las victorias como las derrotas; el archivo y el modo de práctica no cuentan."
 		},
 		"share": {
 			"question": "¿Puedo compartir mi resultado sin revelar la solución?",
@@ -76,7 +76,7 @@
 	"day": {
 		"puzzleNumber": "Puzzle n.º {number}",
 		"resetsIn": "Se renueva en",
-		"resetsAt": "medianoche en Hong Kong",
+		"resetsAt": "Actualización diaria: 16:00 UTC",
 		"guestTitle": "{count} puzzles diarios. Elige 3 gratis.",
 		"titleMemberReady": "{game} de hoy está listo",
 		"titleMemberStreak": "Tu racha de {days} días te espera",

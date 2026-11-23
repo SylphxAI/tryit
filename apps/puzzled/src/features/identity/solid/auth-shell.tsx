@@ -37,7 +37,7 @@ export function AuthShell(
 	const trustPoints = [
 		t('brandPanel.trustFree'),
 		t('brandPanel.trustNoAccount'),
-		t('brandPanel.trustMidnight'),
+		t('brandPanel.trustDailyPuzzles'),
 	]
 
 	return (

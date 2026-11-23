@@ -76,7 +76,7 @@ const LINEUP = `${countIn('word')} word, ${countIn('logic')} logic, ${countIn('m
 
 const NEW_PUZZLES_FAQ: MarketingFaqItem = {
 	question: 'When do new Tryit puzzles come out?',
-	answer: `Every day at midnight Hong Kong time (UTC+8). All ${TOTAL_GAMES} games refresh together, and everyone gets the same set.`,
+	answer: `Every day at 16:00 UTC. All ${TOTAL_GAMES} games refresh together, and everyone gets the same set.`,
 }
 
 const PASS_STRENGTH: ComparisonPoint = {
@@ -217,7 +217,7 @@ export const COMPARISON_SPECS = {
 		ourStrengths: [
 			{
 				title: `${TOTAL_GAMES} daily games in one place`,
-				body: 'Word games, logic grids, number puzzles and spatial challenges, refreshed together at midnight Hong Kong time (UTC+8). Same set for everyone, so results compare fairly.',
+				body: 'Word games, logic grids, number puzzles and spatial challenges, refreshed together at 16:00 UTC. Same set for everyone, so results compare fairly.',
 			},
 			{
 				title: 'Any 3 free, every day',
@@ -376,7 +376,7 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				title: `${TOTAL_GAMES} puzzles, fresh every day`,
-				body: 'Word games, logic grids, number puzzles and spatial challenges, refreshed together at midnight Hong Kong time (UTC+8). Same set for everyone, so results compare fairly.',
+				body: 'Word games, logic grids, number puzzles and spatial challenges, refreshed together at 16:00 UTC. Same set for everyone, so results compare fairly.',
 			},
 			PASS_STRENGTH,
 		],
@@ -497,7 +497,7 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'New puzzles',
 				them: 'Midnight Pacific Time',
-				us: 'Midnight Hong Kong time (UTC+8), the same set for everyone',
+				us: '16:00 UTC, the same set for everyone',
 			},
 			{
 				feature: 'Try everything, no commitment',
@@ -693,7 +693,7 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				title: 'Daily puzzles, free',
-				body: 'Every game is a daily puzzle with a fresh grid at midnight Hong Kong time (UTC+8), the same for everyone, so results compare fairly.',
+				body: 'Every game is a daily puzzle with a fresh grid at 16:00 UTC, the same for everyone, so results compare fairly.',
 			},
 			PASS_STRENGTH,
 		],
@@ -839,7 +839,7 @@ export const COMPARISON_SPECS = {
 		ourStrengths: [
 			{
 				title: `${TOTAL_GAMES} daily games in one place`,
-				body: 'Word games, logic grids like Sudoku and Crowns, number puzzles and spatial challenges, all refreshed together at midnight Hong Kong time (UTC+8).',
+				body: 'Word games, logic grids like Sudoku and Crowns, number puzzles and spatial challenges, all refreshed together at 16:00 UTC.',
 			},
 			{
 				title: 'Any 3 free, no ads mid-game',
@@ -942,7 +942,7 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'What it is',
 				them: 'A personal tutor for math and coding: guided, interactive lessons from grade 5 to college, with Koji, a visual tutor',
-				us: 'A daily puzzle set: the same fresh puzzles for everyone, refreshed at midnight Hong Kong time',
+				us: 'A daily puzzle set: the same fresh puzzles for everyone, refreshed at 16:00 UTC',
 			},
 			{
 				feature: 'Daily games',
@@ -994,7 +994,7 @@ export const COMPARISON_SPECS = {
 		ourStrengths: [
 			{
 				title: `${TOTAL_GAMES} daily puzzles on one page`,
-				body: 'Logic grids like Crowns and Duo, number puzzles like Arithmo and Cage Sudoku, spatial puzzles like Slides and Path, plus word games. All refreshed together at midnight Hong Kong time (UTC+8).',
+				body: 'Logic grids like Crowns and Duo, number puzzles like Arithmo and Cage Sudoku, spatial puzzles like Slides and Path, plus word games. All refreshed together at 16:00 UTC.',
 			},
 			{
 				title: 'Any 3 free, right now',

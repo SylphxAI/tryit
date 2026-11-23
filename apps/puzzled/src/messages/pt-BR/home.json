@@ -27,7 +27,7 @@
 	},
 	"value": {
 		"dailyTitle": "Uma seleção nova todo dia",
-		"dailyBody": "Os novos desafios chegam à meia-noite, no horário de Hong Kong — os mesmos para todo mundo, para que os resultados possam ser comparados com justiça.",
+		"dailyBody": "Todo mundo recebe os mesmos desafios novos a cada dia, então dá para comparar os resultados em pé de igualdade.",
 		"honestTitle": "Pontuações que vale a pena comparar",
 		"honestBody": "Compare seu tempo, aumente sua sequência e veja sua posição. Os desafios concluídos são conferidos antes que os resultados sejam contabilizados.",
 		"shareTitle": "Compartilhe sem spoilers",
@@ -57,11 +57,11 @@
 		},
 		"schedule": {
 			"question": "Quando os novos desafios aparecem?",
-			"answer": "Todos os dias à meia-noite, no horário de Hong Kong. Jogue os mesmos desafios diários que seus amigos e compare os resultados."
+			"answer": "Todos os dias às 16:00 UTC. Jogue os mesmos desafios que seus amigos e compare os resultados."
 		},
 		"streak": {
 			"question": "Como funcionam as sequências?",
-			"answer": "Termine qualquer um dos 19 jogos no modo diário antes da próxima atualização, à meia-noite em Hong Kong, para manter sua sequência. Vitórias e derrotas contam; o arquivo e o modo de prática não contam."
+			"answer": "Termine qualquer um dos 19 jogos no modo diário antes da próxima atualização para manter sua sequência. Vitórias e derrotas contam; o arquivo e o modo de prática não contam."
 		},
 		"share": {
 			"question": "Posso compartilhar meu resultado sem dar spoiler?",
@@ -76,7 +76,7 @@
 	"day": {
 		"puzzleNumber": "Desafio nº {number}",
 		"resetsIn": "Renova em",
-		"resetsAt": "meia-noite em Hong Kong",
+		"resetsAt": "Atualização diária: 16:00 UTC",
 		"guestTitle": "{count} desafios por dia. Escolha 3 grátis.",
 		"titleMemberReady": "O {game} de hoje está pronto",
 		"titleMemberStreak": "Sua sequência de {days} dias está esperando",

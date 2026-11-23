@@ -2,7 +2,7 @@
 	"metaTitle": "所有游戏",
 	"metaDescription": "浏览 Tryit 所有每日谜题 — 文字、逻辑与数字游戏的完整系列，每天任选 3 款免费玩。",
 	"title": "所有游戏",
-	"subtitle": "每日 {count} 款游戏，同一套玩法。每天任选 3 款免费，所有人玩同一套题目，香港时间午夜更新。",
+	"subtitle": "每天 {count} 款谜题，任选 3 款免费玩。所有玩家挑战同一套题目。",
 	"heroEyebrow": "每日游戏系列",
 	"searchLabel": "按名称筛选游戏",
 	"searchPlaceholder": "按名称筛选游戏…",
@@ -44,7 +44,7 @@
 		},
 		"rotation": {
 			"question": "今日精选如何轮换?",
-			"answer": "每天可从 19 款谜题中任选 3 款免费玩，同时每天会有一款主打谜题在香港时间午夜轮替。所有人每天都玩同一套题目。"
+			"answer": "每天可从 19 款谜题中任选 3 款免费玩，同时每天会有一款主打谜题在每天 16:00 UTC 轮替。所有人每天都玩同一套题目。"
 		},
 		"account": {
 			"question": "需要账户吗？",
@@ -88,7 +88,7 @@
 				},
 				{
 					"question": "每天的 Five 答案所有玩家都一样吗？",
-					"answer": "是的。同一天所有玩家都使用同一个答案，并在香港时间午夜更新。"
+					"answer": "是的。同一天所有玩家都使用同一个答案，并在每天 16:00 UTC 更新。"
 				}
 			]
 		},
@@ -117,12 +117,12 @@
 			],
 			"faq": [
 				{
-					"question": "What counts as a pangram in Hive?",
-					"answer": "A word that uses all seven hive letters. Each one adds seven points on top of its letter count."
+					"question": "Hive 里什么样的单词算全字母词？",
+					"answer": "用到蜂巢里全部七个字母的单词就是全字母词。除了按词长得分，每个全字母词还额外加七分。"
 				},
 				{
-					"question": "How long does a Hive round take?",
-					"answer": "The catalog estimate is about five minutes, and the rank scale grows with every word you find."
+					"question": "一局 Hive 大概需要多久？",
+					"answer": "大约五分钟。找到的单词越多，等级就越高。"
 				}
 			]
 		},
@@ -168,12 +168,12 @@
 			],
 			"faq": [
 				{
-					"question": "How does Paint handle a wrong cell?",
-					"answer": "A filled square that cannot belong to the picture is rejected and added to the error count shown above the grid."
+					"question": "Paint 涂错格子会怎样？",
+					"answer": "如果这个格子不该涂色，游戏会拒绝填涂，并在网格上方的错误计数中加一次。"
 				},
 				{
-					"question": "How long does a Paint puzzle take?",
-					"answer": "The catalog estimate is around eight minutes for the 10×10 grid, and the clues get easier as the picture fills in."
+					"question": "一题 Paint 大概需要多久？",
+					"answer": "10×10 的图大约需要八分钟。随着图案逐渐显现，提示也更容易用上。"
 				}
 			]
 		},
@@ -185,12 +185,12 @@
 			],
 			"faq": [
 				{
-					"question": "What counts as a valid step in Rungs?",
-					"answer": "Each step changes exactly one letter and must form a real word of the same length, or the game rejects the move."
+					"question": "Rungs 里怎样走一步才有效？",
+					"answer": "每一步只能换一个字母，而且换完必须仍是长度相同的有效单词，否则这一步不算。"
 				},
 				{
-					"question": "How long does a Rungs puzzle take?",
-					"answer": "The estimate is about three minutes, and the goal is the fewest steps rather than the fastest typing."
+					"question": "一题 Rungs 大概需要多久？",
+					"answer": "大约三分钟。目标是用最少的步数，不是打字最快。"
 				}
 			]
 		},
@@ -202,12 +202,12 @@
 			],
 			"faq": [
 				{
-					"question": "How long is the hidden equation in Arithmo?",
-					"answer": "Eight characters, counting the digits, the operators and the single equals sign."
+					"question": "Arithmo 的隐藏等式有多长？",
+					"answer": "一共八个字符，包括数字、运算符和一个等号。"
 				},
 				{
-					"question": "How many tries does Arithmo allow?",
-					"answer": "Six guesses. Green marks a character in the right place, yellow means it appears elsewhere in the equation and gray means it is not used."
+					"question": "Arithmo 可以猜几次？",
+					"answer": "六次。绿色表示字符和位置都对，黄色表示等式里有这个字符但位置不对，灰色表示没有这个字符。"
 				}
 			]
 		},
@@ -219,12 +219,12 @@
 			],
 			"faq": [
 				{
-					"question": "What makes three cards a set in Match?",
-					"answer": "For all four properties, shape, color, fill and count, the three cards must be either all the same or all different."
+					"question": "Match 里的三张牌怎样算一组？",
+					"answer": "分别看形状、颜色、填充样式和数量。对每个特征来说，三张牌必须全相同或全不同。"
 				},
 				{
-					"question": "How long does a Match board take?",
-					"answer": "The estimate is about four minutes, and the board holds twelve cards with several sets hidden among them."
+					"question": "一局 Match 大概需要多久？",
+					"answer": "大约四分钟。桌面有十二张牌，里面藏着好几组配对。"
 				}
 			]
 		},
@@ -236,12 +236,12 @@
 			],
 			"faq": [
 				{
-					"question": "How do I win a Slides puzzle?",
-					"answer": "Slide the red target block to the exit at the bottom edge; the round ends as soon as it reaches the gap."
+					"question": "怎样才算解开 Slides？",
+					"answer": "把红色目标滑块移到棋盘底部的出口，一到出口就完成了。"
 				},
 				{
-					"question": "Does Slides offer difficulty settings?",
-					"answer": "Yes. Easy, medium and hard boards need more moves to solve as the level rises, from a short route to a long one."
+					"question": "Slides 可以选难度吗？",
+					"answer": "可以。分简单、中等和困难三档。难度越高，解题通常需要的步数越多。"
 				}
 			]
 		},
@@ -270,12 +270,12 @@
 			],
 			"faq": [
 				{
-					"question": "What are the rules of Duo?",
-					"answer": "Every row and column holds equal suns and moons, no line shows three matching symbols together, and no two lines repeat."
+					"question": "Duo 有什么规则？",
+					"answer": "每行每列的太阳和月亮数量必须相等，不能连续出现三个相同符号，也不能有两行或两列完全一样。"
 				},
 				{
-					"question": "How long does a Duo board take?",
-					"answer": "The estimate is about five minutes, and the 6×6 grid usually falls to a careful pass."
+					"question": "一题 Duo 大概需要多久？",
+					"answer": "大约五分钟。仔细检查一遍 6×6 的方格，通常就能解开。"
 				}
 			]
 		},
@@ -287,12 +287,12 @@
 			],
 			"faq": [
 				{
-					"question": "How does the word chain work in Frame?",
-					"answer": "Each new word begins with the last letter of the previous word, and neighboring letters inside a word must come from different sides."
+					"question": "Frame 的单词接龙怎么玩？",
+					"answer": "每个新单词必须以前一个单词的最后一个字母开头。同一个单词里，相邻字母必须来自方框的不同边。"
 				},
 				{
-					"question": "When is a Frame puzzle solved?",
-					"answer": "When the chain has used every one of the twelve letters on the box; a shorter chain is the tidier result."
+					"question": "怎样才算解开 Frame？",
+					"answer": "接龙用齐方框上的十二个字母就完成了。用的单词越少越好。"
 				}
 			]
 		},
@@ -304,12 +304,12 @@
 			],
 			"faq": [
 				{
-					"question": "How many guesses do I get in Quad?",
-					"answer": "Nine in total, and each guess is checked against all four boards at once."
+					"question": "Quad 一局可以猜几次？",
+					"answer": "一共九次。每猜一个单词，四块答题板都会同时给出提示。"
 				},
 				{
-					"question": "Does everyone play the same four words each day?",
-					"answer": "Yes. Everyone plays the same four words on the same day, and the set changes at midnight Hong Kong time."
+					"question": "每天所有玩家猜的都是同样四个单词吗？",
+					"answer": "是。所有玩家猜的是同样四个单词，每天 16:00 UTC 换题。"
 				}
 			]
 		},
@@ -321,12 +321,12 @@
 			],
 			"faq": [
 				{
-					"question": "What do the cages add to Cage Sudoku?",
-					"answer": "Each cage has a total: its digits must add up to that number, and no digit can repeat inside the cage."
+					"question": "Cage Sudoku 的加总区有什么规则？",
+					"answer": "每个加总区都标有一个总和。区内数字相加必须等于这个数，而且不能重复。"
 				},
 				{
-					"question": "Does Cage Sudoku offer difficulty settings?",
-					"answer": "Yes. Easy, medium and hard differ in how many digits start filled in, and hard gives none at all."
+					"question": "Cage Sudoku 可以选难度吗？",
+					"answer": "可以。简单、中等和困难的区别在于开局填好的数字有多少；困难模式不会预填数字。"
 				}
 			]
 		},
@@ -338,12 +338,12 @@
 			],
 			"faq": [
 				{
-					"question": "How do I know a Cipher quote is solved?",
-					"answer": "When the substitution is right, the decoded text reads as normal English and the puzzle reports the quote as solved."
+					"question": "怎么知道 Cipher 的引句已经解开？",
+					"answer": "字母替换正确后，你会读到一句通顺的英文，游戏也会显示谜题已解开。"
 				},
 				{
-					"question": "How long does a Cipher puzzle take?",
-					"answer": "The estimate is about five minutes, though longer quotes take more letters to place."
+					"question": "一题 Cipher 大概需要多久？",
+					"answer": "大约五分钟。引句越长，要还原的字母就越多。"
 				}
 			]
 		},
@@ -355,12 +355,12 @@
 			],
 			"faq": [
 				{
-					"question": "Which directions do hidden words run in Hunt?",
-					"answer": "Horizontal, vertical and diagonal, forwards or backwards, and always in a straight line."
+					"question": "Hunt 里隐藏的单词会朝哪些方向排列？",
+					"answer": "横向、纵向或斜向都可以，正着读或倒着读都有，但字母一定排成一条直线。"
 				},
 				{
-					"question": "Does everyone get the same Hunt grid?",
-					"answer": "Yes. The daily grid and its theme are identical for every player and refresh at midnight Hong Kong time."
+					"question": "每天所有玩家拿到的 Hunt 字母网格都一样吗？",
+					"answer": "是。每天的字母网格和主题对所有玩家都一样，并在 16:00 UTC 更新。"
 				}
 			]
 		},
@@ -372,12 +372,12 @@
 			],
 			"faq": [
 				{
-					"question": "What counts as a finished Path?",
-					"answer": "A line that starts at 1, visits every cell exactly once, moves only between side-by-side cells and ends on the last number."
+					"question": "怎样才算解开 Path？",
+					"answer": "从 1 出发，只能连到共边的格子，每格恰好经过一次，最后停在最大的数字上。"
 				},
 				{
-					"question": "How long does a Path puzzle take?",
-					"answer": "The estimate is about five minutes on a 6×6 board, and the printed clues handle much of the early deduction."
+					"question": "一题 Path 大概需要多久？",
+					"answer": "6×6 的题目大约需要五分钟。棋盘上给出的数字能帮你推断前几步。"
 				}
 			]
 		},
@@ -389,12 +389,12 @@
 			],
 			"faq": [
 				{
-					"question": "How do the region rules work in Spots?",
-					"answer": "A number is that region's total of spots, = means every spot there matches and ≠ means they are all different."
+					"question": "Spots 的区域标记是什么意思？",
+					"answer": "数字表示该区域的点数总和；等号表示区内各格的点数相同；不等号表示区内各格的点数都不同。"
 				},
 				{
-					"question": "What has to be true when a Spots board is finished?",
-					"answer": "Every cell is covered once by the full set of tiles, each tile joins two cells that share a side, and every region rule holds."
+					"question": "怎样才算解开 Spots？",
+					"answer": "用完所有骨牌，每格恰好盖住一次，每张骨牌都跨两个共边的格子，而且所有区域都符合标记规则。"
 				}
 			]
 		}

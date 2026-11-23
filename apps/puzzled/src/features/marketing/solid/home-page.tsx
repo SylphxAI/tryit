@@ -353,7 +353,11 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 							</Suspense>
 							<p class="whitespace-nowrap" title={t('home.day.resetsAt')}>
 								{t('home.day.resetsIn')}{' '}
-								<time data-home-countdown class="numeral font-semibold text-foreground">
+								<time
+									data-home-countdown
+									data-reset-at={new Date(page.resetAt).toISOString()}
+									class="numeral font-semibold text-foreground"
+								>
 									{formatCountdown(page.resetAt - now())}
 								</time>
 							</p>
