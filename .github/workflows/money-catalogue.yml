@@ -6,12 +6,10 @@
 #
 # No stored Sylphx key: after supported Access admission, each job trades a GitHub OIDC
 # token (audience sylphx-access) for a 15-minute billing:write key bound to this
-# repository, this file's path and refs/heads/main
-# (kernel/access/tenant-manifest.toml, cloud#10444). The key's own name gives
+# repository, this file's path and refs/heads/main. The key's own name gives
 # the org, project and env it belongs to, so none is written here. The path of
 # this file must match the registered manifest declaration: do not rename it.
-# cloud#10444 must first register billing:write and support this ordinary
-# workflow's workflow_ref claim; no runtime/desk-key fallback is allowed.
+# Admission must grant billing:write for this workflow_ref; no runtime key fallback is allowed.
 name: Money catalogue
 
 on:

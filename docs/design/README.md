@@ -2,10 +2,7 @@
 
 Brand, tokens, shell and page list for the site. Target metrics: time to first
 finish, share rate and D7 retention ([metrics.md](../metrics.md)); design choices
-are judged by them, not by conformance to this file. Growth mechanisms were
-reviewed once against the owner
-[mechanics menu](https://github.com/SylphxAI/owner/blob/main/standards/mechanics.md)
-([growth.md](../growth.md)).
+are judged by them, not by conformance to this file. See [growth.md](../growth.md) for the growth plan.
 
 **Code:** the brand colours resolve from [`brand/tokens.css`](../../brand/tokens.css),
 whose source is `brand/tokens.json` ([usage sheet](../../brand/README.md)); the rest

@@ -212,7 +212,7 @@ export async function sessionTimes(
 		method: 'GET',
 		bearer: token,
 		userAgent,
-		// TODO: switch to the identity SDK's `callerKey` option once cloud#11034 publishes.
+		// TODO: switch to the identity SDK's `callerKey` option once the published SDK supports it.
 		callerKey: config.publishableKey,
 	})
 	const principal = body.session?.principal

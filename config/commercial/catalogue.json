@@ -351,7 +351,7 @@
 		"No plan carries a trial today: the live Money plans offer none, so every plan has trial_days 0 and no plan has an introductory price. Turning on the 7-day card-up-front trial for plus_individual_yearly (docs/growth.md) is a one-line change that lands only after the Money trial notice is live. When it is on, the trial ends in a charge of the full yearly price, stated on the pricing page with the real date.",
 		"Every price is per plan, per interval, and covers one product (individual or family). grants is the shape Money's entitlement_grants:check answers in: a boolean feature is \"true\", and the `seats` limit is a decimal string (\"1\", \"4\") for how many people the price covers, the plan owner included. A plan is a product with the `plus` feature, ranked by its `seats` limit.",
 		"Fields the Money catalogue spec has no place for (seller, locales, localised names beyond en-US, unlocks, implies, policy, free, currency_display, plan_id) stay here as the record of what was declared and are not sent.",
-		"The checkout consent line and the no-voluntary-refund rule (owner#779) are the app's, not the catalogue's: the app records the immediate-supply consent before it creates a checkout session.",
+		"The checkout consent line and the no-voluntary-refund rule are the app's, not the catalogue's: the app records the immediate-supply consent before it creates a checkout session.",
 		"puzzled_starter_unlock is a one-time 3-day full Plus pass. Money's native licence term bounds the same `plus` entitlement used by subscriptions; the stable `puzzled_plus` key is ensured by the OIDC apply workflow, never by a product-local expiry job."
 	]
 }

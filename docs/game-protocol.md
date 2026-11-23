@@ -154,9 +154,7 @@ the live subset):
 | P6 | Api `/healthz` and web ready |
 | P7 | Admin lists games |
 
-Evidence layers follow the owner standard: a merged change, a deployed change
-and a working product are different claims
-([owner docs standard](https://github.com/SylphxAI/owner/blob/main/standards/docs.md#claims-stay-inside-their-layer)).
+A merged change, a deployed change and a working product are different claims.
 
 ## Public player disclosure boundary
 

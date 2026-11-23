@@ -48,7 +48,7 @@ message ListPlansResponse {
   bool sales_open = 1;
   repeated Plan plans = 2;
   uint32 family_max_members = 3;
-  // 4 was cancellation_days: no refund window is promised (owner#779).
+  // 4 was cancellation_days: no refund window is promised.
   reserved 4;
   reserved cancellation_days;
 }
@@ -86,7 +86,7 @@ message GetSubscriptionResponse {
   string status = 5 [features.field_presence = EXPLICIT];
   int64 current_period_end_ms = 6 [features.field_presence = EXPLICIT];
   bool cancel_at_period_end = 7;
-  // 8 was refund_until_ms: no refund window is promised (owner#779).
+  // 8 was refund_until_ms: no refund window is promised.
   reserved 8;
   reserved refund_until_ms;
   Family family = 9;

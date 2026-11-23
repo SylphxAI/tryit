@@ -2,15 +2,13 @@
 //!
 //! A player is Puzzled's own entity, keyed by a `uuid`. The Auth subject that
 //! signs them in is another system's id: stored in `auth_subjects.subject` as
-//! the exact text Auth published and never decoded (owner
-//! `standards/identifiers.md`). Auth moves its subjects from `principal-<uuid>`
-//! to the TypeID `usr_<26>` on 2026-10-04 (cloud#10008); both forms name the
-//! same player through this table.
+//! the exact text Auth published and never decoded. Auth migrated from
+//! `principal-<uuid>` to the TypeID `usr_<26>`; both forms map to the same player.
 //!
 //! How a subject finds its player, in order:
 //! 1. its own row;
-//! 2. the legacy subject Auth reports during its migration window
-//!    (cloud#10026): that subject's row, else the old-form mapping below;
+//! 2. the row for the legacy subject Auth reports during migration; otherwise
+//!    try the old-form mapping below;
 //! 3. the old form itself: before this table existed a player's id was the
 //!    uuid inside `principal-<uuid>`, so that mapping is kept for players who
 //!    have not signed in since; the new TypeID form is never read this way;
@@ -76,7 +74,7 @@ pub async fn player_for(
 }
 
 /// Every subject recorded for one player: the new form, the legacy form, or
-/// both during Auth's migration (cloud#10026), so an erasure can name each
+/// both during Auth's migration, so an erasure can name each
 /// one to Auth. Read inside the erasure's transaction, under its lock. A
 /// player with no row signed in before this table existed and was derived
 /// from the old form; the erasure then names `principal-<player>`.
@@ -140,7 +138,7 @@ pub fn legacy_player_id(subject: &str) -> Option<Uuid> {
 }
 
 /// Links new-form subjects from the platform's id map export (family
-/// `auth.principal`, cloud#10008 §4.4), loaded into a temporary table
+/// `auth.principal`), loaded into a temporary table
 /// `id_map_import (old_text text, new_text text)`. Run it once, in one
 /// transaction, right after Auth's cut and again before its day 15. A
 /// subject that already has a row keeps it; list those whose player differs

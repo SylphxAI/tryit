@@ -16,8 +16,7 @@ script or host.
 - Capture calls `errorGroups.capture` with parent `orgs/-/projects/-/envs/-`
   (the key's own environment) and the environment's `SYLPHX_API_KEY`, which
   the platform mints and injects. The key needs `observability:ingest`.
-  Until SylphxAI/cloud#8933 / #9258 land, Puzzled's key is billing-only and
-  capture is refused with 403.
+  A key without that scope is refused with HTTP 403.
 - Capture is a soft dependency: it never throws, gives up after 3 s, and never
   fails a request. A refused capture logs `[observability] capture failed`
   (web) or `observability capture failed` (api).
@@ -123,16 +122,15 @@ SELECT metric, percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75
 FROM funnel_events WHERE event = 'web_vitals' GROUP BY 1;
 ```
 
-## Quality signals (owner standards/quality-signals.md)
+## Quality signals
 
 The api reports its own problems as structured log lines; the platform turns
-them into work items without anyone reading a log. The rule is the platform's
-(`infra/runbooks/product-issues.md`); Puzzled only writes the lines.
+them into work items without anyone reading a log. Puzzled only writes the lines.
 
 | Line | When | Becomes |
 | --- | --- | --- |
-| `event="puzzled.issue.turn_failed.<route>" severity="info"` | any 5xx the caller saw | one work item per fingerprint (`ProductIssueReported` → the desk alert intake); a repeat while it is open is a note, a return after it closed a new item |
-| `event="puzzled.user.write.ok\|failed" severity="info"` | one per finished user-mutating Connect RPC; HTTP 5xx fails it | the shared `product-journey-success` journey SLO in `SylphxAI/infra` (journey `puzzled.user.write`) |
+| `event="puzzled.issue.turn_failed.<route>" severity="info"` | any 5xx the caller saw | one work item per fingerprint (from `ProductIssueReported`); a repeat while it is open is a note, a return after it closed a new item |
+| `event="puzzled.user.write.ok\|failed" severity="info"` | one per finished user-mutating Connect RPC; HTTP 5xx fails it | the shared `product-journey-success` journey SLO (journey `puzzled.user.write`) |
 
 The route subject is the route template with its parameters removed
 (`/v1/puzzles/{game}/…` → `v1_puzzles…`), so no id, game slug or body ever
@@ -161,8 +159,6 @@ Read back after a deploy (the same `SYLPHX_API_KEY`):
 # within the hour, and read one item then one note in the work system.
 curl -X POST https://puzzled.gg/signals:induce \
   -H "authorization: Bearer $SYLPHX_API_KEY" -d '{"nonce":"qa1"}'
-# The lines themselves:
-kubectl -n puzzled-prod logs <api-pod> -c user-container | grep 'puzzled.issue.'
 ```
 
 ## Production check

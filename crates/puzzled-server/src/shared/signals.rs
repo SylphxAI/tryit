@@ -5,9 +5,9 @@
 //! - `event=puzzled.issue.<kind>.<subject> severity=info`: the event name is
 //!   the problem's fingerprint. The platform counts the line
 //!   (`sylphx_log_events_total`), the `ProductIssueReported` rule raises one
-//!   alert per fingerprint, and the desk alert intake files one work item for
+//!   alert per fingerprint, and the alert intake files one work item for
 //!   it (a repeat while it is open is a note; a return after it closed is a
-//!   regression). `infra/runbooks/product-issues.md`.
+//!   regression).
 //! - `event=puzzled.<journey>.ok|failed severity=info`: one line per finished
 //!   journey, the events of the journey's SLO.
 //!

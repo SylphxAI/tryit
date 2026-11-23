@@ -2,8 +2,8 @@
  * The browser error relay: `POST <relay path>` on this app's own origin.
  *
  * The browser holds no Observability key (direct capture needs a publishable
- * key with observability:ingest, SylphxAI/cloud#9401), so it posts a small report here and the server captures it with the
- * environment key. The report is bounded, same-origin only, rate limited per
+ * key with observability:ingest), so it posts a small report here. The server
+ * captures it with the environment key. The report is bounded, same-origin only, rate limited per
  * client; the service scrubs it before storing.
  */
 

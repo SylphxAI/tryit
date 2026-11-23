@@ -102,7 +102,7 @@ describe('Sylphx Auth client', () => {
 			for (const settings of [
 				{
 					portal_origin_mode: null,
-					portal_url: 'https://tryit-test.auth.sylphx.net',
+					portal_url: 'https://auth.example.test',
 					social: [shared],
 				},
 				{ ...active, social: [shared] },

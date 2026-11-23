@@ -62,12 +62,9 @@ complete seven-day census**; observed coverage is at most 166.3 hours.
 
 ### Count the selected ingress boundary once
 
-Puzzled traverses the same Envoy twice: the outer record sends upstream to
-Contour's Envoy Service on port 80, and the inner record sends to a revision
-queue-proxy on port 8012. Exact duplicate log messages also occur. The original
-5,278/3,860 counts included these mixed-hop log rows; calling them unique
-requests was wrong. The same failure affected Spiron, but not the other
-observed single-hop authorities.
+The measured deployment emitted both outer and inner ingress records for
+some requests, as well as exact duplicates. The original 5,278/3,860 counts
+included mixed-hop rows; they were not unique requests.
 
 Before parsing, deduplicate exact `_msg` bytes on the server:
 
@@ -75,15 +72,10 @@ Before parsing, deduplicate exact `_msg` bytes on the server:
 | stats by(_msg) min(_time) as _time
 ```
 
-After the existing Envoy method/path/status/latency/agent/authority parser,
-exclude upstream port 8012 **only for the observed hairpin authorities**.
-These are pipeline stages, not a complete query. The boundary is infrastructure,
-not a route-specific latency filter:
-
-```logsql
-| extract_regexp `"(?P<upstream>[^"]*)"$` from _msg
-| filter NOT ((authority:="api.spiron-platform.svc.cluster.local" OR authority:="api.puzzled-prod.svc.cluster.local") AND upstream:~":8012$")
-```
+After parsing method, path, status, latency, agent and authority, select only
+the outer ingress boundary. Exclude an inner-hop record only when the
+recorded authority and upstream identify a verified duplicate ingress hop.
+Do not exclude upstreams across all authorities or filter by latency.
 
 Keep missing/no-upstream records and all response statuses. Do not deduplicate
 by taking maximum latency per request id: ids can be reused. No raw message,
@@ -92,8 +84,8 @@ is **distinct selected-edge access records**, not a proven logical-call or
 human-action census. Re-read the authority/upstream-port population before
 comparing a later window; changed topology invalidates a silent comparison.
 
-For exact `POST /puzzled.v1.StatsService/GetTodayOverview`, authority
-`api.puzzled-prod.svc.cluster.local`, all statuses:
+For exact `POST /puzzled.v1.StatsService/GetTodayOverview` on the selected edge,
+including all statuses:
 
 | Cohort | Distinct selected-edge n | P50 / P95 / P99 (ms) | HTTP 4xx / 5xx / status 0 |
 | --- | ---: | ---: | ---: |
@@ -179,7 +171,7 @@ records in the upper 1%; this does not establish a stable population P99.
   search scope and zero missing method, path, agent, authority or duration
   captures. It cannot validate records excluded by the initial search.
 - The all-route Puzzled Mozilla-shaped upstream census contains only the same
-  two ports: outer 80, n=522; inner 8012, n=522. These aggregate equal totals
+  two hops: outer ingress, n=522; inner ingress, n=522. These aggregate equal totals
   still do not prove request-by-request pairing.
 - The Contour positive control contains 2,646,626 log rows across every one of
   the 289 intersecting five-minute bins, from 00:15:09.706 UTC on November 3
@@ -259,21 +251,3 @@ and an irreducible latency floor are **not established**. Keep the correct
 one-query implementation; do not declare the broader performance outcome
 complete or add speculative caching, warm replicas, indexes or shared-database
 changes from this sample.
-
-### Receipt delivery checks
-
-The required secret scan initially classified a public deployed Git revision in
-the aggregate JSON as a credential. The exact introducing commit, file, line
-and complete-line SHA-256 were reviewed and recorded in the supported
-`.desk-secret-allowlist.json`; no credential exception or scanner bypass was
-added. The pull-request check passed, but merge-group run `41747599894`
-rejected the same line after the queue attributed it to its synthetic
-single-parent squash commit.
-
-A fresh source read on 2026-11-04 found that the consumer's `needs-pass` pin
-predated the already-merged shared squash support
-([shared delivery #375](https://github.com/SylphxAI/.github/pull/375)). The
-receipt updates only that required action pin to the immutable existing fix,
-`0546ef1e30776427b845d068895f7737eee43f84`, rather than adding a product
-exception or changing the shared scanner. The failed jobs remain part of the
-delivery record; a passing pull-request job is not a merge-group verdict.

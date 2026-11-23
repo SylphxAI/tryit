@@ -1,8 +1,6 @@
 # Live verification harness (`scripts/verify-live.ts`)
 
-Re-runnable post-deploy checks of the **Live** layer from
-[live layer](https://github.com/SylphxAI/owner/blob/main/standards/docs.md#claims-stay-inside-their-layer)
-for the capability graph in [`docs/capabilities.md`](../capabilities.md):
+Re-runnable post-deploy checks of live behavior for the capabilities in [`docs/capabilities.md`](../capabilities.md):
 `PUZ-MODULE`, `PUZ-DAILY`, `PUZ-FREE`, `PUZ-SHARE`, `PUZ-MARKS`, and the
 anonymous half of `PUZ-PLUS`. Every game offers today's daily to a fresh
 visitor. A passive read returns metadata, not the board, and does not spend a

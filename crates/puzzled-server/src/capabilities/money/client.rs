@@ -1,5 +1,5 @@
 //! Thin REST client for the Money calls Puzzled uses, shaped from
-//! `contracts/generated/openapi.json` (cloud#10272): `entitlement_grants:check`,
+//! the Sylphx Money API contract: `entitlement_grants:check`,
 //! `checkout_sessions` and `price_catalogs/default`. Nothing else is called.
 //!
 //! Entitlement answers are cached at most 60 seconds and never past the
@@ -817,7 +817,7 @@ impl Money {
     }
 
     /// A hosted billing-portal page pinned to the processor customer of `subscription_id`
-    /// when supplied (cloud#16486 `PortalSession.customer_subscription`), so an account
+    /// when supplied in `PortalSession.customer_subscription`, so an account
     /// with multiple historic processor customers opens the live subscription's customer.
     pub async fn portal_url_for_subscription(
         &self,
@@ -851,7 +851,7 @@ impl Money {
             .ok_or_else(|| MoneyError::Unavailable("portal session has no url".into()))
     }
 
-    /// End a subscription at its period end (no refund: owner#779).
+    /// End a subscription at its period end without a refund.
     pub async fn cancel_at_period_end(&self, id: &str) -> Result<(), MoneyError> {
         let sub_id = segment(id);
         if sub_id.is_empty() {

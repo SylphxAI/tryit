@@ -45,7 +45,7 @@ environment-scoped `PUZZLED_FIXTURE_AUTH_READ_KEY`. Run it before the first
 product sign-in. Credentials and fixture identities never belong in this file.
 
 Registered fixtures are excluded from signup receipts, audience observations,
-completion/cohort rollups and `desk_report.activity_summary`. The declaration
+completion/cohort rollups and the database activity summary. The declaration
 in `ops/tenant-read-functions.json` names the exact aggregate signature for
 the normal database-resource controller. Its role setup and authoritative
 readback are separate deployment acceptance: a source declaration alone does

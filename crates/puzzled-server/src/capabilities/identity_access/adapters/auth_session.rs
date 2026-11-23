@@ -109,7 +109,7 @@ impl AuthSessions {
             String::new()
         });
         // Read once here; never logged. TODO: switch to the identity SDK's
-        // `callerKey` option once cloud#11034 publishes.
+        // `callerKey` option once the published SDK supports it.
         let caller_key = read("SYLPHX_PUBLISHABLE_KEY").unwrap_or_else(|| {
             tracing::warn!("SYLPHX_PUBLISHABLE_KEY is unset: no Auth session is accepted");
             String::new()
@@ -268,7 +268,7 @@ fn token_key(token: &str, user_agent: &str) -> [u8; 32] {
 }
 
 /// The principal a session read reports: the Auth subject as published and,
-/// during Auth's id migration (cloud#10008, cloud#10026), the subject it
+/// during Auth's subject ID migration, the subject it
 /// replaced.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionPrincipal {
