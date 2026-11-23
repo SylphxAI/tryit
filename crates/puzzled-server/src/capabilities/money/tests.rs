@@ -1182,7 +1182,7 @@ async fn checkout_refresh_rechecks_only_the_buyers_grants_without_granting_acces
     );
 }
 
-// ---- guest checkout & verified claim (cloud#16486) --------------------------
+// ---- guest checkout & verified claim --------------------------
 
 #[test]
 fn guest_session_body_omits_subject_and_preserves_consent_and_attribution() {

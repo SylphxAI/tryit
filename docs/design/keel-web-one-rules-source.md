@@ -1,6 +1,6 @@
 # Puzzled on keel-web with one rules source
 
-**Status:** proposed (Design lane, 2026-10-03). Work: W-10072 (parent W-0658, wave W3).
+**Status:** proposed (2026-10-03).
 **Decides:** how the web moves off Next.js, and which code owns game rules afterwards.
 
 ## Problem
@@ -18,15 +18,12 @@ Game rules exist twice, in two languages.
   remains (`games/llm-generators.server.ts`, `features/puzzle-generator`).
 
 The web is also over the mobile weight budget. Measured on 2026-10-03 with
-headless Chromium 154 on the desk CPU (AMD EPYC 9454). These are not phone figures.
+headless Chromium 154 on a development workstation. These are not phone figures.
 
 | Page, 390 px | JS transferred (gzip) | JS decoded | TBT, slow 4G + 4x CPU |
 | --- | --- | --- | --- |
 | `/` | 413 KB | 1.28 MB | 391 ms |
 | `/games/word-guess` | 530 KB | 1.61 MB | 742 ms |
-
-The company decision is that every site moves to keel-web (owner
-`company/decisions.md`, 2026-10-02). Puzzled is wave W3 of W-0658.
 
 ## Decision
 
@@ -57,11 +54,11 @@ with the server. Do not port the TypeScript rules.
 - **Port TS to TS on a lighter framework (Preact, Solid).** This cuts bytes but
   keeps two rules codebases, and the company has ruled against new React or
   Next work.
-- **Keep Next.js and only trim JS (W-0948).** Worth doing while the port is
+- **Keep Next.js and only trim JS.** Worth doing while the port is
   pending: SSR consent banner, chunk split. It does not remove the duplicated
   rules, so it is not the destination.
 - **Validate every move on the server and keep the client dumb.** This adds
-  a round trip per tap (TTFB 80-130 ms on the desk), and soft-failure play needs
+  a round trip per tap (TTFB 80-130 ms in this benchmark), and soft-failure play needs
   instant feedback.
 
 ## Migration and rollback
@@ -75,8 +72,8 @@ with the server. Do not port the TypeScript rules.
   there is nothing to roll back in the database.
 - **Last step.** Delete the `web` Next service, `apps/puzzled` and
   `packages/ui`.
-- **Before the port.** W-10073 deletes the dead TS generators and the LLM
-  residual now, so the port starts from game UI plus rules only.
+- **Before the port.** Remove the obsolete TS and LLM generators so the port
+  starts from game UI and rules only.
 
 ## Tests that prove it
 
@@ -86,7 +83,7 @@ with the server. Do not port the TypeScript rules.
   solution or generator module.
 - A seeded Playwright flow per game on the keel-web preview finishes a puzzle
   through the real api.
-- A desk-CPU budget on CI for home at 390 px, slow 4G plus 4x CPU: JS at most
+- A CI performance budget for home at 390 px, slow 4G plus 4x CPU throttling: JS at most
   170 KB brotli, TBT under 200 ms.
 - Production readback: a new guest finishes today's featured puzzle and
   shares a card.
@@ -96,5 +93,5 @@ with the server. Do not port the TypeScript rules.
 - Whether keel-web islands can host a board with drag gestures (block-slide,
   number-path) at the AAA bar. The Keel lane prototypes one game before the
   18-game slice is cut.
-- Whether Keel has the gaps the Kalkas plan names: theme before first paint,
-  site scripts and i18n. W3 waits on those like W1 and W2 do.
+- Whether Keel supports theming before first paint, site scripts and i18n.
+  Verify these capabilities before porting routes that depend on them.

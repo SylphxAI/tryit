@@ -3,9 +3,8 @@
  * minified browser stack frames resolve to source at ingest.
  *
  * It runs once when the server starts (from `register()` in
- * instrumentation.ts), because the platform build has no environment
- * (SylphxAI/cloud#9247): the release sha (`SYLPHX_GIT_COMMIT_SHA`) and the
- * key exist only at run time. Maps already stored for this release are
+ * instrumentation.ts). The release SHA (`SYLPHX_GIT_COMMIT_SHA`) and the
+ * upload key are available only at runtime. Maps already stored for this release are
  * skipped, so a restart uploads nothing new. The maps ship in the image
  * outside the served static directory (see the Dockerfile), so the public
  * site never serves source.

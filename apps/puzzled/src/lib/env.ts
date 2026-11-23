@@ -3,7 +3,7 @@
  *
  * Presentation (Next.js web) boot must listen without owning api or Platform
  * root secrets. Platform injects API_INTERNAL_URL from sylphx.toml
- * connect.services = ["api"] (same class as Epiow). DATABASE_URL / REDIS_URL
+ * connect.services = ["api"]. DATABASE_URL / REDIS_URL
  * belong to the Rust api. SYLPHX_SECRET_KEY / SYLPHX_SECRET_URL are injected
  * only when the workload has an explicit BaaS/resource binding (ADR-3418);
  * presentation web does not, and must not die at register() without them.

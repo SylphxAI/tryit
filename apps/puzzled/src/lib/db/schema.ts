@@ -713,7 +713,7 @@ export const billingLedger = pgTable(
  * The Sylphx Auth subject that signs a player in, kept as the exact text Auth
  * published (another system's id, never decoded), mapped to Puzzled's own
  * player id. Both `principal-<uuid>` and the TypeID `usr_…` reach the same
- * player (owner standards/identifiers.md; cloud#10008). Written by the api.
+ * player. Written by the api.
  */
 export const authSubjects = pgTable(
 	'auth_subjects',

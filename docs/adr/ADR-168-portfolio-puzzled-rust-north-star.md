@@ -3,7 +3,6 @@
 - **Status:** Superseded in part by ADR-169 (module/crate shape); transport north star retained
 - **Superseded by:** ADR-169-capability-first-modular-ddd.md
 - **Date:** 2026-07-09
-- **Relates to:** ADR-167 (SylphxAI/doctrine)
 - **Change class:** `required-future` for Puzzled; `advisory` for portfolio
 
 ## Context
@@ -12,9 +11,9 @@ Puzzled is a production puzzle-game application with a Next.js app, local SDK/UI
 packages, Atlas migrations, and Sylphx deployment manifest. Game state, auth, and
 leaderboard paths are latency-sensitive backend surfaces.
 
-Doctrine [ADR-167](https://github.com/SylphxAI/doctrine/blob/main/docs/adr/ADR-167-boundary-contract-stack-and-platform-pillars.md)
-requires Rust-first backend authority, Protobuf+Buf SSOT, and Connect/gRPC default
-transport. The game web UI and shared UI package remain TypeScript per language pillars.
+The backend authority is Rust, Protobuf with Buf defines the contract, and
+Connect/gRPC is the default transport. The game web UI and shared UI package
+remain TypeScript.
 
 ## Decision
 
@@ -33,8 +32,8 @@ transport. The game web UI and shared UI package remain TypeScript per language 
 
 | Concern | Owner | Puzzled may | Puzzled must not |
 | --- | --- | --- | --- |
-| Puzzle game product, scoring, user progress | **SylphxAI/puzzled** | Own game DB tables and policies | Encode other products' game logic |
-| Auth, managed Postgres, analytics | **SylphxAI/platform** | Consume public BaaS | Own platform internals |
+| Puzzle game product, scoring, user progress | This repository | Own game DB tables and policies | Encode other products' game logic |
+| Auth, managed Postgres, analytics | Platform services | Consume public BaaS | Own platform internals |
 
 ### 3. Strangler-fig cutover posture
 

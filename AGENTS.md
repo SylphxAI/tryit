@@ -97,8 +97,7 @@ request marked ready also runs the affected suite. See the
 ## Done means
 
 A claim covers its own layer: local tests are not landed source, and a `200`
-from `/healthz` is not a working product
-([owner standard](https://github.com/SylphxAI/owner/blob/main/standards/docs.md#claims-stay-inside-their-layer)).
+from `/healthz` is not a working product.
 After a deploy, run `bun run verify:live --expected-sha <commit>`
 ([docs/reference/live-verification.md](docs/reference/live-verification.md)): it
 checks the free daily path, that no answer reaches the client, and that the

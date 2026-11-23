@@ -2,8 +2,7 @@
 
 What Puzzled can do, in what state, and where the code is. Destination is
 [vision.md](vision.md); this table is not a plan, and a status is what an
-end-to-end test measured, not what the code intends
-([format](https://github.com/SylphxAI/owner/blob/main/standards/docs.md#capability-table)).
+end-to-end test measured, not what the code intends.
 Cite the ID column.
 
 | ID | Capability | Status | Code | Depends on |
@@ -15,12 +14,12 @@ Cite the ID column.
 | PUZ-NSM | Daily puzzle completers ([metrics.md](metrics.md)): recomputable from finish records, excluding archive, practice, entertainment, admin, dry-run and duplicates | supported | `crates/puzzled-core/src/capabilities/puzzle_play/domain/ritual_completion.rs` | PUZ-MODULE |
 | PUZ-HABIT | Gentle return: a player can return the next day and find today's puzzle without push; streaks and milestones derive from accepted days; a missed day does not erase history, paid access or identity; every 7th played day of a run earns a streak freeze (at most 2 held, same for guests and accounts), and a held freeze automatically covers one missed day so the run continues; the Stats streak card shows freezes held and days to the next; a signed-in player can switch streak auto-freeze on or off in Settings > Preferences (`ToggleAutoFreeze`) | supported | `crates/puzzled-server/src/capabilities/gamification` | PUZ-FREE |
 | PUZ-SHARE | Non-spoiler share: text and card plus a game and `date=` link leak no solution; home does not dump the full catalog on cold users | supported | `apps/puzzled/src/features/daily/lib/share-text.ts` | PUZ-DAILY |
-| PUZ-SEASONS | Seasonal days from a hand-set list keyed to the Hong Kong product day (2026-2027): a home banner, and a greeting on the result card and share caption, in all five locales; presentation only, nothing on other days, no answer on the card | supported | `apps/puzzled/src/features/seasons/lib/seasons.ts` | PUZ-SHARE; cloud#9828 (calendar) later replaces the list |
+| PUZ-SEASONS | Seasonal days from a hand-set list keyed to the Hong Kong product day (2026-2027): a home banner, and a greeting on the result card and share caption, in all five locales; presentation only, nothing on other days, no answer on the card | supported | `apps/puzzled/src/features/seasons/lib/seasons.ts` | PUZ-SHARE |
 | PUZ-CONTENT | Daily-puzzle pipeline and server grading: every game's puzzle generated and stored 14 days ahead with a 30-day archive (19 games), hourly on Compute and at start-up, a missing day generated on first read; the Mini Grid (crossword) is made by generator `rust-crossword-v2` for new days, whose down clues describe the real column words (34 boards, every row and column a common word), while rows stored by `rust-v1` keep their grid, across clues and scoring and are served across-only (their down clues described the row words) and the days before 2026-09-28 keep their original V1 seeds; each row records its `generator_version`; word games graded per guess (`CheckGuess`); clients play from a solution-free payload and the answer returns only with the accepted finish | supported | `crates/puzzled-server/src/capabilities/daily_pipeline` | PUZ-MODULE |
-| PUZ-PLUS | Puzzled Plus: every game, archive, stats and a family plan; a player buys through Sylphx Money's hosted checkout, entitlements unlock paid play, checkout records the express immediate-supply consent, cancellation ends at the period end with no refund promised (non-refundable except where the law requires), and a failed entitlement read refuses paid play. On sale since 2026-10-02T16:15Z; checkout reaches Stripe (readback 2026-10-02T17:20Z); a completed paid purchase has not been read back yet. Policy in [monetization.md](monetization.md); Puzzled's own Stripe billing is gone | partial | `crates/puzzled-server/src/capabilities/money` (switches on with `SYLPHX_MONEY_API_KEY`, a dedicated billing:read + billing:write key; never `SYLPHX_API_KEY`) | PUZ-FREE, Sylphx Money subscriptions (cloud#9152) |
+| PUZ-PLUS | Puzzled Plus: every game, archive, stats and a family plan; a player buys through Sylphx Money's hosted checkout, entitlements unlock paid play, checkout records the express immediate-supply consent, cancellation ends at the period end with no refund promised (non-refundable except where the law requires), and a failed entitlement read refuses paid play. On sale since 2026-10-02T16:15Z; checkout reaches Stripe (readback 2026-10-02T17:20Z); a completed paid purchase has not been read back yet. Policy in [monetization.md](monetization.md); Puzzled's own Stripe billing is gone | partial | `crates/puzzled-server/src/capabilities/money` (switches on with `SYLPHX_MONEY_API_KEY`, a dedicated billing:read + billing:write key; never `SYLPHX_API_KEY`) | PUZ-FREE, Sylphx Money subscriptions |
 | PUZ-NOTIFICATION-CONSENT | Notification consent has one writer: Rust PreferencesService. Signed marketing opt-out links work without login through UnsubscribeEmail; invalid/expired tokens cannot write. Web forwards JSON, browser links and RFC 8058 one-click POSTs; browser-link redirects target the public site origin (`getRequestSiteOrigin`), never the internal listener | supported | `crates/puzzled-server/src/bootstrap/connect_preferences.rs`, `crates/puzzled-server/src/unsubscribe_tests.rs`, `apps/puzzled/src/app/api/email/unsubscribe/route.test.ts` | api `EMAIL_UNSUBSCRIBE_SECRET`, PostgreSQL |
 | PUZ-TRYIT | Tryit conversion report: a sign-up with a Tryit `ref` (`utm_source=tryit`, kept in `puzzled_attr` after analytics consent) is queued in `tryit_conversions`, sent once to Tryit with a 3 second cap and retried every ten minutes on failure for 29 days; only the `ref` is sent; a first paid invoice is reported the same way | supported | `crates/puzzled-server/src/capabilities/tryit_conversions` | PUZ-OBS |
-| PUZ-OBS | Errors to Sylphx Observability through the Sylphx SDK, no third-party error service: api panics and every 5xx (service, release, route template, message, stack) are scrubbed of emails, tokens, JWTs, keys and card-like numbers, deduplicated per fingerprint for 10 seconds and queued (64) for one worker that drops when full. Needs the environment key to carry `observability:ingest` (cloud#9450). See [observability.md](observability.md) | supported | `crates/puzzled-server/src/observability.rs` | none |
+| PUZ-OBS | Errors to Sylphx Observability through the Sylphx SDK, no third-party error service: api panics and every 5xx (service, release, route template, message, stack) are scrubbed of emails, tokens, JWTs, keys and card-like numbers, deduplicated per fingerprint for 10 seconds and queued (64) for one worker that drops when full. Needs the environment key to carry `observability:ingest`. See [observability.md](observability.md) | supported | `crates/puzzled-server/src/observability.rs` | none |
 | PUZ-AUTH-CONTINUE | Sign-in on puzzled.gg with a session cookie named `puzzled_session` (the old `sylphx_identity_session` is still read until 2026-10-31 and migrated on the next request, so nobody is signed out); email and password plus Google through same-origin `/api/identity/*` routes; no `sylphx` name in the browser policy, cookie or API responses. One Continue flow with an email code is not built | partial | `apps/puzzled/src/lib/identity/session-cookie.ts`, `apps/puzzled/src/app/[locale]/(auth)` | Sylphx Auth |
 | PUZ-AUTH-PASSKEY | Passkey create, autofill and button | blocked-on-platform | none | Sylphx Auth passkeys, SDK `<SignIn />` |
 | PUZ-AUTH-RECOVERY | Password reset by email, in source: `/forgot-password` starts Auth recovery (`/v1/account-recovery/start`, the product's server key, a link to this site's `/reset-password`, no client address) and answers the same for every address; the mailed link carries `challenge_id` and `token`, and `/reset-password` needs both and posts them with the new password (12 to 1024 UTF-8 bytes) to `/v1/account-recovery/complete`. Auth replaces the password, ends every session and clears the lockout; the route clears both cookie names and never signs the browser in. Send limits come back as 429 with Retry-After, an expired or used link as one fixed answer, a weak password as another. Each command carries a retry key derived from its inputs. Not proven live: needs a tagged new-user readback; recovery by code that notifies every channel is not built | partial | `apps/puzzled/src/app/api/identity/recovery`, `apps/puzzled/src/lib/identity/http.ts` | Sylphx Auth recovery |
@@ -58,18 +57,14 @@ Cite the ID column.
   its host would send device, inbox and delivery calls to different APIs.
   Read at 21:53–21:56 UTC: the model gateway returned its `invalid_api_key`
   envelope; the canonical Events paths were absent from `/openapi.json`.
-  Source at [cloud `3d80320`](https://github.com/SylphxAI/cloud/tree/3d8032081c73cd91949b438e8b0c39d089d75eee):
-  `crates/sylphx-apps-api/src/routing/inventory.rs` routes `/v1/devices` to
-  Compute device sessions, `routing/commercial_roots.rs` routes `/v1/inbox`
-  to a different notification API, and `services/notify/README.md` explicitly
-  marks push, inbox items and broadcasts `UNIMPLEMENTED`. A canonical gateway
+  The similarly named paths belong to different APIs. A canonical gateway
   401 alone proves only its catch-all auth, not that Events is served. Remove
   the Events origin/override only when the platform serves these contracts and
   their product credentials through the canonical gateway.
 
 - **Guest cookie:** `__Host-puzzled_guest` is strictly necessary for functional browser progress continuity, not advertising or analytics. It is HttpOnly, Secure and SameSite=Lax, with a 400-day lifetime refreshed by bootstrap. Only its SHA-256 hash is stored after the first guest write; linked identifiers and hashes may be pseudonymous personal data. Account erasure removes the account and all linked adopted source guests, including retained collisions and source provenance.
 
-- **Auth post-deploy check** ([owner standard](https://github.com/SylphxAI/owner/blob/main/standards/auth.md#how-a-product-proves-it)):
+- **Auth post-deploy check:**
   after each deploy, with a test account on `https://puzzled.gg`, sign in and
   out, confirm the response cookies are named `puzzled_session` (no `sylphx`
   cookie, no `sylphx.com` host in the page or the `Content-Security-Policy`
@@ -92,7 +87,7 @@ Cite the ID column.
 - **Consumed:** a Sylphx Auth end-user session, checked with Auth once per
   request. `auth_subjects` maps the exact subject text Auth published to
   Puzzled's own player id (`uuid`), so both `principal-<uuid>` and the TypeID
-  `usr_...` form (Auth's move, cloud#10008) reach the same player; never decode
+  `usr_...` form reach the same player; never decode
   the new form. Compute's signed tick receipts (EdDSA JWT, `aud` equal to the
   exact URL) are the only admission for JobsService and `/internal/compute/*`.
   The published `sylphx` Rust SDK's `Expect::callback` and `Verifier::verify`

@@ -2,9 +2,8 @@
  * lefthook JS tool runner (scripts/hooks/node-tool.sh)
  *
  * The pre-commit hook runs its JavaScript tools from this repository's
- * node_modules. A fresh cloud worktree has no node_modules and an install per
- * worktree is too heavy for the desk, so the pinned binary is absent there and
- * the hook must skip with a warning and exit 0 instead of exiting 127 and
+ * node_modules. In a fresh checkout without installed dependencies, the
+ * pinned binary is absent. The hook must warn and exit 0 rather than exit 127 and
  * blocking every commit. Where node_modules exists, the repository-pinned
  * binary must run and its failing exit code must survive the runner, so a
  * genuinely red check still stops the commit.

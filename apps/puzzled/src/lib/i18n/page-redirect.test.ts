@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { canonicalPageRedirect, preferredPageRedirect } from './page-redirect'
 
-const INTERNAL = 'http://web.tryit.svc.cluster.local'
+const INTERNAL = 'http://web.example.internal'
 
 describe('SolidStart locale redirects', () => {
 	test.each([

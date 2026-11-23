@@ -1,13 +1,7 @@
 # Growth
 
-How Puzzled grows, and the ranked list of growth work. The rules are the owner
-standards [growth](https://github.com/SylphxAI/owner/blob/main/standards/growth.md),
-[commercial](https://github.com/SylphxAI/owner/blob/main/standards/commercial.md) and
-[product](https://github.com/SylphxAI/owner/blob/main/standards/product.md); the menu of mechanisms is
-[mechanics](https://github.com/SylphxAI/owner/blob/main/standards/mechanics.md), reviewed once for this
-backlog (used: the entries named below; skipped: paid acquisition, gifting and group buy until Plus is
-on sale, and game-only entries; nothing invented beyond them). Success is judged by the metrics in
-[metrics.md](metrics.md), not by which mechanisms ship.
+How Puzzled grows, and the ranked list of growth work. Success is judged by the
+metrics in [metrics.md](metrics.md), not by which mechanisms ship.
 
 ## The loop
 
@@ -80,9 +74,9 @@ North Star: daily puzzle completers ([metrics.md](metrics.md)), recomputable fro
 
 | Input | Measured today | Missing |
 | --- | --- | --- |
-| D7 retention of new completers | Derivable from the same finish rows | A cohort report: Signal analytics (cloud#9511) or a scheduled SQL job |
+| D7 retention of new completers | Derivable from the same finish rows | A cohort report: analytics or a scheduled SQL job |
 | Share-landing new completers | `result_shares.share_count`; landings keep `ref` (the share id) first-touch after consent; measure with `result_shares` joined to `account_attribution.ref` | Landing counts before consent (no cookie); a dashboard |
-| Weekly regulars to Plus conversion | Weekly regulars (`compute_hrc`) | Conversion: Plus is dormant until Sylphx Money subscriptions (cloud#9152) |
+| Weekly regulars to Plus conversion | Weekly regulars (`compute_hrc`) | Conversion: Plus is dormant until Sylphx Money subscriptions |
 
 ## Ranked backlog
 
@@ -93,11 +87,11 @@ should move.
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Earned streak freezes (streak freeze) | Keep a streak alive through a missed day without guilt; free players earn one per 7 played days, hold at most 2, and a held freeze covers one missed day automatically (auto-cover is on by default; the `ToggleAutoFreeze` RPC turns it off, no settings control yet) | Stats streak card (freezes held, days to the next one), streak calculation | D7 retention | M | shipped (#299): rules in `puzzled-core` `personal_streak`, ledgers `streak_freeze_awards` and `streak_freeze_uses`; guests and signed-in players alike |
 | 2 | Save-your-streak account ask (try before signup, saved progress) | Guests keep streak and stats across devices | Result screen: an inline card at the first finish (streak of 1 or more), plus a modal once the streak reaches 2; the button goes to `/signup?callbackUrl=/games/<game>` so the player returns to the game; the game-page link says "Save your streak"; never before the first finish | Guest to account rate, D7 retention | S | none |
-| 3 | Daily reminder at each player's own time and time zone (personalised notification timing) | Gentle return without guilt | The player's saved reminder time is stored but does not schedule the send today: the daily-reminder job sends on its own schedule. Email (opt-in) at the player's time in their zone; browser Web Push through the existing reminder job (VAPID configuration required) | D7 retention | S | none for Puzzled's own email; cloud#9826 for caps across our products |
+| 3 | Daily reminder at each player's own time and time zone (personalised notification timing) | Gentle return without guilt | The player's saved reminder time is stored but does not schedule the send today: the daily-reminder job sends on its own schedule. Email (opt-in) at the player's time in their zone; browser Web Push through the existing reminder job (VAPID configuration required) | D7 retention | S | none for Puzzled's own email; shared caps for cross-product reminders |
 | 4 | Streak on the shared card (share cards) | Show the sharer's run on the card and landing, so a friend has something to beat | Share landing, share image, challenge comparison | Landing rate, conversion | S | none |
 | 5 | How-to-play structured data on game pages (programmatic pages) | Rank for "how to play X" from the rules the pages already show | Per-game page markup | Search landings | S | none |
-| 6 | Friends' results for today (friends leaderboard) | Compare with people you know, no public shame board | Result screen, opt-in | Share and return rates | M | cloud#9830 |
-| 7 | Seasonal themes (shipped; holiday puzzles are not built) | Fresh reasons to share on festival days | Home banner, result card and share caption on the day | Share rate | S | none; the hand-set list in `apps/puzzled/src/features/seasons/lib/seasons.ts` stands in for cloud#9828 (calendar) and is replaced when it exists |
+| 6 | Friends' results for today (friends leaderboard) | Compare with people you know, no public shame board | Result screen, opt-in | Share and return rates | M | opt-in friend graph |
+| 7 | Seasonal themes (shipped; holiday puzzles are not built) | Fresh reasons to share on festival days | Home banner, result card and share caption on the day | Share rate | S | none; uses a hand-set list in `apps/puzzled/src/features/seasons/lib/seasons.ts` |
 | 8 | Own-product promotion at session end (cross-promotion) | Point finished players to our other products | Already-played view, at most one card a day. Shipped: one card, chosen from the product day, linking a live own product (`features/cross-promo`); the link carries `utm_source=puzzled` and nothing about the player, and the card is not on the finish screen | Cross-product signups | S | none |
 
 Seasonal themes: one typed list of days keyed to the product day (Asia/Hong_Kong), each with an id,
@@ -120,9 +114,9 @@ Design notes for the open items:
 
 ## Ships when Money is live
 
-Everything here charges, discounts or unlocks paid access, so it waits for Sylphx Money subscriptions
-(cloud#9152; reverse trial also #9829 and #9532). Nothing here builds billing: each row is a setting or a
-product-side unlock on top of Money's plans, entitlements and coupons. Effects are estimates from
+Everything here charges, discounts or unlocks paid access, so it waits for Sylphx Money subscriptions.
+Each row is a setting or a product-side unlock on top of Money's plans,
+entitlements and coupons. Effects are estimates from
 industry benchmarks; the product has no payers yet, so none is measured.
 
 - [ ] **Plus on sale, yearly first** (S). Plans `individual_yearly` US$39.99 and `individual_monthly`
@@ -173,7 +167,7 @@ because our cost is lower.
 
 ## Guardrails
 
-Beyond the owner standards, these stay true here and each has a reason:
+These rules apply to every growth mechanism:
 
 - **No dark patterns:** no false urgency (a true countdown, such as a real trial end, is fine), no
   streak guilt, no paywall before or during the free daily finish, no selling the solution. The free
@@ -189,7 +183,6 @@ Beyond the owner standards, these stay true here and each has a reason:
 - **Consent:** reminders, win-back and attribution run only on recorded consent; quiet hours hold.
   The own-product card (backlog row 8) is a public link with campaign tags and no player data;
   the destination records it only under its own consent.
-- **Cubeage is a separate company.** Cross-promotion with a Cubeage title is a public link that carries
-  no user data, unless a partner link with a data-sharing agreement and the user's consent exists
-  (cloud#9826 item 9).
+- **External publishers.** A cross-promotion link to an external publisher carries no user data
+  unless a data-sharing agreement is in place and the user consents.
 - **Public numbers have a source:** no player counts or ratings in copy unless rendered from their source.

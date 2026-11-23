@@ -1,7 +1,5 @@
 # Monetization: free daily puzzle and Puzzled Plus
 
-Commercial policy for the product, under the owner
-[commercial standard](https://github.com/SylphxAI/owner/blob/main/standards/commercial.md).
 Decided in [#235](https://github.com/SylphxAI/puzzled/issues/235): sell a paid tier.
 
 - **Model:** consumer subscription in the NYT Games class. Any three games a day, chosen by the player, are free; Puzzled Plus opens everything else.

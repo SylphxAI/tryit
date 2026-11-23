@@ -151,9 +151,8 @@ impl AuthErasure {
 
 /// Is this 404 body Auth's own "no such user" for the named principal?
 ///
-/// Auth (SylphxAI/cloud `services/auth/crates/identity-api`) answers a
-/// privacy request for a principal its instance does not hold with
-/// `StoreError::NotFound("user not found")` (`src/privacy.rs`,
+/// For a principal its instance does not hold, Auth answers a privacy request
+/// with `StoreError::NotFound("user not found")` (
 /// `dest_create_privacy_request`), which `map_error` (`src/lib.rs`) renders
 /// as 404 `{"code":"not_found","error":"user not found","authority":"identity"}`.
 /// Every field must match: a

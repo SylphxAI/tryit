@@ -9,7 +9,7 @@
  * Days are product day keys (Asia/Hong_Kong, the same key the daily puzzle
  * uses), compared as `YYYY-MM-DD` strings, ranges inclusive. Seasons change
  * only presentation: never a puzzle, an answer, scoring or a streak rule.
- * cloud#9828 (calendar) replaces this list when it exists.
+ * Use a shared calendar once it supplies these dates.
  */
 import type { GameColorTheme } from '@/games/theme-colors'
 import { productDayKey } from '@/lib/product-day'

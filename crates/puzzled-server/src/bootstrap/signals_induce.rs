@@ -1,9 +1,8 @@
 //! `POST /signals:induce`: the production check for quality signals
-//! (owner standards/quality-signals.md "How it is judged").
 //!
 //! With `Authorization: Bearer <SYLPHX_API_KEY>` it reports one induced issue
 //! and answers 503, so the readback is deterministic: call it once and the
-//! desk alert intake files one item; call it again within the hour and the
+//! alert intake files one item; call it again within the hour and the
 //! same fingerprint is a note on that item. It changes no data.
 //!
 //! Any other caller gets 404. The key is the same one `/observability/test`

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { legacyPageRedirect } from './legacy-page-redirect'
 
-const origin = 'http://web.tryit.svc.cluster.local'
+const origin = 'http://web.example.internal'
 
 describe('legacy public page redirects', () => {
 	test.each([

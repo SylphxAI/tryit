@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fails when a workflow job selects a billed or unguarded GitHub-hosted runner
-# (owner standards/dx.md, SylphxAI/.github docs/runner-spend.md). Allowed:
+# Allowed:
 # - Self-hosted control and Linux pools: sylphx-linux-control,
 #   sylphx-linux-{standard,large,xlarge,2xlarge}(-merge), or the canonical
 #   merge_group selector `${{ github.event_name == 'merge_group' && 'sylphx-linux-<size>-merge' || 'sylphx-linux-<size>' }}`.

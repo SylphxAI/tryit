@@ -7,14 +7,14 @@ const root = resolve(import.meta.dir, '..')
 const turbo = join(root, 'node_modules/.bin/turbo')
 const config = JSON.parse(readFileSync(join(root, 'turbo.json'), 'utf8'))
 
-test('strict Turbo preserves desk controls without hashing their values', () => {
-	const cwd = mkdtempSync(join(tmpdir(), 'turbo-desk-env-'))
+test('strict Turbo preserves configured controls without hashing their values', () => {
+	const cwd = mkdtempSync(join(tmpdir(), 'turbo-env-'))
 	try {
 		mkdirSync(join(cwd, 'child'))
 		writeFileSync(
 			join(cwd, 'package.json'),
 			JSON.stringify({
-				name: 'desk-env-proof',
+				name: 'turbo-env-proof',
 				private: true,
 				packageManager: 'npm@10.0.0',
 				workspaces: ['child'],

@@ -22,7 +22,7 @@ export type OwnProduct = {
 /**
  * Products with a live public home a finished player can open today.
  * Tryit is not in the list: the card points at our other products.
- * Cubeage titles are a separate company and are not linked from here.
+ * Titles from external publishers are outside this list.
  */
 export const OWN_PRODUCTS: readonly OwnProduct[] = [
 	{ id: 'tryit', url: 'https://tryit.fun' },

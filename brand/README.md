@@ -175,11 +175,10 @@ Every file's SHA-256 is in `provenance.json`.
 
 ## Trademark
 
-Not registered. Owner decision owner#781: no trademark filings before the
-product earns money. Use ™ at most, never ®.
+Not registered. Use ™ at most, never ®.
 
 Checked 2026-09-28 (web and app-store search, US trademark listings).
-- **Name: close match, same category.** Netflix ships "Netflix Tryit", a daily word and logic puzzle app on iOS, Android and Tudum (launched 2025). No US trademark filing by Netflix for PUZZLED was found; "PUZZLED" is registered by Tryit, Inc. for physical puzzles and toys (class 28, reg. 3983811), which is outside software. This is the one real risk in the portfolio: a store listing or search result can be confused with Netflix's. Noted once, not blocking (owner#781).
+- **Name: close match, same category.** Netflix ships "Netflix Tryit", a daily word and logic puzzle app on iOS, Android and Tudum (launched 2025). No US trademark filing by Netflix for PUZZLED was found; "PUZZLED" is registered by Tryit, Inc. for physical puzzles and toys (class 28, reg. 3983811), which is outside software. This is the one real risk in the portfolio: a store listing or search result can be confused with Netflix's. Noted once, not blocking.
 - **Mark:** a T built from five tiles with an amber keystone (redrawn 2026-11-18; the earlier question-mark hook was checked 2026-09-28). Not yet searched against puzzle-app icons.
 
 The wordmark is outlined reproducibly from the bundled Fraunces 600 font and

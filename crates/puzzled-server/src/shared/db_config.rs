@@ -43,9 +43,7 @@ async fn require_writer(
 
 /// Database URL selection mirrors `apps/puzzled/src/lib/db` runtime env (ADR-168 S1).
 ///
-/// Platform injects `DATABASE_URL` / `POSTGRES_URL` as the product contract
-/// (`*.sylphx.net`). This crate consumes that URL as-is. Rewriting to
-/// `.svc.cluster.local` is a customer topology leak (ADR-3402).
+/// Consume the platform-provided URL as-is; do not rewrite its host.
 pub fn select_database_url() -> Option<String> {
     let on_sylphx = std::env::var("SYLPHX")
         .ok()
@@ -124,18 +122,18 @@ mod tests {
     }
 
     #[test]
-    fn keeps_injected_sylphx_net_host() {
+    fn keeps_injected_database_host() {
         let _guard = env_test_guard();
         let _restore = EnvRestore::snapshot(&["SYLPHX", "POSTGRES_URL", "DATABASE_URL"]);
         std::env::set_var("SYLPHX", "1");
         std::env::remove_var("POSTGRES_URL");
         std::env::set_var(
             "DATABASE_URL",
-            "postgresql://app:secret@past-oxen-ejfa3h.sylphx.net:5432/app?sslmode=require",
+            "postgresql://app:secret@db.example.test:5432/app?sslmode=require",
         );
         assert_eq!(
             select_database_url().as_deref(),
-            Some("postgresql://app:secret@past-oxen-ejfa3h.sylphx.net:5432/app?sslmode=require")
+            Some("postgresql://app:secret@db.example.test:5432/app?sslmode=require")
         );
     }
 

@@ -409,15 +409,15 @@
 				"missing_authority": "0",
 				"missing_duration": "0"
 			},
-			"all_route_browser_shaped_upstream_ports": [
+			"all_route_browser_shaped_ingress_hops": [
 				{
-					"upstream_port": "8012",
+					"ingress_hop": "inner",
 					"n": "522",
 					"first": "2026-11-03T00:15:19.821915104Z",
 					"last": "2026-11-03T23:47:20.750696973Z"
 				},
 				{
-					"upstream_port": "80",
+					"ingress_hop": "outer",
 					"n": "522",
 					"first": "2026-11-03T00:15:18.520512323Z",
 					"last": "2026-11-03T23:47:16.487381879Z"
@@ -430,7 +430,7 @@
 				"rows": 2646626,
 				"first": "2026-11-03T00:15:09.706969392Z",
 				"last": "2026-11-04T00:15:06.505698779Z",
-				"scope": "all contour-internal/envoy raw logrows, positive control not lossless census"
+				"scope": "all ingress proxy log rows, positive control not lossless census"
 			},
 			"output_limit": 500,
 			"largest_main_query_output_rows": 25,

@@ -71,7 +71,7 @@ jobs:
             browser: apps/puzzled/playwright.config.ts apps/puzzled/e2e-tests/* apps/puzzled/scripts/serve-puzzle-fixture.ts scripts/ci-contract.test.ts package.json apps/puzzled/package.json bun.lock .github/workflows/ci.yml .github/workflows/verify.yml
             migrations: apps/puzzled/atlas/* apps/puzzled/atlas.hcl crates/puzzled-server/src/*_tests.rs crates/puzzled-server/src/capabilities/preferences/* scripts/check-migration-order* .github/workflows/ci.yml
 
-      - name: Non-v7 ids on added lines (owner standards/identifiers.md)
+      - name: Non-v7 ids on added lines
         uses: SylphxAI/.github/.github/actions/identifiers@e4a5ea41cbcc87cd93914f89f0d7c3981c868bf9
 
       - uses: SylphxAI/.github/.github/actions/chat-senders@5cfd55a41435cca8e4b7caf6506faf04ca08d200
@@ -189,9 +189,9 @@ jobs:
       - name: Dockerfile copies puzzled-core
         run: bash scripts/check-dockerfile-puzzled-core.sh
 
-      - name: Strict Turbo preserves desk controls
+      - name: Strict Turbo preserves pass-through controls
         if: fromJSON(steps.range.outputs.run).web
-        run: bun test --isolate scripts/turbo-desk-env.test.ts
+        run: bun test --isolate scripts/turbo-env.test.ts
 
       # bun test has no affected mode: the lane is path-selected (web paths)
       # and runs the whole unit suite when it runs.

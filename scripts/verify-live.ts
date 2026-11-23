@@ -4,7 +4,7 @@
  * verify-live.ts — re-runnable Live-layer readbacks for the Puzzled capability
  * graph (PUZ-MODULE / PUZ-DAILY / PUZ-FREE / PUZ-SHARE / PUZ-MARKS).
  *
- * Layer: Live (owner standards/docs.md, "Claims stay inside their layer") for the revision the
+ * Live verification for the revision the
  * serving router reports. Source/CI/Deploy layers are NOT established here, and
  * a green-looking proxy never upgrades a check.
  *
