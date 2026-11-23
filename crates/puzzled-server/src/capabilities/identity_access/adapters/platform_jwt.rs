@@ -83,11 +83,6 @@ pub struct PlatformClaims {
     pub iss: Option<String>,
     #[serde(default)]
     pub app_id: Option<String>,
-    /// Optional admin / scope claim for admin-gated residual.
-    #[serde(default)]
-    pub scope: Option<String>,
-    #[serde(default)]
-    pub scopes: Option<Vec<String>>,
     /// RFC 8693 actor claim: present when an agent acts for `sub`.
     #[serde(default, deserialize_with = "present")]
     pub act: Option<serde_json::Value>,
@@ -103,7 +98,6 @@ pub struct VerifiedIdentity {
     pub user_id: String,
     pub display_name: Option<String>,
     pub email: Option<String>,
-    pub is_admin: bool,
     /// Who acts for the user when the credential is delegated (RFC 8693 `act`,
     /// or Auth's `actor`): the actor's subject, or `"delegated"` when the
     /// claim carries no subject. None for the user acting for themselves.
@@ -262,23 +256,6 @@ pub fn extract_bearer(headers: &HeaderMap) -> Option<String> {
     } else {
         Some(token.to_string())
     }
-}
-
-fn is_admin_from_claims(claims: &PlatformClaims) -> bool {
-    // Product-issued exact `admin` only. Platform operator scopes are not
-    // Puzzled admin (100% dogfood: no first-party skip).
-    let is_admin_scope = |s: &str| s == "admin";
-    if let Some(scope) = &claims.scope {
-        if scope.split_whitespace().any(is_admin_scope) {
-            return true;
-        }
-    }
-    if let Some(scopes) = &claims.scopes {
-        if scopes.iter().any(|s| is_admin_scope(s)) {
-            return true;
-        }
-    }
-    false
 }
 
 /// True when identity verification must be fully constrained (production).
@@ -489,7 +466,6 @@ fn verify_with_jwks(
                         user_id: claims.sub.trim().to_string(),
                         display_name: claims.name.clone(),
                         email: claims.email.clone(),
-                        is_admin: is_admin_from_claims(&claims),
                         actor: claims.delegation(),
                     });
                 }
@@ -504,7 +480,6 @@ fn verify_with_jwks(
                     user_id: claims.sub.trim().to_string(),
                     display_name: claims.name.clone(),
                     email: claims.email.clone(),
-                    is_admin: is_admin_from_claims(&claims),
                     actor: claims.delegation(),
                 });
             }
@@ -537,16 +512,13 @@ mod tests {
         sub: String,
         name: String,
         exp: i64,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        scope: Option<String>,
     }
 
-    fn mint_token(sub: &str, scope: Option<&str>) -> String {
+    fn mint_token(sub: &str) -> String {
         let claims = MintClaims {
             sub: sub.to_string(),
             name: "Test User".to_string(),
             exp: chrono::Utc::now().timestamp() + 3600,
-            scope: scope.map(str::to_string),
         };
         let key = EncodingKey::from_rsa_pem(TEST_PRIV_PEM.as_bytes()).expect("enc key");
         encode(&JwtHeader::new(Algorithm::RS256), &claims, &key).expect("mint")
@@ -569,7 +541,7 @@ mod tests {
 
     #[test]
     fn verifies_rs256_and_extracts_sub() {
-        let token = mint_token("user_01hxyz", None);
+        let token = mint_token("user_01hxyz");
         let mut h = HeaderMap::new();
         h.insert(
             header::AUTHORIZATION,
@@ -578,34 +550,6 @@ mod tests {
         let id = resolve_verified_identity(&h).expect("verified");
         assert_eq!(id.user_id, "user_01hxyz");
         assert_eq!(id.display_name.as_deref(), Some("Test User"));
-        assert!(!id.is_admin);
-    }
-
-    #[test]
-    fn admin_scope_detected() {
-        let token = mint_token("admin_1", Some("admin"));
-        let id = verify_platform_jwt(&token).expect("verified");
-        assert!(id.is_admin);
-    }
-
-    #[test]
-    fn platform_admin_scope_does_not_grant_product_admin() {
-        let token = mint_token("ops_1", Some("platform:admin"));
-        let id = verify_platform_jwt(&token).expect("verified");
-        assert!(
-            !id.is_admin,
-            "platform operator scope must not skip product admin"
-        );
-    }
-
-    #[test]
-    fn admin_scope_suffix_does_not_grant_admin() {
-        let token = mint_token("user_1", Some("puzzled:user"));
-        let id = verify_platform_jwt(&token).expect("verified");
-        assert!(!id.is_admin);
-        let token = mint_token("user_2", Some("editor:admin"));
-        let id = verify_platform_jwt(&token).expect("verified");
-        assert!(!id.is_admin, "suffix match must not grant admin");
     }
 
     #[test]
@@ -677,7 +621,6 @@ mod tests {
                 sub: "cold_start".into(),
                 name: "Cold".into(),
                 exp: chrono::Utc::now().timestamp() + 3600,
-                scope: None,
             };
             let enc = EncodingKey::from_rsa_pem(TEST_PRIV_PEM.as_bytes()).expect("enc");
             encode(&JwtHeader::new(Algorithm::RS256), &claims, &enc).expect("mint")
@@ -719,7 +662,6 @@ mod tests {
             sub: sub.into(),
             name: "Jwks".into(),
             exp: chrono::Utc::now().timestamp() + 3600,
-            scope: None,
         };
         let mut header = JwtHeader::new(Algorithm::RS256);
         header.kid = Some(kid.into());

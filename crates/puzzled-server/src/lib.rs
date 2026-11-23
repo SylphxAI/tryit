@@ -1209,7 +1209,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn admin_requires_product_admin_scope() {
+    async fn admin_does_not_accept_legacy_platform_jwt_scopes() {
         let anonymous = match router(AppState::new(None))
             .oneshot(build_connect_request(
                 "/puzzled.v1.AdminService/ListAnnouncements",
@@ -1276,11 +1276,11 @@ mod tests {
             Ok(response) => response,
             Err(error) => panic!("admin product admin: {error}"),
         };
-        assert_eq!(product_admin.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(product_admin.status(), StatusCode::FORBIDDEN);
         let admin_json = body_json(product_admin).await;
         assert!(
-            connect_error_message(&admin_json).contains("database_unavailable"),
-            "product admin must reach the store, not a scope skip: {admin_json}"
+            connect_error_message(&admin_json).contains("admin_scope_required"),
+            "legacy admin scope must not grant access: {admin_json}"
         );
     }
 }

@@ -121,7 +121,6 @@ async fn existing_guest_claim_carries_two_days_and_today_once() {
         user_id: account.clone(),
         display_name: None,
         email: None,
-        is_admin: false,
         actor: None,
     };
     for day in [29, 30] {

@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use axum::body::Body;
+use axum::extract::Query;
 use axum::http::{HeaderMap, Method, Request, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
@@ -172,7 +173,6 @@ async fn auth_sessions_sign_players_in_and_forged_headers_do_not() {
         user_id: "0199aa10-7b2c-7d3e-8f00-1234567890ab".into(),
         display_name: None,
         email: None,
-        is_admin: true,
         actor: None,
     })
     .unwrap();
@@ -265,66 +265,163 @@ async fn both_auth_subject_forms_reach_the_same_player() {
     );
 }
 
-/// The subject the fake Auth reports for the good session.
-const SUBJECT: &str = "principal-0199aa10-7b2c-7d3e-8f00-1234567890ab";
+const ADMIN_ORG: &str = "cor_ops_fixture";
+const OTHER_ORG: &str = "cor_player_workspace_fixture";
+const ADMIN_RPC: &str = "/puzzled.v1.AdminService/GetSettings";
+const FREEZE_RPC: &str = "/puzzled.v1.GamificationService/AddStreakFreezes";
 
-async fn admin_rpc_status(base: &str, allow_list: Option<&str>) -> StatusCode {
-    let mut auth = AuthSessions::new(base.to_string(), ORG.into(), KEY.into());
-    if let Some(raw) = allow_list {
-        auth = auth.with_admin_principals(raw);
-    }
-    let app = router(AppState::new(None).with_auth(auth));
+async fn spawn_membership_auth(membership: Arc<std::sync::Mutex<Option<Value>>>) -> String {
+    let app = Router::new().route(
+        "/v1/sessions/current",
+        get(
+            move |headers: HeaderMap,
+                  Query(query): Query<std::collections::HashMap<String, String>>| {
+                let membership = membership.clone();
+                async move {
+                    if headers
+                        .get("x-sylphx-caller-key")
+                        .and_then(|v| v.to_str().ok())
+                        != Some(KEY)
+                        || headers.get("user-agent").and_then(|v| v.to_str().ok())
+                            != Some("Browser/1.0")
+                    {
+                        return (StatusCode::UNAUTHORIZED, Json(Value::Null));
+                    }
+                    let token = headers
+                        .get("authorization")
+                        .and_then(|v| v.to_str().ok())
+                        .and_then(|v| v.strip_prefix("Bearer "));
+                    let project = match token {
+                        Some(GOOD | DELEGATED | FRESH_DELEGATION) => ORG,
+                        Some(FOREIGN) => "organization-0199aa10-7b2c-7d3e-8f00-00000000bad0",
+                        _ => return (StatusCode::UNAUTHORIZED, Json(Value::Null)),
+                    };
+                    let mut body = json!({"session": { "principal": {
+                        "principal_id": "principal-0199aa10-7b2c-7d3e-8f00-1234567890ab",
+                        "project_id": project,
+                        "state": "active",
+                    }}});
+                    let fresh = !query.is_empty();
+                    if token == Some(DELEGATED) || (token == Some(FRESH_DELEGATION) && fresh) {
+                        body["session"]["act"] = Value::Null;
+                    }
+                    if fresh {
+                        assert_eq!(query.len(), 1);
+                        assert_eq!(
+                            query.get("customer_organization").map(String::as_str),
+                            Some(ADMIN_ORG)
+                        );
+                        let membership = membership.lock().unwrap().clone();
+                        let Some(membership) = membership else {
+                            return (StatusCode::FORBIDDEN, Json(json!({"code": "NOT_A_MEMBER"})));
+                        };
+                        body["membership"] = membership;
+                    }
+                    (StatusCode::OK, Json(body))
+                }
+            },
+        ),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    format!("http://{addr}")
+}
+
+const DELEGATED: &str = "identity_org_session_delegated";
+const FRESH_DELEGATION: &str = "identity_org_session_fresh_delegation";
+
+async fn privileged_rpc(app: &Router, path: &str, token: &str) -> (StatusCode, Value) {
     let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .method(Method::POST)
-                .uri("/puzzled.v1.AdminService/GetSettings")
+                .uri(path)
                 .header("content-type", "application/json")
                 .header("user-agent", "Browser/1.0")
-                .header("authorization", format!("Bearer {GOOD}"))
+                // Match the browser's session transport.
+                .header("cookie", format!("puzzled_session={token}"))
                 .body(Body::from("{}"))
                 .unwrap(),
         )
         .await
         .unwrap();
-    response.status()
+    let status = response.status();
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    (status, serde_json::from_slice(&bytes).unwrap())
 }
 
-// WORKAROUND (PUZZLED_ADMIN_PRINCIPALS): the allow-list decides is_admin, and
-// the admin RPCs' require_admin passes or fails accordingly. Admin passing
-// require_admin shows as "not 403" (there is no database here, so the call
-// then fails for another reason).
 #[tokio::test]
-async fn admin_allow_list_grants_admin_and_require_admin_follows() {
-    let base = spawn_fake_auth(Arc::new(AtomicUsize::new(0))).await;
-    let forbidden = StatusCode::FORBIDDEN;
+async fn admin_rpc_requires_a_live_admin_role_on_the_configured_auth_customer_organization() {
+    let admin = json!({"customer_organization": ADMIN_ORG, "roles": ["member", "admin"]});
+    let membership = Arc::new(std::sync::Mutex::new(Some(admin.clone())));
+    let base = spawn_membership_auth(membership.clone()).await;
+    let auth = AuthSessions::new(base, ORG.into(), KEY.into());
+    let unbound = router(AppState::new(None).with_auth(auth.clone()));
+    assert_eq!(
+        privileged_rpc(&unbound, ADMIN_RPC, GOOD).await.0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        subscription(&unbound, &[("cookie", format!("puzzled_session={GOOD}"))])
+            .await
+            .0,
+        StatusCode::OK
+    );
 
-    // Unset, empty, blank or only separators: nobody (fail closed).
-    for list in [None, Some(""), Some("   "), Some(" , ,")] {
-        assert_eq!(admin_rpc_status(&base, list).await, forbidden, "{list:?}");
+    let app =
+        router(AppState::new(None).with_auth(auth.with_admin_customer_organization(ADMIN_ORG)));
+    // A verified role reaches the store. No store is configured in this test.
+    let (status, body) = privileged_rpc(&app, ADMIN_RPC, GOOD).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["message"], "database_unavailable");
+
+    // Both the cached identity and the fresh membership response are checked for delegation.
+    for token in [DELEGATED, FRESH_DELEGATION] {
+        let (status, body) = privileged_rpc(&app, ADMIN_RPC, token).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{token}");
+        assert_eq!(body["message"], "admin_scope_required");
     }
-    // A list without this subject, including a near miss.
-    for list in [
-        "usr_other,principal-someone-else",
-        &SUBJECT.to_uppercase(),
-        &SUBJECT[..SUBJECT.len() - 1],
+    assert_eq!(
+        privileged_rpc(&app, ADMIN_RPC, FOREIGN).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+
+    // Same token and router: revoking the role takes effect even though the
+    // normal sign-in identity is still cached.
+    for (case, result) in [
+        (
+            "ordinary member",
+            Some(json!({"customer_organization": ADMIN_ORG, "roles": ["member"]})),
+        ),
+        ("not a member", None),
+        (
+            "other workspace",
+            Some(json!({"customer_organization": OTHER_ORG, "roles": ["admin"]})),
+        ),
+        ("missing organization", Some(json!({"roles": ["admin"]}))),
+        (
+            "noncanonical role",
+            Some(
+                json!({"customer_organization": ADMIN_ORG, "roles": ["owner", "Admin", "platform:admin"]}),
+            ),
+        ),
+        (
+            "malformed roles",
+            Some(json!({"customer_organization": ADMIN_ORG, "roles": ["admin", true]})),
+        ),
     ] {
-        assert_eq!(
-            admin_rpc_status(&base, Some(list)).await,
-            forbidden,
-            "{list}"
-        );
+        *membership.lock().unwrap() = result;
+        let (status, body) = privileged_rpc(&app, ADMIN_RPC, GOOD).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{case}");
+        assert_eq!(body["message"], "admin_scope_required", "{case}");
     }
-    // The subject in the list, alone, among others, and with surrounding whitespace.
-    for list in [
-        SUBJECT.to_string(),
-        format!("usr_other,{SUBJECT}"),
-        format!("  usr_other ,\t{SUBJECT} \n, ,"),
-    ] {
-        assert_ne!(
-            admin_rpc_status(&base, Some(&list)).await,
-            forbidden,
-            "{list}"
-        );
-    }
+    // A privileged method outside the AdminService must use the same gate.
+    assert_eq!(
+        privileged_rpc(&app, FREEZE_RPC, GOOD).await.0,
+        StatusCode::FORBIDDEN
+    );
 }

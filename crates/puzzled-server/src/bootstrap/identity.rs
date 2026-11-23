@@ -10,6 +10,7 @@
 
 use connectrpc::{ConnectError, ErrorCode, RequestContext};
 
+use crate::capabilities::identity_access::adapters::auth_session::{self, AuthSessions};
 use crate::capabilities::identity_access::adapters::platform_jwt::{
     extract_bearer, verify_platform_jwt, VerifiedIdentity,
 };
@@ -46,9 +47,7 @@ fn resolve_guest(_headers: &axum::http::HeaderMap) -> Option<VerifiedIdentity> {
 
 pub(crate) fn verify(headers: &axum::http::HeaderMap) -> Result<VerifiedIdentity, ConnectError> {
     // A Sylphx Auth end-user session, already checked by the router middleware.
-    if let Some(identity) =
-        crate::capabilities::identity_access::adapters::auth_session::verified_identity(headers)
-    {
+    if let Some(identity) = auth_session::verified_identity(headers) {
         return Ok(identity);
     }
     if let Some(token) = extract_bearer(headers) {
@@ -243,7 +242,6 @@ pub async fn admitted_request_identities(
                 user_id: format!("guest_{player}"),
                 display_name: Some("Guest".into()),
                 email: None,
-                is_admin: false,
                 actor: None,
             });
         }
@@ -281,16 +279,18 @@ pub fn require_purchase_allowed(identity: &VerifiedIdentity) -> Result<(), Conne
     Ok(())
 }
 
-/// An admin acting in person: a delegated session (an agent acting for the
-/// user) never inherits admin, whatever the user holds.
-fn acts_as_admin(identity: &VerifiedIdentity) -> bool {
-    identity.is_admin && !identity.is_delegated()
-}
-
-/// Require identity with an exact admin scope claim, in person.
-pub fn require_admin(ctx: &RequestContext) -> Result<VerifiedIdentity, ConnectError> {
+/// Only a direct, verified Auth session with the live admin role on the
+/// configured product customer organization can enter an admin RPC. Legacy
+/// Platform JWTs may still sign in but are not a source of admin authority.
+pub async fn require_admin(
+    ctx: &RequestContext,
+    auth: &AuthSessions,
+) -> Result<VerifiedIdentity, ConnectError> {
     let identity = require_identity(ctx)?;
-    if !acts_as_admin(&identity) {
+    if identity.is_delegated()
+        || auth_session::verified_identity(ctx.headers()).is_none()
+        || !auth.session_has_admin_role(ctx.headers()).await
+    {
         return Err(ConnectError::new(
             ErrorCode::PermissionDenied,
             "admin_scope_required",
@@ -302,28 +302,6 @@ pub fn require_admin(ctx: &RequestContext) -> Result<VerifiedIdentity, ConnectEr
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_delegated_session_never_acts_as_admin() {
-        let admin = VerifiedIdentity {
-            user_id: "u".into(),
-            display_name: None,
-            email: None,
-            is_admin: true,
-            actor: None,
-        };
-        assert!(acts_as_admin(&admin));
-        let delegated = VerifiedIdentity {
-            actor: Some("agent".into()),
-            ..admin.clone()
-        };
-        assert!(!acts_as_admin(&delegated));
-        let player = VerifiedIdentity {
-            is_admin: false,
-            ..admin
-        };
-        assert!(!acts_as_admin(&player));
-    }
     use axum::http::header::{AUTHORIZATION, COOKIE};
     use axum::http::HeaderMap;
 
@@ -372,7 +350,6 @@ mod tests {
             user_id: "f715210b-9df3-4945-b5bd-94fc4609bc30".to_string(),
             display_name: None,
             email: None,
-            is_admin: false,
             actor: None,
         };
         assert!(require_purchase_allowed(&identity).is_ok());
@@ -399,14 +376,12 @@ mod tests {
                 user_id: "f715210b-9df3-4945-b5bd-94fc4609bc30".to_string(),
                 display_name: Some("Ada".to_string()),
                 email: None,
-                is_admin: false,
                 actor: None,
             }),
             guest: Some(VerifiedIdentity {
                 user_id: "guest_a1b2c3d4-e5f6-7890-abcd-ef1234567890".to_string(),
                 display_name: Some("Guest".to_string()),
                 email: None,
-                is_admin: false,
                 actor: None,
             }),
         };
