@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { destIdentityProjectId } from './credentials'
 import { authIdValue, destIdentityOrigin } from './dest'
 import { isPolicyAcceptance, type PolicyAcceptance } from './policy-consent'
 
@@ -11,8 +12,8 @@ export { safeNext } from './return-path'
  *
  * - sign-up: `POST /v1/client/sign-up` (publishable key), then sign in;
  * - password sign-in: `POST /v1/client/sign-in/password` → one-time ticket;
- * - Google: `GET /v1/client/oauth/google/start` → Auth returns to our
- *   callback with `sylphx_ticket`;
+ * - Google: the verified tenant portal or shared Auth starts OAuth and
+ *   returns to our callback with a one-time ticket;
  * - every ticket is redeemed here with the secret key
  *   (`POST /v1/client/tickets:redeem`), so a session token never enters a URL
  *   or the browser's JavaScript.
@@ -25,7 +26,12 @@ export { safeNext } from './return-path'
 /** How long after an account is created a first sign-in still counts as new. */
 export const NEW_USER_WINDOW_SECONDS = 600
 
-export type AuthConfig = { url: string; publishableKey: string; secretKey: string }
+export type AuthConfig = {
+	url: string
+	publishableKey: string
+	secretKey: string
+	instanceId?: string
+}
 
 function envValue(names: readonly string[], env: Record<string, string | undefined>) {
 	for (const name of names) {
@@ -42,7 +48,12 @@ export function authConfig(
 	const publishableKey = envValue(['SYLPHX_PUBLISHABLE_KEY'], env)
 	const secretKey = envValue(['SYLPHX_AUTH_SECRET_KEY'], env)
 	if (!publishableKey || !secretKey) return null
-	return { url: destIdentityOrigin(env.SYLPHX_AUTH_URL), publishableKey, secretKey }
+	return {
+		url: destIdentityOrigin(env.SYLPHX_AUTH_URL),
+		publishableKey,
+		secretKey,
+		instanceId: destIdentityProjectId(env),
+	}
 }
 
 export class AuthCallError extends Error {
@@ -356,20 +367,86 @@ export async function socialProviders(config: AuthConfig): Promise<string[]> {
 	return (await readClientConfig(config, 'puzzled-web')).providers
 }
 
-/** Auth's Google start door; Auth returns to `returnUrl` with `sylphx_ticket`. */
-export function googleStartUrl(
+const GOOGLE_API_START = '/v1/client/oauth/google/start'
+const GOOGLE_ORIGIN = 'https://accounts.google.com'
+// Product-owned trust root. Neither a request header nor Auth's response sets it.
+const TRYIT_AUTH_PORTAL = 'https://auth.tryit.fun'
+
+/** Resolve the browser's next hop from this instance's live Auth settings. */
+export async function googleStartUrl(
 	config: AuthConfig,
 	returnUrl: string,
+	userAgent: string,
 	acceptance?: PolicyAcceptance,
-): string {
-	const query = new URLSearchParams({
-		publishable_key: config.publishableKey,
-		redirect_url: returnUrl,
-		session_mode: 'server',
-	})
-	if (acceptance) {
-		if (!isPolicyAcceptance(acceptance)) throw new AuthCallError(400, 'policy_acceptance_required')
-		for (const [key, value] of Object.entries(acceptance)) query.set(key, String(value))
+): Promise<string> {
+	if (acceptance && !isPolicyAcceptance(acceptance))
+		throw new AuthCallError(400, 'policy_acceptance_required')
+	const settings = await authClient<{
+		instance?: { id?: unknown; slug?: unknown }
+		portal_origin_mode?: unknown
+		portal_url?: unknown
+		social?: Array<{ provider?: unknown; credentials?: unknown; start_url?: unknown } | null>
+	}>(config, 'config', userAgent)
+	const expectedId = authIdValue(config.instanceId)
+	const { id, slug } = settings.instance ?? {}
+	if (!expectedId || typeof id !== 'string' || authIdValue(id) !== expectedId)
+		throw new AuthCallError(503, 'identity_unconfigured')
+	if (!Array.isArray(settings.social)) throw new AuthCallError(502, 'invalid_config')
+	const [google, duplicate] = settings.social.filter((entry) => entry?.provider === 'google')
+	if (!google) throw new AuthCallError(403, 'oidc_provider_unavailable')
+	if (duplicate) throw new AuthCallError(502, 'invalid_config')
+
+	const hosted =
+		typeof slug === 'string' && /^[a-z0-9][a-z0-9-]{0,62}$/.test(slug)
+			? new URL(`/oauth/google/start?instance=${slug}`, TRYIT_AUTH_PORTAL)
+			: null
+	const withCallback = (start: URL) => {
+		start.searchParams.set('redirect_url', returnUrl)
+		start.searchParams.set('session_mode', 'server')
+		return start
 	}
-	return `${config.url}/v1/client/oauth/google/start?${query}`
+	const withAcceptance = (start: URL) => {
+		if (acceptance) {
+			for (const [key, value] of Object.entries(acceptance))
+				start.searchParams.set(key, String(value))
+		}
+		return start.href
+	}
+	if (google.credentials === 'custom') {
+		if (
+			!hosted ||
+			settings.portal_origin_mode !== 'hosted' ||
+			settings.portal_url !== TRYIT_AUTH_PORTAL ||
+			google.start_url !== hosted.href
+		)
+			throw new AuthCallError(503, 'identity_unconfigured')
+		return withAcceptance(withCallback(hosted))
+	}
+
+	// The gateway is advertised even when this deployment talks to the Auth peel.
+	// Never fetch an advertised URL: the shared start uses the configured origin.
+	const shared = new URL(GOOGLE_API_START, config.url)
+	if (
+		(google.credentials !== undefined && google.credentials !== 'shared') ||
+		(google.start_url !== undefined &&
+			google.start_url !== shared.href &&
+			google.start_url !== `https://api.sylphx.com${GOOGLE_API_START}`)
+	)
+		throw new AuthCallError(503, 'identity_unconfigured')
+	const response = await fetch(withAcceptance(withCallback(shared)), {
+		headers: { authorization: `Bearer ${config.publishableKey}`, 'user-agent': userAgent },
+		cache: 'no-store',
+		redirect: 'manual',
+		signal: AbortSignal.timeout(8_000),
+	})
+	const location = response.headers.get('location')
+	await response.body?.cancel()
+	if (response.status === 303 && location) {
+		// Activation can race the settings read. Accept only the exact hosted hop
+		// Auth would construct, and retain the original policy acceptance fields.
+		if (hosted && location === withCallback(hosted).href) return withAcceptance(hosted)
+		const target = URL.parse(location)
+		if (target?.origin === GOOGLE_ORIGIN && !target.username && !target.password) return target.href
+	}
+	throw new AuthCallError(502, 'oidc_begin_failed')
 }
