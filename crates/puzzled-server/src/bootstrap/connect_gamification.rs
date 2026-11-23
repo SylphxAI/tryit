@@ -188,7 +188,7 @@ impl GamificationService for GamificationConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, AddStreakFreezesRequest>,
     ) -> ServiceResult<AddStreakFreezesResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let req = request.to_owned_message();
         FreezeReason::parse(&req.reason).ok_or_else(|| {
             ConnectError::new(ErrorCode::InvalidArgument, "invalid_freeze_reason")

@@ -47,11 +47,10 @@ watch_paths = [
 [env.PUZZLED_PUBLIC_URL]
 value = "https://tryit.fun"
 
-# Admin allow-list (workaround, docs/capabilities.md PUZ-AUTH-ADMIN): comma-separated
-# exact Sylphx Auth subjects (principal.subject) that are Puzzled admins. Empty means
-# nobody. Remove when cloud#11587 serves an organization{roles} claim and admin becomes
-# the "admin" role on Puzzled's Auth organization. Never log this value.
-[env.PUZZLED_ADMIN_PRINCIPALS]
+# Bind to the immutable ID of the operator-managed Auth customer organization
+# in this deployment's Auth instance. Empty means no admin RPC access; normal
+# player sign-in still works. Admin role assignments live only in Auth.
+[env.PUZZLED_ADMIN_CUSTOMER_ORGANIZATION_ID]
 value = ""
 
 # Reverse trial (docs/monetization.md): after a player's third finished day the

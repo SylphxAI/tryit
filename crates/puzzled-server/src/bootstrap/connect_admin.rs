@@ -1,5 +1,5 @@
 //! Native Connect AdminService (ADR-170). Every method requires a verified
-//! identity with this product's exact `admin` scope.
+//! Auth principal with the product customer organization's live admin role.
 
 use std::sync::Arc;
 
@@ -198,7 +198,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         _request: ServiceRequest<'_, GetMetricsReportRequest>,
     ) -> ServiceResult<GetMetricsReportResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let rows = crate::capabilities::metrics::reports(self.pool()?)
             .await
             .map_err(|_| ConnectError::new(ErrorCode::Unavailable, "metrics_unavailable"))?;
@@ -246,7 +246,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         _request: ServiceRequest<'_, ListAnnouncementsRequest>,
     ) -> ServiceResult<ListAnnouncementsResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let rows = admin_db::list_announcements(pool)
             .await
@@ -262,7 +262,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, CreateAnnouncementRequest>,
     ) -> ServiceResult<CreateAnnouncementResponse> {
-        let identity = require_admin(&ctx)?;
+        let identity = require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         if req.title.trim().is_empty() || req.body.trim().is_empty() {
@@ -305,7 +305,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, UpdateAnnouncementRequest>,
     ) -> ServiceResult<UpdateAnnouncementResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let bound = |v: &Option<String>| match v {
@@ -347,7 +347,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, DeleteAnnouncementRequest>,
     ) -> ServiceResult<DeleteAnnouncementResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let deleted = admin_db::delete_announcement(pool, req.id.trim())
@@ -364,7 +364,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         _request: ServiceRequest<'_, GetSettingsRequest>,
     ) -> ServiceResult<GetSettingsResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let rows = admin_db::list_settings(pool)
             .await
@@ -392,7 +392,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, UpdateSettingsRequest>,
     ) -> ServiceResult<UpdateSettingsResponse> {
-        let identity = require_admin(&ctx)?;
+        let identity = require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let value: Value = serde_json::from_str(&req.value_json)
@@ -420,7 +420,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, ListAuditLogsRequest>,
     ) -> ServiceResult<ListAuditLogsResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let limit = req.limit.clamp(1, 200);
@@ -444,7 +444,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, GetAuditLogRequest>,
     ) -> ServiceResult<GetAuditLogResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let row = admin_db::get_audit_log(pool, req.id.trim())
@@ -461,7 +461,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, ListDlqRequest>,
     ) -> ServiceResult<ListDlqResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let limit = req.limit.clamp(1, 200);
@@ -493,7 +493,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, RetryDlqRequest>,
     ) -> ServiceResult<RetryDlqResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let ok = admin_db::dlq_retry(pool, req.id.trim())
@@ -510,7 +510,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, ResolveDlqRequest>,
     ) -> ServiceResult<ResolveDlqResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let ok = admin_db::dlq_resolve(pool, req.id.trim())
@@ -527,7 +527,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, MarkDlqFailedRequest>,
     ) -> ServiceResult<MarkDlqFailedResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let ok = admin_db::dlq_mark_failed(pool, req.id.trim())
@@ -544,7 +544,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         _request: ServiceRequest<'_, GamesOverviewRequest>,
     ) -> ServiceResult<GamesOverviewResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let rows = admin_db::games_overview(pool)
             .await
@@ -581,7 +581,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         request: ServiceRequest<'_, GetGameAnalyticsRequest>,
     ) -> ServiceResult<GetGameAnalyticsResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let pool = self.pool()?;
         let req = request.to_owned_message();
         let rows = admin_db::game_analytics(pool, req.game_slug.trim(), req.days)
@@ -612,7 +612,7 @@ impl AdminService for AdminConnectService {
         ctx: RequestContext,
         _request: ServiceRequest<'_, SystemHealthRequest>,
     ) -> ServiceResult<SystemHealthResponse> {
-        require_admin(&ctx)?;
+        require_admin(&ctx, &self.state.auth).await?;
         let (database_ok, database_error) = match &self.state.pool {
             Some(pool) => match sqlx::query("SELECT 1").fetch_one(pool).await {
                 Ok(_) => (true, String::new()),

@@ -14,7 +14,7 @@
 //! 128-bit value they carry ([`auth_id_value`]), so `organization-<uuid>` and
 //! the TypeID of the same uuid are the same instance.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -25,6 +25,7 @@ use axum::http::{HeaderMap, HeaderValue, Request};
 use axum::middleware::Next;
 use axum::response::Response;
 use base64::Engine;
+use serde::Deserialize;
 use serde_json::Value;
 
 use sqlx::PgPool;
@@ -61,27 +62,9 @@ pub struct AuthSessions {
     cache: Arc<Mutex<Cache>>,
     /// Where the Auth subject to player map lives ([`super::auth_subjects`]).
     pool: Option<PgPool>,
-    /// WORKAROUND, see [`parse_admin_principals`]. Empty means nobody is admin.
-    admin_principals: Arc<HashSet<String>>,
-}
-
-/// The Auth subjects allowed to be Puzzled admins from `PUZZLED_ADMIN_PRINCIPALS`
-/// (comma-separated, exact `principal.subject` values; whitespace trimmed, empty
-/// items ignored). Unset or empty yields an empty set: nobody is admin.
-///
-/// WORKAROUND (CEO-ruled, audited): Sylphx Auth end-user sessions carry no admin
-/// signal, so a session is admin only when its subject is on this list.
-/// Removal trigger: cloud#11587 serves an `organization{roles}` claim; admin then
-/// becomes the "admin" role on Puzzled's Auth organization and this list, its env
-/// declaration in sylphx.toml and this code are deleted. Never log the list or a
-/// subject.
-#[must_use]
-pub fn parse_admin_principals(raw: &str) -> HashSet<String> {
-    raw.split(',')
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .collect()
+    /// The operator-managed Auth customer organization for product-wide admin.
+    /// This is distinct from the Auth instance ID above and from player workspaces.
+    admin_customer_organization: Option<String>,
 }
 
 impl AuthSessions {
@@ -97,15 +80,8 @@ impl AuthSessions {
             caller_key: caller_key.trim().to_string(),
             cache: Arc::new(Mutex::new(HashMap::new())),
             pool: None,
-            admin_principals: Arc::new(HashSet::new()),
+            admin_customer_organization: None,
         }
-    }
-
-    /// Admin allow-list (WORKAROUND, see [`parse_admin_principals`]).
-    #[must_use]
-    pub fn with_admin_principals(mut self, raw: &str) -> Self {
-        self.admin_principals = Arc::new(parse_admin_principals(raw));
-        self
     }
 
     /// Resolve players through the database's subject map.
@@ -138,14 +114,19 @@ impl AuthSessions {
             tracing::warn!("SYLPHX_PUBLISHABLE_KEY is unset: no Auth session is accepted");
             String::new()
         });
-        // Read once at startup; never logged (WORKAROUND, see `parse_admin_principals`).
-        let admin_principals = read("PUZZLED_ADMIN_PRINCIPALS").unwrap_or_default();
-        Self::new(
+        let mut sessions = Self::new(
             dest_identity_origin(read("SYLPHX_AUTH_URL").as_deref()),
             organization_id,
             caller_key,
-        )
-        .with_admin_principals(&admin_principals)
+        );
+        sessions.admin_customer_organization = read("PUZZLED_ADMIN_CUSTOMER_ORGANIZATION_ID");
+        sessions
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_admin_customer_organization(mut self, id: &str) -> Self {
+        self.admin_customer_organization = Some(id.to_string());
+        self
     }
 
     /// The end user behind a session bearer; None when Auth refuses it or is
@@ -179,25 +160,61 @@ impl AuthSessions {
         (*expires > Instant::now()).then(|| value.clone())
     }
 
-    async fn fetch(&self, token: &str, user_agent: &str) -> Option<VerifiedIdentity> {
+    /// Admin grants come from the session user's live Auth membership of the
+    /// configured customer organization, not an active workspace or a cached
+    /// identity. Auth binds the caller key, session and membership to one
+    /// instance. Check the returned instance and customer organization as well.
+    pub(crate) async fn session_has_admin_role(&self, headers: &HeaderMap) -> bool {
+        let Some(organization) = self.admin_customer_organization.as_deref() else {
+            return false;
+        };
+        let Some(token) = session_token(headers) else {
+            return false;
+        };
+        let Some(body) = self
+            .current_session(&token, session_user_agent(headers), Some(organization))
+            .await
+        else {
+            return false;
+        };
+        principal_from_session(&body, &self.organization_id).is_some_and(|p| p.actor.is_none())
+            && has_admin_membership(&body, organization)
+    }
+
+    async fn current_session(
+        &self,
+        token: &str,
+        user_agent: &str,
+        customer_organization: Option<&str>,
+    ) -> Option<Value> {
         if self.caller_key.is_empty() {
             return None;
         }
-        let response = self
+        let mut request = self
             .http
             .get(format!("{}/v1/sessions/current", self.auth_url))
             .bearer_auth(token)
             .header("x-sylphx-caller-key", &self.caller_key)
-            .header(axum::http::header::USER_AGENT, user_agent)
+            .header(axum::http::header::USER_AGENT, user_agent);
+        if let Some(organization) = customer_organization {
+            request = request.query(&[("customer_organization", organization)]);
+        }
+        let response = request
             .send()
             .await
-            .map_err(|error| tracing::warn!(%error, "auth session check failed"))
+            .map_err(
+                |error| tracing::warn!(error = %error.without_url(), "auth session check failed"),
+            )
             .ok()?;
         if !response.status().is_success() {
             return None;
         }
-        let principal =
-            principal_from_session(&response.json::<Value>().await.ok()?, &self.organization_id)?;
+        response.json().await.ok()
+    }
+
+    async fn fetch(&self, token: &str, user_agent: &str) -> Option<VerifiedIdentity> {
+        let body = self.current_session(token, user_agent, None).await?;
+        let principal = principal_from_session(&body, &self.organization_id)?;
         let user_id = match &self.pool {
             Some(pool) => auth_subjects::player_for(
                 pool,
@@ -210,16 +227,35 @@ impl AuthSessions {
             // No database: nothing is stored, so only the old form maps.
             None => auth_subjects::legacy_player_id(&principal.subject)?,
         };
-        // WORKAROUND: admin only for an allow-listed exact Auth subject.
-        let is_admin = self.admin_principals.contains(&principal.subject);
         Some(VerifiedIdentity {
             user_id: user_id.to_string(),
             display_name: principal.display_name,
             email: principal.email,
-            is_admin,
             actor: principal.actor,
         })
     }
+}
+
+#[derive(Deserialize)]
+struct CurrentMembership<'a> {
+    customer_organization: &'a str,
+    roles: Vec<&'a str>,
+}
+
+fn has_admin_membership(body: &Value, expected_organization: &str) -> bool {
+    body.get("membership")
+        .and_then(|membership| CurrentMembership::deserialize(membership).ok())
+        .is_some_and(|membership| {
+            membership.customer_organization == expected_organization
+                && membership.roles.contains(&"admin")
+        })
+}
+
+fn session_user_agent(headers: &HeaderMap) -> &str {
+    headers
+        .get(axum::http::header::USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
 }
 
 fn token_key(token: &str, user_agent: &str) -> [u8; 32] {
@@ -399,14 +435,8 @@ pub async fn attach_auth_session(
         return next.run(request).await;
     }
     if let Some(token) = session_token(request.headers()) {
-        let user_agent = request
-            .headers()
-            .get(axum::http::header::USER_AGENT)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("")
-            .to_string();
         if let Some(value) = sessions
-            .verify(&token, &user_agent)
+            .verify(&token, session_user_agent(request.headers()))
             .await
             .as_ref()
             .and_then(encode_identity)
@@ -663,7 +693,6 @@ mod tests {
             user_id: "0199aa10-7b2c-7d3e-8f00-1234567890ab".into(),
             display_name: Some("Ada".into()),
             email: None,
-            is_admin: false,
             actor: Some("agent_1".into()),
         };
         let mut headers = HeaderMap::new();

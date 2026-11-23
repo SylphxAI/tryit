@@ -1013,7 +1013,6 @@ async fn raced_adoption_and_erasure_preserve_only_unclaimed_guest_or_erase_linke
             user_id: account.to_string(),
             display_name: None,
             email: None,
-            is_admin: false,
             actor: None,
         };
         let mut tx = pool.begin().await.unwrap();
