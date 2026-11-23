@@ -8,7 +8,7 @@
 	"streakHintOpen": "今天仍可遊玩",
 	"today": {
 		"title": "今天",
-		"description": "以香港謎題日計算，今天可遊玩的遊戲。",
+		"description": "今天可以玩的謎題。",
 		"playCta": "前往今天的謎題"
 	},
 	"streakCard": {
@@ -20,7 +20,7 @@
 		"freezeUsedYesterday": "昨天沒玩，使用了一次連勝保護，連勝仍然保住。"
 	},
 	"calendar": {
-		"description": "每格代表謎題時鐘（香港時間）的一天。方格填滿代表你當天完成了遊戲。",
+		"description": "每格代表一個遊戲日。有顏色的方格代表你完成了當天的謎題。",
 		"unavailableTitle": "活動紀錄無法載入",
 		"todayLabel": "今天"
 	},

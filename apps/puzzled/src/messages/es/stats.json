@@ -55,7 +55,7 @@
 	"unavailableFootnote": "No se pierde nada de lo que has completado: solo esta página no pudo leerlo.",
 	"today": {
 		"title": "Hoy",
-		"description": "Los puzzles que puedes jugar hoy, según el día de puzzles de Hong Kong.",
+		"description": "Los puzles que puedes jugar hoy.",
 		"playCta": "Ir al puzzle de hoy",
 		"done": "Completado",
 		"open": "Aún no"
@@ -75,7 +75,7 @@
 	},
 	"calendar": {
 		"title": "Últimas 8 semanas",
-		"description": "Cada cuadrado es un día en el reloj de los puzzles (hora de Hong Kong). Un cuadrado relleno significa que completaste el puzzle de ese día.",
+		"description": "Cada casilla representa un día de juego. Una casilla rellena indica que completaste el puzle de ese día.",
 		"unavailableTitle": "No se cargó la actividad",
 		"unavailableBody": "No llegó tu historial de partidas completadas, así que el calendario se queda vacío.",
 		"weekday": {

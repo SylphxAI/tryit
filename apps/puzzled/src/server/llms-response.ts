@@ -36,7 +36,7 @@ const document = `# Tryit
 > Tryit is a daily set of ${total} word, logic, number and spatial puzzles, published by Sylphx Limited.
 
 Pick any 3 of today's ${total} games to play free every day, no account needed. A game you pick stays open all day.
-New puzzles arrive at midnight, Hong Kong time (UTC+8), with the same daily set for everyone.
+New puzzles arrive at 16:00 UTC, with the same daily set for everyone.
 Results can be shared without revealing the solution. An account keeps server-verified streaks, results and stats across devices.
 No ads are shown on a puzzle while it is being played.
 
@@ -53,7 +53,7 @@ ${games}
 - [Leaderboard](https://tryit.fun/leaderboard): Daily results and rankings.
 
 ## Use Cases
-- [Daily word & logic puzzles online](https://tryit.fun/use-cases/daily-word-and-logic-puzzles-online): ${total} daily games, any 3 free each day, midnight HKT reset, and full archive access with Plus.
+- [Daily word & logic puzzles online](https://tryit.fun/use-cases/daily-word-and-logic-puzzles-online): ${total} daily games, any 3 free each day, a daily reset at 16:00 UTC, and full archive access with Plus.
 - [Ad-free family brain games](https://tryit.fun/use-cases/family-brain-games-no-ads): Zero-distraction daily puzzles for up to ${FAMILY_SEATS} family accounts in 8 locales.
 
 ## Comparisons

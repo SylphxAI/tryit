@@ -139,8 +139,6 @@ describe('copy ships in every locale', () => {
 		for (const locale of locales) {
 			const resolved = resolveLocale(locale)
 			expect(JSON.stringify(resolved), locale).not.toMatch(staleSingular)
-			const onboarding = resolved.onboarding as { dailyPuzzleDesc: string }
-			expect(onboarding.dailyPuzzleDesc, `${locale} onboarding.dailyPuzzleDesc`).toMatch(/UTC\+8/)
 		}
 		const zhTw = resolveLocale('zh-TW')
 		expect(JSON.stringify(zhTw.plus), 'zh-TW plus').not.toMatch(cantoneseInTw)

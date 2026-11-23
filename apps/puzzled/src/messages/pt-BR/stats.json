@@ -55,7 +55,7 @@
 	"unavailableFootnote": "Nada do que você concluiu se perdeu — só esta página não conseguiu ler.",
 	"today": {
 		"title": "Hoje",
-		"description": "Os desafios que você pode jogar hoje, no dia de desafios de Hong Kong.",
+		"description": "Os desafios que você pode jogar hoje.",
 		"playCta": "Ir para o desafio de hoje",
 		"done": "Concluído",
 		"open": "Ainda não"
@@ -75,7 +75,7 @@
 	},
 	"calendar": {
 		"title": "Últimas 8 semanas",
-		"description": "Cada quadrado é um dia no relógio dos desafios (horário de Hong Kong). Um quadrado preenchido significa que você concluiu o desafio daquele dia.",
+		"description": "Cada quadrado representa um dia de jogo. Um quadrado preenchido indica que você concluiu o desafio daquele dia.",
 		"unavailableTitle": "A atividade não carregou",
 		"unavailableBody": "Seu histórico de conclusões não voltou, então o calendário fica vazio.",
 		"weekday": {

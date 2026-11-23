@@ -448,7 +448,7 @@ jobs:
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3015
-        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts e2e-tests/solid-editorial.e2e.ts --workers=1 --retries=0
+        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/global-readiness.e2e.ts e2e-tests/offline.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts e2e-tests/solid-editorial.e2e.ts --workers=1 --retries=0
 
       - name: Stage the Playwright report
         id: playwright-report

@@ -2,7 +2,7 @@
 	"metaTitle": "All games",
 	"metaDescription": "Browse every daily puzzle on Tryit — play any 3 free each day from the full suite of word, logic, and number rituals.",
 	"title": "All games",
-	"subtitle": "{count} daily puzzles under one ritual. Pick any 3 free every day, and everyone plays the same set — refreshed at midnight Hong Kong time.",
+	"subtitle": "{count} daily puzzles. Pick any 3 free, and play the same set as everyone else.",
 	"heroEyebrow": "Daily puzzle suite",
 	"searchLabel": "Filter games by title",
 	"searchPlaceholder": "Filter games by title…",
@@ -44,7 +44,7 @@
 		},
 		"rotation": {
 			"question": "How does today's pick rotate?",
-			"answer": "You can pick any 3 of 19 puzzles free every day, while one spotlight puzzle leads the page and rotates at midnight, Hong Kong time. Everyone plays the same daily set."
+			"answer": "You can pick any 3 of 19 puzzles free every day. The featured puzzle rotates at 16:00 UTC, when everyone gets the same new set."
 		},
 		"account": {
 			"question": "Do I need an account?",
@@ -88,7 +88,7 @@
 				},
 				{
 					"question": "Is the daily Five word the same for every player?",
-					"answer": "Yes. Everyone plays the same word on the same day, and the set flips at midnight Hong Kong time."
+					"answer": "Yes. Everyone plays the same word on the same day, and the set flips at 16:00 UTC."
 				}
 			]
 		},
@@ -309,7 +309,7 @@
 				},
 				{
 					"question": "Does everyone play the same four words each day?",
-					"answer": "Yes. Everyone plays the same four words on the same day, and the set changes at midnight Hong Kong time."
+					"answer": "Yes. Everyone plays the same four words on the same day, and the set changes at 16:00 UTC."
 				}
 			]
 		},
@@ -360,7 +360,7 @@
 				},
 				{
 					"question": "Does everyone get the same Hunt grid?",
-					"answer": "Yes. The daily grid and its theme are identical for every player and refresh at midnight Hong Kong time."
+					"answer": "Yes. The daily grid and its theme are identical for every player and refresh at 16:00 UTC."
 				}
 			]
 		},

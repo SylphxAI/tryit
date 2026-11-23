@@ -55,7 +55,7 @@
 	"unavailableFootnote": "你完成的紀錄沒有遺失，只是此頁面讀取不到。",
 	"today": {
 		"title": "今日",
-		"description": "以香港謎題日計算，今日可遊玩的遊戲。",
+		"description": "今日可以玩嘅謎題。",
 		"playCta": "前往今日謎題",
 		"done": "已完成",
 		"open": "未完成"
@@ -75,7 +75,7 @@
 	},
 	"calendar": {
 		"title": "最近 8 週",
-		"description": "每格代表謎題時鐘（香港時間）的一天。方格填滿代表你當日完成了遊戲。",
+		"description": "每格代表一個遊戲日。有顏色嘅格表示你完成咗當日嘅謎題。",
 		"unavailableTitle": "活動紀錄未能載入",
 		"unavailableBody": "你的完成紀錄沒有回應，日曆保持空白。",
 		"weekday": {
