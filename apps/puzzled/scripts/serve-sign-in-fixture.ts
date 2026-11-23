@@ -52,7 +52,23 @@ Bun.serve({
 			if (auth !== 'Bearer pk_local_fixture') return response({}, 403)
 			return response({
 				methods: { email_otp: enabled, passkey: enabled, password: mode !== 'off' },
-				social: mode === 'off' ? [] : [{ provider: 'google' }],
+				...(mode === 'hosted-google' && {
+					instance: { id: org, slug: 'tryit-test' },
+					portal_origin_mode: 'hosted',
+					portal_url: 'https://auth.tryit.fun',
+				}),
+				social:
+					mode === 'off'
+						? []
+						: [
+								{
+									provider: 'google',
+									...(mode === 'hosted-google' && {
+										credentials: 'custom',
+										start_url: 'https://auth.tryit.fun/oauth/google/start?instance=tryit-test',
+									}),
+								},
+							],
 			})
 		}
 		const pk = auth === 'Bearer pk_local_fixture'

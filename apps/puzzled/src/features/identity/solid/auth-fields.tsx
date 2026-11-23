@@ -14,6 +14,7 @@ type Field = {
 	label: string
 	value: string
 	onChange: (value: string) => void
+	onFocus?: () => void
 	onBlur?: () => void
 	autocomplete: string
 	type?: JSX.InputHTMLAttributes<HTMLInputElement>['type']
@@ -39,6 +40,7 @@ function FieldInput(props: Field & { reveal?: boolean }) {
 				type={props.type ?? 'text'}
 				value={props.value}
 				onInput={(event) => props.onChange(event.currentTarget.value)}
+				onFocus={props.onFocus}
 				onBlur={props.onBlur}
 				autocomplete={props.autocomplete}
 				inputmode={props.inputmode}
@@ -174,6 +176,7 @@ export function OAuthButtons(props: {
 	onSelect: (provider: string) => void
 	disabled?: boolean
 	loadingProvider?: string | null
+	describedBy?: string
 	t: T
 }) {
 	const t = props.t
@@ -192,6 +195,7 @@ export function OAuthButtons(props: {
 								class="pressable flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-border bg-background text-base font-medium hover:bg-accent disabled:opacity-60"
 								onClick={() => props.onSelect(provider)}
 								disabled={props.disabled}
+								aria-describedby={props.describedBy}
 							>
 								{props.loadingProvider === provider ? (
 									<Loader2 class="h-5 w-5 animate-spin" aria-hidden="true" />
@@ -237,12 +241,14 @@ export function AuthSubmit(props: {
 	pendingLabel: string
 	label: string
 	disabled?: boolean
+	describedBy?: string
 }) {
 	return (
 		<button
 			type="submit"
 			class="pressable flex h-12 w-full items-center justify-center rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
 			disabled={props.pending || props.disabled}
+			aria-describedby={props.describedBy}
 		>
 			{props.pending ? (
 				<>

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 import { SIGNUP_COOKIE } from '../src/lib/identity/after-sign-up'
 import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
 import { CONSENT_KEY } from '../src/lib/storage-keys'
@@ -12,6 +12,18 @@ const browserCookies = [
 const startPath = '/v1/client/continue'
 const verifyPath = `${startPath}/verify`
 const redeemPath = '/v1/client/tickets:redeem'
+const edgeHeaders = { 'x-forwarded-host': 'tryit.fun', 'x-forwarded-proto': 'https' }
+const edgeOrigin = 'https://tryit.fun'
+
+// Model the trusted TLS edge while keeping real handlers and the Auth fixture in the path.
+async function routeThroughEdge(page: Page, endpoint: 'sign-in' | 'oidc/begin') {
+	await page.route(`**/api/identity/${endpoint}`, async (route) => {
+		const response = await route.fetch({
+			headers: { ...route.request().headers(), ...edgeHeaders, origin: edgeOrigin },
+		})
+		await route.fulfill({ response })
+	})
+}
 
 test.describe.configure({ mode: 'serial' })
 test.beforeEach(() =>
@@ -89,6 +101,38 @@ test('legacy password works only on step two; disabled capabilities render no fa
 	expect(removedSignup.status()).toBe(404)
 })
 
+test('Google sends current clickwrap on the first click', async ({ page }) => {
+	await fixture('hosted-google')
+	await page.setViewportSize({ width: 1440, height: 900 })
+	await routeThroughEdge(page, 'oidc/begin')
+	await page.route('**/oauth/google/start?**', (route) => route.fulfill({ status: 204 }))
+	await page.goto('/sign-in?callbackUrl=%2Farchive')
+	const google = page.getByRole('button', { name: 'Continue with Google' })
+	await expect(google).toBeEnabled()
+	await expect(google).toHaveAccessibleDescription(
+		'By continuing, you agree to our Terms of Service and Privacy Policy.',
+	)
+	// Stop at the real start response; no external provider interaction or account is needed.
+	const [response, hop] = await Promise.all([
+		page.waitForResponse('**/api/identity/oidc/begin'),
+		page.waitForRequest('**/oauth/google/start?**'),
+		google.click(),
+	])
+	expect(response.ok()).toBeTruthy()
+	expect(response.request().postDataJSON()).toEqual({
+		provider: 'google',
+		redirectUrl: '/archive',
+		acceptance: POLICY_ACCEPTANCE,
+	})
+	const { authorizationUrl } = await response.json()
+	expect(hop.url()).toBe(authorizationUrl)
+	const start = new URL(authorizationUrl)
+	expect(new URL(start.searchParams.get('redirect_url')!).searchParams.get('next')).toBe('/archive')
+	for (const [key, value] of Object.entries(POLICY_ACCEPTANCE)) {
+		expect(start.searchParams.get(key)).toBe(String(value))
+	}
+})
+
 test('mobile OTP stays inline, masks recipient, preserves rejected input, and resumes as a signed-in guest', async ({
 	page,
 	context,
@@ -104,16 +148,29 @@ test('mobile OTP stays inline, masks recipient, preserves rejected input, and re
 			secure: true,
 		})),
 	)
-	await page.setViewportSize({ width: 360, height: 760 })
+	await routeThroughEdge(page, 'sign-in')
+	await page.setViewportSize({ width: 390, height: 844 })
 	await page.goto('/sign-in?callbackUrl=%2Farchive%3Ffrom%3Dgame')
 	await expect(page.locator('#email')).toHaveAttribute('autocomplete', 'username webauthn')
-	await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+	const continueButton = page.getByRole('button', { name: 'Continue', exact: true })
+	await expect(continueButton).toBeEnabled()
+	await expect(continueButton).toHaveAccessibleDescription(
+		'By continuing, you agree to our Terms of Service and Privacy Policy.',
+	)
+	await expect(
+		page.locator('#sign-in-policy-notice').getByRole('link', { name: 'Terms of Service' }),
+	).toHaveAttribute('href', '/terms')
+	await expect(
+		page.locator('#sign-in-policy-notice').getByRole('link', { name: 'Privacy Policy' }),
+	).toHaveAttribute('href', '/privacy')
+	await continueButton.click()
+	await expect(page.locator('#email')).toHaveAttribute('aria-invalid', 'true')
+	expect((await fixture()).filter(({ path }) => path === startPath)).toHaveLength(0)
 	for (const path of ['terms', 'privacy']) {
 		const policy = await page.request.get(`/${path}`)
 		expect(policy.status()).toBe(200)
 		expect(await policy.text()).toContain('2026-11-14')
 	}
-	await page.locator('#sign-in-policy').check()
 	await page.locator('#email').fill('synthetic@example.test')
 	await page.getByRole('button', { name: 'Continue', exact: true }).click()
 	const code = page.getByLabel('6-digit code')
@@ -125,7 +182,7 @@ test('mobile OTP stays inline, masks recipient, preserves rejected input, and re
 	await expect(page.getByRole('button', { name: /^Resend in/ })).toBeDisabled()
 	await expect(page.getByRole('button', { name: 'Use password instead' })).toBeVisible()
 	await expect(page.locator('[autocomplete="new-password"]')).toHaveCount(0)
-	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360)
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
 	await page.screenshot({ path: testInfo.outputPath('mobile-code.png') })
 	await code.fill('14142')
 	expect((await fixture()).filter(({ path }) => path === verifyPath)).toHaveLength(0)
@@ -147,12 +204,13 @@ test('mobile OTP stays inline, masks recipient, preserves rejected input, and re
 	expect(calls.filter((path) => path === startPath)).toHaveLength(1)
 	expect(calls.filter((path) => path === verifyPath)).toHaveLength(2)
 	expect(calls.filter((path) => path === redeemPath)).toHaveLength(1)
-	expect(calls).toContain('/v1/auth/consent:accept')
+	expect((await fixture()).filter(({ path }) => path === '/v1/auth/consent:accept')).toEqual([
+		{ path: '/v1/auth/consent:accept', body: POLICY_ACCEPTANCE },
+	])
 })
 
 test('real sign-in endpoint requires browser Origin, valid proof and current consent before it sets cookies', async ({
 	request,
-	baseURL,
 }) => {
 	await fixture('refuse-consent')
 	const verify = {
@@ -163,13 +221,13 @@ test('real sign-in endpoint requires browser Origin, valid proof and current con
 	}
 	for (const origin of [undefined, 'https://foreign.example', 'null']) {
 		const response = await request.post('/api/identity/sign-in', {
-			headers: origin === undefined ? undefined : { origin },
+			headers: origin === undefined ? edgeHeaders : { ...edgeHeaders, origin },
 			data: verify,
 		})
 		expect(response.status()).toBe(403)
 		expect(response.headers()['set-cookie']).toBeUndefined()
 	}
-	const headers = { origin: new URL(baseURL!).origin }
+	const headers = { ...edgeHeaders, origin: edgeOrigin }
 	const malformed = await request.post('/api/identity/sign-in', {
 		headers,
 		data: { ...verify, code: '12345' },
@@ -191,7 +249,10 @@ test('real sign-in endpoint requires browser Origin, valid proof and current con
 		data: { step: 'passkey-start', origin: 'https://ignored.example', rp_id: 'ignored.example' },
 	})
 	expect(begun.ok()).toBeTruthy()
-	expect(await begun.json()).toMatchObject({ rpId: new URL(baseURL!).hostname, credentialIds: [] })
+	expect(await begun.json()).toMatchObject({
+		rpId: new URL(edgeOrigin).hostname,
+		credentialIds: [],
+	})
 	const response = await request.post('/api/identity/sign-in', {
 		headers,
 		data: {
@@ -209,7 +270,7 @@ test('real sign-in endpoint requires browser Origin, valid proof and current con
 	expect(await response.json()).toEqual({ signedIn: true, newAccount: false })
 	expect(response.headers()['set-cookie']).toContain('HttpOnly')
 	expect((await fixture()).find(({ path }) => path.endsWith('/passkey/begin'))?.body).toEqual({
-		rp_id: new URL(baseURL!).hostname,
+		rp_id: new URL(edgeOrigin).hostname,
 		origin: headers.origin,
 	})
 })
@@ -226,19 +287,7 @@ for (const [isNew, consent, expected] of [
 	}) => {
 		await fixture(isNew ? 'new' : 'enabled')
 		await capture(page)
-		// Model the trusted TLS edge on the local production build. The
-		// real sign-in handler and Auth fixture stay in the request path.
-		await page.route('**/api/identity/sign-in', async (route) => {
-			const response = await route.fetch({
-				headers: {
-					...route.request().headers(),
-					origin: 'https://tryit.fun',
-					'x-forwarded-host': 'tryit.fun',
-					'x-forwarded-proto': 'https',
-				},
-			})
-			await route.fulfill({ response })
-		})
+		await routeThroughEdge(page, 'sign-in')
 		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
 		await page.addInitScript(
 			({ consent, key }) => {
@@ -250,7 +299,6 @@ for (const [isNew, consent, expected] of [
 			{ consent, key: CONSENT_KEY },
 		)
 		await page.goto('/sign-in?callbackUrl=%2Farchive')
-		await page.locator('#sign-in-policy').check()
 		await page.locator('#email').fill('synthetic@example.test')
 		await page.getByRole('button', { name: 'Continue', exact: true }).click()
 		const code = page.getByLabel('6-digit code')

@@ -21,6 +21,7 @@ import {
 
 type Step = 'entry' | 'code' | 'password' | 'recovery' | 'recovery-sent'
 const RESEND_MS = 30_000
+const POLICY_NOTICE_ID = 'sign-in-policy-notice'
 const fieldClass =
 	'h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 const linkClass =
@@ -50,7 +51,7 @@ export function SignInForm(props: {
 	)
 	const [email, setEmail] = createSignal('')
 	const [password, setPassword] = createSignal('')
-	const [accepted, setAccepted] = createSignal(false)
+	const [emailFocused, setEmailFocused] = createSignal(false)
 	const [attempted, setAttempted] = createSignal(false)
 	const [availablePasskey, setAvailablePasskey] = createSignal(false)
 	const [initialError, setInitialError] = createSignal(props.oauthFailed)
@@ -75,7 +76,7 @@ export function SignInForm(props: {
 		const problem = email().length > 320 ? 'emailInvalid' : emailProblem(email())
 		return attempted() && problem ? t(problem) : undefined
 	}
-	const policyRaw = translate.raw('auth.termsAgree')
+	const policyRaw = translate.raw('auth.termsContinue')
 	const policy =
 		typeof policyRaw === 'string'
 			? new IntlMessageFormat(policyRaw, props.locale).format<JSX.Element>({
@@ -84,7 +85,7 @@ export function SignInForm(props: {
 							href={localizedPath(props.locale, '/terms')}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="underline"
+							class="font-semibold text-foreground underline underline-offset-2"
 						>
 							{chunks}
 						</a>
@@ -94,13 +95,18 @@ export function SignInForm(props: {
 							href={localizedPath(props.locale, '/privacy')}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="underline"
+							class="font-semibold text-foreground underline underline-offset-2"
 						>
 							{chunks}
 						</a>
 					),
 				})
 			: null
+
+	const showPolicyNotice = () =>
+		(step() === 'entry' &&
+			(props.methods?.google || props.methods?.emailCode || availablePasskey())) ||
+		step() === 'code'
 
 	function changeStep(next: Step) {
 		setAttempted(false)
@@ -113,6 +119,7 @@ export function SignInForm(props: {
 
 	function changeEmail() {
 		passkeyRequest?.abort()
+		setEmailFocused(false)
 		setFlow('')
 		setCode('')
 		setPassword('')
@@ -133,7 +140,7 @@ export function SignInForm(props: {
 	}
 
 	async function startCode() {
-		if (!accepted() || remaining() > 0) return
+		if (remaining() > 0) return
 		const now = Date.now()
 		setClock(now)
 		// A transport error may still have sent mail: don't immediately retry it.
@@ -158,7 +165,7 @@ export function SignInForm(props: {
 	}
 
 	function verifyCode() {
-		if (busy() || !accepted() || expired() || !flow() || !/^\d{6}$/.test(code())) return
+		if (busy() || expired() || !flow() || !/^\d{6}$/.test(code())) return
 		void action.run(
 			() => finish({ step: 'email-verify', flow: flow(), code: code() }),
 			'sign_in_unavailable',
@@ -166,14 +173,15 @@ export function SignInForm(props: {
 	}
 
 	async function passkey(conditional = false) {
-		if (!accepted() || busy() || navigated) return
+		if (busy() || navigated) return
 		passkeyRequest?.abort()
 		const request = new AbortController()
 		passkeyRequest = request
 		if (conditional) {
 			try {
 				const proof = await getPasskey(request.signal, true)
-				if (proof && !request.signal.aborted && accepted() && !busy()) {
+				// Conditional mediation returns proof only after the user chooses a passkey.
+				if (proof && !request.signal.aborted && !busy()) {
 					setInitialError(false)
 					await action.run(
 						() => finish({ ...proof, step: 'passkey-verify' }),
@@ -202,7 +210,7 @@ export function SignInForm(props: {
 		})
 	})
 	createEffect(() => {
-		if (step() !== 'entry' || !availablePasskey() || !accepted() || !emailPath()) return
+		if (step() !== 'entry' || !availablePasskey() || !emailFocused()) return
 		let active = true
 		void PublicKeyCredential.isConditionalMediationAvailable?.()
 			.then((supported) => {
@@ -211,6 +219,7 @@ export function SignInForm(props: {
 			.catch(() => undefined)
 		onCleanup(() => {
 			active = false
+			passkeyRequest?.abort()
 		})
 	})
 
@@ -234,7 +243,7 @@ export function SignInForm(props: {
 				changeStep('recovery-sent')
 			}, 'recovery_failed')
 		} else if (step() === 'entry') {
-			if (props.methods?.emailCode && accepted()) void action.run(startCode, 'sign_in_unavailable')
+			if (props.methods?.emailCode) void action.run(startCode, 'sign_in_unavailable')
 			else if (!props.methods?.emailCode && props.methods?.password) changeStep('password')
 		}
 	}
@@ -262,12 +271,13 @@ export function SignInForm(props: {
 					<OAuthButtons
 						providers={['google']}
 						t={t}
-						disabled={busy() || !accepted()}
+						disabled={busy()}
+						describedBy={POLICY_NOTICE_ID}
 						loadingProvider={action.loadingProvider()}
 						onSelect={(provider) => {
 							passkeyRequest?.abort()
 							setInitialError(false)
-							if (accepted()) void action.oauth(provider, destination(), true)
+							void action.oauth(provider, destination(), true)
 						}}
 					/>
 				</Show>
@@ -292,6 +302,9 @@ export function SignInForm(props: {
 							value={email()}
 							inputRef={(el) => {
 								emailInput = el
+							}}
+							onFocus={() => {
+								if (step() === 'entry') setEmailFocused(true)
 							}}
 							onChange={(value) => {
 								setEmail(value)
@@ -370,9 +383,10 @@ export function SignInForm(props: {
 							pending={busy()}
 							pendingLabel={v('working')}
 							label={step() === 'recovery' ? t('sendResetLink') : v('continue')}
+							describedBy={showPolicyNotice() ? POLICY_NOTICE_ID : undefined}
 							disabled={
 								step() === 'entry' && props.methods?.emailCode
-									? !accepted() || remaining() > 0
+									? remaining() > 0
 									: step() === 'code' && (expired() || code().length !== 6)
 							}
 						/>
@@ -385,32 +399,17 @@ export function SignInForm(props: {
 							type="button"
 							onClick={() => void passkey()}
 							class={optionClass}
-							disabled={!accepted() || busy()}
+							disabled={busy()}
+							aria-describedby={POLICY_NOTICE_ID}
 						>
 							<Fingerprint class="size-5" aria-hidden="true" />
 							{v('usePasskey')}
 						</button>
 					</Show>
-					<Show
-						when={
-							step() === 'entry' &&
-							(props.methods?.emailCode || props.methods?.google || availablePasskey())
-						}
-					>
-						<div class="flex items-start gap-2.5 text-sm text-muted-foreground">
-							<input
-								id="sign-in-policy"
-								type="checkbox"
-								class="mt-0.5 size-5 shrink-0 accent-primary"
-								checked={accepted()}
-								disabled={busy()}
-								onChange={(event) => {
-									setAccepted(event.currentTarget.checked)
-									if (!event.currentTarget.checked) passkeyRequest?.abort()
-								}}
-							/>
-							<label for="sign-in-policy">{policy}</label>
-						</div>
+					<Show when={showPolicyNotice()}>
+						<p id={POLICY_NOTICE_ID} class="text-sm leading-relaxed text-muted-foreground">
+							{policy}
+						</p>
 					</Show>
 					<Show when={step() !== 'entry'}>
 						<div class="flex flex-wrap items-center justify-between gap-x-2">

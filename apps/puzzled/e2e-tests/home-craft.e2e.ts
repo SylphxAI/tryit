@@ -110,30 +110,47 @@ test('Chinese display type and reduced motion remain readable', async ({ page },
 	})
 })
 
-test('the lineup delivers 19 distinct illustrated keys with a stationary hit target', async ({
-	page,
-}) => {
+for (const viewport of [
+	{ width: 390, height: 844 },
+	{ width: 1440, height: 900 },
+]) {
+	test(`the lineup loads all 19 SVGs before scrolling at ${viewport.width}×${viewport.height}`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport)
+		await page.goto('/', { waitUntil: 'load' })
+		const motifs = page.locator('[data-home-game] img')
+		await expect(motifs).toHaveCount(19)
+		const images = await motifs.evaluateAll((nodes: HTMLImageElement[]) =>
+			nodes.map((image) => ({
+				slug: image.closest('a')?.dataset.homeGame,
+				src: image.getAttribute('src'),
+				alt: image.getAttribute('alt'),
+				loading: image.getAttribute('loading'),
+				width: image.naturalWidth,
+				tint: getComputedStyle(image.parentElement!).backgroundColor,
+			})),
+		)
+		expect(new Set(images.map(({ slug }) => slug)).size).toBe(19)
+		expect(new Set(images.map(({ tint }) => tint)).size).toBeGreaterThanOrEqual(10)
+		expect(images.map(({ slug }) => slug)).toEqual(
+			expect.arrayContaining(['cryptogram', 'word-box', 'word-hive']),
+		)
+		for (const image of images) {
+			expect(image).toMatchObject({
+				src: `/motifs/${image.slug}-zoom.svg`,
+				alt: '',
+				loading: null,
+			})
+			expect(image.width, image.slug).toBeGreaterThan(0)
+		}
+		expect(await page.evaluate(() => window.scrollY)).toBe(0)
+	})
+}
+
+test('the lineup cards keep a stationary hit target', async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 })
 	await page.goto('/')
-	const cards = page.locator('[data-home-game]')
-	await expect(cards).toHaveCount(19)
-	const slugs = new Set<string>()
-	const tints = new Set<string>()
-	for (const [index, card] of (await cards.all()).entries()) {
-		const slug = (await card.getAttribute('data-home-game'))!
-		const motif = card.locator('img')
-		await expect(motif).toHaveAttribute('src', `/motifs/${slug}-zoom.svg`)
-		await expect(motif).toHaveAttribute('alt', '')
-		await expect(motif).toHaveAttribute('loading', index < 8 ? 'eager' : 'lazy')
-		await motif.scrollIntoViewIfNeeded()
-		await expect
-			.poll(() => motif.evaluate((img: HTMLImageElement) => img.naturalWidth))
-			.toBeGreaterThan(0)
-		slugs.add(slug)
-		tints.add(await motif.evaluate((img) => getComputedStyle(img.parentElement!).backgroundColor))
-	}
-	expect(slugs.size).toBe(19)
-	expect(tints.size).toBeGreaterThanOrEqual(10)
 
 	const card = page.locator('[data-home-game="nonogram"]')
 	await card.scrollIntoViewIfNeeded()
