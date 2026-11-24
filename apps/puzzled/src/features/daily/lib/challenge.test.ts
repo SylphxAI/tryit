@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { create, fromJson } from '@bufbuild/protobuf'
+import { parseSignalAttribution } from '@sylphx/sdk/signal'
+import { SIGNUP_ATTRIBUTION_COOKIE, syncReferral } from '@/features/analytics/lib/referral'
 import { GetSharedResultResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { CHALLENGE_KEY } from '@/lib/storage-keys'
 import {
@@ -126,11 +128,31 @@ describe('a shared result is non-spoiler by construction', () => {
 
 describe('ref attribution', () => {
 	test('a share link lands with its share id as the first-touch ref and utm_source=share', () => {
-		const path = shareLandingPath(ID)
-		const url = new URL(path, 'https://tryit.fun')
+		const url = new URL(shareLandingPath(ID), 'https://tryit.fun')
 		expect(url.pathname).toBe(`/r/${ID}`)
-		expect(url.searchParams.get('ref')).toBe(ID)
-		expect(url.searchParams.get('utm_source')).toBe('share')
+		expect(url.searchParams.has('ref')).toBe(false)
+		const globals = globalThis as unknown as Record<string, unknown>
+		const { window: originalWindow, document: originalDocument } = globals
+		const document = { cookie: '' }
+		globals.window = { location: url }
+		globals.document = document
+		try {
+			const input = {
+				pathname: url.pathname,
+				search: url.search,
+				touch: parseSignalAttribution(url),
+			}
+			syncReferral({ ...input, granted: false })
+			expect(document.cookie).toBe('')
+			syncReferral({ ...input, granted: true })
+			const [pair = ''] = document.cookie.split(';')
+			expect(pair.startsWith(`${SIGNUP_ATTRIBUTION_COOKIE}=`)).toBe(true)
+			const tags = new URLSearchParams(decodeURIComponent(pair.slice(pair.indexOf('=') + 1)))
+			expect(Object.fromEntries(tags)).toEqual({ r: ID, s: 'share' })
+		} finally {
+			globals.window = originalWindow
+			globals.document = originalDocument
+		}
 	})
 })
 
