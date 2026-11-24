@@ -172,7 +172,11 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 		dispatch({ type: 'RESET' })
 	}
 	onMount(() => {
-		select(Object.keys(guesses()).find((letter) => !isRevealed(letter)) ?? null)
+		select(
+			Array.from(props.data.encryptedText).find(
+				(letter) => /^[A-Z]$/.test(letter) && !isRevealed(letter),
+			) ?? null,
+		)
 		const handleKey = (event: KeyboardEvent) => {
 			if (
 				event.defaultPrevented ||
