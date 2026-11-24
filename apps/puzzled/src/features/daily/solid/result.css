@@ -200,10 +200,11 @@
 .result-catalog-link:hover { text-decoration: underline; text-underline-offset: .2em; }
 .result-feedback { margin-block-start: .5rem; font-size: .875rem; text-align: start; color: var(--result-quiet); }
 
-/* The top-layer dialog stays visible; the rail under it does not paint or
-   participate in focus. Visibility keeps the same geometry on open/close. */
-.completion-card[data-result-open] { visibility: hidden; }
-.result-dialog[open] { visibility: visible; }
+/* The dialog paints in the top layer. Hide the rail without changing its
+   geometry or making the trigger ineligible for native focus restoration.
+   showModal() already makes everything outside the dialog inert. */
+.completion-card[data-result-open] { opacity: 0; pointer-events: none; }
+.result-dialog[open] { pointer-events: auto; }
 
 .result-next {
 	display: flex;

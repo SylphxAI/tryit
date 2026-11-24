@@ -36,6 +36,13 @@ export function ResultDetails(props: {
 	let dialog!: HTMLDialogElement
 	let trigger!: HTMLButtonElement
 	let heading!: HTMLHeadingElement
+	function dismiss() {
+		// Make the trigger focusable before the native close restores focus.
+		dialog.closest('.completion-card')?.removeAttribute('data-result-open')
+		dialog.close()
+		setOpened(false)
+		trigger.focus({ preventScroll: true })
+	}
 	const [theirCard] = createResource(opened, async () => {
 		const mine = props.model
 		if (!mine.dayKey || mine.mode !== 'daily') return null
@@ -121,22 +128,22 @@ export function ResultDetails(props: {
 				ref={dialog}
 				aria-labelledby={title}
 				class="result-dialog"
-				on:close={() => {
-					setOpened(false)
-					dialog.closest('.completion-card')?.removeAttribute('data-result-open')
-					requestAnimationFrame(() => {
-						if (!dialog.open && trigger.isConnected) trigger.focus({ preventScroll: true })
-					})
+				on:cancel={(event) => {
+					event.preventDefault()
+					dismiss()
 				}}
 				// Board shortcuts live on window and must not consume dialog input (including Escape).
 				on:keydown={(event) => event.stopPropagation()}
 			>
 				<header class="result-dialog-header" data-outcome={props.model.status}>
-					<form method="dialog">
-						<button type="submit" class="result-close" aria-label={t('common.dismiss')}>
-							<X size={21} aria-hidden="true" />
-						</button>
-					</form>
+					<button
+						type="button"
+						class="result-close"
+						aria-label={t('common.dismiss')}
+						onClick={dismiss}
+					>
+						<X size={21} aria-hidden="true" />
+					</button>
 					<span class="completion-mark" aria-hidden="true">
 						{props.model.status === 'won' ? <Check size={23} /> : <Minus size={23} />}
 					</span>
