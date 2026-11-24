@@ -73,8 +73,10 @@ test('Quad shows a dictionary error in the mobile viewport without using a guess
 }) => {
 	await page.setViewportSize({ width: 390, height: 844 })
 	const graded: string[] = []
+	const gradeResponse = Promise.withResolvers<void>()
 	await page.route(`${service}CheckGuess`, async (route) => {
 		graded.push(JSON.parse(route.request().postDataJSON().guessJson).word)
+		await gradeResponse.promise
 		await route.fulfill({
 			json: {
 				resultJson: JSON.stringify({
@@ -85,18 +87,25 @@ test('Quad shows a dictionary error in the mobile viewport without using a guess
 	})
 	await play(page, 'quad-words', { wordLength: 5, maxGuesses: 9 })
 	const board = page.locator('[data-quad-board]')
-	await page.keyboard.type('ZZZZZ')
-	await page.keyboard.press('Enter')
-	const error = board.getByRole('alert')
-	await expect(error).toHaveText('Not in word list')
-	await expect(error).toBeInViewport({ ratio: 1 })
-	await expect(board.getByRole('status')).toContainText('0/9')
-	await expect(board.locator('td[data-grade]')).toHaveCount(0)
-	expect(graded).toEqual([])
-	for (let i = 0; i < 5; i++) await page.keyboard.press('Backspace')
-	await page.keyboard.type('CRANE')
-	await page.keyboard.press('Enter')
-	await expect(board.getByRole('status')).toContainText('1/9')
+	const attempts = board.getByRole('status').filter({ hasText: 'Attempts' })
+	try {
+		await page.keyboard.type('ZZZZZ')
+		await page.keyboard.press('Enter')
+		const error = board.getByRole('alert')
+		await expect(error).toHaveText('Not in word list')
+		await expect(error).toBeInViewport({ ratio: 1 })
+		await expect(attempts).toContainText('0/9')
+		await expect(board.locator('td[data-grade]')).toHaveCount(0)
+		expect(graded).toEqual([])
+		for (let i = 0; i < 5; i++) await page.keyboard.press('Backspace')
+		await page.keyboard.type('CRANE')
+		await page.keyboard.press('Enter')
+		await expect(board.getByRole('status').filter({ hasText: 'Syncing' })).toBeVisible()
+		await expect(attempts).toContainText('0/9')
+	} finally {
+		gradeResponse.resolve()
+	}
+	await expect(attempts).toContainText('1/9')
 	expect(graded).toEqual(['CRANE'])
 })
 
