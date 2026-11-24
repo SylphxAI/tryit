@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
+import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
 import { CONSENT_KEY } from '@/lib/storage-keys'
 import { GET } from '@/routes/api/consent-context'
 import { checkoutSignalHeaders, setCheckoutMeasurementId } from './checkout-signal'
@@ -9,6 +10,11 @@ const navigatorGpc = Object.getOwnPropertyDescriptor(navigator, 'globalPrivacyCo
 const denied = 'denied,denied,denied,denied'
 const analytics = 'granted,denied,denied,denied'
 const full = 'granted,granted,granted,granted'
+const analyticsFields = {
+	ga_client_id: '12345.67890',
+	ga_session_id: '1234567890',
+	utm_source: 'fixture',
+}
 
 function browser(legacy?: string) {
 	const store = new Map<string, string>()
@@ -94,6 +100,27 @@ for (const country of ['DE', 'GB', 'CH', 'XX', 'SU', 'US, US', undefined]) {
 	})
 }
 
+for (const country of ['AX', 'GF', 'GP', 'MQ', 'MF', 'RE', 'YT']) {
+	test(`${country} requires opt-in and persists analytics-only without ad identifiers`, async () => {
+		// Check the SDK directly, so the route's territory fallback cannot mask a regression.
+		expect(Object.values(resolveEffectiveConsent({ region: country })).join(',')).toBe(denied)
+		const store = browser()
+		await context(country)
+		expect(cookieConsent().prompt).toBe(true)
+		expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
+
+		saveCookieChoice('analytics_only')
+		await context(country)
+		expect(store.get(CONSENT_KEY)).toBe('analytics_only')
+		expect(cookieConsent().prompt).toBe(false)
+		expect(snapshot()).toEqual({
+			consent: analytics,
+			fields: analyticsFields,
+			surface: 'pricing_card',
+		})
+	})
+}
+
 test('retains legacy analytics-only consent without retaining ad identifiers', async () => {
 	const store = browser('accepted')
 	await context('US')
@@ -101,11 +128,7 @@ test('retains legacy analytics-only consent without retaining ad identifiers', a
 	expect(snapshot()).toEqual({
 		consent: analytics,
 		surface: 'pricing_card',
-		fields: {
-			ga_client_id: '12345.67890',
-			ga_session_id: '1234567890',
-			utm_source: 'fixture',
-		},
+		fields: analyticsFields,
 	})
 	expect(store.get('puzzled:signal.touch')).not.toMatch(/fixture_g|fixture_fb/)
 })
