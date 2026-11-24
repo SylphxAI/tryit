@@ -51,6 +51,7 @@ test('guest admission leaves an open language disclosure in place', async ({ pag
 			await sameHeader!.evaluate((element) => element === document.querySelector('header')),
 		).toBe(true)
 		await expect(options).toBeVisible()
+		await expect(trigger).toBeFocused()
 		await page.keyboard.press('Escape')
 		await expect(options).toBeHidden()
 		await expect(trigger).toBeFocused()

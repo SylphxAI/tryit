@@ -1,6 +1,7 @@
 /* On explicit play, the shell owns the viewport. Landing pages keep their
    original document flow, and consent is the same component in both modes. */
 .site-shell:has([data-play-canvas]) {
+	position: relative;
 	block-size: 100dvh;
 	min-block-size: 0;
 	padding-block-start: env(safe-area-inset-top, 0px);
@@ -8,9 +9,39 @@
 	overflow: clip;
 }
 
-.site-shell:has([data-play-canvas]) > :is(.site-header, .site-footer),
+.site-shell:has([data-play-canvas]) > .site-footer,
 .game-page:has([data-play-canvas]) > :not(#play) {
 	display: none;
+}
+
+/* Keep the same language disclosure and focus as the header compacts on entry. */
+.site-shell:has([data-play-canvas]) {
+	--play-gutter: max(1rem, calc((100% - 64rem) / 2));
+	--play-language-width: 7.5rem;
+}
+
+.site-shell:has([data-play-canvas]) > .site-header {
+	position: absolute;
+	inset-block-start: calc(env(safe-area-inset-top, 0px) + 2px);
+	inset-inline-end: calc(var(--play-gutter) + env(safe-area-inset-right, 0px));
+	border: 0;
+	padding: 0;
+	background: transparent;
+}
+
+.site-shell:has([data-play-canvas]) > .site-header > .page-shell-wide {
+	height: auto;
+	padding: 0;
+}
+
+.site-shell:has([data-play-canvas]) > .site-header .page-shell-wide > :not(.site-header-actions),
+.site-shell:has([data-play-canvas]) > .site-header .site-header-actions > :not(.site-header-language) {
+	display: none;
+}
+
+.site-shell:has([data-play-canvas]) .site-header-language [data-language-options] {
+	max-height: min(24rem, 65dvh);
+	overflow-y: auto;
 }
 
 .site-shell:has([data-play-canvas]) > :is(.consent-bar, .site-tab-bar) {
@@ -54,7 +85,7 @@
 
 [data-play-canvas] .play-hud {
 	min-height: 48px;
-	padding-inline: max(1rem, calc((100% - 64rem) / 2));
+	padding-inline: var(--play-gutter) calc(var(--play-gutter) + var(--play-language-width));
 	border-bottom: 1px solid var(--color-hairline);
 }
 
@@ -91,6 +122,11 @@
 [data-play-canvas] .play-board { overscroll-behavior: none; }
 
 @media (width < 640px) {
+	.site-shell:has([data-play-canvas]) { --play-language-width: 2.75rem; }
+	.site-shell:has([data-play-canvas]) .site-header-language summary { justify-content: center; width: 2.75rem; }
+	.site-shell:has([data-play-canvas]) .site-header-language .language-icon { display: block; }
+	.site-shell:has([data-play-canvas]) .site-header-language .language-name,
+	.site-shell:has([data-play-canvas]) .site-header-language summary svg:not(.language-icon) { display: none; }
 	[data-play-canvas] .play-date { order: 4; width: 100%; padding-bottom: .25rem; font-size: .75rem; }
 	[data-play-canvas] .play-hud { column-gap: .5rem; }
 	[data-play-canvas] .play-hud > button svg { display: none; }

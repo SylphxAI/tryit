@@ -52,7 +52,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 							)}
 						</For>
 					</nav>
-					<div class="ml-auto flex items-center gap-2">
+					<div class="site-header-actions ml-auto flex items-center gap-2">
 						<a
 							href={props.data.plus.href}
 							class="pressable flex min-h-11 items-center gap-1 rounded-full px-1.5 text-xs font-semibold sm:gap-2 sm:px-3 sm:text-sm"
@@ -60,7 +60,9 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 							<span class="h-2 w-2 rounded-[2px] bg-accent-warm" aria-hidden="true" />
 							{props.data.plus.title}
 						</a>
-						<LanguageMenu data={props.data} />
+						<div class="site-header-language">
+							<LanguageMenu data={props.data} />
+						</div>
 						<Show
 							when={props.signedIn}
 							fallback={
