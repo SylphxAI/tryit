@@ -8,7 +8,7 @@
  * The guard re-derives the declared design tokens from the Tailwind v4 token
  * layer (`@theme`, `.dark` and `:root` blocks of globals.css) plus Tailwind's
  * own `theme.css` defaults (framework colours/sizes are not project tokens),
- * then checks every colour-like utility class written in the app and ui sources
+ * then checks every colour-like utility class written in the app sources
  * resolves to one of them. Anything else is a dangling class and fails loudly.
  *
  * Deliberate allow list (genuine non-token utilities, so they are not flagged):
@@ -24,7 +24,6 @@ import { dirname, join, relative } from 'node:path'
 
 const SELF = import.meta.path
 const APP_SRC = 'apps/puzzled/src'
-const UI_SRC = 'packages/ui/src'
 const GLOBALS_CSS = `${APP_SRC}/app/globals.css`
 
 const PREFIXES = [
@@ -119,7 +118,7 @@ const NUMBER = /^\d+(\.\d+)?$/
 function findRepoRoot(start: string): string {
 	let dir = start
 	for (;;) {
-		if (existsSync(join(dir, GLOBALS_CSS)) && existsSync(join(dir, UI_SRC))) return dir
+		if (existsSync(join(dir, GLOBALS_CSS))) return dir
 		const parent = dirname(dir)
 		if (parent === dir) throw new Error(`design-tokens guard: repo root not found from ${start}`)
 		dir = parent
@@ -154,7 +153,6 @@ function findTailwindTheme(root: string): string {
 	const candidates = [
 		join(root, 'node_modules/tailwindcss/theme.css'),
 		join(root, 'apps/puzzled/node_modules/tailwindcss/theme.css'),
-		join(root, 'packages/ui/node_modules/tailwindcss/theme.css'),
 	]
 	const bunStore = join(root, 'node_modules/.bun')
 	if (existsSync(bunStore)) {
@@ -452,13 +450,11 @@ function scanSourceText(
 }
 
 function scanSources() {
-	const files: string[] = []
-	for (const dir of [join(root, APP_SRC), join(root, UI_SRC)]) {
-		for (const file of new Bun.Glob('**/*.{ts,tsx}').scanSync({ cwd: dir, absolute: true })) {
-			if (file !== SELF) files.push(file)
-		}
-	}
-	files.sort()
+	const files = [
+		...new Bun.Glob('**/*.{ts,tsx}').scanSync({ cwd: join(root, APP_SRC), absolute: true }),
+	]
+		.filter((file) => file !== SELF)
+		.sort()
 
 	const unresolved: { file: string; line: number; cls: string }[] = []
 	let checked = 0

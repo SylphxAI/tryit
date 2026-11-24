@@ -65,8 +65,8 @@ jobs:
         with:
           global-patterns: ''
           lanes: |
-            web: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mts apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile packages/* proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
-            build: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mts apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile packages/* proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
+            web: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mts apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
+            build: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mts apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
             rust: crates/* proto/* Cargo.toml Cargo.lock rust-toolchain* .cargo/* apps/puzzled/atlas/* apps/puzzled/atlas.hcl scripts/check-dockerfile-puzzled-core.sh scripts/check-migration-order* .github/workflows/ci.yml .github/workflows/verify.yml
             browser: apps/puzzled/playwright.config.ts apps/puzzled/e2e-tests/* apps/puzzled/scripts/serve-puzzle-fixture.ts scripts/ci-contract.test.ts package.json apps/puzzled/package.json bun.lock .github/workflows/ci.yml .github/workflows/verify.yml
             migrations: apps/puzzled/atlas/* apps/puzzled/atlas.hcl crates/puzzled-server/src/*_tests.rs crates/puzzled-server/src/capabilities/preferences/* scripts/check-migration-order* .github/workflows/ci.yml
@@ -141,7 +141,7 @@ jobs:
               exit 0
             fi
             echo "bun install attempt ${attempt} failed; clearing partial cache and retrying..."
-            rm -rf node_modules apps/*/node_modules packages/*/node_modules ~/.bun/install/cache
+            rm -rf node_modules apps/*/node_modules ~/.bun/install/cache
             sleep $((attempt * 3))
           done
           echo "bun install failed after retries"
@@ -168,14 +168,13 @@ jobs:
       - name: Proto contract gate (buf lint + breaking)
         run: bun run check:proto-buf
 
-      # Affected-only: turbo runs the typecheck of the two packages when the
-      # change reaches them from the plan base; an empty base runs both.
+      # Affected-only when a plan base is available.
       - name: Run TypeScript type check
         run: |
           if [ -n "$TURBO_SCM_BASE" ]; then
-            bunx turbo typecheck --affected --filter=@sylphx/puzzled --filter=@sylphx/ui --concurrency=1
+            bunx turbo typecheck --affected --filter=@sylphx/puzzled --concurrency=1
           else
-            bunx turbo typecheck --filter=@sylphx/puzzled --filter=@sylphx/ui --concurrency=1
+            bunx turbo typecheck --filter=@sylphx/puzzled --concurrency=1
           fi
         env:
           TURBO_SCM_BASE: ${{ steps.range.outputs.base }}

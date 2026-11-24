@@ -6,13 +6,8 @@
  *   hashes/SRI after completion. `'strict-dynamic'` lets an authorized
  *   script load the chunks it needs, and makes browsers ignore host
  *   allowlists, so none are listed. No `'unsafe-inline'`, no `'unsafe-eval'`.
- * - Next.js reads the nonce from the `Content-Security-Policy` request header
- *   and puts it on its own inline and chunk scripts; the layout reads
- *   `x-nonce` for the theme and consent scripts, next-themes and Base UI.
- * - Styles keep `'unsafe-inline'`: Sonner inserts an un-nonced `<style>` when
- *   it loads, and server-rendered React `style` attributes (board geometry,
- *   per-cell colours) would otherwise be blocked. Style injection cannot run
- *   script, so the XSS protection comes from `script-src`.
+ * - SolidStart and app-owned scripts use the per-request nonce; style
+ *   attributes used by the boards are allowed independently of scripts.
  */
 
 import { AD_CSP_HOSTS } from './ads'
@@ -46,24 +41,22 @@ export function buildCsp(
 		dev = false,
 		ads = false,
 		googleTag = false,
-		assetPrefix = process.env.NEXT_PUBLIC_PUZZLED_ASSET_PREFIX,
-	}: { dev?: boolean; ads?: boolean; googleTag?: boolean; assetPrefix?: string } = {},
+	}: { dev?: boolean; ads?: boolean; googleTag?: boolean } = {},
 ): string {
-	const assets = assetPrefix ? ` ${new URL(assetPrefix).origin}` : ''
 	const tagFrames = googleTag ? ` ${GOOGLE_TAG_FRAME_HOSTS.join(' ')}` : ''
 	const tagConnect = googleTag ? ` ${GOOGLE_TAG_CONNECT_HOSTS.join(' ')}` : ''
 	const adFrames = ads ? ` ${AD_CSP_HOSTS.frame.join(' ')}` : ''
 	const adConnect = ads ? ` ${AD_CSP_HOSTS.connect.join(' ')}` : ''
 	return [
 		"default-src 'self'",
-		// Dev only: React's development build and Turbopack HMR use eval.
+		// Dev only: Keep development allowances separate from production.
 		`script-src 'self'${nonce ? ` 'nonce-${nonce}'` : ''} 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
-		`style-src 'self' 'unsafe-inline'${assets}`,
+		`style-src 'self' 'unsafe-inline'`,
 		"img-src 'self' data: blob: https:",
-		`font-src 'self' data:${assets}`,
+		`font-src 'self' data:`,
 		// The browser talks only to this origin (identity, events and errors are
 		// same-origin routes).
-		`connect-src 'self'${assets}${adConnect}${tagConnect}`,
+		`connect-src 'self'${adConnect}${tagConnect}`,
 		`frame-src 'self'${adFrames}${tagFrames}`,
 		"worker-src 'self'",
 		"object-src 'none'",

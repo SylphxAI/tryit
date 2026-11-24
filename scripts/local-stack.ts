@@ -8,7 +8,7 @@
  * Routing (must stay in sync with `sylphx.toml` `[[services]]`):
  * - `/puzzled.v1.{Admin,Gamification,Health,Jobs,Preferences,Puzzle,Stats}Service`
  *   and the probes `/healthz` / `/readyz` -> the api service.
- * - everything else -> the web (Next.js) presentation service.
+ * - everything else -> the web (SolidStart) presentation service.
  *
  * The ingress rewrites only transport concerns: it forwards the request body
  * and the caller's `Host` (plus `x-forwarded-*`) so the web layer resolves the

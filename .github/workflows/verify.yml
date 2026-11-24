@@ -61,7 +61,7 @@ jobs:
           only: ${{ inputs.lanes }}
           global-patterns: ''
           lanes: |
-            build: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mts apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile packages/* proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
+            build: apps/puzzled/src/* apps/puzzled/tests/* apps/puzzled/e2e-tests/* apps/puzzled/scripts/* apps/puzzled/public/* apps/puzzled/*.ts apps/puzzled/*.json apps/puzzled/*.mts apps/puzzled/*.mjs apps/puzzled/*.cjs apps/puzzled/*.css apps/puzzled/bunfig.toml apps/puzzled/Dockerfile proto/* brand/* config/commercial/* package.json bun.lock bunfig.toml turbo.json biome.json buf.yaml buf.gen.yaml scripts/* .github/workflows/ci.yml .github/workflows/verify.yml
             rust: crates/* proto/* Cargo.toml Cargo.lock rust-toolchain* .cargo/* apps/puzzled/atlas/* apps/puzzled/atlas.hcl scripts/check-dockerfile-puzzled-core.sh scripts/check-migration-order* .github/workflows/ci.yml .github/workflows/verify.yml
             browser: apps/puzzled/playwright.config.ts apps/puzzled/e2e-tests/* apps/puzzled/scripts/serve-puzzle-fixture.ts scripts/ci-contract.test.ts package.json apps/puzzled/package.json bun.lock .github/workflows/ci.yml .github/workflows/verify.yml
 
@@ -103,7 +103,7 @@ jobs:
               exit 0
             fi
             echo "bun install attempt ${attempt} failed; clearing partial cache and retrying..."
-            rm -rf node_modules apps/*/node_modules packages/*/node_modules ~/.bun/install/cache
+            rm -rf node_modules apps/*/node_modules ~/.bun/install/cache
             sleep $((attempt * 3))
           done
           echo "bun install failed after retries"
@@ -260,7 +260,7 @@ jobs:
               exit 0
             fi
             echo "bun install attempt ${attempt} failed; clearing partial cache and retrying..."
-            rm -rf node_modules apps/*/node_modules packages/*/node_modules ~/.bun/install/cache
+            rm -rf node_modules apps/*/node_modules ~/.bun/install/cache
             sleep $((attempt * 3))
           done
           echo "bun install failed after retries"
@@ -373,7 +373,7 @@ jobs:
               exit 0
             fi
             echo "bun install attempt ${attempt} failed; clearing partial cache and retrying..."
-            rm -rf node_modules apps/*/node_modules packages/*/node_modules ~/.bun/install/cache
+            rm -rf node_modules apps/*/node_modules ~/.bun/install/cache
             sleep $((attempt * 3))
           done
           echo "bun install failed after retries"
@@ -522,7 +522,7 @@ jobs:
               exit 0
             fi
             echo "bun install attempt ${attempt} failed; clearing partial cache and retrying..."
-            rm -rf node_modules apps/*/node_modules packages/*/node_modules ~/.bun/install/cache
+            rm -rf node_modules apps/*/node_modules ~/.bun/install/cache
             sleep $((attempt * 3))
           done
           echo "bun install failed after retries"
@@ -704,7 +704,7 @@ jobs:
               exit 0
             fi
             echo "bun install attempt ${attempt} failed; clearing partial cache and retrying..."
-            rm -rf node_modules apps/*/node_modules packages/*/node_modules ~/.bun/install/cache
+            rm -rf node_modules apps/*/node_modules ~/.bun/install/cache
             sleep $((attempt * 3))
           done
           echo "bun install failed after retries"
@@ -795,7 +795,7 @@ jobs:
           bun run test:e2e e2e-tests/pricing.e2e.ts e2e-tests/comparison-currency.e2e.ts e2e-tests/seo-conversion-layout.e2e.ts e2e-tests/ga4-checkout.e2e.ts --workers=1 --retries=0 --output=test-results/pricing 2>&1 | tee "$RUNNER_TEMP/craft-pricing.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-pricing.log"; then echo "a pricing test skipped"; exit 1; fi
 
-      - name: GA4 signup through the local Auth fixture
+      - name: Sign-in through the local Auth fixture
         working-directory: apps/puzzled
         env:
           SKIP_ENV_VALIDATION: 'true'
@@ -822,7 +822,8 @@ jobs:
             if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-auth.log" "$RUNNER_TEMP/serve-auth.log"; exit 1; fi
             sleep 1
           done
-          bun run test:e2e e2e-tests/solid-sign-in.e2e.ts -g 'GA4 signup' --workers=1 --retries=0 --output=test-results/auth
+          bun run test:e2e e2e-tests/auth.e2e.ts e2e-tests/solid-sign-in.e2e.ts --workers=1 --retries=0 --output=test-results/auth 2>&1 | tee "$RUNNER_TEMP/craft-auth.log"
+          if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-auth.log"; then echo "an auth test skipped"; exit 1; fi
 
       - name: Stop the served builds and fixture APIs
         if: always()

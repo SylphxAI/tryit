@@ -5,7 +5,6 @@ COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
 COPY apps/puzzled/package.json ./apps/puzzled/
-COPY packages/ui/package.json ./packages/ui/
 RUN bun install --frozen-lockfile --ignore-scripts
 
 COPY apps/puzzled ./apps/puzzled
