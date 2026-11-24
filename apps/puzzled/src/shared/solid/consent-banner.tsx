@@ -28,11 +28,11 @@ function ChoiceButtons(props: { copy: Copy; class: string; onChoose?: () => void
 			<button type="button" class={action} onClick={() => choose('denied')}>
 				{props.copy.decline}
 			</button>
-			<button type="button" class={action} onClick={() => choose('analytics_only')}>
-				{props.copy.analyticsOnly}
-			</button>
 			<button type="button" class={action} onClick={() => choose('granted')}>
 				{props.copy.accept}
+			</button>
+			<button type="button" class={action} onClick={() => choose('analytics_only')}>
+				{props.copy.analyticsOnly}
 			</button>
 		</div>
 	)

@@ -87,8 +87,8 @@ test('winning Sudoku reveals Share and See your result above the phone dock befo
 	const choices = await banner.getByRole('button').all()
 	expect(await banner.getByRole('button').allTextContents()).toEqual([
 		'Decline',
-		'Analytics only',
 		'Accept',
+		'Analytics only',
 	])
 	for (const choice of choices) {
 		const { width, height } = (await choice.boundingBox())!

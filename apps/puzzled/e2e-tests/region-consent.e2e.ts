@@ -72,7 +72,7 @@ for (const viewport of [
 			if (mobile) expect(metric.navTop).not.toBeNull()
 			else expect(metric.navTop).toBeNull()
 			expect(metric.bottom).toBeCloseTo(metric.navTop ?? metric.viewportBottom, 0)
-			expect(metric.choices).toEqual(['Decline', 'Analytics only', 'Accept'])
+			expect(metric.choices).toEqual(['Decline', 'Accept', 'Analytics only'])
 			expect(metric.equalStyle).toBe(true)
 			expect(metric.buttonHeight).toBeGreaterThanOrEqual(44)
 			expect(metric.buttonWidthDifference).toBeLessThan(1)
