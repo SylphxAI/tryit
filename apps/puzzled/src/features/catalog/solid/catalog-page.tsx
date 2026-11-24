@@ -6,7 +6,7 @@ import {
 	filterCatalogEntries,
 	parseCatalogCategory,
 } from '@/features/catalog/lib/catalog'
-import { getGameColors } from '@/games/theme-colors'
+import { gameFamilyColor } from '@/games/theme-colors'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
@@ -37,9 +37,7 @@ export function CatalogPage(props: {
 						<div class="grid items-end gap-x-10 gap-y-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
 							<div class="min-w-0">
 								<p class="eyebrow">{t().eyebrow}</p>
-								<h1 class="mt-2 font-display text-[2.125rem] leading-[1.06] text-balance sm:text-5xl">
-									{t().title}
-								</h1>
+								<h1 class="editorial-title mt-2">{t().title}</h1>
 								<p class="mt-3 max-w-2xl text-[16px] leading-relaxed text-muted-foreground sm:text-[17px]">
 									{t().subtitle}
 								</p>
@@ -60,7 +58,7 @@ export function CatalogPage(props: {
 										value={query()}
 										placeholder={t().searchPlaceholder}
 										enterkeyhint="search"
-										class="h-12 w-full rounded-xl border-[1.5px] border-[var(--tactile-soft-line)] bg-card pl-10 pr-24 text-[16px] outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
+										class="h-12 w-full rounded-xl border border-border bg-card pl-10 pr-24 text-[16px] outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
 									/>
 									<Show when={category() !== 'all'}>
 										<input type="hidden" name="category" value={category()} />
@@ -81,7 +79,7 @@ export function CatalogPage(props: {
 									<a
 										href={filterHref(filter.value)}
 										aria-current={category() === filter.value ? 'page' : undefined}
-										class="category-chip pressable min-h-11 shrink-0 px-4 text-sm"
+										class={`category-chip family-pill min-h-11 shrink-0 px-4 text-sm ${filter.value === 'all' ? '' : gameFamilyColor[filter.value]}`}
 										classList={{ 'category-chip-on': category() === filter.value }}
 									>
 										{filter.label}
@@ -141,7 +139,7 @@ export function CatalogPage(props: {
 						<div class="mt-6 grid gap-3 md:grid-cols-2">
 							<For each={props.data.faqs}>
 								{(faq) => (
-									<details class="group rounded-2xl border border-border/70 bg-card px-5 py-4 open:shadow-card">
+									<details class="editorial-surface group rounded-2xl px-5 py-4">
 										<summary class="flex cursor-pointer list-none items-center justify-between gap-3 py-1 font-display text-base marker:content-none">
 											{faq.question}
 											<ChevronDown
@@ -172,12 +170,12 @@ export function CatalogTile(props: {
 		<a
 			href={game().href}
 			data-game-tile={game().slug}
-			class="tactile-card group relative flex h-full flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+			class="editorial-surface editorial-interactive group relative flex h-full flex-col overflow-hidden rounded-2xl"
 		>
 			<div
 				class={
-					'tactile-card-field relative aspect-[16/10] overflow-hidden px-3 py-2 ' +
-					getGameColors(game().theme).bg
+					'family-field relative aspect-[16/10] overflow-hidden border-b border-hairline px-3 py-2 ' +
+					gameFamilyColor[game().category]
 				}
 			>
 				{/* biome-ignore lint/performance/noImgElement: decorative static SVG with intrinsic size */}
@@ -189,7 +187,7 @@ export function CatalogTile(props: {
 					height={100}
 					loading="lazy"
 					decoding="async"
-					class="block h-full w-full object-contain transition-transform duration-medium ease-out group-hover:scale-[1.04]"
+					class="block h-full w-full object-contain motion-safe:transition-transform motion-safe:group-hover:scale-[1.04]"
 				/>
 				<Show when={game().freeToday}>
 					<span class="absolute left-2 top-2 rounded-full bg-[#1a1712] px-2 py-0.5 text-[11px] font-semibold leading-4 text-[#fbf9f4]">
@@ -209,7 +207,9 @@ export function CatalogTile(props: {
 						<Clock class="h-3 w-3" aria-hidden="true" />
 						{game().duration}
 					</span>
-					<span class="tag-chip">{game().categoryLabel}</span>
+					<span class={`tag-chip family-pill ${gameFamilyColor[game().category]}`}>
+						{game().categoryLabel}
+					</span>
 					<span class="sr-only"> — {props.labels.play}</span>
 				</p>
 			</div>

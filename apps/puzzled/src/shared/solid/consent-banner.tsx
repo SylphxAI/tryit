@@ -1,11 +1,12 @@
 /** @jsxImportSource solid-js */
+import { ArrowUpRight } from 'lucide-solid'
 import { createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { cookieConsent, onConsentChange, saveCookieChoice } from '@/features/analytics/lib/consent'
 import type { SiteShellData } from './site-shell-data'
 
 type Copy = SiteShellData['consent']
 const action =
-	'min-h-11 rounded-lg border border-hairline bg-muted px-2 sm:min-w-24 sm:px-3 text-sm font-semibold text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2'
+	'chrome-control border border-hairline bg-background px-2 text-sm sm:min-w-24 sm:px-3'
 
 function useCookieConsent() {
 	// Keep the server and initial hydration independent of visitor state.
@@ -65,8 +66,12 @@ export function ConsentBanner(props: { copy: Copy }) {
 					    paint as one full-width text block over the game’s initial content. */}
 					<div class="flex flex-wrap items-baseline gap-x-2 text-muted-foreground max-md:justify-between">
 						<p>{props.copy.message}</p>
-						<a class="shrink-0 underline" href={props.copy.privacyHref}>
+						<a
+							class="consent-privacy chrome-control shrink-0 text-xs"
+							href={props.copy.privacyHref}
+						>
 							{props.copy.learnMore}
+							<ArrowUpRight size={12} aria-hidden="true" />
 						</a>
 					</div>
 					<ChoiceButtons copy={props.copy} class="grid grid-cols-3 gap-2 md:shrink-0" />
@@ -92,7 +97,7 @@ export function CookieSettings(props: { copy: Copy }) {
 			<dialog
 				ref={dialog}
 				aria-label={props.copy.change}
-				class="m-auto w-[min(28rem,calc(100%-2rem))] rounded-xl border border-hairline bg-background p-5 text-foreground backdrop:bg-black/40"
+				class="chrome-dialog"
 				data-cookie-settings
 			>
 				<div class="space-y-3">
@@ -106,7 +111,7 @@ export function CookieSettings(props: { copy: Copy }) {
 									? props.copy.enabled
 									: props.copy.disabled}
 					</p>
-					<a class="block text-sm underline" href={props.copy.privacyHref}>
+					<a class="chrome-control text-sm" href={props.copy.privacyHref}>
 						{props.copy.learnMore}
 					</a>
 					<div class="flex flex-wrap items-center gap-2">
@@ -117,7 +122,11 @@ export function CookieSettings(props: { copy: Copy }) {
 								onChoose={() => dialog?.close()}
 							/>
 						</Show>
-						<button type="button" class="min-h-11 px-3 underline" onClick={() => dialog?.close()}>
+						<button
+							type="button"
+							class="chrome-control border border-hairline px-3"
+							onClick={() => dialog?.close()}
+						>
 							{props.copy.close}
 						</button>
 					</div>

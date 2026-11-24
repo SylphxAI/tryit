@@ -31,7 +31,7 @@ import { todayPlayPath, todayResultPath } from '@/features/daily/lib/today-play-
 import { formatCountdown } from '@/features/home/lib/day-boundary'
 import { homeDayCopy, lineupStatus } from '@/features/home/lib/home-day-copy'
 import { homeParticipationCopy } from '@/features/home/lib/home-participation-copy'
-import { getGameColors } from '@/games/theme-colors'
+import { gameFamilyColor, getGameColors } from '@/games/theme-colors'
 import { formatTrialEnd } from '@/lib/billing/plus'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -140,14 +140,15 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 	const featuredCard = (cta: Accessor<'play' | 'result'>, showsNote: Accessor<boolean>) => (
 		<div
 			data-day-puzzle-card=""
-			class="home-featured-card tactile-card grid grid-cols-[6.5rem_minmax(0,1fr)] overflow-hidden sm:block"
+			class="home-featured-card editorial-surface grid grid-cols-[6.5rem_minmax(0,1fr)] overflow-hidden rounded-3xl sm:block"
+			classList={{ [gameFamilyColor[page.featured.category]]: true }}
 		>
 			<div
 				class={cn(
-					'home-featured-art relative flex items-center justify-center border-r-[1.5px] border-[var(--tactile-line)] sm:border-b-[1.5px] sm:border-r-0',
-					getGameColors(page.featured.theme).bg,
+					'home-featured-art family-field relative flex items-center justify-center border-e border-hairline sm:border-e-0 sm:border-b',
 				)}
 				aria-hidden="true"
+				style={{ '--game-paper': getGameColors(page.featured.theme).hex }}
 			>
 				<img
 					src={`/motifs/${page.featured.slug}.svg`}
@@ -156,16 +157,16 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 					height="100"
 					class="home-featured-motif block h-full w-full object-contain"
 				/>
-				<span class="absolute left-3 top-3 hidden rounded-full bg-[#1a1712] px-2.5 py-1 text-xs font-semibold text-[#fbf9f4] sm:block">
+				<span class="absolute left-3 top-3 hidden rounded-full bg-card px-2.5 py-1 text-xs font-semibold text-foreground sm:block">
 					{t('home.lineup.freeToday')}
 				</span>
-				<span class="numeral absolute right-3 top-3 hidden rounded-full bg-[#fbf9f4]/80 px-2 py-0.5 text-xs font-semibold text-[#1a1712] sm:block">
+				<span class="numeral absolute right-3 top-3 hidden rounded-full bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground sm:block">
 					#{format.format(page.puzzleNumber)}
 				</span>
 			</div>
 			<div class="home-featured-content p-3 sm:p-5">
 				<div class="flex items-baseline justify-between gap-3">
-					<p class="home-featured-title font-display text-[1.375rem] leading-tight sm:text-[1.75rem]">
+					<p class="home-featured-title font-display text-[1.5rem] leading-tight font-extrabold sm:text-[2rem]">
 						{page.featured.name}
 					</p>
 					<Show when={page.featured.duration}>
@@ -180,7 +181,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 				<a
 					data-day-primary-action=""
 					data-home-featured={page.featured.slug}
-					class="pressable home-featured-action mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#1a1712] bg-cta px-4 text-[15px] font-bold text-cta-foreground shadow-[0_3px_0_0_#1a1712] transition-colors hover:bg-cta-hover sm:mt-4 sm:text-[16px]"
+					class="chrome-control chrome-primary mt-3 flex min-h-12 w-full gap-2 px-4 text-[15px] font-bold sm:mt-4 sm:text-[16px]"
 					href={href(
 						cta() === 'result'
 							? todayResultPath(page.featured.slug)
@@ -205,7 +206,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 	)
 	const lead = () => (
 		<div class="home-day-lead min-w-0 space-y-4">
-			<h1 class="max-w-xl font-display text-[clamp(2.35rem,5vw,4rem)] leading-[1.02] text-balance">
+			<h1 class="editorial-title max-w-xl">
 				{t(`home.day.${copy().headlineKey}`, {
 					game: page.featured.name,
 					count,
@@ -304,7 +305,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 						)}
 					</Show>
 				</Suspense>
-				<section class="day-surface relative">
+				<section class="home-hero day-surface relative">
 					<div class="home-day-shell page-shell-wide pt-3 md:pt-5">
 						<div class="home-day-masthead masthead-rule flex flex-wrap items-center justify-between gap-3 py-2 text-sm text-muted-foreground">
 							<p class="day-numeral font-semibold text-foreground">
@@ -365,7 +366,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 							<Suspense
 								fallback={
 									<div class="min-w-0">
-										<h1 class="font-display text-4xl">{t('home.day.guestTitle', { count })}</h1>
+										<h1 class="editorial-title max-w-xl">{t('home.day.guestTitle', { count })}</h1>
 										{featuredCard(
 											() => 'play',
 											() => true,
@@ -385,19 +386,19 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 											{t('home.lineup.subtitle', { count })}
 										</p>
 									</div>
-									<a
-										class="inline-flex min-h-11 items-center gap-1 font-semibold hover:underline"
-										href={href('/games')}
-									>
+									<a class="chrome-control gap-1" href={href('/games')}>
 										{t('home.lineup.seeAll')}
 										<ArrowRight size={16} aria-hidden="true" />
 									</a>
 								</div>
-								<ul class="no-scrollbar flex gap-2 overflow-x-auto pb-1 md:flex-wrap">
+								<ul class="no-scrollbar -mx-1 flex gap-2 overflow-x-auto p-1 md:flex-wrap">
 									<For each={CATALOG_CATEGORIES}>
 										{(value) => (
 											<li class="shrink-0">
-												<a class="category-chip" href={href(`/games?category=${value}`)}>
+												<a
+													class={cn('category-chip family-pill', gameFamilyColor[value])}
+													href={href(`/games?category=${value}`)}
+												>
 													{t(`catalog.category.${value}`)}
 													<span class="numeral text-muted-foreground">
 														{page.catalog.filter((game) => game.category === value).length}
@@ -409,14 +410,13 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 								</ul>
 								<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
 									<For each={status().renderedGames}>
-										{(state, index) => {
+										{(state) => {
 											const game = bySlug.get(state.slug)
 											if (!game) return null
 											const kind = lineupStatus(state)
 											return (
 												<HomeGameCard
 													game={game}
-													index={index()}
 													status={kind}
 													href={href(
 														kind === 'solved'

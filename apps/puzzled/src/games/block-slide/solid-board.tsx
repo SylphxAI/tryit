@@ -242,7 +242,7 @@ function Slides(
 						</button>
 						<button
 							type="button"
-							class="min-h-12 rounded-xl px-3 font-semibold underline"
+							class="chrome-control min-h-12 border border-hairline px-3"
 							onClick={() => end('lost', moves())}
 						>
 							{text('giveUp')}

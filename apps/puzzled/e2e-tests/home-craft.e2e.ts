@@ -159,11 +159,11 @@ test('the lineup cards keep a stationary hit target', async ({ page }) => {
 	const motif = face.locator('img')
 	const hitbox = await card.boundingBox()
 	await card.hover()
-	await expect(face).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -3)')
-	await expect(motif).toHaveCSS('transform', 'matrix(1.045, 0, 0, 1.045, 0, -1)')
+	await expect(face).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -2)')
+	await expect(motif).toHaveCSS('transform', 'matrix(1.035, 0, 0, 1.035, 0, 0)')
 	await page.mouse.down()
 	try {
-		await expect(face).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 3)')
+		await expect(face).toHaveCSS('transform', 'matrix(0.985, 0, 0, 0.985, 0, 0)')
 		expect(await card.boundingBox()).toEqual(hitbox)
 	} finally {
 		// Release off-card so this assertion doesn't also start a game.

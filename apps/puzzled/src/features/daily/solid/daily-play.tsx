@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ConnectError } from '@connectrpc/connect'
-import { ArrowLeft, CircleHelp, Lock, Play, X } from 'lucide-solid'
+import { ArrowLeft, CircleHelp, Lock, Play, SlidersHorizontal, X } from 'lucide-solid'
 import {
 	createEffect,
 	createResource,
@@ -225,7 +225,7 @@ export function DailyPlay(props: {
 					<p role="status">{t('daily.completedNoResult')}</p>
 				</Match>
 				<Match when={choose}>
-					<div class="mx-auto max-w-xl space-y-3">
+					<div class="editorial-surface mx-auto max-w-xl space-y-3 rounded-3xl p-4 sm:p-5">
 						<h2 class="font-display text-2xl">{t('common.difficulty.selectDifficulty')}</h2>
 						<Show when={snapshot('unavailable')}>
 							<p class="text-sm text-muted-foreground">{t('daily.difficultyStatusUnverified')}</p>
@@ -235,7 +235,7 @@ export function DailyPlay(props: {
 								{(level) => (
 									<li>
 										<a
-											class="tactile-card block h-full p-4"
+											class="editorial-surface editorial-interactive block h-full rounded-2xl p-4"
 											href={localizedPath(props.data.locale, todayPlayPath(slug, level.level))}
 											data-start-intent={slug}
 											onClick={(event) => {
@@ -323,12 +323,9 @@ function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty:
 	return (
 		<header class="play-intro mb-2 text-sm">
 			<div class="play-hud flex flex-wrap items-center gap-x-3">
-				<a
-					class="play-exit hidden min-h-11 items-center gap-1 font-semibold"
-					href={props.data.catalog}
-				>
+				<a class="play-exit chrome-control hidden" href={props.data.catalog}>
 					<ArrowLeft size={16} aria-hidden="true" />
-					{t('nav.games')}
+					<span>{t('nav.games')}</span>
 				</a>
 				<h1 class="play-title hidden min-w-0 flex-1 font-display text-lg font-bold">
 					{props.data.name}
@@ -340,21 +337,19 @@ function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty:
 					}).format(new Date(props.date))}
 				</time>
 				<Show when={props.changeDifficulty}>
-					<a
-						class="inline-flex min-h-11 items-center underline"
-						href={`${props.data.canonicalPath}#play`}
-					>
+					<a class="chrome-control play-difficulty" href={`${props.data.canonicalPath}#play`}>
+						<SlidersHorizontal size={15} class="hidden sm:block" aria-hidden="true" />
 						{t('common.difficulty.selectDifficulty')}
 					</a>
 				</Show>
 				<button
 					type="button"
-					class="inline-flex min-h-11 items-center gap-1.5 font-semibold underline underline-offset-4"
+					class="chrome-control play-help"
 					aria-haspopup="dialog"
 					onClick={() => rules?.showModal()}
 				>
 					<CircleHelp size={16} aria-hidden="true" />
-					{t('common.help')}
+					<span>{t('common.help')}</span>
 				</button>
 			</div>
 			<div class="play-cue">
@@ -375,7 +370,7 @@ function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty:
 				// Keep global board shortcuts from consuming keys meant for the dialog.
 				on:keydown={(event) => event.stopPropagation()}
 				aria-labelledby="play-rules-title"
-				class="m-auto max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100%-2rem))] rounded-xl border border-border bg-background p-5 text-foreground backdrop:bg-black/40"
+				class="chrome-dialog"
 			>
 				<div class="mb-3 flex items-center justify-between gap-3">
 					<h2 id="play-rules-title" class="font-display text-xl">
@@ -383,7 +378,7 @@ function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty:
 					</h2>
 					<button
 						type="button"
-						class="grid size-11 shrink-0 place-items-center rounded-lg hover:bg-muted"
+						class="chrome-control size-11 shrink-0 border border-hairline"
 						aria-label={t('consent.close')}
 						onClick={() => rules?.close()}
 					>

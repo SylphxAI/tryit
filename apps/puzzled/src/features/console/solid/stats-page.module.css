@@ -1,0 +1,164 @@
+.page {
+	--stats-hairline: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+	flex: 1;
+	background-color: #f7f5f0;
+	font-variant-numeric: tabular-nums;
+}
+
+:global(.dark) .page {
+	--stats-hairline: var(--color-hairline);
+	background-color: var(--color-background);
+}
+
+/* Console primitives are shared with other account surfaces. Apply this
+   presentation only within the stats route. */
+.page h1 {
+	font-size: clamp(2.5rem, 2rem + 2.25vw, 4rem);
+	font-weight: 800;
+	line-height: 1.04;
+	letter-spacing: -0.04em;
+	text-wrap: balance;
+}
+
+.page h1 + p {
+	margin-block-start: 0.75rem;
+	font-size: 1rem;
+	overflow-wrap: anywhere;
+}
+
+.page h2 {
+	font-size: clamp(1.25rem, 1.125rem + 0.5vw, 1.5rem);
+	font-weight: 750;
+	text-wrap: balance;
+}
+
+.page :is(h1, h2, :global(.eyebrow)):is(:lang(zh), :lang(ja), :lang(ko)) {
+	letter-spacing: normal;
+}
+
+.page h1:is(:lang(zh), :lang(ja), :lang(ko)) {
+	line-height: 1.2;
+}
+
+.page :is(:global(.surface-card), :global(.shadow-card), [data-stats-plus-card]) {
+	min-inline-size: 0;
+	border-color: var(--stats-hairline);
+	background-color: var(--color-card);
+	box-shadow: var(--shadow-md);
+}
+
+.page :global(.surface-card) > div:first-child {
+	border-color: var(--stats-hairline);
+}
+
+.page :global(.shadow-card) p:global(.tnum) {
+	margin-block-start: 0.625rem;
+	font-family: var(--font-sans);
+	font-size: clamp(2rem, 1.65rem + 1.5vw, 3rem);
+	font-weight: 800;
+	font-feature-settings: normal;
+	letter-spacing: -0.03em;
+	overflow-wrap: anywhere;
+}
+
+.page :global(.shadow-card) svg {
+	box-sizing: content-box;
+	flex-shrink: 0;
+	padding: 0.375rem;
+	border-radius: 0.5rem;
+	background-color: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.page :global(.shadow-card) svg:global(.text-accent-warm) {
+	color: var(--color-stat-streak);
+}
+
+.page span:global(.chip) {
+	min-block-size: 1.625rem;
+}
+
+.page span:global(.chip):global(.text-accent-warm) {
+	color: var(--color-accent-warm-foreground);
+}
+
+.page :is(a:global(.chip), a:global(.rounded-xl):global(.border)) {
+	display: inline-flex;
+	min-block-size: 2.75rem;
+	justify-content: center;
+	padding-inline: 0.875rem;
+	border: 1px solid var(--stats-hairline);
+	border-radius: 999px;
+	background-color: var(--color-card);
+	color: var(--color-foreground);
+	text-align: center;
+	white-space: normal;
+}
+
+.page :is(a:global(.chip), a:global(.rounded-xl):global(.border)):hover {
+	border-color: var(--color-input);
+	background-color: var(--color-accent);
+	text-decoration: none;
+}
+
+.page :global(.rounded-2xl):not(section) a[href$="/games"] {
+	border-color: transparent;
+	background-color: var(--color-cta);
+	color: var(--color-cta-foreground);
+}
+
+.page :global(.rounded-2xl):not(section) a[href$="/games"]:hover {
+	background-color: var(--color-cta-hover);
+}
+
+.page a svg {
+	flex-shrink: 0;
+}
+
+/* Keep both real tables readable on phones without requiring a horizontal
+   scroll region or discarding columns. */
+@media (max-width: 639px) {
+	.page :global(.overflow-x-auto) > table {
+		min-inline-size: 0;
+	}
+
+	.page :global(.overflow-x-auto) > table :is(th, td) {
+		padding-inline: 0.375rem;
+		overflow-wrap: anywhere;
+	}
+
+	.page :global(.overflow-x-auto) > table :is(th, td):first-child {
+		padding-inline-start: 0.75rem;
+	}
+
+	.page :global(.overflow-x-auto) > table :is(th, td):last-child {
+		padding-inline-end: 0.75rem;
+	}
+
+	.page :global(.overflow-x-auto) > table span:global(.truncate) {
+		overflow: visible;
+		white-space: normal;
+	}
+
+	.page :global(.overflow-x-auto) > table span > svg {
+		display: none;
+	}
+}
+
+/* The finished-day map and its matching legend share the same swatch. */
+.page span:global(.from-muted):global(.to-muted) {
+	background: var(--color-stat-winrate);
+}
+
+.page summary::after {
+	margin-inline-start: 0.625rem;
+	inline-size: 0.5em;
+	block-size: 0.5em;
+	border-inline-end: 1.5px solid currentColor;
+	border-block-end: 1.5px solid currentColor;
+	content: '';
+	transform: translateY(-0.125em) rotate(45deg);
+}
+
+.page details[open] > summary::after {
+	transform: translateY(0.125em) rotate(225deg);
+}

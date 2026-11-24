@@ -12,8 +12,7 @@ import { SiteShell } from '@/shared/solid/site-shell'
 import { CatalogTile } from './catalog-page'
 import type { GamePageData } from './game-data'
 
-export const playButton =
-	'pressable inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#1a1712] bg-cta px-7 text-base font-bold text-cta-foreground shadow-[0_3px_0_0_#1a1712] transition-colors hover:bg-cta-hover active:translate-y-0.5 active:shadow-[0_1px_0_0_#1a1712]'
+export const playButton = 'chrome-control chrome-primary min-h-12 gap-2 px-7 text-base font-bold'
 
 // Capture an explicit Play tap even before Solid installs its click handler.
 // Do not turn a shared or pasted URL into permission to spend a daily pick.
@@ -140,7 +139,7 @@ export function GameLanding(
 									<div class="mt-3 flex items-center justify-between gap-4">
 										{title()}
 										<div
-											class={`tactile-card h-16 w-[6.25rem] shrink-0 overflow-hidden rounded-xl p-1 md:hidden ${color()}`}
+											class={`editorial-surface h-16 w-[6.25rem] shrink-0 overflow-hidden rounded-xl p-1 md:hidden ${color()}`}
 										>
 											{motif()}
 										</div>
@@ -172,7 +171,7 @@ export function GameLanding(
 										<p class="mt-2 text-sm text-muted-foreground">
 											{t().guest}{' '}
 											<a
-												class="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4"
+												class="chrome-control text-foreground"
 												href={localizedPath(
 													d().locale,
 													`/sign-in?${new URLSearchParams({ callbackUrl: d().canonicalPath })}`,
@@ -184,7 +183,7 @@ export function GameLanding(
 									</Show>
 								</div>
 								<div
-									class={`tactile-card hidden aspect-[16/10] overflow-hidden p-4 md:block ${color()}`}
+									class={`editorial-surface hidden aspect-[16/10] rounded-3xl overflow-hidden p-4 md:block ${color()}`}
 								>
 									{motif()}
 								</div>
@@ -263,10 +262,7 @@ export function GameLanding(
 					<div class="page-shell">
 						<div class="flex flex-wrap items-center justify-between gap-2">
 							<h2 class="font-display text-[1.625rem]">{t().relatedTitle}</h2>
-							<a
-								class="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
-								href={d().catalog}
-							>
+							<a class="chrome-control text-sm" href={d().catalog}>
 								{t().relatedAll}
 							</a>
 						</div>

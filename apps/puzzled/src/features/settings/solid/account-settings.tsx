@@ -198,7 +198,7 @@ export function AccountSettings(props: { data: MemberSettingsData; t: Translate 
 					ref={confirmation}
 					aria-labelledby="delete-data-title"
 					aria-describedby="delete-data-description"
-					class="m-auto max-w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-border bg-card p-5 text-foreground shadow-card backdrop:bg-black/50"
+					class="chrome-dialog"
 					onClose={() => {
 						if (!busy()) trigger.focus()
 					}}
