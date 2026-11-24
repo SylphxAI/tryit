@@ -2,10 +2,20 @@
 import { Delete } from 'lucide-solid'
 import { createMemo, createSignal, For, Index, onCleanup, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
-import { checkGuess } from '@/lib/connect/puzzle-client'
+import { ensureGuestSession } from '@/lib/connect/transport'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
-import { type Feedback, readWordFeedback, wordKeyFeedback } from './feedback'
+import { type Feedback, wordKeyFeedback } from './feedback'
+import {
+	type FiveRow,
+	type FiveRun,
+	forgetFiveRun,
+	getFiveRun,
+	hasFiveRuns,
+	openFiveRun,
+	sendFiveGuess,
+} from './guess-run'
+import { readFiveRunScope } from './run-scope'
 import { KEYBOARD_ROWS, MAX_GUESSES, WORD_LENGTH } from './types'
 import { isValidWord } from './words'
 
@@ -19,15 +29,15 @@ const cells = Array.from({ length: WORD_LENGTH }, (_, i) => i)
 const slots = Array.from({ length: MAX_GUESSES }, (_, i) => i)
 const gameSlug = 'word-guess'
 
-type Row = { word: string; tiles: Feedback[] }
-
 export default function WordGuessBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
 	const config = props.puzzle.puzzleData as { wordLength?: unknown; maxAttempts?: unknown } | null
 	const playable = config?.wordLength === WORD_LENGTH && config.maxAttempts === MAX_GUESSES
-	const [rows, setRows] = createSignal<Row[]>([])
+	const puzzle = { puzzleId: props.puzzle.puzzleId, puzzleDate: props.puzzle.puzzleDate }
+	const [rows, setRows] = createSignal<FiveRow[]>([])
 	const [draft, setDraft] = createSignal('')
 	const [grading, setGrading] = createSignal(false)
+	const [checkingScope, setCheckingScope] = createSignal(false)
 	const [error, setError] = createSignal<string>()
 	const [outcome, setOutcome] = createSignal<'won' | 'lost'>()
 	const finish = createBoardFinish(props, gameSlug)
@@ -36,7 +46,8 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		rows()
 			.map((row) => row.tiles.map((tile) => badges[tile]).join(''))
 			.join('\n')
-	const inactive = () => !playable || grading() || Boolean(outcome())
+	const busy = () => checkingScope() || grading()
+	const inactive = () => !playable || busy() || Boolean(outcome())
 	const result = createMemo(() => {
 		if (outcome() === 'won') return t('games.wordGuess.messages.correct')
 		try {
@@ -50,6 +61,8 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		return t('gameResult.gameOver')
 	})
 	let disposed = false
+	let visibleRun: FiveRun | undefined
+	let visibleScope: string | undefined
 	const tone = (grade: Feedback | undefined, fallback: string) => (grade ? tones[grade] : fallback)
 	const feedbackDescription = (grade: Feedback | undefined) => (grade ? rules(grade) : undefined)
 	const rules = (grade: Feedback) => t(`games.wordGuess.rules.${grade}`)
@@ -60,6 +73,33 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		if (key === 'BACKSPACE') setDraft((word) => word.slice(0, -1))
 		else if (/^[a-z]$/i.test(key))
 			setDraft((word) => (word + key.toLowerCase()).slice(0, WORD_LENGTH))
+	}
+	function applyRun(run: FiveRun, scope: string | undefined) {
+		const next = run.rows
+		setRows(next)
+		setDraft(run.failedWord ?? '')
+		setError(run.failedWord ? t('common.error') : undefined)
+		const status = next.at(-1)?.tiles.every((tile) => tile === 'correct')
+			? 'won'
+			: next.length === MAX_GUESSES
+				? 'lost'
+				: undefined
+		if (status) {
+			// Terminal acceptance/re-entry is owned by SubmitGuess/GetDaily, not this cache.
+			forgetFiveRun(scope, puzzle)
+			setOutcome(status)
+			finish.finish({ guesses: next.map(({ word }) => word) }, { status, attempts: next.length })
+		}
+	}
+	async function watchRun(run: FiveRun, scope: string | undefined) {
+		const pending = run.pending
+		if (pending) {
+			setGrading(true)
+			setRows(run.rows)
+			setDraft(pending.word)
+			await pending.settled
+		}
+		if (!disposed) applyRun(run, scope)
 	}
 	async function grade() {
 		if (inactive()) return
@@ -76,33 +116,30 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		}
 		setError(undefined)
 		triggerHaptic('submit')
-		setGrading(true)
+		setCheckingScope(true)
 		try {
-			const response = (await checkGuess({
-				gameSlug,
-				puzzleId: props.puzzle.puzzleId,
-				puzzleDate: props.puzzle.puzzleDate,
-				guess: { word },
-			})) as { tiles?: unknown } | null
+			// Bootstrap before reading the HttpOnly credential scope, just as CheckGuess does.
+			await ensureGuestSession().catch(() => undefined)
+			const scope = await readFiveRunScope()
 			if (disposed) return
-			const tiles = readWordFeedback(response?.tiles)
-			if (!tiles) throw new Error('invalid_word_grade')
-			const next = [...rows(), { word, tiles }]
-			setRows(next)
-			setDraft('')
-			const status = tiles.every((tile) => tile === 'correct')
-				? 'won'
-				: next.length === MAX_GUESSES
-					? 'lost'
-					: undefined
-			if (status) {
-				setOutcome(status)
-				finish.finish({ guesses: next.map(({ word }) => word) }, { status, attempts: next.length })
+			if (!scope && visibleScope) throw new Error('five_scope_unavailable')
+			const previous = visibleRun
+			const run = scope === visibleScope && previous ? previous : openFiveRun(scope, puzzle)
+			visibleRun = run
+			visibleScope = scope
+			// If credentials or rows changed, reconcile what was already graded
+			// rather than sending a word entered against a different view.
+			if (!run.pending && (previous === run || (!previous && !run.rows.length))) {
+				sendFiveGuess(run, puzzle, word)
 			}
+			await watchRun(run, scope)
 		} catch {
 			if (!disposed) setError(t('common.error'))
 		} finally {
-			if (!disposed) setGrading(false)
+			if (!disposed) {
+				setCheckingScope(false)
+				setGrading(false)
+			}
 		}
 	}
 	function handleKey(event: KeyboardEvent) {
@@ -135,6 +172,25 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		if (!playable) return
 		window.addEventListener('keydown', handleKey)
 		onCleanup(() => window.removeEventListener('keydown', handleKey))
+		if (!hasFiveRuns()) return
+		setCheckingScope(true)
+		void readFiveRunScope()
+			.then(async (scope) => {
+				if (disposed) return
+				const run = getFiveRun(scope, puzzle)
+				if (run) {
+					visibleRun = run
+					visibleScope = scope
+					await watchRun(run, scope)
+				}
+			})
+			.catch(() => undefined)
+			.finally(() => {
+				if (!disposed) {
+					setCheckingScope(false)
+					setGrading(false)
+				}
+			})
 	})
 	onCleanup(() => {
 		disposed = true
@@ -182,7 +238,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 					<fieldset
 						class="grid gap-1"
 						aria-label={t('games.wordGuess.rules.rule2')}
-						aria-busy={grading()}
+						aria-busy={busy()}
 					>
 						<For each={KEYBOARD_ROWS}>
 							{(row) => (
@@ -203,7 +259,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 													aria-label={label}
 													aria-description={feedbackDescription(keyGrade())}
 													data-grade={keyGrade()}
-													aria-disabled={grading() || undefined}
+													aria-disabled={busy() || undefined}
 													class={`flex min-h-12 min-w-0 items-center justify-center rounded-md border font-semibold touch-manipulation aria-disabled:opacity-60 ${action ? 'w-[14%] text-xs' : 'w-[9%] text-base'} ${tone(keyGrade(), 'border-border bg-key text-key-text')}`}
 													onClick={() => (key === 'ENTER' ? void grade() : edit(key))}
 												>
