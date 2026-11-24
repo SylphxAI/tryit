@@ -8,6 +8,14 @@
 	overflow: hidden;
 	border-bottom: 1px solid var(--editorial-line);
 }
+/* Keep the caption intact on the first phone row and give the four-column
+   grid a shallower art field. The full card remains the tap target. */
+@media (width < 640px) {
+	.field { aspect-ratio: 16 / 9; }
+}
+@media (width >= 1280px) {
+	.field { aspect-ratio: 16 / 7.25; }
+}
 .motif { display: block; block-size: 100%; inline-size: 82%; object-fit: contain; }
 @media (prefers-reduced-motion: no-preference) {
 	.face { transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out); }

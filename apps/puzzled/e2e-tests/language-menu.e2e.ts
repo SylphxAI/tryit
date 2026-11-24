@@ -44,12 +44,12 @@ test('guest admission leaves an open language disclosure in place', async ({ pag
 		await trigger.press('Enter')
 		const options = languageOptions(page)
 		await expect(options).toBeVisible()
-		const sameHeader = await page.locator('header').elementHandle()
+		// The play HUD has its own header even before the board arrives.
+		const siteHeader = page.getByRole('banner')
+		const original = await siteHeader.elementHandle()
 		release()
 		await expect(page.getByRole('group', { name: 'Sudoku', exact: true })).toBeVisible()
-		expect(
-			await sameHeader!.evaluate((element) => element === document.querySelector('header')),
-		).toBe(true)
+		expect(await siteHeader.evaluate((element, prior) => element === prior, original)).toBe(true)
 		await expect(options).toBeVisible()
 		await expect(trigger).toBeFocused()
 		await page.keyboard.press('Escape')

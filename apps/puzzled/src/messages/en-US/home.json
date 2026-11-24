@@ -76,7 +76,7 @@
 		"puzzleNumber": "Puzzle #{number}",
 		"resetsIn": "Resets in",
 		"resetsAt": "Daily reset: 16:00 UTC",
-		"guestTitle": "{count} daily puzzles. Play any 3 free, no account needed.",
+		"guestTitle": "{count} daily puzzles. Play now, no account needed.",
 		"titleMemberReady": "Today's {game} is ready",
 		"titleMemberStreak": "Your {days}-day streak is waiting",
 		"titleMemberDone": "All done for today — nicely played",

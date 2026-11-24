@@ -177,7 +177,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 				<a
 					data-day-primary-action=""
 					data-home-featured={page.featured.slug}
-					class="chrome-control chrome-primary mt-3 flex min-h-12 w-full gap-2 px-4 text-[15px] font-bold sm:mt-4 sm:text-[16px]"
+					class="chrome-control chrome-primary mt-2 flex min-h-12 w-full gap-2 px-4 text-[15px] font-bold sm:mt-4 sm:text-[16px]"
 					href={href(
 						cta() === 'result'
 							? todayResultPath(page.featured.slug)
@@ -196,7 +196,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		</div>
 	)
 	const lead = () => (
-		<div class="home-day-lead min-w-0 space-y-4">
+		<div class="home-day-lead min-w-0 space-y-3 sm:space-y-4">
 			<h1 class="editorial-title max-w-xl">
 				{t(`home.day.${copy().headlineKey}`, {
 					game: page.featured.name,
@@ -291,8 +291,8 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 					</Show>
 				</Suspense>
 				<section class="home-hero day-surface relative">
-					<div class="home-day-shell page-shell-wide pt-3 md:pt-5">
-						<div class="home-day-masthead masthead-rule flex flex-wrap items-center justify-between gap-3 py-2 text-sm text-muted-foreground">
+					<div class="home-day-shell page-shell-wide pt-2 md:pt-5">
+						<div class="home-day-masthead masthead-rule flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1.5 text-sm text-muted-foreground sm:gap-y-3 sm:py-2">
 							<p class="day-numeral font-semibold text-foreground">
 								{t('home.day.puzzleNumber', { number: page.puzzleNumber })} ·{' '}
 								{t('home.lineup.subtitleShort', { count })}
@@ -347,10 +347,10 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 								</time>
 							</p>
 						</div>
-						<div class="home-day-grid grid items-start gap-8 pb-10 pt-5 md:pb-14 md:pt-7 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
+						<div class="home-day-grid grid items-start gap-5 pb-10 pt-4 sm:gap-8 md:pb-14 md:pt-7 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
 							<Suspense
 								fallback={
-									<div class="min-w-0">
+									<div class="home-day-lead min-w-0 space-y-3 sm:space-y-4">
 										<h1 class="editorial-title max-w-xl">{t('home.day.guestTitle', { count })}</h1>
 										{featuredCard(() => 'play')}
 									</div>
@@ -387,7 +387,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 										)}
 									</For>
 								</ul>
-								<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+								<ul class="mt-2 grid grid-cols-2 gap-3 sm:mt-3 sm:grid-cols-3 xl:grid-cols-4">
 									<For
 										each={status().renderedGames.filter(({ slug }) => slug !== page.featured.slug)}
 									>

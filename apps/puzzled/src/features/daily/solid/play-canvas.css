@@ -92,6 +92,15 @@
 [data-play-canvas] .play-exit { display: inline-flex; }
 [data-play-canvas] .play-title { display: block; }
 [data-play-canvas] .play-date { margin: 0; }
+[data-play-canvas] .play-date:empty { visibility: hidden; }
+
+/* The gate and the loading status share the full play scrollport; they do
+   not size the canvas or push the consent choices and tab bar down. */
+[data-play-canvas] .play-body > .play-entry {
+	margin: auto;
+	min-inline-size: 0;
+	flex-shrink: 1;
+}
 
 [data-play-canvas] .play-cue {
 	width: min(calc(100% - 2rem), 64rem);
@@ -128,7 +137,7 @@
 	.site-shell:has([data-play-canvas]) .site-header-language .language-icon { display: block; }
 	.site-shell:has([data-play-canvas]) .site-header-language .language-name,
 	.site-shell:has([data-play-canvas]) .site-header-language summary svg:not(.language-icon) { display: none; }
-	[data-play-canvas] .play-date { order: 4; width: 100%; padding-bottom: .25rem; font-size: .75rem; }
+	[data-play-canvas] .play-date { order: 4; width: 100%; min-block-size: 1.25rem; padding-bottom: .25rem; font-size: .75rem; }
 	[data-play-canvas] .play-hud { column-gap: .5rem; }
 	[data-play-canvas] .play-hud > button svg { display: none; }
 }
@@ -243,7 +252,7 @@
 
 [data-play-canvas] .play-result { display: contents; }
 
-[data-play-canvas] .completion-card {
+[data-play-canvas] .completion-card:not(.play-entry) {
 	position: absolute;
 	z-index: 5;
 	inset-inline: max(.25rem, calc((100% - 28rem) / 2));

@@ -76,7 +76,7 @@
 		"puzzleNumber": "第 {number} 題",
 		"resetsIn": "距離重置",
 		"resetsAt": "每日更新：16:00 UTC",
-		"guestTitle": "每日 {count} 款謎題，任揀 3 款免費玩，唔使登記。",
+		"guestTitle": "每日 {count} 款謎題，唔使登記，即刻玩得。",
 		"titleMemberReady": "今日的{game}已準備好",
 		"titleMemberStreak": "你的 {days} 日連續紀錄等着你",
 		"titleMemberDone": "今日已完成 — 玩得漂亮",
