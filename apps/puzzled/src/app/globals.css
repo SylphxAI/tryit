@@ -1569,7 +1569,7 @@ html:has(.site-shell) {
 
 /* Keep the full featured action and guest note above the consent dock on
    short Taiwan desktop viewports. Leave the phone and tall layouts intact. */
-@media (min-width: 1024px) and (max-height: 900px) {
+@media (min-width: 1024px) and (max-height: 980px) {
 	:lang(zh-TW) .home-day-shell,
 	:lang(zh-TW) .home-day-grid {
 		padding-top: 1rem;
