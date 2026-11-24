@@ -3,7 +3,8 @@ import 'server-only'
 import { createHmac } from 'node:crypto'
 import { createSylphxAuthHandler } from '@sylphx/auth'
 import type { EntryConfig } from '@sylphx/auth/client'
-import { canonicalSiteOrigin, requestSiteOrigin } from '@/lib/site-origin-request'
+import { env } from '@/lib/env'
+import { PRODUCTION_SITE_ORIGIN } from '@/lib/site-origin'
 import { safeCallbackPath, signUpCookieHeader } from './after-sign-up'
 import { authConfig } from './client-auth'
 import { authIdValue } from './dest'
@@ -15,36 +16,27 @@ import { recordSignupAttribution } from './signup-attribution'
 
 const TRYIT_AUTH_PORTAL = 'https://auth.tryit.fun'
 
-function unavailable(status = 503) {
+function unavailable() {
 	return Response.json(
-		{ error: status === 403 ? 'not_allowed' : 'unavailable' },
-		{
-			status,
-			headers: { 'cache-control': 'private, no-store' },
-		},
+		{ error: 'unavailable' },
+		{ status: 503, headers: { 'cache-control': 'private, no-store' } },
 	)
 }
 
-export function handleOAuth(request: Request): Promise<Response> | Response {
-	let origin: string
-	try {
-		origin = requestSiteOrigin(request.headers)
-	} catch {
-		return unavailable(403)
-	}
-	return dispatchOAuth(request, origin)
+// Keep the SDK's expected authority independent of request headers.
+function oauthOrigin(): string {
+	return env.SYLPHX_PUBLIC_URL || PRODUCTION_SITE_ORIGIN
 }
 
-async function dispatchOAuth(request: Request, origin: string): Promise<Response> {
+export async function handleOAuth(request: Request): Promise<Response> {
 	const config = authConfig()
 	const instanceId = authIdValue(config?.instanceId)
 	if (!config || !instanceId) return unavailable()
 	try {
 		let newAccount = false
 		const handle = createSylphxAuthHandler({
-			origin,
-			// SolidStart receives an internal listener URL; handleOAuth validated the public authority.
-			isPublicRequest: (incoming) => incoming === request,
+			origin: oauthOrigin(),
+			trustSylphxEdge: true,
 			authApiOrigin: config.url,
 			publishableKey: config.publishableKey,
 			sessionMode: 'server',
@@ -118,16 +110,14 @@ async function dispatchOAuth(request: Request, origin: string): Promise<Response
 }
 
 export async function readEntryConfig(request: Request): Promise<EntryConfig | null> {
-	const origin = canonicalSiteOrigin(request.headers)
 	const headers = new Headers()
 	const userAgent = request.headers.get('user-agent')
 	if (userAgent) headers.set('user-agent', userAgent)
-	const response = await dispatchOAuth(
-		new Request(new URL(`${OAUTH_PREFIX}/config`, origin), {
+	const response = await handleOAuth(
+		new Request(new URL(`${OAUTH_PREFIX}/config`, oauthOrigin()), {
 			headers,
 			signal: request.signal,
 		}),
-		origin,
 	)
 	return response.ok ? ((await response.json()) as EntryConfig) : null
 }

@@ -13,7 +13,11 @@ const browserCookies = [
 const startPath = '/v1/client/continue'
 const verifyPath = `${startPath}/verify`
 const redeemPath = '/v1/client/tickets:redeem'
-const edgeHeaders = { 'x-forwarded-host': 'tryit.fun', 'x-forwarded-proto': 'https' }
+const edgeHeaders = {
+	'sylphx-edge': 'public',
+	'x-forwarded-host': 'tryit.fun',
+	'x-forwarded-proto': 'https',
+}
 const edgeOrigin = 'https://tryit.fun'
 
 // Model the trusted TLS edge while keeping real handlers and the Auth fixture in the path.
