@@ -81,11 +81,11 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 	const t = createTranslator(props.locale)
 	const mt = (key: string) => t(`games.patternMatch.${key}`)
 	const { cards, totalSets } = props.data
-	const [selected, setSelected] = createSignal<Card[]>([])
-	const [foundSets, setFoundSets] = createSignal<Trio[]>([])
-	const [mistakes, setMistakes] = createSignal(0)
-	const [message, setMessage] = createSignal<'correct' | 'notASet' | 'alreadyFound'>()
 	const finish = createBoardFinish(props, 'pattern-match')
+	const [selected, setSelected] = finish.draft.signal<Card[]>('selected', [])
+	const [foundSets, setFoundSets] = finish.draft.signal<Trio[]>('foundSets', [])
+	const [mistakes, setMistakes] = finish.draft.signal('mistakes', 0)
+	const [message, setMessage] = createSignal<'correct' | 'notASet' | 'alreadyFound'>()
 	const locked = () => finish.state() !== 'playing'
 	const complete = () => foundSets().length === totalSets
 	const clear = () => {

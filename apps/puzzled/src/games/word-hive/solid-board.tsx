@@ -52,7 +52,11 @@ export default function WordHiveBoard(props: DailyBoardProps) {
 function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 	const t = createTranslator(props.locale)
 	const finish = createBoardFinish(props, slug)
-	const [state, setState] = createSignal(createInitialState(props.data))
+	const [state, setState] = finish.draft.signal(
+		'state',
+		createInitialState(props.data),
+		(value) => ({ ...value, grading: false }),
+	)
 	const [error, setError] = createSignal<keyof typeof errorKeys | 'grade'>()
 	const [lastFound, setLastFound] = createSignal<{ word: string; pangram: boolean }>()
 	const [result, setResult] = createSignal<{ rank: SpellingBeeRank; score: number }>()

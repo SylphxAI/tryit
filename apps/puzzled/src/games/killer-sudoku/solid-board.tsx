@@ -43,13 +43,13 @@ export default function KillerSudokuBoard(props: DailyBoardProps) {
 function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const initial = createInitialState(props.data)
-	const [state, setState] = createSignal(initial)
-	const [history, setHistory] = createSignal<KillerSudokuGameState[]>([])
+	const finish = createBoardFinish(props, 'killer-sudoku')
+	const [state, setState] = finish.draft.signal('state', initial)
+	const [history, setHistory] = finish.draft.signal<KillerSudokuGameState[]>('history', [])
 	const [feedback, setFeedback] = createSignal<'selectBlank' | 'lockedClue' | 'notesNeedBlank'>()
 	const wrongCage = createMemo(() =>
 		props.data.cages.find((cage) => isCageSumValid(state().cells, cage) === false),
 	)
-	const finish = createBoardFinish(props, 'killer-sudoku')
 	const playing = () => state().gameStatus === 'playing'
 	const refs: HTMLButtonElement[][] = Array.from({ length: 9 }, () => [])
 	const anchors = props.data.cages.map(({ cells }) =>

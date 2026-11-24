@@ -28,8 +28,8 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const { startWord, endWord, wordLength, minSteps } = props.data
 	const finish = createBoardFinish(props, 'word-ladder')
-	const [path, setPath] = createSignal([startWord])
-	const [input, setInput] = createSignal('')
+	const [path, setPath] = finish.draft.signal('path', [startWord])
+	const [input, setInput] = finish.draft.signal('input', '')
 	const [error, setError] = createSignal<ReturnType<typeof checkLadderStep>>(null)
 	const playing = () => finish.state() === 'playing'
 	let field: HTMLInputElement | undefined

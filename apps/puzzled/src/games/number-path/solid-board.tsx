@@ -27,9 +27,9 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 	const { size, clues } = props.data
 	const tiles = clues.flatMap((line, row) => line.map((clue, col) => ({ row, col, clue })))
 	const buttons: HTMLButtonElement[] = []
-	const finish = createBoardFinish(props, 'number-path')
 	const locked = () => finish.state() !== 'playing'
-	const [path, setPath] = createSignal<Cell[]>([])
+	const finish = createBoardFinish(props, 'number-path')
+	const [path, setPath] = finish.draft.signal<Cell[]>('path', [])
 	const [hint, setHint] = createSignal('')
 	const visits = createMemo(() => new Map(path().map((cell, step) => [cellKey(cell), step + 1])))
 	const points = () =>

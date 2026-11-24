@@ -45,8 +45,16 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 	const copy = (key: string, values?: Record<string, string | number>) =>
 		t(`games.wordBox.${key}`, values)
 	const box = props.box
-	const [words, setWords] = createSignal<string[]>([])
-	const [current, setCurrent] = createSignal('')
+	const finish = createBoardFinish(props, slug, {
+		onRejected() {
+			const chain = words()
+			setCurrent(chain.at(-1) ?? '')
+			setWords(chain.slice(0, -1))
+			setError('rejected')
+		},
+	})
+	const [words, setWords] = finish.draft.signal<string[]>('words', [])
+	const [current, setCurrent] = finish.draft.signal('current', '')
 	const [error, setError] = createSignal<
 		| 'invalidLetter'
 		| 'sameSide'
@@ -62,14 +70,6 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 	let disposed = false
 	onCleanup(() => {
 		disposed = true
-	})
-	const finish = createBoardFinish(props, slug, {
-		onRejected() {
-			const chain = words()
-			setCurrent(chain.at(-1) ?? '')
-			setWords(chain.slice(0, -1))
-			setError('rejected')
-		},
 	})
 	const used = createMemo(() => getUsedLetters(words()))
 	const required = () => words().at(-1)?.slice(-1)

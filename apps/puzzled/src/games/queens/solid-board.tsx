@@ -35,10 +35,10 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 	const { size, regions } = props.data
 	const cells = regions.flatMap((line, row) => line.map((region, col) => ({ row, col, region })))
 	const empty = () => regions.map((line) => line.map(() => false))
-	const [grid, setGrid] = createSignal(empty())
+	const finish = createBoardFinish(props, 'crowns')
+	const [grid, setGrid] = finish.draft.signal('grid', empty())
 	const [active, setActive] = createSignal(0)
 	const buttons: HTMLButtonElement[] = []
-	const finish = createBoardFinish(props, 'crowns')
 	const locked = () => finish.state() !== 'playing'
 	const placed = createMemo(() => cells.filter(({ row, col }) => grid()[row][col]))
 	const conflicts = createMemo(() => {

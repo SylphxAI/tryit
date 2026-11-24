@@ -56,12 +56,11 @@ function Slides(
 ) {
 	const t = createTranslator(props.locale)
 	const text = (key: string) => t(`games.blockSlide.${key}`)
-	const finish = createBoardFinish(props, 'block-slide')
-	const startedAt = Date.now()
 	const { gridWidth, gridHeight, exitX, exitY, minMoves } = props.data
 	const target = props.data.blocks.find((block) => block.isTarget)
 	const ids = props.data.blocks.map((block) => block.id)
-	const [history, setHistory] = createSignal([props.data.blocks])
+	const finish = createBoardFinish(props, 'block-slide')
+	const [history, setHistory] = finish.draft.signal('history', [props.data.blocks])
 	const blocks = () => history()[history().length - 1]
 	const moves = () => history().length - 1
 	const moveLabel = () => t('games.blockSlide.moveCount', { count: moves() })
@@ -73,7 +72,7 @@ function Slides(
 	let resetButton: HTMLButtonElement | undefined
 
 	function end(status: 'won' | 'lost', moveCount: number) {
-		setElapsed(Math.max(0, Date.now() - startedAt))
+		setElapsed(finish.draft.elapsedMs())
 		setOutcome(status)
 		finish.finish({ moveCount }, { status, attempts: moveCount })
 	}
@@ -236,7 +235,10 @@ function Slides(
 							ref={resetButton}
 							type="button"
 							class="min-h-12 rounded-xl border border-border px-3 font-semibold"
-							onClick={props.reset}
+							onClick={() => {
+								finish.draft.discard()
+								props.reset()
+							}}
 						>
 							{text('reset')}
 						</button>

@@ -34,14 +34,14 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 	const config = props.puzzle.puzzleData as { wordLength?: unknown; maxAttempts?: unknown } | null
 	const playable = config?.wordLength === WORD_LENGTH && config.maxAttempts === MAX_GUESSES
 	const puzzle = { puzzleId: props.puzzle.puzzleId, puzzleDate: props.puzzle.puzzleDate }
-	const [rows, setRows] = createSignal<FiveRow[]>([])
-	const [draft, setDraft] = createSignal('')
+	const finish = createBoardFinish(props, gameSlug)
+	const [rows, setRows] = finish.draft.signal<FiveRow[]>('rows', [])
+	const [draft, setDraft] = finish.draft.signal('draft', '')
 	const [grading, setGrading] = createSignal(false)
 	const [checkingScope, setCheckingScope] = createSignal(false)
 	const [error, setError] = createSignal<string>()
 	const [showInputHint, setShowInputHint] = createSignal(false)
 	const [outcome, setOutcome] = createSignal<'won' | 'lost'>()
-	const finish = createBoardFinish(props, gameSlug)
 	const keys = createMemo(() => wordKeyFeedback(rows()))
 	const shareText = () =>
 		rows()

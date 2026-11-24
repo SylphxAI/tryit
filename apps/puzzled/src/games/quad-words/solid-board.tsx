@@ -29,7 +29,10 @@ const tones: Record<LetterStatus, string> = {
 export default function QuadWordsBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
 	const finish = createBoardFinish(props, slug)
-	const [state, setState] = createSignal(createInitialState())
+	const [state, setState] = finish.draft.signal('state', createInitialState(), (value) => ({
+		...value,
+		grading: false,
+	}))
 	const [error, setError] = createSignal<'length' | 'notInWordList' | 'grade'>()
 	const dispatch = (action: Parameters<typeof quordleReducer>[1]) =>
 		setState((current) => quordleReducer(current, action))
