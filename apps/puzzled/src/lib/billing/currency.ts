@@ -2,8 +2,8 @@
  * Which currency the pricing page shows. Prices come only from the catalogue
  * (ListPlans); this module only chooses among the currencies it publishes.
  *
- * Order of choice: the visitor's own choice (cookie), then the country the
- * edge saw, then the region of the page locale, then US dollars.
+ * Order of choice: visitor selection (cookie), TWD on zh-TW when offered,
+ * then edge country, locale region if country is unknown, and USD fallback.
  */
 
 import type { ListPlansResponse } from '@/gen/connect/puzzled/v1/billing_pb'
@@ -145,6 +145,7 @@ export function chooseCurrency(input: {
 	const { available } = input
 	const picked = normalizeCurrency(input.cookie)
 	if (picked && available.includes(picked)) return picked
+	if (input.locale.trim().toLowerCase() === 'zh-tw' && available.includes('twd')) return 'twd'
 	const fallback = defaultCurrency(input.country, input.locale)
 	if (available.includes(fallback)) return fallback
 	if (available.includes('usd')) return 'usd'
