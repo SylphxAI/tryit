@@ -1,4 +1,5 @@
-import { expect, type Locator, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
+import crosswordGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/crossword.json'
 import { fixtureShareId } from '../scripts/share-fixture-facts'
 import { productDayKey } from '../src/lib/product-day'
 
@@ -31,14 +32,19 @@ async function expectDirectHit(target: Locator, upperEdge?: number) {
 	expect(hit).toEqual({ clear: true, direct: true })
 }
 
-test('winning Sudoku reveals Share and See your result above the phone dock before any scroll or tap', async ({
-	page,
-}) => {
+async function showPhoneDock(page: Page) {
 	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 	const cdp = await page.context().newCDPSession(page)
 	await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { bottom: 34 } })
-	const today = productDayKey()
 	await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+	return page.locator('[data-consent-banner]')
+}
+
+test('winning Sudoku reveals Share and See your result above the phone dock before any scroll or tap', async ({
+	page,
+}) => {
+	const banner = await showPhoneDock(page)
+	const today = productDayKey()
 	await page.route('**/puzzled.v1.PuzzleService/ShareResult', (route) =>
 		route.fulfill({ json: { shareId: fixtureShareId } }),
 	)
@@ -60,7 +66,6 @@ test('winning Sudoku reveals Share and See your result above the phone dock befo
 		route.fulfill({ json: { valid: true, status: 'won', score: 900, gameSlug: 'sudoku' } }),
 	)
 	await page.goto('/games/sudoku?difficulty=easy&start=1#play')
-	const banner = page.locator('[data-consent-banner]')
 	await expect(banner).toBeVisible()
 	const nav = page.locator('nav.fixed[aria-label="Main navigation"]')
 	await expect(nav.getByRole('link')).toHaveCount(5)
@@ -104,7 +109,42 @@ test('winning Sudoku reveals Share and See your result above the phone dock befo
 
 	await dialog.getByRole('button', { name: 'Dismiss', exact: true }).tap()
 	await expect(dialog).toBeHidden()
-	await expectDirectHit(details, bannerBox.y)
+	await expect(details).toBeFocused()
 	await banner.getByRole('button', { name: 'Decline', exact: true }).tap()
 	await expect(banner).toBeHidden()
+})
+
+test('Mini Grid bottom-row keys enter letters without scrolling behind the phone dock', async ({
+	page,
+}) => {
+	const banner = await showPhoneDock(page)
+	const { puzzleData } = crosswordGoldens[0]
+	await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+		route.fulfill({
+			json: {
+				gameSlug: 'crossword',
+				puzzleDate: productDayKey(),
+				canPlay: true,
+				puzzleDataJson: JSON.stringify(puzzleData),
+			},
+		}),
+	)
+	await page.goto('/games/crossword?start=1#play')
+	const board = page.locator('[data-crossword-board]')
+	await expect(banner).toBeVisible()
+	const edge = (await banner.boundingBox())!.y
+	for (const [col, letter] of [...'ZXCV'].entries()) {
+		const key = board.getByRole('button', { name: letter, exact: true })
+		await expectDirectHit(key, edge)
+		const box = (await key.boundingBox())!
+		await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+		await expect(
+			board.getByRole('button', {
+				name: `Row 1, Column ${col + 1}, ${letter}`,
+				exact: true,
+			}),
+		).toBeVisible()
+	}
+	await expect(banner).toBeVisible()
+	await expect(page).toHaveURL(/games\/crossword\?start=1#play$/)
 })
