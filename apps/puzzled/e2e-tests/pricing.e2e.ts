@@ -650,7 +650,7 @@ test('zh-TW pricing starts in TWD despite geo and preserves the currency switche
 	const select = page.getByLabel('幣別', { exact: true })
 	const pass = page.locator('#plus input[value="once"]').locator('..')
 	await expect(select).toHaveValue('twd')
-	await expect(pass).toContainText('$99')
+	await expect(pass.getByText('NT$99', { exact: true })).toBeVisible()
 	const reloaded = page.waitForEvent('domcontentloaded')
 	await select.selectOption('jpy')
 	await reloaded
