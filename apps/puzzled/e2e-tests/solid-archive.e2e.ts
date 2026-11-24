@@ -45,22 +45,38 @@ test('archive calendar and category link to the chosen past day without starting
 	expect(requests).toEqual([{ gameSlug: 'word-search', puzzleDate: selected }])
 })
 
-test('archive unlock directs to pricing with the return and attribution intact', async ({
-	page,
-}) => {
-	await page.setViewportSize({ width: 360, height: 750 })
-	await page.goto('/archive')
-	const mobile = page.locator('[data-archive-mobile-unlock]')
-	const cta = mobile.getByRole('link', { name: 'Unlock archive' })
-	await expect(cta).toHaveAttribute(
-		'href',
-		'/pricing?callbackUrl=%2Farchive&trigger=archive_banner',
-	)
-	await expect(mobile.getByRole('checkbox')).toHaveCount(0)
-	await cta.click()
-	await expect(page).toHaveURL(
-		(url) =>
-			url.pathname === '/pricing' &&
-			url.search === '?callbackUrl=%2Farchive&trigger=archive_banner',
-	)
-})
+for (const viewport of [
+	{ width: 1440, height: 900 },
+	{ width: 390, height: 844 },
+]) {
+	test(`archive unlock is visible above the calendar at ${viewport.width}px and preserves attribution`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport)
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		await page.goto('/archive')
+		await expect(page.locator('[data-consent-banner]')).toBeVisible()
+		await page.evaluate(() => document.fonts.ready)
+		const offer = page.getByRole('complementary', { name: 'Unlock all 30 past days' })
+		const cta = offer.getByRole('link', { name: 'Unlock archive' })
+		await expect(offer).toHaveCount(1)
+		await expect(page.locator('[data-archive-unlock]')).toHaveCount(1)
+		await expect(offer).toBeInViewport({ ratio: 1 })
+		await expect(cta).toHaveAttribute(
+			'href',
+			'/pricing?callbackUrl=%2Farchive&trigger=archive_banner',
+		)
+		await expect(offer.getByRole('checkbox')).toHaveCount(0)
+		const box = await offer.boundingBox()
+		const calendar = await page.locator('[data-archive-almanac]').boundingBox()
+		const dock = await page.locator('[data-consent-banner]').boundingBox()
+		expect(box!.y + box!.height).toBeLessThanOrEqual(Math.min(calendar!.y, dock!.y))
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width)
+		await cta.click()
+		await expect(page).toHaveURL(
+			(url) =>
+				url.pathname === '/pricing' &&
+				url.search === '?callbackUrl=%2Farchive&trigger=archive_banner',
+		)
+	})
+}
