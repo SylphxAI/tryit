@@ -33,6 +33,7 @@ type Surface = 'rail' | 'dialog'
 export function ResultActions(props: {
 	facts: Facts
 	locale: Locale
+	onDetailsOpenChange: (open: boolean) => void
 	shareTitle?: string
 	shareText?: string
 }) {
@@ -168,6 +169,7 @@ export function ResultActions(props: {
 				</button>
 				<ResultDetails
 					locale={props.locale}
+					onOpenChange={props.onDetailsOpenChange}
 					model={model()}
 					strings={strings}
 					timeSpentMs={props.facts.timeSpentMs}

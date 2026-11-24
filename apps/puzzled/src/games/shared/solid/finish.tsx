@@ -116,6 +116,7 @@ export function BoardFinish(props: {
 	shareText?: string
 }) {
 	const t = createTranslator(props.locale)
+	const [resultOpen, setResultOpen] = createSignal(false)
 	return (
 		<>
 			<Show when={props.finish.state() === 'pending'}>
@@ -137,7 +138,11 @@ export function BoardFinish(props: {
 			</Show>
 			<Show when={props.finish.result()}>
 				{(result) => (
-					<div class="completion-card" data-board-finished>
+					<div
+						class="completion-card"
+						data-board-finished
+						data-result-open={resultOpen() || undefined}
+					>
 						<div class="completion-heading" data-outcome={result().status}>
 							<span class="completion-mark" aria-hidden="true">
 								{result().status === 'won' ? <Check size={17} /> : <Minus size={17} />}
@@ -148,6 +153,7 @@ export function BoardFinish(props: {
 						</div>
 						<ResultActions
 							facts={result()}
+							onDetailsOpenChange={setResultOpen}
 							locale={props.locale}
 							shareTitle={props.shareTitle}
 							shareText={props.shareText}
