@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ExternalLink } from 'lucide-solid'
-import { createSignal, Show } from 'solid-js'
+import { createSignal, createUniqueId, onMount, Show } from 'solid-js'
 import { hasAnalyticsConsent } from '@/features/analytics/lib/consent'
 import { trackGa4KeyEvent } from '@/features/analytics/lib/ga4-key-events'
 import { rememberCheckoutQuote } from '@/features/analytics/lib/google-tag'
@@ -46,6 +46,11 @@ export function SubscribeButton(props: Props) {
 	const [error, setError] = createSignal<string | null>(null)
 	const [consent, setConsent] = createSignal(false)
 	const requiresWaiver = isOneTimePassPlan(props.planId as PlanId)
+	const waiverLabelId = createUniqueId()
+	let waiverInput: HTMLInputElement | undefined
+	// The native checkbox is usable before hydration; its early change event
+	// is not replayed. Seed client state from the actual choice, not from SSR.
+	onMount(() => setConsent(waiverInput?.checked === true))
 	const buttonClass = `${styles.checkout} pressable inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60`
 
 	if (props.signedIn && props.subscribed) {
@@ -67,12 +72,12 @@ export function SubscribeButton(props: Props) {
 					}
 				>
 					<input
+						ref={waiverInput}
 						type="checkbox"
 						class="mt-0.5 h-5 w-5 shrink-0 accent-primary"
-						checked={consent()}
 						onChange={(event) => setConsent(event.currentTarget.checked)}
 					/>
-					<span>{t('immediateSupplyConsent')}</span>
+					<span id={waiverLabelId}>{t('immediateSupplyConsent')}</span>
 				</label>
 			) : null}
 			{props.locale === 'ja' && (
@@ -113,6 +118,7 @@ export function SubscribeButton(props: Props) {
 				type="button"
 				data-checkout-trigger={checkoutTrigger()}
 				class={buttonClass}
+				aria-describedby={requiresWaiver ? waiverLabelId : undefined}
 				disabled={busy() || (requiresWaiver && !consent())}
 				onClick={async () => {
 					if (busy() || (requiresWaiver && !consent())) return
