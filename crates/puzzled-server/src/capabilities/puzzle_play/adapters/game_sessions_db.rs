@@ -109,7 +109,7 @@ SELECT EXISTS (
 "#;
 
 const COMPLETED_SESSION_BY_PID_AND_DATE_SQL: &str = r#"
-SELECT status::text, score, attempts, completed_at, difficulty::text
+SELECT status::text, score, attempts, completed_at, difficulty::text, time_spent_ms
 FROM game_sessions
 WHERE user_id = $1
   AND status IN ('won','lost')
@@ -122,7 +122,7 @@ LIMIT 1
 "#;
 
 const COMPLETED_SESSION_BY_PID_SQL: &str = r#"
-SELECT status::text, score, attempts, completed_at, difficulty::text
+SELECT status::text, score, attempts, completed_at, difficulty::text, time_spent_ms
 FROM game_sessions
 WHERE user_id = $1
   AND puzzle_id = $2
@@ -132,7 +132,7 @@ LIMIT 1
 "#;
 
 const COMPLETED_SESSION_BY_DATE_SQL: &str = r#"
-SELECT status::text, score, attempts, completed_at, difficulty::text
+SELECT status::text, score, attempts, completed_at, difficulty::text, time_spent_ms
 FROM game_sessions
 WHERE user_id = $1
   AND game_slug = $2
@@ -230,6 +230,7 @@ type CompletedRow = (
     i32,
     Option<chrono::NaiveDateTime>,
     Option<String>,
+    Option<i32>,
 );
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -240,6 +241,7 @@ pub struct CompletedSession {
     pub completed_at: Option<chrono::NaiveDateTime>,
     /// The level the accepted finish was played at; `None` for games without levels.
     pub difficulty: Option<String>,
+    pub time_spent_ms: Option<i32>,
 }
 
 /// Load the accepted result for a served daily puzzle.
@@ -306,12 +308,13 @@ pub async fn load_completed_session_on_connection(
     };
 
     Ok(row.map(
-        |(status, score, attempts, completed_at, difficulty)| CompletedSession {
+        |(status, score, attempts, completed_at, difficulty, time_spent_ms)| CompletedSession {
             status,
             score,
             attempts,
             completed_at,
             difficulty,
+            time_spent_ms,
         },
     ))
 }
@@ -323,11 +326,12 @@ type TodayProgressRow = (
     i32,
     Option<chrono::NaiveDateTime>,
     Option<String>,
+    Option<i32>,
 );
 
 const TODAY_PROGRESS_SQL: &str = r#"
 SELECT DISTINCT ON (game_slug) game_slug, status::text, score, attempts, completed_at,
-       difficulty::text
+       difficulty::text, time_spent_ms
 FROM game_sessions
 WHERE user_id = $1
   AND game_slug = ANY($2)
@@ -370,7 +374,7 @@ pub async fn load_today_progress_on_connection(
     Ok(rows
         .into_iter()
         .map(
-            |(slug, status, score, attempts, completed_at, difficulty)| {
+            |(slug, status, score, attempts, completed_at, difficulty, time_spent_ms)| {
                 (
                     slug,
                     CompletedSession {
@@ -379,6 +383,7 @@ pub async fn load_today_progress_on_connection(
                         attempts,
                         completed_at,
                         difficulty,
+                        time_spent_ms,
                     },
                 )
             },

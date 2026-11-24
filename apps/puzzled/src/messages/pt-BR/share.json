@@ -7,7 +7,6 @@
 		"groupsSolvedLabel": "Grupos resolvidos",
 		"groupsSolvedCount": "Grupos resolvidos: {total}/{total}",
 		"mistakeCount": "Erros: {mistakes}",
-		"title": "Cartão de resultado do Tryit",
 		"unavailable": "Não foi possível compartilhar automaticamente.",
 		"statusWon": "Resolvido!",
 		"statusLost": "Dessa vez não",

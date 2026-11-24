@@ -212,6 +212,7 @@ export function DailyPlay(props: {
 									attempts: result().session.attempts,
 									difficulty: result().session.difficulty,
 									score: result().session.score,
+									timeSpentMs: result().session.timeSpentMs,
 								}}
 								locale={props.data.locale}
 							/>

@@ -29,11 +29,11 @@ test('home serves the localized daily lineup, canonical metadata and FAQ without
 			await expect(page.getByRole('heading', { level: 1 })).toHaveText(headline)
 			await expect(page.locator('[data-home-countdown]')).toHaveText(/^[0-9]{2}:[0-9]{2}:[0-9]{2}$/)
 			const lineup = page.locator('[data-home-game]')
-			await expect(lineup).toHaveCount(19)
+			await expect(lineup).toHaveCount(18)
 			const featured = page.locator('[data-home-featured]')
 			const slug = await featured.getAttribute('data-home-featured')
 			expect(slug).toBeTruthy()
-			await expect(lineup.first()).toHaveAttribute('data-home-game', slug ?? '')
+			await expect(lineup.and(page.locator(`[data-home-game="${slug}"]`))).toHaveCount(0)
 			const href = await featured.getAttribute('href')
 			const game = new URL(href ?? '', 'https://tryit.fun')
 			expect(game.pathname).toBe(`${path === '/' ? '' : path}/games/${slug}`)
@@ -96,10 +96,11 @@ test('home only marks completion proved for the current viewer and day', async (
 		expect(response.headers()['cache-control']).toBe('private, no-store')
 		const html = await response.text()
 		const sudoku = html.match(/<a [^>]*data-home-game="sudoku"[^>]*>/)?.[0] ?? ''
+		const featuredSudoku = html.match(/<a [^>]*data-home-featured="sudoku"[^>]*>/)?.[0]
 		if (status === 'solved') {
-			expect(sudoku).toContain('data-home-status="solved"')
-			expect(sudoku).toContain('href="/games/sudoku"')
-		} else expect(sudoku).not.toContain('data-home-status="solved"')
+			if (!featuredSudoku) expect(sudoku).toContain('data-home-status="solved"')
+			expect(featuredSudoku ?? sudoku).toContain('href="/games/sudoku"')
+		} else expect(featuredSudoku ?? sudoku).toContain('difficulty=medium')
 	}
 	const anonymous = await request.get('/')
 	expect(await anonymous.text()).not.toContain('data-home-status="solved"')

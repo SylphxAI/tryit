@@ -12,7 +12,6 @@
 		"guestTitle": "19種から毎日好きな3つが無料",
 		"streakChip": "{days}日連続",
 		"playersToday": "今日は{count, number}人がクリア",
-		"dailyInvitation": "今日のパズルが登場！ 登録なしで、好きな3つを無料で遊べます。",
 		"progressRingLabel": "今日は{total}問中{done}問をクリア",
 		"progressUnverified": "保存した進捗を読み込めませんでした。そのまま遊べます。クリアの確認は送信時に行います。",
 		"ogEyebrow": "毎日19種のパズル",
@@ -20,7 +19,6 @@
 	},
 	"lineup": {
 		"title": "今日のラインナップ",
-		"subtitle": "全{count}種。今日は好きな3つが無料。",
 		"seeAll": "すべてのゲームを見る",
 		"play": "遊ぶ",
 		"freeToday": "今日のおすすめ",
@@ -78,19 +76,16 @@
 		"puzzleNumber": "パズル #{number}",
 		"resetsIn": "更新まで",
 		"resetsAt": "毎日 16:00 UTC に更新",
-		"guestTitle": "毎日{count}種のパズル。好きな3つが無料。",
+		"guestTitle": "毎日{count}種類。登録なしで、好きな3つを無料で遊べます。",
 		"titleMemberReady": "今日の{game}の準備ができました",
 		"titleMemberStreak": "{days}日連続の記録が待っています",
 		"titleMemberDone": "今日はすべて完了です。お疲れさまでした",
 		"titleDone": "今日の{game}は完了です",
-		"bodyGuest": "言葉・ロジック・数字のパズルは、どれも数分で遊べます。今日の3つは登録なしですぐに始められて、みんな同じ問題に挑戦します。",
-		"bodyMember": "連続記録、統計、今日のラインナップへ、ワンタップでアクセスできます。",
 		"playToday": "今日の「{game}」を遊ぶ",
 		"playAgain": "今日のパズルをもう一度遊ぶ",
 		"browseAll": "すべてのゲームを見る",
 		"finishersToday": "今日はこれまでに{count}人がクリア",
-		"freeToday": "今日は無料",
-		"guestNote": "登録もカードも不要。数分で終わります。"
+		"freeToday": "今日は無料"
 	},
 	"seasons": {
 		"newYear": "あけましておめでとうございます",
@@ -102,9 +97,7 @@
 		"christmas": "メリークリスマス"
 	},
 	"picks": {
-		"fresh": "今日の無料枠 {count}つ",
-		"left": "無料枠 残り{count}つ",
-		"none": "無料枠を使い切りました · Plusを見る",
-		"unlimited": "Plus · すべてのゲームが遊び放題"
+		"unlimited": "Plus · すべてのゲームが遊び放題",
+		"progress": "今日の無料枠 {used} / {total}"
 	}
 }

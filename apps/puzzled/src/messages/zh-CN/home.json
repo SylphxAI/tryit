@@ -12,7 +12,6 @@
 		"guestTitle": "19 款谜题，每天任选 3 款免费",
 		"streakChip": "连续 {days} 天",
 		"playersToday": "今天已有 {count, number} 位玩家完成",
-		"dailyInvitation": "今天的谜题准备好了！任选 3 款免费玩，无需注册。",
 		"progressRingLabel": "今天已完成 {done} / {total} 题",
 		"progressUnverified": "暂时读不到你的进度。你仍然可以玩，提交时我们会核对你的完成记录。",
 		"ogEyebrow": "每日 19 款谜题",
@@ -20,7 +19,6 @@
 	},
 	"lineup": {
 		"title": "今天的阵容",
-		"subtitle": "全部 {count} 款游戏，今天任选三款免费。",
 		"seeAll": "查看全部游戏",
 		"play": "开始玩",
 		"freeToday": "今日精选",
@@ -78,19 +76,16 @@
 		"puzzleNumber": "第 {number} 题",
 		"resetsIn": "距离重置",
 		"resetsAt": "每日更新：16:00 UTC",
-		"guestTitle": "每天 {count} 款谜题，任选 3 款免费",
+		"guestTitle": "每天 {count} 款谜题，任选 3 款免费玩，无需注册。",
 		"titleMemberReady": "今天的{game}已准备好",
 		"titleMemberStreak": "你的 {days} 天连胜在等你",
 		"titleMemberDone": "今天已完成 — 玩得漂亮",
 		"titleDone": "今天的{game}已完成",
-		"bodyGuest": "文字、逻辑和数字谜题，每款几分钟就能玩完。今天任选三款，无需注册即可开始，大家玩的是同一套题。",
-		"bodyMember": "你的连胜、统计和今日阵容，一点即到。",
 		"playToday": "玩今天的「{game}」",
 		"playAgain": "再玩一次",
 		"browseAll": "浏览所有游戏",
 		"finishersToday": "今天已有 {count} 人完成",
-		"freeToday": "今天免费",
-		"guestNote": "无需注册，无需银行卡，几分钟玩完。"
+		"freeToday": "今天免费"
 	},
 	"seasons": {
 		"newYear": "新年快乐",
@@ -102,9 +97,7 @@
 		"christmas": "圣诞快乐"
 	},
 	"picks": {
-		"fresh": "今天可免费选 {count} 款",
-		"left": "还可免费选 {count} 款",
-		"none": "今天的免费额度已用完 · 看看 Plus",
-		"unlimited": "Plus · 所有游戏随便玩"
+		"unlimited": "Plus · 所有游戏随便玩",
+		"progress": "今日免费已选 {used} / {total} 款"
 	}
 }

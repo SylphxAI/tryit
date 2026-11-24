@@ -1,5 +1,4 @@
 {
-	"finishPassLink": "Unlock all {games} games and the {days}-day archive with a 3-day pass",
 	"seeResult": "See your result",
 	"congratulations": "Congratulations!",
 	"gameOver": "Game Over",
@@ -29,5 +28,10 @@
 	"finishedTitle": "{game}: Results",
 	"shareResult": "Share Result",
 	"savePng": "Save PNG",
-	"saveFailed": "Could not save the image. Try again."
+	"saveFailed": "Could not save the image. Try again.",
+	"freeProgress": "{done} / {total} free puzzles today",
+	"freeFinished": "That’s today’s free set. Nicely played!",
+	"keepPlayingPlus": "Keep playing with Tryit Plus",
+	"resumeNext": "Resume: {game}",
+	"savedAndCopied": "Image saved and caption copied."
 }

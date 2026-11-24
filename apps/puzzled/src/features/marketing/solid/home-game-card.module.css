@@ -8,7 +8,7 @@
 	overflow: hidden;
 	border-bottom: 1px solid var(--editorial-line);
 }
-.motif { block-size: auto; inline-size: 82%; }
+.motif { display: block; block-size: 100%; inline-size: 82%; object-fit: contain; }
 @media (prefers-reduced-motion: no-preference) {
 	.face { transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out); }
 	@media (hover: hover) and (pointer: fine) {

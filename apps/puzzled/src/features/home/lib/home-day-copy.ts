@@ -17,11 +17,9 @@ export type HomeDayCopy = {
 		| 'guestTitle'
 	/** `result` opens the finished result, `play` starts today's board. */
 	cta: 'result' | 'play'
-	/** The no-account reassurance, for first-time visitors who have not played. */
-	showsNote: boolean
 }
 
-/** Which headline, action and note the home day shows. Pure; no copy lives here. */
+/** Which headline and action the home day shows. Pure; no copy lives here. */
 export function homeDayCopy(input: HomeDayCopyInput): HomeDayCopy {
 	const done = input.freeGameDone || (input.isMember && input.allDone)
 	const headlineKey: HomeDayCopy['headlineKey'] =
@@ -37,7 +35,6 @@ export function homeDayCopy(input: HomeDayCopyInput): HomeDayCopy {
 	return {
 		headlineKey,
 		cta: done ? 'result' : 'play',
-		showsNote: !input.isMember && !done,
 	}
 }
 

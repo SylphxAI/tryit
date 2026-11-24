@@ -114,13 +114,13 @@ for (const viewport of [
 	{ width: 390, height: 844 },
 	{ width: 1440, height: 900 },
 ]) {
-	test(`the lineup loads all 19 SVGs before scrolling at ${viewport.width}×${viewport.height}`, async ({
+	test(`the lineup loads 18 distinct SVGs before scrolling at ${viewport.width}×${viewport.height}`, async ({
 		page,
 	}) => {
 		await page.setViewportSize(viewport)
 		await page.goto('/', { waitUntil: 'load' })
 		const motifs = page.locator('[data-home-game] img')
-		await expect(motifs).toHaveCount(19)
+		await expect(motifs).toHaveCount(18)
 		const images = await motifs.evaluateAll((nodes: HTMLImageElement[]) =>
 			nodes.map((image) => ({
 				slug: image.closest('a')?.dataset.homeGame,
@@ -131,7 +131,10 @@ for (const viewport of [
 				tint: getComputedStyle(image.parentElement!).backgroundColor,
 			})),
 		)
-		expect(new Set(images.map(({ slug }) => slug)).size).toBe(19)
+		expect(new Set(images.map(({ slug }) => slug)).size).toBe(18)
+		expect(images.map(({ slug }) => slug)).not.toContain(
+			await page.locator('[data-home-featured]').getAttribute('data-home-featured'),
+		)
 		expect(new Set(images.map(({ tint }) => tint)).size).toBeGreaterThanOrEqual(10)
 		expect(images.map(({ slug }) => slug)).toEqual(
 			expect.arrayContaining(['cryptogram', 'word-box', 'word-hive']),
@@ -179,7 +182,10 @@ test('Taiwan home and all 19 catalog tiles use local names and minute badges', a
 	await expect(page.locator('[data-day-primary-action]')).toHaveText(
 		`遊玩今日的「${await featured.textContent()}」`,
 	)
-	await expect(page.getByText('今天的謎題準備好了！任選 3 款免費玩，不用註冊。')).toBeVisible()
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+		'每天 19 款謎題，任選 3 款免費玩，不用註冊。',
+	)
+	await expect(page.getByText('今日免費已選 0 / 3 款')).toBeVisible()
 	await expect(page.getByText(/今天已有 .* 位玩家完成/)).toHaveCount(0)
 	await expect(page.getByRole('link', { name: '跳至主要內容', exact: true })).toHaveAttribute(
 		'href',
@@ -236,14 +242,14 @@ for (const viewport of [
 	{ width: 1920, height: 1080 },
 	MOBILE,
 ]) {
-	test(`Taiwan home CTA and guest note clear the initial dock at ${viewport.width}x${viewport.height}`, async ({
+	test(`Taiwan home CTA and hero promise clear the initial dock at ${viewport.width}x${viewport.height}`, async ({
 		page,
 	}) => {
 		await page.setViewportSize(viewport)
 		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 		await page.goto('/zh-TW')
 		const action = page.locator('[data-day-primary-action]')
-		const note = page.getByText('不必註冊、不必信用卡，幾分鐘玩完。', { exact: true })
+		const note = page.getByRole('heading', { level: 1 })
 		const dock = page.locator('[data-consent-banner]')
 		await expect(action).toBeVisible()
 		await expect(action).toHaveText(/遊玩今日的/u)

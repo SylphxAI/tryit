@@ -1,23 +1,22 @@
 /** @jsxImportSource solid-js */
 import { ArrowRight, Check, Minus, X } from 'lucide-solid'
-import {
-	createEffect,
-	createResource,
-	createSignal,
-	createUniqueId,
-	For,
-	type JSX,
-	onCleanup,
-	Show,
-} from 'solid-js'
+import { createResource, createSignal, createUniqueId, For, type JSX, Show } from 'solid-js'
 import { recallChallenge, sharedResultCard, toSharedResult } from '@/features/daily/lib/challenge'
+import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
+import { deriveHomeExposure } from '@/features/daily/lib/home-exposure'
 import {
 	type ResultCardModel,
 	type ResultCardStrings,
 	resultCardChips,
-	resultCardTextAlternative,
 } from '@/features/daily/lib/result-card'
-import { getSharedResult } from '@/lib/connect/puzzle-client'
+import { formatResultElapsed, resultRitual } from '@/features/daily/lib/result-ritual'
+import { markStartIntent } from '@/features/daily/lib/start-intent'
+import { todayPlayPath } from '@/features/daily/lib/today-play-path'
+import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
+import { getAllGameMetadata } from '@/games/registry'
+import { getSharedResult, getTodayProgress } from '@/lib/connect/puzzle-client'
+import { freeGameForDayKey } from '@/lib/free-rotation'
+import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -25,6 +24,7 @@ import { localizedPath } from '@/lib/seo/urls'
 export function ResultDetails(props: {
 	model: ResultCardModel
 	strings: ResultCardStrings
+	timeSpentMs?: number | null
 	difficulty?: string | null
 	locale: Locale
 	trigger: JSX.Element
@@ -56,9 +56,40 @@ export function ResultDetails(props: {
 			return null
 		}
 	})
-	const chips = (model: ResultCardModel) => (
+	const [ritual] = createResource(
+		() => (opened() && props.model.mode === 'daily' ? props.model.dayKey : null),
+		async (dayKey) => {
+			const modules = getAllGameMetadata()
+			try {
+				const progress = await getTodayProgress(modules.map(({ slug }) => slug))
+				const { slugs } = deriveHomeExposure({
+					modules,
+					dayKey,
+					freeGameSlug: freeGameForDayKey(dayKey),
+					completions: {},
+					limit: modules.length,
+				})
+				return resultRitual(progress, dayKey, props.model.gameSlug, slugs)
+			} catch {
+				return null
+			}
+		},
+		{ initialValue: null },
+	)
+	const chips = (model: ResultCardModel, exactTime?: string | null) => (
 		<dl class="result-stats">
-			<For each={resultCardChips(model, props.strings)}>
+			<For
+				each={
+					exactTime === undefined
+						? resultCardChips(model, props.strings)
+						: [
+								...resultCardChips({ ...model, timeBand: null }, props.strings),
+								...(exactTime === null
+									? []
+									: [{ label: props.strings.timeLabel, value: exactTime }]),
+							]
+				}
+			>
 				{(chip) => (
 					<div>
 						<dt>{chip.label}</dt>
@@ -77,6 +108,7 @@ export function ResultDetails(props: {
 				aria-haspopup="dialog"
 				onClick={() => {
 					dialog.showModal()
+					dialog.closest('.completion-card')?.setAttribute('data-result-open', '')
 					setOpened(true)
 					queueMicrotask(() => {
 						if (dialog.open) heading.focus({ preventScroll: true })
@@ -89,9 +121,12 @@ export function ResultDetails(props: {
 				ref={dialog}
 				aria-labelledby={title}
 				class="result-dialog"
-				onClose={() => {
+				on:close={() => {
 					setOpened(false)
-					trigger.focus({ preventScroll: true })
+					dialog.closest('.completion-card')?.removeAttribute('data-result-open')
+					requestAnimationFrame(() => {
+						if (!dialog.open && trigger.isConnected) trigger.focus({ preventScroll: true })
+					})
 				}}
 				// Board shortcuts live on window and must not consume dialog input (including Escape).
 				on:keydown={(event) => event.stopPropagation()}
@@ -124,13 +159,31 @@ export function ResultDetails(props: {
 						</p>
 					</Show>
 				</header>
-				{chips(props.model)}
+				{chips(props.model, formatResultElapsed(props.timeSpentMs))}
 				<Show when={opened()}>
-					<ResultPreview
-						model={props.model}
-						strings={props.strings}
-						label={t('share.card.title')}
-					/>
+					<Show when={!ritual.loading && ritual.latest}>
+						{(today) => (
+							<div class="result-ritual" data-ritual-completed={today().completed}>
+								<div class="result-ritual-head">
+									<p>
+										{t('gameResult.freeProgress', {
+											done: today().completed,
+											total: DAILY_FREE_PICKS,
+										})}
+									</p>
+									<span class="result-steps" aria-hidden="true">
+										<For each={Array.from({ length: DAILY_FREE_PICKS })}>
+											{(_, i) => <span data-filled={i() < today().completed || undefined} />}
+										</For>
+									</span>
+								</div>
+								<Show when={today().completed === DAILY_FREE_PICKS}>
+									<p class="result-ritual-warm">{t('gameResult.freeFinished')}</p>
+									<FinishPassLink locale={props.locale} />
+								</Show>
+							</div>
+						)}
+					</Show>
 					<Show when={theirCard.latest}>
 						{(theirs) => (
 							<section class="result-comparison" aria-label={t('share.challenge.title')}>
@@ -145,56 +198,35 @@ export function ResultDetails(props: {
 					</Show>
 				</Show>
 				<div class="result-dialog-actions">
+					<Show when={opened() && !ritual.loading && ritual.latest?.next}>
+						{(slug) => (
+							<a
+								class="result-button result-next"
+								href={localizedPath(props.locale, todayPlayPath(slug()))}
+								onClick={(event) => {
+									if (
+										!event.defaultPrevented &&
+										!event.ctrlKey &&
+										!event.metaKey &&
+										!event.shiftKey &&
+										!event.altKey
+									)
+										markStartIntent(slug())
+								}}
+							>
+								{t(ritual.latest?.resume ? 'gameResult.resumeNext' : 'gameResult.playNext', {
+									game: t(`games.${slugToCamelCase(slug())}.name`),
+								})}
+								<ArrowRight size={18} aria-hidden="true" />
+							</a>
+						)}
+					</Show>
 					{props.children}
 					<a class="result-catalog-link" href={localizedPath(props.locale, '/games')}>
-						{t('daily.backToGames')}
-						<ArrowRight size={16} aria-hidden="true" />
+						{t('catalog.title')}
 					</a>
 				</div>
 			</dialog>
 		</>
-	)
-}
-
-function ResultPreview(props: {
-	model: ResultCardModel
-	strings: ResultCardStrings
-	label: string
-}) {
-	const size = 360
-	let canvas!: HTMLCanvasElement
-	createEffect(() => {
-		const model = props.model
-		const strings = props.strings
-		let stale = false
-		onCleanup(() => {
-			stale = true
-		})
-		void (async () => {
-			const { paintResultCard } = await import('../lib/result-card-render')
-			await document.fonts.ready
-			if (stale) return
-			const context = canvas.getContext('2d')
-			if (!context) return
-			const displayFamily = getComputedStyle(document.documentElement)
-				.getPropertyValue('--font-display-family')
-				.trim()
-			paintResultCard(context, model, strings, { size, displayFamily: displayFamily || undefined })
-			canvas.dataset.painted = ''
-		})().catch(() => {
-			/* The result and actions remain complete without the preview. */
-		})
-	})
-	return (
-		<figure class="result-preview">
-			<canvas
-				ref={canvas}
-				width={size}
-				height={size}
-				role="img"
-				aria-label={resultCardTextAlternative(props.model, props.strings)}
-			/>
-			<figcaption>{props.label}</figcaption>
-		</figure>
 	)
 }

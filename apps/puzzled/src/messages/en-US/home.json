@@ -12,7 +12,6 @@
 		"guestTitle": "Any 3 of 19 puzzles free every day",
 		"streakChip": "{days}-day streak",
 		"playersToday": "{count, plural, one {# player finished today} other {# players finished today}}",
-		"dailyInvitation": "Today’s puzzles are ready. Play any three free, no signup needed.",
 		"progressRingLabel": "{done} of {total} puzzles finished today",
 		"progressUnverified": "We could not load your saved progress just now. You can still play — we check your finish when you submit.",
 		"ogEyebrow": "19 daily puzzles",
@@ -20,7 +19,6 @@
 	},
 	"lineup": {
 		"title": "Today's lineup",
-		"subtitle": "All {count} games. Any three are free today.",
 		"seeAll": "See all games",
 		"play": "Play",
 		"freeToday": "Today's pick",
@@ -78,19 +76,16 @@
 		"puzzleNumber": "Puzzle #{number}",
 		"resetsIn": "Resets in",
 		"resetsAt": "Daily reset: 16:00 UTC",
-		"guestTitle": "{count} daily puzzles. Pick any 3, free.",
+		"guestTitle": "{count} daily puzzles. Play any 3 free, no account needed.",
 		"titleMemberReady": "Today's {game} is ready",
 		"titleMemberStreak": "Your {days}-day streak is waiting",
 		"titleMemberDone": "All done for today — nicely played",
 		"titleDone": "Today's {game} is done",
-		"bodyGuest": "Word, logic and number puzzles that take a few minutes each. Start any three today with no signup, and everyone gets the same set.",
-		"bodyMember": "Your streak, your stats and today's lineup are one tap away.",
 		"playToday": "Play today's {game}",
 		"playAgain": "Play today again",
 		"browseAll": "Browse all games",
 		"finishersToday": "{count} finished today so far",
-		"freeToday": "Free today",
-		"guestNote": "No signup, no card. Done in a few minutes."
+		"freeToday": "Free today"
 	},
 	"seasons": {
 		"newYear": "Happy New Year",
@@ -102,9 +97,7 @@
 		"christmas": "Merry Christmas"
 	},
 	"picks": {
-		"fresh": "{count} free picks today",
-		"left": "{count, plural, one {# free pick left} other {# free picks left}}",
-		"none": "Free picks used · See Plus",
-		"unlimited": "Plus · every game open"
+		"unlimited": "Plus · every game open",
+		"progress": "{used} / {total} free today"
 	}
 }

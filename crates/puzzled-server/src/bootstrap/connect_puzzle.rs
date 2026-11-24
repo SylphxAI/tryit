@@ -54,7 +54,7 @@ use crate::proto::puzzled::v1::{
     GetDailyResponse, GetPuzzleRequest, GetPuzzleResponse, GetSharedResultRequest,
     GetSharedResultResponse, GetTodayProgressRequest, GetTodayProgressResponse, PuzzleService,
     RecordShareLandingRequest, RecordShareLandingResponse, ShareResultRequest, ShareResultResponse,
-    StartDailyRequest, StartDailyResponse, SubmitGuessRequest, SubmitGuessResponse,
+    StartDailyRequest, StartDailyResponse, SubmitGuessRequest, SubmitGuessResponse, TodayFreePicks,
 };
 
 const SLICE_PUZZLE: &str = "S2-puzzle-connect";
@@ -560,6 +560,7 @@ impl PuzzleConnectService {
                             .completed_at
                             .map(|completed_at| completed_at.and_utc().timestamp_millis()),
                         difficulty: session.difficulty,
+                        time_spent_ms: session.time_spent_ms.and_then(|ms| u64::try_from(ms).ok()),
                         ..Default::default()
                     })
                     .into(),
@@ -809,6 +810,7 @@ fn progress_entries(
                             .completed_at
                             .map(|completed_at| completed_at.and_utc().timestamp_millis()),
                         difficulty: session.difficulty.clone(),
+                        time_spent_ms: session.time_spent_ms.and_then(|ms| u64::try_from(ms).ok()),
                         ..Default::default()
                     })
                     .into(),
@@ -965,11 +967,30 @@ impl PuzzleService for PuzzleConnectService {
             }
             _ => HashMap::new(),
         };
+        let game_slugs = match (
+            identity.as_deref().and_then(user_id_to_storage_uuid),
+            access.connection(),
+        ) {
+            (Some(player), Some(connection)) => {
+                daily_free_picks::list_for_player(connection, player, today)
+                    .await
+                    .map_err(|error| {
+                        warn!(%error, "get_today_progress picks lookup failed");
+                        ConnectError::new(ErrorCode::Internal, "pick_lookup_failed")
+                    })?
+            }
+            _ => Vec::new(),
+        };
         access.commit().await?;
 
         Response::ok(GetTodayProgressResponse {
             day_key: today.format("%Y-%m-%d").to_string(),
             games: progress_entries(&slugs, &finished),
+            free_picks: Some(TodayFreePicks {
+                game_slugs,
+                ..Default::default()
+            })
+            .into(),
             ..Default::default()
         })
     }
@@ -1211,6 +1232,7 @@ mod today_progress_tests {
             attempts: 2,
             completed_at: None,
             difficulty: Some("medium".into()),
+            time_spent_ms: Some(34_567),
         }
     }
 
@@ -1241,6 +1263,7 @@ mod today_progress_tests {
         assert_eq!(out[1].game_slug, "queens");
         assert!(out[1].has_completed);
         assert_eq!(out[1].completed_session.score, Some(80));
+        assert_eq!(out[1].completed_session.time_spent_ms, Some(34_567));
         assert_eq!(
             out[1].completed_session.difficulty.as_deref(),
             Some("medium")

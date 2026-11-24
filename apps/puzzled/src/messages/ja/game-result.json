@@ -1,5 +1,4 @@
 {
-	"finishPassLink": "3日間パスで全{games}ゲームと過去{days}日分のパズルを解放",
 	"seeResult": "結果を見る",
 	"congratulations": "おめでとうございます!",
 	"gameOver": "ゲームオーバー",
@@ -22,12 +21,17 @@
 	"topPercent": "今日の上位{percent}%!",
 	"perfectGame": "パーフェクト! 🎯",
 	"playersToday": "今日のプレイヤー: {count}人",
-	"playNext": "次に遊ぶ: {game}",
+	"playNext": "次に遊ぶ：{game}",
 	"backToHome": "ホームに戻る",
 	"missedCategories": "見逃したカテゴリ:",
 	"solvedTitle": "{game} クリア！",
 	"finishedTitle": "{game}の結果",
 	"shareResult": "成績をシェア",
 	"savePng": "PNGを保存",
-	"saveFailed": "画像を保存できませんでした。もう一度お試しください。"
+	"saveFailed": "画像を保存できませんでした。もう一度お試しください。",
+	"freeProgress": "今日の無料パズル {done} / {total} 完了",
+	"freeFinished": "今日の無料パズルをすべてクリア！",
+	"keepPlayingPlus": "Tryit Plusで続きを遊ぶ",
+	"resumeNext": "続きから：{game}",
+	"savedAndCopied": "画像を保存し、結果のテキストをコピーしました。"
 }

@@ -130,7 +130,7 @@ async function canvasGeometry(page: Page) {
 		})
 		const choices = [...dock.querySelectorAll('button')].map((el) => {
 			const { width, height } = el.getBoundingClientRect()
-			return JSON.stringify([el.className, width, height])
+			return JSON.stringify([el.className, Math.round(width), Math.round(height)])
 		})
 		return {
 			bad,
@@ -162,8 +162,8 @@ for (const [width, height] of layouts) {
 					const dock = page.locator('[data-consent-banner]')
 					await expect(dock.getByRole('button')).toHaveText(
 						locale === 'en-US'
-							? ['Decline', 'Accept', 'Analytics only']
-							: ['拒絕', '接受', '僅限分析'],
+							? ['Decline', 'Analytics only', 'Accept']
+							: ['拒絕', '僅限分析', '接受'],
 					)
 					await page.evaluate(() => document.fonts.ready)
 					await expect(page.locator(cue)).toBeInViewport({ ratio: 1 })
