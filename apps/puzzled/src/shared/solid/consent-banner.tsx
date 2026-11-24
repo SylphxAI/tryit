@@ -18,13 +18,13 @@ function useCookieConsent() {
 	return state
 }
 
-function ChoiceButtons(props: { copy: Copy; onChoose?: () => void }) {
+function ChoiceButtons(props: { copy: Copy; class: string; onChoose?: () => void }) {
 	function choose(status: 'accepted' | 'declined') {
 		saveCookieChoice(status)
 		props.onChoose?.()
 	}
 	return (
-		<div class="flex shrink-0 gap-2">
+		<div class={props.class}>
 			<button type="button" class={action} onClick={() => choose('declined')}>
 				{props.copy.decline}
 			</button>
@@ -57,14 +57,14 @@ export function ConsentBanner(props: { copy: Copy }) {
 				aria-label={props.copy.title}
 				data-consent-banner
 			>
-				<div class="page-shell-wide flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-1.5 text-sm leading-5">
+				<div class="page-shell-wide grid items-center gap-x-4 gap-y-1 py-1 text-sm leading-5 md:flex md:flex-wrap md:justify-between md:py-1.5">
 					<p class="text-muted-foreground">
 						{props.copy.message}{' '}
 						<a class="underline" href={props.copy.privacyHref}>
 							{props.copy.learnMore}
 						</a>
 					</p>
-					<ChoiceButtons copy={props.copy} />
+					<ChoiceButtons copy={props.copy} class="grid grid-cols-2 gap-2 md:flex md:shrink-0" />
 				</div>
 			</section>
 		</Show>
@@ -104,7 +104,11 @@ export function CookieSettings(props: { copy: Copy }) {
 					</a>
 					<div class="flex flex-wrap items-center gap-2">
 						<Show when={state()?.ready && state()?.storageAvailable && !state()?.gpc}>
-							<ChoiceButtons copy={props.copy} onChoose={() => dialog?.close()} />
+							<ChoiceButtons
+								copy={props.copy}
+								class="flex shrink-0 gap-2"
+								onChoose={() => dialog?.close()}
+							/>
 						</Show>
 						<button type="button" class="min-h-11 px-3 underline" onClick={() => dialog?.close()}>
 							{props.copy.close}

@@ -111,10 +111,10 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 			</footer>
 			<ConsentBanner copy={props.data.consent} />
 			<nav
-				class="fixed inset-x-0 bottom-0 z-bottom-nav border-t border-hairline bg-background pb-safe md:hidden"
+				class="site-tab-bar fixed inset-x-0 bottom-0 border-t border-hairline bg-background pb-safe md:hidden"
 				aria-label={props.data.mainNav}
 			>
-				<div class="mx-auto grid h-[58px] max-w-lg grid-cols-5">
+				<div class="mx-auto grid h-bottom-nav-height max-w-lg grid-cols-5">
 					<For each={props.data.tabs}>
 						{(tab) => (
 							<a
