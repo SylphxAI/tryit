@@ -34,5 +34,7 @@
 	"down": "Move down",
 	"left": "Move left",
 	"right": "Move right",
-	"blocked": "That block cannot move in this direction."
+	"blocked": "That block cannot move in this direction.",
+	"undo": "Undo",
+	"emptyBoard": "Drag a block or tap a piece to select it"
 }

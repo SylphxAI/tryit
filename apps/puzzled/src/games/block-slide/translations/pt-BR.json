@@ -34,5 +34,7 @@
 	"down": "Mover para baixo",
 	"left": "Mover para a esquerda",
 	"right": "Mover para a direita",
-	"blocked": "Esse bloco não pode se mover nessa direção."
+	"blocked": "Esse bloco não pode se mover nessa direção.",
+	"undo": "Desfazer",
+	"emptyBoard": "Arraste um bloco ou toque em uma peça para selecioná-la"
 }
