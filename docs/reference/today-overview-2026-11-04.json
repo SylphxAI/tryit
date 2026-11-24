@@ -609,7 +609,9 @@
 		"exit": 0,
 		"passed": 8,
 		"failed": 0,
-		"not_attempted": ["guest finish (no production writes authorized)"],
+		"not_attempted": [
+			"guest finish (no production writes authorized)"
+		],
 		"product_day": "2026-11-04",
 		"free_game": "crowns",
 		"answer_key_leaks": 0,
