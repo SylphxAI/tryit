@@ -78,10 +78,7 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 										t('common.cellRow', { index: row + 1 }),
 										t('common.cellColumn', { index: col + 1 }),
 										t(`games.duo.cell.${value() ?? 'blank'}`),
-										isGiven ? t('games.duo.lockedClue') : undefined,
-									]
-										.filter(Boolean)
-										.join(', ')}
+									].join(', ')}
 									aria-invalid={invalid() || undefined}
 									data-given={isGiven || undefined}
 									data-invalid={invalid() || undefined}
