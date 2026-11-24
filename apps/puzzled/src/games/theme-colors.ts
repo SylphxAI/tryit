@@ -1,3 +1,5 @@
+import type { GameCategory } from './types'
+
 /**
  * Game colour themes.
  *
@@ -226,3 +228,11 @@ export const DEFAULT_GAME_COLORS: GameColorClasses = {
 	hex: '#1a1712',
 	deepHex: '#1a1712',
 }
+
+/** Family inks group the catalogue without replacing each puzzle's motif. */
+export const gameFamilyColor = {
+	word: '[--family-color:#7a4974] dark:[--family-color:#d9afd1]',
+	logic: '[--family-color:#276963] dark:[--family-color:#92cdc2]',
+	math: '[--family-color:#885317] dark:[--family-color:#edc282]',
+	spatial: '[--family-color:#465d93] dark:[--family-color:#b0c4f1]',
+} satisfies Record<GameCategory, string>

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "../../../../brand/tokens.css";
 @import "../features/daily/solid/play-canvas.css";
+@import "./editorial.css";
 @plugin 'tailwindcss-animate';
 
 /* =============================================
@@ -107,7 +108,7 @@
 	--color-primary: var(--brand-color-ink);
 	--color-primary-hover: #37322a;
 	--color-primary-foreground: #fbf9f4;
-	--color-ring: var(--brand-color-focus);
+	--color-ring: #5d5279;
 	--color-secondary: var(--brand-color-ink);
 	/* Amber is the brand accent: a fill, never small text on paper. */
 	--color-accent-warm: var(--brand-color-accent);
@@ -155,7 +156,7 @@
 	--color-rank-bronze: #a4661f;
 
 	/* UI (light) */
-	--color-background: var(--brand-color-paper);
+	--color-background: #f7f5f0;
 	--color-foreground: var(--brand-color-ink);
 	--color-card: var(--brand-color-card);
 	--color-card-foreground: var(--brand-color-ink);
@@ -187,7 +188,7 @@
 	--color-border: var(--brand-color-border-dark);
 	--color-input: #3a3630;
 	--color-hairline: rgb(242 238 230 / 0.1);
-	--color-ring: var(--brand-color-focus-dark);
+	--color-ring: #cbb9f2;
 	--color-key: #34312b;
 	--color-key-text: var(--brand-color-ink-dark);
 	--color-primary: var(--brand-color-ink-dark);
@@ -741,20 +742,17 @@ body {
    Focus Styles (WCAG 2.4.7)
 ============================================= */
 
-a:focus-visible,
-button:focus-visible,
-summary:focus-visible,
-[role="button"]:focus-visible,
-[tabindex]:focus-visible:not(input):not(textarea):not(select) {
+:focus-visible {
 	outline: 2px solid var(--color-ring);
 	outline-offset: 2px;
 }
 
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
+:focus:not(:focus-visible) {
 	outline: none;
-	box-shadow: 0 0 0 2px var(--color-ring);
+}
+
+time, output, .day-numeral {
+	font-variant-numeric: tabular-nums;
 }
 
 /* =============================================
@@ -1614,9 +1612,7 @@ html:has(.site-shell) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.home-featured-card,
-	.home-featured-card:hover,
-	.home-featured-action:active {
+	.home-featured-card {
 		transform: none;
 	}
 }
@@ -1675,10 +1671,10 @@ html:has(.site-shell) {
 		background-color: var(--color-background);
 	}
 
-	/* The broadsheet masthead: a heavy ink rule over a hairline. */
+	/* A thin editorial rule separates edition data from the hero. */
 	.masthead-rule {
-		border-top: 3px solid var(--color-foreground);
-		border-bottom: 1px solid var(--color-foreground);
+		border-top: 1px solid var(--editorial-line);
+		border-bottom: 1px solid var(--editorial-line);
 	}
 
 	:lang(zh) .game-tile-title,
@@ -1701,11 +1697,11 @@ html:has(.site-shell) {
 		min-height: 2rem;
 		align-items: center;
 		gap: 0.5rem;
-		border: 1.5px solid var(--tactile-line);
+		border: 1px solid var(--editorial-line);
 		border-radius: 9999px;
 		background-color: var(--color-card);
 		padding: 0.25rem 0.75rem 0.25rem 0.5rem;
-		box-shadow: 0 2px 0 0 var(--tactile-edge);
+		box-shadow: var(--editorial-shadow);
 		font-size: 0.8125rem;
 		font-weight: 600;
 		line-height: 1.2;
@@ -1777,10 +1773,6 @@ html:has(.site-shell) {
 		.home-featured-art {
 			aspect-ratio: 16 / 7;
 		}
-	}
-	.home-featured-action:active {
-		transform: translateY(2px);
-		box-shadow: 0 1px 0 0 #1a1712;
 	}
 
 	/* =============================================
@@ -1935,7 +1927,7 @@ html:has(.site-shell) {
 	}
 	.almanac-game:hover {
 		border-color: var(--tactile-line);
-		box-shadow: 0 2px 0 0 var(--tactile-edge);
+		box-shadow: var(--editorial-shadow);
 		transform: translateY(-1px);
 	}
 	.almanac-game:focus-visible {

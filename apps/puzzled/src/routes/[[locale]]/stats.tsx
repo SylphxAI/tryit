@@ -4,6 +4,7 @@ import { HttpHeader } from '@solidjs/start'
 import { Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
 import { StatsConsole } from '@/features/console/solid/stats-console'
+import styles from '@/features/console/solid/stats-page.module.css'
 import { defaultLocale, isValidLocale } from '@/lib/i18n/config'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
@@ -33,7 +34,9 @@ export default function StatsPage() {
 					<>
 						<PageMeta value={data.meta} />
 						<SiteShell data={data.shell} signedIn={data.signedIn}>
-							<StatsConsole data={data} />
+							<div class={styles.page}>
+								<StatsConsole data={data} />
+							</div>
 						</SiteShell>
 					</>
 				)}

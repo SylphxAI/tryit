@@ -1,19 +1,18 @@
 /** @jsxImportSource solid-js */
 import type { lineupStatus } from '@/features/home/lib/home-day-copy'
-import { getGameColors } from '@/games/theme-colors'
+import { gameFamilyColor, getGameColors } from '@/games/theme-colors'
 import type { HomeDocument } from './home-data'
 import styles from './home-game-card.module.css'
 
 export function HomeGameCard(props: {
 	game: HomeDocument['catalog'][number]
-	index: number
 	status: ReturnType<typeof lineupStatus>
 	href: string
 	caption: string
 	onClick: (event: MouseEvent) => void
 }) {
 	return (
-		<li class={styles.slot} style={{ '--lineup-delay': `${Math.min(props.index, 7) * 24}ms` }}>
+		<li class={styles.slot}>
 			<a
 				class={styles.key}
 				data-home-game={props.game.slug}
@@ -21,8 +20,11 @@ export function HomeGameCard(props: {
 				href={props.href}
 				onClick={props.onClick}
 			>
-				<div class={styles.face}>
-					<div class={`${styles.field} ${getGameColors(props.game.theme).bg}`}>
+				<div class={`${styles.face} editorial-surface`}>
+					<div
+						class={`${styles.field} family-field ${gameFamilyColor[props.game.category]}`}
+						style={{ '--game-paper': getGameColors(props.game.theme).hex }}
+					>
 						<img
 							class={styles.motif}
 							src={`/motifs/${props.game.slug}-zoom.svg`}
@@ -32,8 +34,8 @@ export function HomeGameCard(props: {
 							decoding="async"
 						/>
 					</div>
-					<div class="flex flex-1 flex-col gap-0.5 px-2.5 py-2">
-						<strong class="game-tile-title break-words font-display text-sm leading-tight">
+					<div class="flex flex-1 flex-col gap-1 px-3 py-2.5">
+						<strong class="game-tile-title break-words font-display text-[0.9375rem] leading-tight">
 							{props.game.name}
 						</strong>
 						<span class="mt-auto text-xs leading-tight text-muted-foreground">{props.caption}</span>

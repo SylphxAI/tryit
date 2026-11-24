@@ -175,7 +175,7 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 					</button>
 					<button
 						type="button"
-						class="min-h-11 rounded-lg border border-border px-4"
+						class="chrome-control border border-hairline px-4"
 						onClick={() => submit('lost')}
 					>
 						{mt('giveUp')}

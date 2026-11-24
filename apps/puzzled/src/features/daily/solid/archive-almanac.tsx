@@ -1,8 +1,8 @@
 /** @jsxImportSource solid-js */
 
-import { LockKeyhole, Play } from 'lucide-solid'
+import { Check, LockKeyhole, Play } from 'lucide-solid'
 import { createMemo, createSignal, For } from 'solid-js'
-import { type GameColorTheme, getGameColors } from '@/games/theme-colors'
+import { type GameColorTheme, gameFamilyColor, getGameColors } from '@/games/theme-colors'
 import type { GameCategory } from '@/games/types'
 import { localizedPath } from '@/lib/seo/urls'
 import { cn } from '@/lib/utils'
@@ -36,6 +36,11 @@ type ArchiveAlmanacProps = {
 
 type Filter = 'all' | GameCategory
 
+const FAMILY_TONE: Record<Filter, string> = {
+	all: '[--family-color:var(--color-foreground)]',
+	...gameFamilyColor,
+}
+
 /**
  * The archive as an almanac: a strip of the past days, a category filter and
  * the chosen day's games. One day is on screen at a time, so the whole month
@@ -48,6 +53,7 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 	const formats = createMemo(() => ({
 		weekday: new Intl.DateTimeFormat(props.locale, { weekday: 'short', timeZone: 'UTC' }),
 		day: new Intl.DateTimeFormat(props.locale, { day: 'numeric', timeZone: 'UTC' }),
+		count: new Intl.NumberFormat(props.locale),
 		month: new Intl.DateTimeFormat(props.locale, { month: 'short', timeZone: 'UTC' }),
 		long: new Intl.DateTimeFormat(props.locale, {
 			weekday: 'long',
@@ -63,16 +69,19 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 	)
 
 	return (
-		<div class="tactile-card overflow-hidden" data-archive-almanac="">
-			<div class="border-b-[1.5px] border-[var(--tactile-line)] bg-[var(--color-surface-muted)] px-3 pb-3 pt-3 sm:px-4">
+		<div
+			class="editorial-surface rounded-3xl border border-hairline bg-card shadow-md"
+			data-archive-almanac=""
+		>
+			<div class="rounded-t-3xl border-b border-hairline bg-surface-muted/65 px-3.5 pb-3.5 pt-4 sm:px-6 sm:pb-5 sm:pt-5">
 				<fieldset class="min-w-0 border-0 p-0">
-					<legend class="sr-only">{props.labels.dayPicker}</legend>
-					<ul class="no-scrollbar -mx-3 flex snap-x gap-1.5 overflow-x-auto px-3 pb-1 sm:-mx-4 sm:px-4">
+					<legend class="eyebrow">{props.labels.dayPicker}</legend>
+					<ul class="-mx-1 mt-1.5 flex snap-x gap-1.5 overflow-x-auto scroll-px-1 px-1 pt-1 pb-2 [scrollbar-color:var(--color-input)_transparent] [scrollbar-width:thin] sm:gap-2">
 						<For each={props.days}>
 							{(dayKey, index) => {
 								const date = asDate(dayKey)
 								const on = () => dayKey === selected()
-								const monthStart = index() === 0 || date.getUTCDate() === 1
+								const monthStart = dayKey.slice(0, 7) !== props.days[index() - 1]?.slice(0, 7)
 								return (
 									<li class="snap-start">
 										<button
@@ -80,15 +89,20 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 											aria-pressed={on()}
 											aria-label={formats().long.format(date)}
 											onClick={() => setSelected(dayKey)}
-											class={cn('almanac-day', on() && 'almanac-day-on')}
+											class={cn(
+												'flex min-h-19 min-w-14 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-21 sm:min-w-16',
+												on()
+													? 'border-accent-warm-foreground/30 bg-accent-warm-soft text-accent-warm-foreground'
+													: 'border-hairline bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground',
+											)}
 										>
-											<span class="text-[11px] font-semibold uppercase leading-none tracking-wide opacity-75">
+											<span class="text-[11px] leading-none">
 												{index() === 0 ? props.labels.yesterday : formats().weekday.format(date)}
 											</span>
-											<span class="numeral font-display text-lg font-bold leading-none">
+											<span class="font-sans text-2xl leading-none font-bold text-foreground tabular-nums">
 												{formats().day.format(date)}
 											</span>
-											<span class="text-[10px] font-semibold leading-none opacity-70">
+											<span class="text-[11px] leading-none">
 												{monthStart ? formats().month.format(date) : ' '}
 											</span>
 										</button>
@@ -98,9 +112,9 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 						</For>
 					</ul>
 				</fieldset>
-				<fieldset class="mt-2 min-w-0 border-0 p-0">
-					<legend class="sr-only">{props.labels.filter}</legend>
-					<div class="no-scrollbar -mx-3 flex gap-1.5 overflow-x-auto px-3 sm:-mx-4 sm:px-4">
+				<fieldset class="mt-3 min-w-0 border-0 p-0 sm:mt-4">
+					<legend class="eyebrow">{props.labels.filter}</legend>
+					<div class="mt-2 flex flex-wrap gap-1.5 sm:gap-2">
 						<For each={[{ value: 'all' as const, label: props.labels.all }, ...props.categories]}>
 							{(option) => (
 								<button
@@ -108,10 +122,16 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 									aria-pressed={filter() === option.value}
 									onClick={() => setFilter(option.value)}
 									class={cn(
-										'category-chip shrink-0',
-										filter() === option.value && 'category-chip-on',
+										'inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold text-[var(--family-color)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+										FAMILY_TONE[option.value],
+										filter() === option.value
+											? 'border-[color-mix(in_srgb,var(--family-color)_55%,transparent)] bg-[color-mix(in_srgb,var(--family-color)_18%,var(--color-card))]'
+											: 'border-transparent bg-[color-mix(in_srgb,var(--family-color)_8%,var(--color-card))] hover:border-[color-mix(in_srgb,var(--family-color)_35%,transparent)]',
 									)}
 								>
+									{filter() === option.value && (
+										<Check size={14} class="shrink-0" aria-hidden="true" />
+									)}
 									{option.label}
 								</button>
 							)}
@@ -120,33 +140,35 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 				</fieldset>
 			</div>
 
-			<section class="px-3 pb-4 pt-3 sm:px-4" aria-labelledby="archive-day-title">
+			<section class="px-3.5 pt-4 pb-4 sm:px-6 sm:py-6" aria-labelledby="archive-day-title">
 				<div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-					<h3 id="archive-day-title" class="font-display text-xl leading-tight">
+					<h3
+						id="archive-day-title"
+						class="font-display text-xl leading-tight tabular-nums sm:text-2xl [&:is(:lang(zh),:lang(ja),:lang(ko))]:tracking-normal"
+					>
 						<time datetime={selected()}>{formats().long.format(asDate(selected()))}</time>
 					</h3>
-					<p class="numeral text-sm text-muted-foreground">
-						{props.labels.dayCount.replace('{count}', String(visible().length))}
+					<p class="text-sm font-medium text-muted-foreground tabular-nums">
+						{props.labels.dayCount.replace('{count}', formats().count.format(visible().length))}
 					</p>
 				</div>
-				<ul class="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+				<ul class="mt-3 grid grid-cols-2 gap-2.5 sm:mt-4 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4">
 					<For each={visible()}>
 						{(game) => {
 							const colors = getGameColors(game.theme)
 							return (
-								<li>
+								<li class="min-w-0">
 									<a
 										href={localizedPath(props.locale, archivePlayPath(game.slug, selected()))}
-										class="almanac-game group flex items-center gap-2 sm:gap-2.5"
+										class="editorial-surface editorial-interactive flex h-full min-h-17 items-center gap-2 rounded-xl border border-hairline bg-card p-2 shadow-md hover:border-muted-foreground/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-safe:transition-[transform,box-shadow,border-color] motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.99] sm:gap-3 sm:p-2.5"
 									>
 										<span
 											class={cn(
-												'flex h-9 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border-[1.5px] border-[var(--tactile-line)] p-0.5 sm:h-11 sm:w-[4.25rem]',
-												colors.bg,
+												'flex h-9 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg p-0.5 sm:h-11 sm:w-13',
+												colors.bgLight,
 											)}
 											aria-hidden="true"
 										>
-											{/* biome-ignore lint/performance/noImgElement: a static decorative SVG with intrinsic size */}
 											<img
 												src={`/motifs/${game.slug}-zoom.svg`}
 												alt=""
@@ -158,10 +180,10 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 											/>
 										</span>
 										<span class="min-w-0 flex-1">
-											<span class="block truncate text-sm font-semibold leading-snug">
+											<span class="block text-sm leading-tight font-bold [overflow-wrap:anywhere]">
 												{game.name}
 											</span>
-											<span class="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+											<span class="mt-1 flex items-center gap-1 text-xs leading-tight text-muted-foreground [overflow-wrap:anywhere]">
 												{props.locked ? (
 													<LockKeyhole class="h-3 w-3 shrink-0" aria-hidden="true" />
 												) : (

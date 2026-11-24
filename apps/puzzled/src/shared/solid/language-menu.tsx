@@ -17,7 +17,7 @@ export function LanguageMenu(props: { data: SiteShellData; showName?: boolean })
 		>
 			<summary
 				aria-label={`${props.showName ? props.data.languageName : props.data.languageShortName}, ${props.data.changeLanguage}`}
-				class="pressable flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1.5 text-xs font-semibold hover:bg-accent sm:px-3 sm:text-sm"
+				class="chrome-control cursor-pointer list-none gap-1 px-1.5 text-xs sm:px-3 sm:text-sm"
 			>
 				<Languages
 					class="language-icon h-4 w-4 shrink-0"
@@ -31,7 +31,7 @@ export function LanguageMenu(props: { data: SiteShellData; showName?: boolean })
 			</summary>
 			<ul
 				data-language-options=""
-				class={`absolute top-full z-10 min-w-36 rounded-xl border border-border bg-card p-1 shadow-card ${props.showName ? 'left-0' : 'right-0'}`}
+				class={`absolute top-full z-10 editorial-surface min-w-36 rounded-2xl p-1 ${props.showName ? 'left-0' : 'right-0'}`}
 			>
 				<For each={props.data.languages}>
 					{(language) => (
@@ -41,7 +41,7 @@ export function LanguageMenu(props: { data: SiteShellData; showName?: boolean })
 								href={language.href}
 								rel="external"
 								aria-current={language.code === props.data.language ? 'page' : undefined}
-								class="flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-accent"
+								class="chrome-control flex justify-start px-3 text-sm"
 								onClick={(event) => {
 									if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
 									// biome-ignore lint/suspicious/noDocumentCookie: keep the Next locale preference across the migration

@@ -44,8 +44,8 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 								<a
 									href={tab.href}
 									aria-current={tab.active ? 'page' : undefined}
-									class="pressable flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold"
-									classList={{ 'bg-accent': tab.active, 'text-muted-foreground': !tab.active }}
+									class="chrome-control px-3.5 text-sm"
+									classList={{ 'text-muted-foreground': !tab.active }}
 								>
 									{tab.title}
 								</a>
@@ -55,7 +55,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 					<div class="site-header-actions ml-auto flex items-center gap-2">
 						<a
 							href={props.data.plus.href}
-							class="pressable flex min-h-11 items-center gap-1 rounded-full px-1.5 text-xs font-semibold sm:gap-2 sm:px-3 sm:text-sm"
+							class="chrome-control gap-1 px-1.5 text-xs sm:gap-2 sm:px-3 sm:text-sm"
 						>
 							<span class="h-2 w-2 rounded-[2px] bg-accent-warm" aria-hidden="true" />
 							{props.data.plus.title}
@@ -68,7 +68,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 							fallback={
 								<a
 									href={props.data.signIn.href}
-									class="pressable inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-2.5 text-center text-xs font-semibold hover:bg-accent sm:px-4 sm:text-sm"
+									class="chrome-control border border-hairline px-2.5 text-center text-xs sm:px-4 sm:text-sm"
 								>
 									{props.data.signIn.title}
 								</a>
@@ -127,7 +127,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 							>
 								<Dynamic
 									component={icons[tab.label]}
-									size={24}
+									size={21}
 									stroke-width={tab.active ? 2.3 : 1.7}
 									aria-hidden="true"
 								/>

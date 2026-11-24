@@ -1,0 +1,148 @@
+/* Editorial surfaces are intentionally separate from high-contrast game cells. */
+:root {
+	--editorial-line: rgb(20 20 19 / 0.08);
+	--editorial-shadow: 0 1px 2px rgb(20 20 19 / 0.04), 0 8px 24px -6px rgb(20 20 19 / 0.07);
+	--editorial-lift: 0 2px 4px rgb(20 20 19 / 0.06), 0 12px 28px -8px rgb(20 20 19 / 0.13);
+}
+.dark {
+	--editorial-line: rgb(247 245 240 / 0.12);
+	--editorial-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 24px -6px rgb(0 0 0 / 0.24);
+	--editorial-lift: 0 2px 4px rgb(0 0 0 / 0.20), 0 12px 28px -8px rgb(0 0 0 / 0.36);
+}
+
+@layer components {
+	.editorial-surface {
+		border: 1px solid var(--editorial-line);
+		background-color: var(--color-card);
+		box-shadow: var(--editorial-shadow);
+	}
+	.editorial-title {
+		font-family: var(--font-display);
+		font-size: clamp(2.45rem, 1.65rem + 3vw, 4.25rem);
+		font-weight: 800;
+		letter-spacing: -0.044em;
+		line-height: 1.04;
+		text-wrap: balance;
+	}
+	:lang(zh) .editorial-title,
+	:lang(ja) .editorial-title {
+		letter-spacing: 0;
+		line-height: 1.24;
+	}
+	.chrome-control {
+		display: inline-flex;
+		min-height: 2.75rem;
+		align-items: center;
+		justify-content: center;
+		gap: 0.375rem;
+		border-radius: 999px;
+		padding-inline: 0.625rem;
+		font-weight: 650;
+		line-height: 1.2;
+		text-decoration: none;
+		transition: background-color 120ms var(--ease-out), transform 120ms var(--ease-out);
+	}
+	.chrome-control svg { flex-shrink: 0; }
+	.chrome-control:hover,
+	.chrome-control[aria-current="page"],
+	details[open] > .chrome-control { background-color: var(--color-accent); }
+	.chrome-control:active { transform: scale(0.985); }
+	.chrome-dialog {
+		margin: auto;
+		max-height: calc(100dvh - 2rem);
+		width: min(28rem, calc(100% - 2rem));
+		border: 1px solid var(--editorial-line);
+		border-radius: 1.5rem;
+		background-color: var(--color-card);
+		padding: clamp(1rem, 4vw, 1.5rem);
+		color: var(--color-foreground);
+		box-shadow: var(--editorial-shadow), 0 24px 64px -16px rgb(20 20 19 / 0.25);
+	}
+	.chrome-dialog::backdrop { background: rgb(26 23 18 / 0.36); }
+	.chrome-primary {
+		border: 1px solid rgb(26 23 18 / 0.12);
+		border-radius: 999px;
+		background-color: var(--color-cta);
+		color: var(--color-cta-foreground);
+		box-shadow: 0 1px 2px rgb(20 20 19 / 0.09), 0 5px 12px -5px rgb(134 75 14 / 0.32);
+	}
+	.chrome-primary:hover { background-color: var(--color-cta-hover); }
+	.home-day-grid .editorial-title { font-size: clamp(2.375rem, 1.8rem + 2.35vw, 3.75rem); }
+	@media (width >= 1024px) and (height < 980px) {
+		.home-hero .home-featured-art { aspect-ratio: 16 / 5.5; }
+	}
+	@media (width >= 1024px) and (height < 800px) {
+		.home-day-grid .editorial-title { font-size: 3.125rem; }
+	}
+	.family-field {
+		background-color: color-mix(in srgb, var(--game-paper, var(--color-card)) 28%, color-mix(in srgb, var(--family-color, var(--color-foreground)) 15%, var(--color-card)));
+	}
+	.dark .family-field {
+		background-color: color-mix(in srgb, var(--game-paper, var(--color-card)) 10%, color-mix(in srgb, var(--family-color, var(--color-foreground)) 15%, var(--color-card)));
+	}
+	.family-pill:is(.category-chip, .tag-chip) {
+		background-color: color-mix(in srgb, var(--family-color, var(--color-foreground)) 8%, var(--color-card));
+		color: var(--family-color, var(--color-foreground));
+	}
+	.family-pill:hover {
+		border-color: color-mix(in srgb, var(--family-color, var(--color-foreground)) 42%, transparent);
+	}
+	.category-chip-on.family-pill {
+		border-color: var(--family-color, var(--color-foreground));
+		background-color: var(--family-color, var(--color-foreground));
+		color: var(--color-card);
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.editorial-interactive {
+		transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+	}
+	@media (hover: hover) {
+		.editorial-interactive:hover {
+			transform: translateY(-2px);
+			box-shadow: var(--editorial-lift);
+		}
+	}
+	.editorial-interactive:active { transform: scale(0.985); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.chrome-control { transition: none; }
+	.chrome-control:active { transform: none; }
+}
+
+.site-header,
+.site-tab-bar,
+.consent-bar { background-color: var(--color-card); }
+.site-tab-bar [aria-current="page"] > svg {
+	color: var(--color-accent-warm-foreground);
+}
+.site-tab-bar [aria-current="page"] > span { font-weight: 750; }
+.consent-bar { box-shadow: 0 -5px 18px -10px rgb(20 20 19 / 0.18); }
+.consent-privacy { min-height: 1.25rem; }
+
+[data-play-canvas] .play-hud {
+	background-color: var(--color-card);
+}
+@media (width < 640px) {
+	[data-play-canvas] .play-hud .chrome-control { padding-inline: 0.375rem; }
+	[data-play-canvas] .play-hud .play-title { flex-basis: 4.25rem; }
+}
+
+/* On a compact play HUD, keep the difficulty label and the help icon on
+   the same row. Icon-only controls retain their accessible names. */
+@media (width < 640px) {
+	[data-play-canvas] .play-hud:has(.play-difficulty) :is(.play-exit, .play-help) {
+		min-inline-size: 2.75rem;
+		padding-inline: 0;
+	}
+	[data-play-canvas] .play-hud:has(.play-difficulty) .play-help svg { display: block; }
+	[data-play-canvas] .play-hud:has(.play-difficulty) :is(.play-exit, .play-help) span {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+}
