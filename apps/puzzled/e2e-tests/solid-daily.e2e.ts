@@ -625,7 +625,10 @@ test('Cage Sudoku honors cage sums, keeps givens fixed and retries the exact acc
 	await expect(grid.getByRole('button')).toHaveCount(81)
 	const cell = (row: number, col: number) =>
 		grid.getByRole('button', { name: new RegExp(`^Row ${row + 1}, Column ${col + 1},`) })
-	await expect(board.getByRole('link', { name: 'How to play' })).toHaveAttribute('href', '#rules')
+	await expect(board.getByRole('button', { name: 'How to play' })).toHaveAttribute(
+		'aria-haspopup',
+		'dialog',
+	)
 	const first = cell(0, 0)
 	await expect(first).toHaveAccessibleName('Row 1, Column 1, Cage total 24')
 	await expect(first).toHaveText('24')

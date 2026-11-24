@@ -1,9 +1,11 @@
 /** @jsxImportSource solid-js */
 import { ChevronDown, Clock, Lightbulb, Play } from 'lucide-solid'
 import { For, type ParentProps, Show } from 'solid-js'
-import { markStartIntent } from '@/features/daily/lib/start-intent'
+import { getRequestEvent, isServer, NoHydration } from 'solid-js/web'
+import { markStartIntent, START_INTENT_ATTRIBUTE } from '@/features/daily/lib/start-intent'
 import { getGameColors } from '@/games/theme-colors'
 import { localizedPath } from '@/lib/seo/urls'
+import { START_INTENT_KEY } from '@/lib/storage-keys'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
@@ -12,6 +14,15 @@ import type { GamePageData } from './game-data'
 
 export const playButton =
 	'pressable inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#1a1712] bg-cta px-7 text-base font-bold text-cta-foreground shadow-[0_3px_0_0_#1a1712] transition-colors hover:bg-cta-hover active:translate-y-0.5 active:shadow-[0_1px_0_0_#1a1712]'
+
+// Capture an explicit Play tap even before Solid installs its click handler.
+// Do not turn a shared or pasted URL into permission to spend a daily pick.
+const captureEarlyPlay = `document.addEventListener('click',function(e){
+  if(e.defaultPrevented||e.button!==0||e.shiftKey||e.ctrlKey||e.metaKey||e.altKey)return;
+  const link=e.target.closest?.('a[${START_INTENT_ATTRIBUTE}]');
+  if(!link)return;
+  try{sessionStorage.setItem('${START_INTENT_KEY}',JSON.stringify({slug:link.getAttribute('${START_INTENT_ATTRIBUTE}'),at:Date.now()}))}catch{}
+},true)`
 
 export function GameLanding(
 	props: ParentProps<{
@@ -22,6 +33,7 @@ export function GameLanding(
 		isGuest: boolean
 	}>,
 ) {
+	const nonce = isServer ? getRequestEvent()?.locals.cspNonce : undefined
 	const d = () => props.data
 	const t = () => d().labels
 	const color = () => getGameColors(d().theme).bg
@@ -76,7 +88,12 @@ export function GameLanding(
 	return (
 		<SiteShell data={d().shell}>
 			<PageMeta value={d().meta} />
-			<main id="main-content" tabIndex={-1} class="flex-1">
+			<main id="main-content" tabIndex={-1} class="game-page flex-1">
+				<NoHydration>
+					{isServer && typeof nonce === 'string' && (
+						<script nonce={nonce} innerHTML={captureEarlyPlay} />
+					)}
+				</NoHydration>
 				<section
 					class="game-hero relative border-b border-[var(--tactile-soft-line)]"
 					classList={{ 'game-hero-stage': props.stage }}
@@ -134,6 +151,7 @@ export function GameLanding(
 									<div class="mt-4">{facts()}</div>
 									<a
 										href={props.playHref}
+										data-start-intent={props.daily ? d().slug : undefined}
 										class={`mt-6 ${playButton}`}
 										onClick={(event) => {
 											if (
@@ -174,7 +192,7 @@ export function GameLanding(
 						</Show>
 					</div>
 				</section>
-				<section id="play" class="page-shell scroll-mt-16 py-4 md:py-6" aria-label={t().play}>
+				<section id="play" class="page-shell scroll-mt-16 py-3" aria-label={t().play}>
 					{props.children}
 				</section>
 				<Show when={d().rules.length}>

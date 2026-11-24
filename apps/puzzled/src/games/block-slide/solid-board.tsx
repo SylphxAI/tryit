@@ -140,9 +140,6 @@ function Slides(
 						</span>
 					</Show>
 				</p>
-				<a href="#rules" class="inline-flex min-h-12 items-center font-semibold underline">
-					{text('howToPlay')}
-				</a>
 			</div>
 			<fieldset dir="ltr" class="min-w-0" aria-label={text('name')}>
 				<div

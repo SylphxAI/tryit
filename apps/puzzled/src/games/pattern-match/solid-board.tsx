@@ -140,9 +140,6 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 				<span>
 					{t('gameResult.mistakes')}: {mistakes()}/{maxMistakes}
 				</span>
-				<a class="inline-flex min-h-11 items-center underline" href="#rules">
-					{t('common.help')}
-				</a>
 			</div>
 			<fieldset class="min-w-0" disabled={locked()}>
 				<legend class="sr-only">{mt('name')}</legend>

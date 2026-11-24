@@ -184,14 +184,6 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 					</Show>
 				</p>
 			</Show>
-			<details class="rounded-xl bg-muted px-3 text-sm">
-				<summary class="min-h-12 cursor-pointer py-3 font-semibold">
-					{t('games.quadWords.howToPlay')}
-				</summary>
-				<ul class="list-disc space-y-1 pb-3 pl-5">
-					<For each={[1, 2, 3]}>{(rule) => <li>{t(`games.quadWords.rules.rule${rule}`)}</li>}</For>
-				</ul>
-			</details>
 			<div class="grid grid-cols-2 gap-2" dir="ltr">
 				<For each={boards}>
 					{(index) => {

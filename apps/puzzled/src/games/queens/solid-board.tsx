@@ -81,9 +81,6 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 						{placed().length}/{size}
 					</span>
 				</span>
-				<a class="inline-flex min-h-11 items-center underline" href="#rules">
-					{t('common.help')}
-				</a>
 			</div>
 			<fieldset class="min-w-0" disabled={locked()}>
 				<legend class="sr-only">{t('games.crowns.name')}</legend>

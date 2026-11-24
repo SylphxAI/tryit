@@ -29,5 +29,27 @@
 	"notReadyTitle": "O {game} de hoje ainda não está pronto",
 	"notReadyBody": "Ainda não há um desafio de {game} para hoje. Escolha qualquer um dos seus 3 desafios grátis de hoje.",
 	"notReadyCta": "Ver desafios grátis de hoje",
-	"startUsesPick": "Começar usa uma das 3 escolhas grátis de hoje. O jogo que você começar fica liberado o dia todo."
+	"startUsesPick": "Começar usa uma das 3 escolhas grátis de hoje. O jogo que você começar fica liberado o dia todo.",
+	"englishWordPuzzle": "Jogo de palavras em inglês",
+	"firstAction": {
+		"sudoku": "Toque numa casa vazia e escolha um número de 1 a 9.",
+		"nonogram": "Use as pistas numéricas para pintar a primeira casa.",
+		"wordSearch": "Deslize pelas letras de uma palavra da lista.",
+		"patternMatch": "Toque em três cartas que formem um trio.",
+		"crowns": "Toque numa casa para colocar uma coroa.",
+		"duo": "Toque numa casa vazia para colocar um sol ou uma lua.",
+		"numberPath": "Comece no 1 e percorra as casas vizinhas em ordem.",
+		"wordGroups": "Toque em quatro palavras que tenham algo em comum.",
+		"killerSudoku": "Use a soma da região para escolher um número.",
+		"wordLadder": "Troque uma letra para formar outra palavra.",
+		"wordGuess": "Digite uma palavra de cinco letras para obter pistas.",
+		"cryptogram": "Toque numa letra cifrada e descubra qual ela representa.",
+		"wordBox": "Forme uma palavra com letras de lados diferentes.",
+		"arithmo": "Digite uma equação válida para obter pistas.",
+		"blockSlide": "Arraste um bloco ou mova-o com as setas.",
+		"crossword": "Toque numa casa e digite a resposta da pista.",
+		"pipPlace": "Escolha uma peça de dominó e toque numa casa vazia.",
+		"quadWords": "Digite uma palavra de cinco letras para ver as pistas.",
+		"wordHive": "Forme uma palavra que use a letra do centro."
+	}
 }

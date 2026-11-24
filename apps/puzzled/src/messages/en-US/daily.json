@@ -29,5 +29,27 @@
 	"notReadyTitle": "Today's {game} isn't ready yet",
 	"notReadyBody": "There is no {game} puzzle for today yet. Pick any 3 of today's other 19 puzzles to play free.",
 	"notReadyCta": "Browse today's free puzzles",
-	"startUsesPick": "Starting uses one of today's 3 free picks. A game you start stays open all day."
+	"startUsesPick": "Starting uses one of today's 3 free picks. A game you start stays open all day.",
+	"englishWordPuzzle": "English word puzzle",
+	"firstAction": {
+		"sudoku": "Tap a blank square, then pick a number 1–9.",
+		"nonogram": "Use the number clues to fill your first square.",
+		"wordSearch": "Drag across the letters of a word on the list.",
+		"patternMatch": "Tap three cards that make a set.",
+		"crowns": "Tap a square to place a crown.",
+		"duo": "Tap a blank square to choose a sun or moon.",
+		"numberPath": "Start at 1. Drag or tap neighboring squares in order.",
+		"wordGroups": "Tap four words that belong together.",
+		"killerSudoku": "Tap a blank square and use its cage sum to pick a digit.",
+		"wordLadder": "Change one letter to make a new word.",
+		"wordGuess": "Enter any five-letter word to get your first clues.",
+		"cryptogram": "Tap a cipher letter, then guess what it stands for.",
+		"wordBox": "Pick letters from different sides of the box to make a word.",
+		"arithmo": "Enter a valid equation to get your first clues.",
+		"blockSlide": "Drag a block or use the arrows to free the target piece.",
+		"crossword": "Tap a square, then type an answer to its clue.",
+		"pipPlace": "Pick a domino from the tray, then tap an empty square.",
+		"quadWords": "Enter a five-letter word for clues in all four grids.",
+		"wordHive": "Make a word using the center letter."
+	}
 }

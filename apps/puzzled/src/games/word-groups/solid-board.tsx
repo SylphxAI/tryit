@@ -192,9 +192,6 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 		<div class="mx-auto w-full max-w-md space-y-3 text-center">
 			<div class="flex items-center justify-between gap-2 text-sm">
 				<span class="text-muted-foreground">{t('games.wordGroups.tagline')}</span>
-				<a class="inline-flex min-h-11 items-center underline" href="#rules">
-					{t('common.help')}
-				</a>
 			</div>
 			<For each={categories()}>
 				{(category) => (

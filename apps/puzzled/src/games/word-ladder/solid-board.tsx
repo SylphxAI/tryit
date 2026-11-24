@@ -63,9 +63,6 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 						{endWord}
 					</strong>
 				</p>
-				<a href="#rules" class="inline-flex min-h-12 items-center font-semibold underline">
-					{t('games.wordLadder.howToPlay')}
-				</a>
 			</div>
 			<ol
 				aria-label={t('games.wordLadder.name')}

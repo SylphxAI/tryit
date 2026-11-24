@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { Delete, HelpCircle, PencilLine, RotateCcw, Undo2 } from 'lucide-solid'
+import { Delete, PencilLine, RotateCcw, Undo2 } from 'lucide-solid'
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import styles from '@/games/sudoku/components/sudoku-craft.module.css'
@@ -282,13 +282,6 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 						{t('games.killerSudoku.startOver')}
 					</button>
 				</div>
-				<a
-					href="#rules"
-					class="mx-auto inline-flex min-h-12 items-center gap-2 text-sm font-semibold underline underline-offset-4"
-				>
-					<HelpCircle size={16} aria-hidden="true" />
-					{t('common.help')}
-				</a>
 			</div>
 			<BoardFinish
 				finish={finish}
