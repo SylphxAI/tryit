@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 import { SIGNUP_COOKIE } from '../src/lib/identity/after-sign-up'
+import { OAUTH_ACCEPTANCE, OAUTH_PREFIX } from '../src/lib/identity/oauth-contract'
 import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
 import { CONSENT_KEY } from '../src/lib/storage-keys'
 import { capture, commands, id } from './google-tag-support'
@@ -16,9 +17,10 @@ const edgeHeaders = { 'x-forwarded-host': 'tryit.fun', 'x-forwarded-proto': 'htt
 const edgeOrigin = 'https://tryit.fun'
 
 // Model the trusted TLS edge while keeping real handlers and the Auth fixture in the path.
-async function routeThroughEdge(page: Page, endpoint: 'sign-in' | 'oidc/begin') {
+async function routeThroughEdge(page: Page, endpoint: string) {
 	await page.route(`**/api/identity/${endpoint}`, async (route) => {
 		const response = await route.fetch({
+			maxRedirects: 0,
 			headers: { ...route.request().headers(), ...edgeHeaders, origin: edgeOrigin },
 		})
 		await route.fulfill({ response })
@@ -101,36 +103,48 @@ test('legacy password works only on step two; disabled capabilities render no fa
 	expect(removedSignup.status()).toBe(404)
 })
 
-test('Google sends current clickwrap on the first click', async ({ page }) => {
-	await fixture('hosted-google')
-	await page.setViewportSize({ width: 1440, height: 900 })
-	await routeThroughEdge(page, 'oidc/begin')
-	await page.route('**/oauth/google/start?**', (route) => route.fulfill({ status: 204 }))
+test('Google binds first-click policy and returns to the app with a secure session', async ({
+	page,
+	context,
+	request,
+}) => {
+	await fixture('google')
+	const start = `${OAUTH_PREFIX}/start/google`
+	await routeThroughEdge(page, 'oauth/start/google')
+	await routeThroughEdge(page, 'oauth/callback?**')
+	const provider = 'https://accounts.google.com/o/oauth2/v2/auth'
+	await page.route(`${provider}?**`, (route) => route.fulfill({ status: 204 }))
 	await page.goto('/sign-in?callbackUrl=%2Farchive')
 	const google = page.getByRole('button', { name: 'Continue with Google' })
 	await expect(google).toBeEnabled()
 	await expect(google).toHaveAccessibleDescription(
 		'By continuing, you agree to our Terms of Service and Privacy Policy.',
 	)
-	// Stop at the real start response; no external provider interaction or account is needed.
-	const [response, hop] = await Promise.all([
-		page.waitForResponse('**/api/identity/oidc/begin'),
-		page.waitForRequest('**/oauth/google/start?**'),
+	const headers = { ...edgeHeaders, origin: edgeOrigin }
+	const refused = await request.post(start, { headers, data: { next: '/archive' } })
+	expect(refused.status()).toBe(403)
+	expect(refused.headers()['set-cookie']).toBeUndefined()
+	const [response, googleRequest] = await Promise.all([
+		page.waitForResponse(`**${start}`),
+		page.waitForRequest(`${provider}?**`),
 		google.click(),
 	])
-	expect(response.ok()).toBeTruthy()
+	expect(response.ok()).toBe(true)
 	expect(response.request().postDataJSON()).toEqual({
-		provider: 'google',
-		redirectUrl: '/archive',
-		acceptance: POLICY_ACCEPTANCE,
+		next: '/archive',
+		acceptance: OAUTH_ACCEPTANCE,
 	})
-	const { authorizationUrl } = await response.json()
-	expect(hop.url()).toBe(authorizationUrl)
-	const start = new URL(authorizationUrl)
-	expect(new URL(start.searchParams.get('redirect_url')!).searchParams.get('next')).toBe('/archive')
-	for (const [key, value] of Object.entries(POLICY_ACCEPTANCE)) {
-		expect(start.searchParams.get(key)).toBe(String(value))
-	}
+	const callback = new URL(googleRequest.url()).searchParams.get('state')
+	expect(callback).toContain(`${OAUTH_PREFIX}/callback?flow=`)
+	await page.goto(callback!)
+	await expect(page).toHaveURL('/archive')
+	expect((await context.cookies()).find(({ name }) => name === 'puzzled_session')).toMatchObject({
+		httpOnly: true,
+		secure: true,
+		sameSite: 'Lax',
+	})
+	expect((await context.cookies()).some(({ name }) => name === '__Host-auth_flow')).toBe(false)
+	expect((await fixture()).filter(({ path }) => path === redeemPath)).toHaveLength(1)
 })
 
 test('mobile OTP stays inline, masks recipient, preserves rejected input, and resumes as a signed-in guest', async ({

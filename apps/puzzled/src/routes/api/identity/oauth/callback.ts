@@ -1,8 +1,8 @@
 import type { APIEvent } from '@solidjs/start/server'
-import { GET as handleGET } from '@/server/api/identity/oauth/callback'
+import { handleOAuth } from '@/lib/identity/oauth-server'
 import { apiMethodResponses } from '@/server/api-methods'
 
-export const GET = ({ request }: APIEvent) => handleGET(request)
+export const GET = ({ request }: APIEvent) => handleOAuth(request)
 
 const methods = apiMethodResponses(['GET'])
 export const OPTIONS = methods.options

@@ -1,12 +1,14 @@
 /** @jsxImportSource solid-js */
+import type { EntryConfig } from '@sylphx/auth/client'
+import { createSignInController } from '@sylphx/auth-solid'
 import { IntlMessageFormat } from 'intl-messageformat'
 import { ArrowLeft, Fingerprint } from 'lucide-solid'
 import { createEffect, createSignal, type JSX, onCleanup, onMount, Show } from 'solid-js'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { afterSignUpDestination } from '@/lib/identity/after-sign-up'
-import type { clientMethods } from '@/lib/identity/client-auth'
 import { emailProblem } from '@/lib/identity/form-validation'
+import { OAUTH_ACCEPTANCE, OAUTH_PREFIX } from '@/lib/identity/oauth-contract'
 import { POLICY_ACCEPTANCE } from '@/lib/identity/policy-consent'
 import { localizedPath } from '@/lib/seo/urls'
 import { AuthField, AuthSubmit, FormAlert, OAuthButtons, PasswordField } from './auth-fields'
@@ -36,7 +38,7 @@ function maskEmail(email: string) {
 
 export function SignInForm(props: {
 	locale: Locale
-	methods: Awaited<ReturnType<typeof clientMethods>> | null
+	entry: EntryConfig | null
 	callback: string | null
 	oauthFailed: boolean
 	recovery: boolean
@@ -47,7 +49,7 @@ export function SignInForm(props: {
 	const v = (key: string, values?: Record<string, string | number>) => t(`unified.${key}`, values)
 	const action = createIdentityAction()
 	const [step, setStep] = createSignal<Step>(
-		props.recovery && props.methods?.password && !props.methods.emailCode ? 'recovery' : 'entry',
+		props.recovery && props.entry?.password && !props.entry.otp ? 'recovery' : 'entry',
 	)
 	const [email, setEmail] = createSignal('')
 	const [password, setPassword] = createSignal('')
@@ -61,8 +63,8 @@ export function SignInForm(props: {
 	const [resendAt, setResendAt] = createSignal(0)
 	const [expiresAt, setExpiresAt] = createSignal(0)
 	const [sent, setSent] = createSignal(false)
-	const legacyRecovery = () => props.methods?.password && !props.methods.emailCode
-	const emailPath = () => props.methods?.emailCode || props.methods?.password
+	const legacyRecovery = () => props.entry?.password && !props.entry.otp
+	const emailPath = () => props.entry?.otp || props.entry?.password
 	const remaining = () => Math.max(0, Math.ceil((resendAt() - clock()) / 1000))
 	const expired = () => !!expiresAt() && clock() >= expiresAt()
 	const destination = () => props.callback ?? localizedPath(props.locale)
@@ -71,7 +73,22 @@ export function SignInForm(props: {
 	let passkeyRequest: AbortController | undefined
 	let navigated = false
 	const [leaving, setLeaving] = createSignal(false)
-	const busy = () => action.pending() || leaving()
+	const oauth = createSignInController({
+		get next() {
+			return destination()
+		},
+		search: '',
+		initialConfig: props.entry ?? {
+			providers: [],
+			otp: false,
+			password: false,
+			signup: false,
+			passkey: false,
+		},
+		routePrefix: OAUTH_PREFIX,
+		getAcceptance: () => OAUTH_ACCEPTANCE,
+	})
+	const busy = () => action.pending() || !!oauth.busy() || leaving()
 	const emailError = () => {
 		const problem = email().length > 320 ? 'emailInvalid' : emailProblem(email())
 		return attempted() && problem ? t(problem) : undefined
@@ -105,12 +122,13 @@ export function SignInForm(props: {
 
 	const showPolicyNotice = () =>
 		(step() === 'entry' &&
-			(props.methods?.google || props.methods?.emailCode || availablePasskey())) ||
+			(props.entry?.providers.includes('google') || props.entry?.otp || availablePasskey())) ||
 		step() === 'code'
 
 	function changeStep(next: Step) {
 		setAttempted(false)
 		action.clearError()
+		oauth.go('choose')
 		setStep(next)
 		queueMicrotask(() =>
 			(next === 'entry' || next === 'recovery' ? emailInput : proofInput)?.focus(),
@@ -202,7 +220,7 @@ export function SignInForm(props: {
 	}
 
 	onMount(() => {
-		setAvailablePasskey(!!props.methods?.passkey && supportsPasskeys())
+		setAvailablePasskey(!!props.entry?.passkey && supportsPasskeys())
 		const tick = window.setInterval(() => setClock(Date.now()), 250)
 		onCleanup(() => {
 			window.clearInterval(tick)
@@ -227,10 +245,11 @@ export function SignInForm(props: {
 		event.preventDefault()
 		if (busy()) return
 		setInitialError(false)
+		oauth.go('choose')
 		if (step() === 'code') return verifyCode()
 		if (step() === 'password') {
 			setAttempted(true)
-			if (!props.methods?.password || !password()) return
+			if (!props.entry?.password || !password()) return
 			void action.run(() => signIn(email().trim(), password(), destination()), 'sign_in_failed')
 			return
 		}
@@ -243,20 +262,20 @@ export function SignInForm(props: {
 				changeStep('recovery-sent')
 			}, 'recovery_failed')
 		} else if (step() === 'entry') {
-			if (props.methods?.emailCode) void action.run(startCode, 'sign_in_unavailable')
-			else if (!props.methods?.emailCode && props.methods?.password) changeStep('password')
+			if (props.entry?.otp) void action.run(startCode, 'sign_in_unavailable')
+			else if (!props.entry?.otp && props.entry?.password) changeStep('password')
 		}
 	}
 
 	const errorMessage = () => {
 		const error = action.error()
-		if (initialError()) return v('googleError')
+		if (initialError() || (!error && step() === 'entry' && oauth.errorCode()))
+			return v('googleError')
 		if (!error) return null
 		if (error === 'proof_rejected') return v(step() === 'code' ? 'invalidCode' : 'passkeyError')
 		if (error === 'rate_limited') return v('rateLimited')
 		if (error === 'sign_in_failed') return t('signInError')
 		if (error === 'recovery_failed') return t('resetError')
-		if (error === 'oidc_begin_failed') return v('googleError')
 		if (error === 'passkey_unavailable') return v('passkeyError')
 		if (error === 'mfa_required') return v('mfaRequired')
 		return v('unavailable')
@@ -267,22 +286,28 @@ export function SignInForm(props: {
 			<h1 class="font-display text-2xl text-balance">{t('signInTitle')}</h1>
 			<p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">{t('signInDescription')}</p>
 			<div class="mt-5 space-y-4">
-				<Show when={step() === 'entry' && props.methods?.google}>
+				<Show when={step() === 'entry' && props.entry?.providers.includes('google')}>
 					<OAuthButtons
 						providers={['google']}
 						t={t}
 						disabled={busy()}
 						describedBy={POLICY_NOTICE_ID}
-						loadingProvider={action.loadingProvider()}
-						onSelect={(provider) => {
+						loadingProvider={oauth.busy() ? 'google' : null}
+						onSelect={() => {
 							passkeyRequest?.abort()
 							setInitialError(false)
-							void action.oauth(provider, destination(), true)
+							action.clearError()
+							void oauth.social('google')
 						}}
 					/>
 				</Show>
 				<Show
-					when={step() === 'entry' && !emailPath() && !props.methods?.google && !availablePasskey()}
+					when={
+						step() === 'entry' &&
+						!emailPath() &&
+						!props.entry?.providers.includes('google') &&
+						!availablePasskey()
+					}
 				>
 					<p class="text-sm text-muted-foreground">{v('unavailable')}</p>
 				</Show>
@@ -385,13 +410,13 @@ export function SignInForm(props: {
 							label={step() === 'recovery' ? t('sendResetLink') : v('continue')}
 							describedBy={showPolicyNotice() ? POLICY_NOTICE_ID : undefined}
 							disabled={
-								step() === 'entry' && props.methods?.emailCode
+								step() === 'entry' && props.entry?.otp
 									? remaining() > 0
 									: step() === 'code' && (expired() || code().length !== 6)
 							}
 						/>
 					</Show>
-					<Show when={step() === 'entry' && props.methods?.emailCode && remaining() > 0 && !busy()}>
+					<Show when={step() === 'entry' && props.entry?.otp && remaining() > 0 && !busy()}>
 						<p class="text-sm text-muted-foreground">{v('tryAgainIn', { seconds: remaining() })}</p>
 					</Show>
 					<Show when={availablePasskey() && (step() === 'entry' || step() === 'code')}>
@@ -444,7 +469,7 @@ export function SignInForm(props: {
 							</Show>
 						</div>
 					</Show>
-					<Show when={step() === 'code' && props.methods?.password}>
+					<Show when={step() === 'code' && props.entry?.password}>
 						{/* Auth deliberately doesn't expose account-level eligibility before proof. */}
 						<button
 							type="button"

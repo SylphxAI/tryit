@@ -87,9 +87,15 @@ export function AuthPage(props: { kind: AuthPageKind }) {
 								<Match when={props.kind === 'sign-in'}>
 									<SignInForm
 										locale={page.locale}
-										methods={page.methods}
+										entry={page.entry}
 										callback={callback()}
-										oauthFailed={scalar(search.error) === 'oauth_failed'}
+										oauthFailed={[
+											'signin',
+											'cancelled',
+											'use_existing',
+											'acceptance_required',
+											'oauth_failed',
+										].includes(scalar(search.error) ?? '')}
 										recovery={scalar(search.recovery) === '1'}
 									/>
 								</Match>
