@@ -5,8 +5,15 @@ import { handleOAuth } from './oauth-server'
 const authApi = 'https://identity.example.test'
 const portal = 'https://auth.tryit.fun'
 const origin = 'https://tryit.fun'
+const listener = 'http://web:3000'
+const edgeHeaders = {
+	'sylphx-edge': 'public',
+	'x-forwarded-host': 'tryit.fun',
+	'x-forwarded-proto': 'https',
+}
 const org = 'organization-00000000-0000-4000-8000-000000000123'
 const binding = {
+	SYLPHX_PUBLIC_URL: origin,
 	SYLPHX_AUTH_URL: authApi,
 	SYLPHX_AUTH_ORGANIZATION_ID: org,
 	SYLPHX_PUBLISHABLE_KEY: 'sylphx_pk_test_fixture',
@@ -72,6 +79,40 @@ function upstream(instanceId: string, providerCallback: string) {
 	globalThis.fetch = fetcher as unknown as typeof fetch
 	return fetcher
 }
+
+test('managed Sylphx edge admits the OAuth config request at the internal listener', async () => {
+	const fetcher = upstream(org, portal)
+	const response = await handleOAuth(
+		new Request(`${listener}${OAUTH_PREFIX}/config`, {
+			headers: { ...edgeHeaders, 'sec-fetch-site': 'same-origin' },
+		}),
+	)
+	expect(response.status).toBe(200)
+	expect(await response.json()).toMatchObject({ providers: ['google'] })
+	expect(fetcher).toHaveBeenCalledTimes(1)
+})
+
+test.each([
+	['missing marker', { 'x-forwarded-host': 'tryit.fun', 'x-forwarded-proto': 'https' }],
+	['missing host', { 'sylphx-edge': 'public', 'x-forwarded-proto': 'https' }],
+	['missing scheme', { 'sylphx-edge': 'public', 'x-forwarded-host': 'tryit.fun' }],
+	['wrong marker', { ...edgeHeaders, 'sylphx-edge': 'private' }],
+	['wrong host', { ...edgeHeaders, 'x-forwarded-host': 'other.sylphx.app' }],
+	['non-HTTPS scheme', { ...edgeHeaders, 'x-forwarded-proto': 'http' }],
+	['combined host values', { ...edgeHeaders, 'x-forwarded-host': 'tryit.fun, tryit.fun' }],
+] satisfies [string, Record<string, string>][])(
+	'rejects edge headers with %s',
+	async (_, headers) => {
+		const fetcher = upstream(org, portal)
+		for (const base of [listener, origin]) {
+			const response = await handleOAuth(new Request(`${base}${OAUTH_PREFIX}/config`, { headers }))
+			expect(response.status).toBe(403)
+			expect(await response.json()).toEqual({ error: 'not_allowed' })
+			expect(response.headers.getSetCookie()).toEqual([])
+		}
+		expect(fetcher).not.toHaveBeenCalled()
+	},
+)
 
 test('white-label portal owns the upstream Google callback; no app credentials reach it', async () => {
 	const fetcher = upstream(org, `${portal}/oauth/callback`)
