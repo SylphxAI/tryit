@@ -1,7 +1,10 @@
-/** GA4 conversions require explicit analytics consent and an active GA destination. */
+/** GA4 conversions require effective analytics consent and an active GA destination. */
 
-import { readSessionEntrySurface } from '@/lib/attribution'
-import { trustedCheckoutTrigger, trustedEntrySurface } from './checkout-entry-surface'
+import {
+	checkoutEntrySurface,
+	trustedCheckoutTrigger,
+	trustedEntrySurface,
+} from './checkout-entry-surface'
 import { hasAnalyticsConsent } from './consent'
 import { sendGa4Event } from './google-tag'
 
@@ -98,15 +101,6 @@ function sanitizeParams(raw: Record<string, unknown>): Record<string, unknown> {
 	return out
 }
 
-function sessionStore(): Storage | undefined {
-	if (typeof window === 'undefined') return undefined
-	try {
-		return window.sessionStorage ?? undefined
-	} catch {
-		return undefined
-	}
-}
-
 /**
  * Emits a consent-gated GA4 Key Event (`sign_up`, `begin_checkout`).
  * Returns `true` if the GA destination accepted dispatch, `false` if gated.
@@ -123,8 +117,7 @@ export function trackGa4KeyEvent<E extends Ga4KeyEventName>(
 
 	if (clean.entry_surface === undefined) {
 		// Entry attribution can originate in a query string. Never send free-form text.
-		const surface =
-			trustedEntrySurface(readSessionEntrySurface(sessionStore())) ?? clean.checkout_trigger
+		const surface = checkoutEntrySurface(clean.checkout_trigger)
 		if (surface) clean.entry_surface = surface
 	}
 

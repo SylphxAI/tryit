@@ -5,7 +5,7 @@ import type { SiteShellData } from './site-shell-data'
 
 type Copy = SiteShellData['consent']
 const action =
-	'min-h-11 min-w-24 rounded-lg border border-hairline bg-muted px-3 text-sm font-semibold text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2'
+	'min-h-11 rounded-lg border border-hairline bg-muted px-2 sm:min-w-24 sm:px-3 text-sm font-semibold text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2'
 
 function useCookieConsent() {
 	// Keep the server and initial hydration independent of visitor state.
@@ -19,17 +19,20 @@ function useCookieConsent() {
 }
 
 function ChoiceButtons(props: { copy: Copy; onChoose?: () => void }) {
-	function choose(status: 'accepted' | 'declined') {
+	function choose(status: 'analytics_only' | 'granted' | 'denied') {
 		saveCookieChoice(status)
 		props.onChoose?.()
 	}
 	return (
-		<div class="flex shrink-0 gap-2">
-			<button type="button" class={action} onClick={() => choose('declined')}>
+		<div class="flex flex-wrap gap-2">
+			<button type="button" class={action} onClick={() => choose('denied')}>
 				{props.copy.decline}
 			</button>
-			<button type="button" class={action} onClick={() => choose('accepted')}>
+			<button type="button" class={action} onClick={() => choose('granted')}>
 				{props.copy.accept}
+			</button>
+			<button type="button" class={action} onClick={() => choose('analytics_only')}>
+				{props.copy.analyticsOnly}
 			</button>
 		</div>
 	)
@@ -95,9 +98,11 @@ export function CookieSettings(props: { copy: Copy }) {
 					<p class="text-sm text-muted-foreground" role="status">
 						{state()?.gpc
 							? props.copy.gpc
-							: state()?.analytics
-								? props.copy.enabled
-								: props.copy.disabled}
+							: state()?.marketing
+								? props.copy.full
+								: state()?.analytics
+									? props.copy.enabled
+									: props.copy.disabled}
 					</p>
 					<a class="block text-sm underline" href={props.copy.privacyHref}>
 						{props.copy.learnMore}

@@ -2,14 +2,14 @@
  * Google tag (gtag.js) for GA4 and Google Ads, consent first.
  *
  * Basic consent mode: queue defaults and effective consent before loading any
- * remote code. Analytics may use a regional default; advertising signals
- * require a separate stored grant. Ad personalization is always denied.
+ * remote code. Signal resolves the regional defaults and stored choices.
  *
  * The page address and title sent to Google are limited to an
  * allowlist of public marketing paths; a game, share or account URL never
  * reaches Google. With no ids configured the whole module is inert.
  */
 
+import { resolveEffectiveConsent, type SignalConsent } from '@sylphx/sdk/signal'
 import { CHECKOUT_QUOTE_KEY } from './consent'
 
 export type GoogleTagIds = { ga: string | null; ads: string | null }
@@ -27,28 +27,7 @@ export function googleTagIds(source: IdSource): GoogleTagIds | null {
 	return ids.ga || ids.ads ? ids : null
 }
 
-export type ConsentChoice = { analytics: boolean; marketing: boolean }
-
-export type ConsentSignals = {
-	ad_storage: 'granted' | 'denied'
-	ad_user_data: 'granted' | 'denied'
-	ad_personalization: 'denied'
-	analytics_storage: 'granted' | 'denied'
-}
-
-const state = (on: boolean) => (on ? 'granted' : 'denied')
-
-/** Consent mode v2 signals for a stored choice. Personalization is always denied. */
-export function consentSignals(choice: ConsentChoice): ConsentSignals {
-	return {
-		ad_storage: state(choice.marketing),
-		ad_user_data: state(choice.marketing),
-		ad_personalization: 'denied',
-		analytics_storage: state(choice.analytics),
-	}
-}
-
-const DENIED = consentSignals({ analytics: false, marketing: false })
+const DENIED = resolveEffectiveConsent({ storedChoice: 'denied' })
 
 const SITE_TITLE = 'Tryit'
 
@@ -70,9 +49,12 @@ export function trackablePath(pathname: string): string | null {
 	return PUBLIC_PATHS.has(path) ? path : null
 }
 
-const GOOGLE_COOKIE = /^(_ga(?:_[a-z0-9_-]+)?|_gid|_gat.*|_gcl_[a-z]+|_gac_.+|__gads|__gpi)$/i
+const GOOGLE_COOKIE =
+	/^(_ga(?:_[a-z0-9_-]+)?|_gid|_gat.*|_gcl_[a-z]+|_gac_.+|__gads|__gpi|_fbc|_fbp)$/i
 
-/** Names of Google cookies in a `document.cookie` string. */
+const ANALYTICS_COOKIE = /^(_ga(?:_[a-z0-9_-]+)?|_gid|_gat.*)$/i
+
+/** Names of measurement cookies in a `document.cookie` string. */
 export function googleCookieNames(cookies: string): string[] {
 	return cookies
 		.split(';')
@@ -80,15 +62,19 @@ export function googleCookieNames(cookies: string): string[] {
 		.filter((name) => GOOGLE_COOKIE.test(name))
 }
 
-/** Expire every Google cookie on this host and its parent domains. */
-export function deleteGoogleCookies(doc: { cookie: string }, hostname: string): void {
+/** Expire measurement cookies on this host and its parent domains. */
+export function deleteGoogleCookies(
+	doc: { cookie: string },
+	hostname: string,
+	adsOnly = false,
+): void {
 	const parts = hostname.split('.')
 	const domains = ['']
 	for (let i = 0; i < parts.length - 1; i += 1)
 		domains.push(`; Domain=.${parts.slice(i).join('.')}`)
 	for (const name of googleCookieNames(doc.cookie)) {
+		if (adsOnly && ANALYTICS_COOKIE.test(name)) continue
 		for (const domain of domains) {
-			// biome-ignore lint/suspicious/noDocumentCookie: removing Google cookies when consent is withdrawn
 			doc.cookie = `${name}=; Path=/; Max-Age=0${domain}`
 		}
 	}
@@ -156,12 +142,11 @@ export function createGoogleTag(input: {
 	ids: GoogleTagIds
 	win: TagWindow
 	doc: TagDocument
-	consent: () => ConsentChoice
-	defaultAnalytics?: () => boolean
+	consent: () => SignalConsent
 }): GoogleTagController {
 	const { ids, win, doc } = input
 	const base = `${win.location.origin}/`
-	let initialized = false
+	let previous: SignalConsent | undefined
 	let loaded = false
 	let gaOn = false
 	let adsOn = false
@@ -207,28 +192,33 @@ export function createGoogleTag(input: {
 	return {
 		sync(allowLoad = true) {
 			const choice = input.consent()
-			const wantGa = Boolean(ids.ga) && choice.analytics
-			const wantAds = Boolean(ids.ads) && choice.marketing
-			if (!initialized) {
-				gtag('consent', 'default', {
-					...DENIED,
-					analytics_storage: state(wantGa && input.defaultAnalytics?.() === true),
-				})
-				initialized = true
+			const wantGa = Boolean(ids.ga) && choice.analytics_storage === 'granted'
+			const wantAds = Boolean(ids.ads) && choice.ad_storage === 'granted'
+			if (!previous) {
+				previous = allowLoad ? choice : DENIED
+				gtag('consent', 'default', previous)
+			}
+			if (
+				previous.analytics_storage !== choice.analytics_storage ||
+				previous.ad_storage !== choice.ad_storage ||
+				previous.ad_user_data !== choice.ad_user_data ||
+				previous.ad_personalization !== choice.ad_personalization
+			) {
+				previous = choice
+				gtag('consent', 'update', choice)
 			}
 			if (ids.ga && !wantGa) win[`ga-disable-${ids.ga}`] = true
 			if (ids.ads && !wantAds) win[`ga-disable-${ids.ads}`] = true
 			if (!wantGa && !wantAds) {
-				if (gaOn || adsOn) gtag('consent', 'update', DENIED)
 				deleteGoogleCookies(doc, win.location.hostname)
 				gaOn = false
 				adsOn = false
 				lastPath = null
 				return
 			}
+			if (choice.ad_storage === 'denied') deleteGoogleCookies(doc, win.location.hostname, true)
 			if (!loaded && !allowLoad) return
 			if (gaOn === wantGa && adsOn === wantAds) return
-			gtag('consent', 'update', consentSignals(choice))
 			const first = wantGa ? ids.ga : ids.ads
 			if (!loaded && first) load(first)
 			if (wantGa && ids.ga && !gaOn) {
@@ -246,7 +236,6 @@ export function createGoogleTag(input: {
 					allow_ad_personalization_signals: false,
 				})
 			}
-			if ((gaOn && !wantGa) || (adsOn && !wantAds)) deleteGoogleCookies(doc, win.location.hostname)
 			gaOn = wantGa
 			adsOn = wantAds
 		},
@@ -269,16 +258,20 @@ export function createGoogleTag(input: {
 		},
 		hasConsent() {
 			const choice = input.consent()
-			return (Boolean(ids.ga) && choice.analytics) || (Boolean(ids.ads) && choice.marketing)
+			return (
+				(Boolean(ids.ga) && choice.analytics_storage === 'granted') ||
+				(Boolean(ids.ads) && choice.ad_storage === 'granted')
+			)
 		},
 		gaEvent(name, params) {
-			if (!gaOn || !input.consent().analytics) return false
+			if (!gaOn || input.consent().analytics_storage !== 'granted') return false
 			gtag('event', name, { ...params, send_to: ids.ga })
 			return true
 		},
 		event(name, params) {
 			const sendTo = targets()
-			if (!loaded || sendTo.length === 0) return false
+			if (!loaded || input.consent().analytics_storage !== 'granted' || sendTo.length === 0)
+				return false
 			gtag('event', name, { ...cleanEventParams(params), send_to: sendTo })
 			return true
 		},

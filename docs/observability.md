@@ -96,7 +96,7 @@ analytics batcher are deleted. The SDK has no analytics or replay surface yet.
 Visits, plays, sign-ups and Core Web Vitals are counted in our own database,
 not by a third party. Rows are anonymous (no user id, no IP, no cookie), so the
 counter runs without a consent choice. Google Analytics, when
-`GA_MEASUREMENT_ID` is set, stays opt-in and is separate.
+`GA_MEASUREMENT_ID` is set, uses Signal’s regional cookie rules and is separate from the first-party counter.
 
 | Event | Written by |
 | --- | --- |

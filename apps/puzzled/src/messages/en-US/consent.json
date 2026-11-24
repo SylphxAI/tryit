@@ -1,6 +1,6 @@
 {
-	"title": "Analytics cookies",
-	"message": "Allow analytics cookies?",
+	"title": "Optional cookies",
+	"message": "Allow analytics and advertising?",
 	"accept": "Accept",
 	"decline": "Decline",
 	"learnMore": "Privacy policy",
@@ -8,5 +8,7 @@
 	"close": "Close",
 	"gpc": "Global Privacy Control (GPC) is active. Optional analytics and advertising are off.",
 	"enabled": "Analytics cookies are on.",
-	"disabled": "Analytics cookies are off."
+	"disabled": "Analytics cookies are off.",
+	"analyticsOnly": "Analytics only",
+	"full": "Analytics and advertising are on."
 }

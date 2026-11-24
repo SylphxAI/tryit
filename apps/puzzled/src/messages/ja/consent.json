@@ -1,6 +1,6 @@
 {
-	"title": "分析用 Cookie",
-	"message": "分析用 Cookie を許可しますか？",
+	"title": "任意の Cookie",
+	"message": "分析と広告を許可しますか？",
 	"accept": "許可する",
 	"decline": "拒否する",
 	"learnMore": "プライバシーポリシー",
@@ -8,5 +8,7 @@
 	"close": "閉じる",
 	"gpc": "Global Privacy Control（GPC）が有効です。任意の分析と広告は無効になっています。",
 	"enabled": "分析用 Cookie は有効です。",
-	"disabled": "分析用 Cookie は無効です。"
+	"disabled": "分析用 Cookie は無効です。",
+	"analyticsOnly": "分析のみ",
+	"full": "分析と広告は有効です。"
 }

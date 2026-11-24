@@ -1,6 +1,6 @@
 {
-	"title": "分析 Cookie",
-	"message": "允許使用分析 Cookie？",
+	"title": "選用 Cookie",
+	"message": "允許分析及廣告？",
 	"accept": "接受",
 	"decline": "拒絕",
 	"learnMore": "私隱政策",
@@ -8,5 +8,7 @@
 	"close": "關閉",
 	"gpc": "Global Privacy Control（GPC）已啟用。選用的分析及廣告功能已關閉。",
 	"enabled": "分析 Cookie 已開啟。",
-	"disabled": "分析 Cookie 已關閉。"
+	"disabled": "分析 Cookie 已關閉。",
+	"analyticsOnly": "只限分析",
+	"full": "分析及廣告已開啟。"
 }

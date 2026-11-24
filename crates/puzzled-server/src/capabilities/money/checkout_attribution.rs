@@ -1,49 +1,200 @@
-//! Closed input boundary for Money purchase dimensions and the Events binding.
-use axum::http::{header, HeaderMap};
+//! Rust transport boundary for the browser Signal SDK snapshot. No geo policy
+//! here; validate the allowed snapshots and independently respect Sec-GPC.
+use axum::http::HeaderMap;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use puzzled_core::attribution::{clean_value, click_id, Attribution};
+use reqwest::Url;
 use serde_json::{json, Value};
+
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum Consent {
+    #[default]
+    Denied,
+    AnalyticsOnly,
+    Granted,
+}
 
 #[derive(Default)]
 pub(crate) struct CheckoutAttribution<'a> {
+    consent: Consent,
     pub(super) entry_surface: Option<&'a str>,
-    ga_client_id: Option<&'a str>,
+    fields: Value,
 }
 
+// Order on the wire: analytics_storage, ad_storage, ad_user_data, ad_personalization.
 impl<'a> CheckoutAttribution<'a> {
     pub(crate) fn from_headers(headers: &'a HeaderMap) -> Self {
-        let entry_surface = single_header(headers, "x-puzzled-entry-surface")
-            .filter(|value| allowed_surface(value));
-        // The app sends this only for an explicit grant, never a regional default.
-        // The standard opt-out header wins independently of the browser UI.
-        let granted = !headers.contains_key("sec-gpc")
-            && single_header(headers, "x-puzzled-analytics-storage") == Some("granted");
-        Self {
-            entry_surface,
-            ga_client_id: granted.then(|| ga_client_id(headers)).flatten(),
+        if gpc(headers) {
+            return Self::default();
         }
+        let consent = match single_header(headers, "x-puzzled-signal-consent") {
+            Some("granted,granted,granted,granted") => Consent::Granted,
+            Some("granted,denied,denied,denied") => Consent::AnalyticsOnly,
+            _ => Consent::Denied,
+        };
+        if consent == Consent::Denied {
+            return Self::default();
+        }
+        let fields = single_header(headers, "x-puzzled-signal-attribution")
+            .filter(|value| value.len() <= 6144)
+            .and_then(|value| URL_SAFE_NO_PAD.decode(value).ok())
+            .and_then(|json| serde_json::from_slice(&json).ok())
+            .unwrap_or_default();
+        Self {
+            consent,
+            entry_surface: single_header(headers, "x-puzzled-entry-surface")
+                .filter(|value| allowed_surface(value)),
+            fields,
+        }
+    }
+
+    pub(crate) fn analytics_granted(&self) -> bool {
+        self.consent != Consent::Denied
+    }
+
+    fn field(&self, name: &str) -> Option<&str> {
+        self.fields.get(name)?.as_str()
+    }
+
+    pub(crate) fn money_tags(&self, stored: Option<Attribution>) -> Option<Attribution> {
+        if !self.analytics_granted() {
+            return None;
+        }
+        let mut tags = stored.unwrap_or_else(|| {
+            let utm = |name| self.field(name).and_then(clean_value);
+            Attribution {
+                source: utm("utm_source"),
+                medium: utm("utm_medium"),
+                campaign: utm("utm_campaign"),
+                term: utm("utm_term"),
+                content: utm("utm_content"),
+                ..Default::default()
+            }
+        });
+        let current_click = |name| {
+            (self.consent == Consent::Granted)
+                .then(|| self.field(name).and_then(click_id))
+                .flatten()
+        };
+        tags.gclid = current_click("gclid");
+        tags.gbraid = current_click("gbraid");
+        tags.wbraid = current_click("wbraid");
+        tags.fbclid = current_click("fbclid");
+        (tags.has_tag() || tags.has_click_id()).then_some(tags)
     }
 
     pub(super) fn binding(&self, id: &str, public_origin: &str) -> Option<Value> {
-        let client = self.ga_client_id?;
         if !token(id, 255) {
             return None;
         }
+        let choice = |allowed| if allowed { "granted" } else { "denied" };
+        let ad = self.consent == Consent::Granted;
         let mut payload = json!({
             "checkout_session_id": id,
             "consent": {
-                "analytics_storage": "granted",
-                "ad_storage": "denied",
-                "ad_user_data": "denied",
-                "ad_personalization": "denied"
-            },
-            "ga_client_id": client
+                "analytics_storage": choice(self.analytics_granted()),
+                "ad_storage": choice(ad),
+                "ad_user_data": choice(ad),
+                "ad_personalization": choice(ad)
+            }
         });
-        // No browser URL, referer, query, fragment or account data enters Events.
-        // The configured HTTPS storefront is the only source of this page context.
-        if public_origin.starts_with("https://") {
-            payload["page_location"] = json!(format!("{public_origin}/pricing"));
+        if !self.analytics_granted() {
+            return Some(payload);
+        }
+        if let Some(client) = self.field("ga_client_id").filter(|value| {
+            value
+                .split_once('.')
+                .is_some_and(|(a, b)| digits(a, 20) && digits(b, 20))
+        }) {
+            payload["ga_client_id"] = json!(client);
+        }
+        if let Some(session) = self.field("ga_session_id").filter(|value| {
+            digits(value, 16)
+                && value
+                    .parse::<u64>()
+                    .is_ok_and(|n| (1..=9_007_199_254_740_991).contains(&n))
+        }) {
+            payload["ga_session_id"] = json!(session);
+        }
+        if ad {
+            for field in ["gclid", "gbraid", "wbraid"] {
+                if let Some(value) = self.field(field).filter(|value| signal_click(value)) {
+                    payload[field] = json!(value);
+                }
+            }
+            for field in ["fbc", "fbp"] {
+                if let Some(value) = self
+                    .field(field)
+                    .filter(|value| meta_cookie(value, field == "fbc"))
+                {
+                    payload[field] = json!(value);
+                }
+            }
+        }
+        // Rebuild from the configured storefront, never a supplied path or Referer.
+        if let Ok(mut page) = Url::parse(public_origin) {
+            if page.scheme() == "https" && page.username().is_empty() && page.password().is_none() {
+                page.set_path("/pricing");
+                page.set_query(None);
+                page.set_fragment(None);
+                for field in [
+                    "utm_source",
+                    "utm_medium",
+                    "utm_campaign",
+                    "utm_id",
+                    "utm_term",
+                    "utm_content",
+                    "utm_source_platform",
+                    "utm_creative_format",
+                    "utm_marketing_tactic",
+                ] {
+                    if let Some(value) = self.field(field).filter(|value| {
+                        !value.trim().is_empty()
+                            && value.len() <= 256
+                            && !value.contains('@')
+                            && !value.chars().any(char::is_control)
+                    }) {
+                        page.query_pairs_mut().append_pair(field, value);
+                    }
+                }
+                if page.as_str().len() > 1024 {
+                    page.set_query(None);
+                }
+                payload["page_location"] = json!(page.as_str());
+            }
         }
         Some(payload)
     }
+}
+
+fn digits(value: &str, max: usize) -> bool {
+    !value.is_empty() && value.len() <= max && value.bytes().all(|b| b.is_ascii_digit())
+}
+
+fn signal_click(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 256
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~'))
+}
+
+fn meta_cookie(value: &str, click: bool) -> bool {
+    if value.len() > 256 {
+        return false;
+    }
+    let mut parts = value.splitn(4, '.');
+    matches!((parts.next(), parts.next(), parts.next(), parts.next()),
+        (Some("fb"), Some(domain), Some(time), Some(id)) if digits(domain, 20) && digits(time, 20)
+            && if click { signal_click(id) } else { digits(id, 20) })
+}
+
+pub(crate) fn gpc(headers: &HeaderMap) -> bool {
+    headers.get_all("sec-gpc").iter().any(|value| {
+        value
+            .to_str()
+            .map_or(true, |value| value.split(',').any(|v| v.trim() == "1"))
+    })
 }
 
 fn single_header<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
@@ -88,76 +239,9 @@ fn allowed_surface(value: &str) -> bool {
         )
 }
 
-fn ga_client_id(headers: &HeaderMap) -> Option<&str> {
-    let mut found = None;
-    for cookie_header in headers.get_all(header::COOKIE) {
-        for part in cookie_header.to_str().ok()?.split(';') {
-            if let Some(ga) = part.trim().strip_prefix("_ga=") {
-                if found.is_some() {
-                    return None; // Ambiguous cookie scope; do not guess.
-                }
-                let (depth, client) = ga.strip_prefix("GA1.")?.split_once('.')?;
-                let (first, second) = client.split_once('.')?;
-                let digits = |s: &str, max| {
-                    !s.is_empty() && s.len() <= max && s.bytes().all(|b| b.is_ascii_digit())
-                };
-                if !(digits(depth, 2) && digits(first, 20) && digits(second, 20)) {
-                    return None;
-                }
-                found = Some(client);
-            }
-        }
-    }
-    found
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn explicit_unambiguous_grant_and_valid_ga_are_both_required() {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            header::COOKIE,
-            "session=private; _ga=GA1.1.12345.67890".parse().unwrap(),
-        );
-        let binding = |headers: &HeaderMap| {
-            CheckoutAttribution::from_headers(headers).binding("chk_1", "https://tryit.fun")
-        };
-        assert_eq!(binding(&headers), None);
-        headers.insert("x-puzzled-analytics-storage", "denied".parse().unwrap());
-        assert_eq!(binding(&headers), None);
-        headers.insert("x-puzzled-analytics-storage", "granted".parse().unwrap());
-        headers.insert(
-            header::REFERER,
-            "https://tryit.fun/pricing?email=fixture@example.test"
-                .parse()
-                .unwrap(),
-        );
-        assert_eq!(
-            binding(&headers),
-            Some(json!({
-                "checkout_session_id": "chk_1",
-                "consent": { "analytics_storage": "granted", "ad_storage": "denied", "ad_user_data": "denied", "ad_personalization": "denied" },
-                "ga_client_id": "12345.67890",
-                "page_location": "https://tryit.fun/pricing"
-            }))
-        );
-        headers.insert("sec-gpc", "1".parse().unwrap());
-        assert_eq!(binding(&headers), None);
-        headers.remove("sec-gpc");
-        headers.append("x-puzzled-analytics-storage", "denied".parse().unwrap());
-        assert_eq!(binding(&headers), None);
-        headers.insert("x-puzzled-analytics-storage", "granted".parse().unwrap());
-        headers.append(header::COOKIE, "_ga=GA1.1.4321.8765".parse().unwrap());
-        assert_eq!(binding(&headers), None);
-        headers.insert(
-            header::COOKIE,
-            "_ga=GA1.1.12345.user@example.test".parse().unwrap(),
-        );
-        assert_eq!(binding(&headers), None);
-    }
 
     #[test]
     fn entry_surface_enum_drops_even_token_shaped_private_values() {

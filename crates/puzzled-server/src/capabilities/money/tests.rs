@@ -297,71 +297,114 @@ async fn seats_is_a_limit_feature() {
 // ---- checkout ---------------------------------------------------------------
 
 #[tokio::test]
-async fn checkout_sends_only_allowed_dimensions_to_money_and_consent_gated_identity_to_events() {
+async fn checkout_binds_full_split_or_denied_signal_snapshots_to_events() {
+    use super::checkout_attribution::CheckoutAttribution;
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
     let (money, fake) = fake_money(200, json!({"entitled": false})).await;
     let money = money.with_publishable_key("pk_fixture");
     let catalog = parsed(catalog_fixture(&[]));
     let consent = Consent::for_plan(false, false).unwrap();
-    for (surface, grant, gpc) in [
-        ("seo_vs-nyt-games", Some("granted"), false),
-        ("user@example.test", None, false),
-        ("private_person_5551234", Some("denied"), false),
-        ("stats_banner", Some("granted"), true),
+    let full = "granted,granted,granted,granted";
+    let analytics = "granted,denied,denied,denied";
+    for (snapshot, gpc, duplicate) in [
+        (Some(full), false, false),
+        (Some(analytics), false, false),
+        (Some("denied,denied,denied,denied"), false, false),
+        (None, false, false),
+        (Some(full), true, false),
+        (Some(full), false, true),
+        (Some("denied,granted,granted,granted"), false, false),
     ] {
         let mut headers = axum::http::HeaderMap::new();
-        headers.insert("x-puzzled-entry-surface", surface.parse().unwrap());
         headers.insert(
-            "cookie",
-            "_ga=GA1.1.12345.67890; session=private".parse().unwrap(),
+            "x-puzzled-entry-surface",
+            "seo_vs-nyt-games".parse().unwrap(),
         );
         headers.insert(
-            "referer",
-            "https://tryit.fun/pricing?email=user@example.test"
+            "cookie",
+            "puzzled_attr=s%3Dlegacy%26g%3Dlegacy; _ga=GA1.1.88.99"
                 .parse()
                 .unwrap(),
         );
-        if let Some(grant) = grant {
-            headers.insert("x-puzzled-analytics-storage", grant.parse().unwrap());
+        headers.insert(
+            "referer",
+            "https://tryit.fun/private?secret=never-forwarded"
+                .parse()
+                .unwrap(),
+        );
+        let fields = json!({"ga_client_id":"12345.67890", "ga_session_id":"1234567890", "gclid":"test_g", "gbraid":"test_gb", "wbraid":"test_wb", "fbc":"fb.1.1234567890.test_fb", "fbp":"fb.1.1234567890.111", "utm_source":"google", "utm_id":"campaign-2", "utm_term":"private@example.test", "unknown":"never-forwarded"});
+        headers.insert(
+            "x-puzzled-signal-attribution",
+            URL_SAFE_NO_PAD.encode(fields.to_string()).parse().unwrap(),
+        );
+        if let Some(snapshot) = snapshot {
+            headers.insert("x-puzzled-signal-consent", snapshot.parse().unwrap());
+        }
+        if duplicate {
+            headers.append("x-puzzled-signal-consent", full.parse().unwrap());
         }
         if gpc {
-            headers.insert("sec-gpc", "1".parse().unwrap());
+            headers.insert("sec-gpc", "0, 1".parse().unwrap());
         }
+        let measurement = CheckoutAttribution::from_headers(&headers);
+        let stored = puzzled_core::attribution::Attribution::from_cookie("s=stored&g=stored_ad");
+        let tags = measurement.money_tags(stored);
         let result = super::checkout::create_guest_session(
             &money,
             &catalog,
             "individual_monthly",
             "en-US",
             "USD",
-            None,
+            tags.as_ref(),
             None,
             consent,
-            super::checkout_attribution::CheckoutAttribution::from_headers(&headers),
+            measurement,
         )
         .await
         .unwrap();
         assert_eq!(result.created.url, "https://checkout.example/pay/cs_1");
     }
     let fake = fake.lock().unwrap();
-    assert_eq!(
-        fake.sessions
-            .iter()
-            .map(|body| body["metadata"]["entry_surface"].as_str())
-            .collect::<Vec<_>>(),
-        vec![Some("seo_vs-nyt-games"), None, None, Some("stats_banner")]
-    );
+    let dims = |i: usize| &fake.sessions[i]["metadata"];
+    assert_eq!(dims(0)["entry_surface"], "seo_vs-nyt-games");
+    assert_eq!(dims(0)["utm_source"], "stored");
+    assert_eq!(dims(0)["gclid"], "test_g");
+    assert_eq!(dims(1)["utm_source"], "stored");
+    assert!(dims(1).get("gclid").is_none());
+    for index in 2..7 {
+        assert!(dims(index).get("entry_surface").is_none());
+        assert!(dims(index).get("gclid").is_none());
+        assert!(dims(index).get("utm_source").is_none());
+    }
     assert!(!fake
         .sessions
         .iter()
         .any(|body| body.to_string().contains("12345.67890")));
+    let snapshot = |ga, ad| json!({"analytics_storage": ga, "ad_storage": ad, "ad_user_data": ad, "ad_personalization": ad});
     assert_eq!(
-        fake.bindings,
-        [json!({
-            "checkout_session_id": "chk_1",
-            "consent": { "analytics_storage": "granted", "ad_storage": "denied", "ad_user_data": "denied", "ad_personalization": "denied" },
-            "ga_client_id": "12345.67890",
-            "page_location": "https://puzzled.test/pricing"
-        })]
+        fake.bindings[0],
+        json!({
+            "checkout_session_id": "chk_1", "consent":snapshot("granted", "granted"),
+            "ga_client_id": "12345.67890", "ga_session_id":"1234567890",
+            "gclid":"test_g", "gbraid":"test_gb", "wbraid":"test_wb", "fbc":"fb.1.1234567890.test_fb", "fbp":"fb.1.1234567890.111",
+            "page_location": "https://puzzled.test/pricing?utm_source=google&utm_id=campaign-2"
+        })
     );
+    assert_eq!(
+        fake.bindings[1],
+        json!({
+            "checkout_session_id": "chk_1", "consent":snapshot("granted", "denied"),
+            "ga_client_id": "12345.67890", "ga_session_id":"1234567890",
+            "page_location": "https://puzzled.test/pricing?utm_source=google&utm_id=campaign-2"
+        })
+    );
+    assert_eq!(fake.bindings.len(), 7);
+    for binding in &fake.bindings[2..] {
+        assert_eq!(
+            *binding,
+            json!({"checkout_session_id":"chk_1","consent":snapshot("denied", "denied")})
+        );
+    }
 }
 
 #[tokio::test]

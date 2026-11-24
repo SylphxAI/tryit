@@ -2,12 +2,19 @@ import { expect, type Page, test } from '@playwright/test'
 
 import { capture, commands, id } from './google-tag-support'
 
-const key = 'puzzled:consent:cookie'
+const key = 'puzzled:signal.consent'
 const denied = {
 	analytics_storage: 'denied',
 	ad_storage: 'denied',
 	ad_user_data: 'denied',
 	ad_personalization: 'denied',
+}
+
+const full = {
+	analytics_storage: 'granted',
+	ad_storage: 'granted',
+	ad_user_data: 'granted',
+	ad_personalization: 'granted',
 }
 
 const banner = (page: Page) => page.locator('[data-consent-banner]')
@@ -83,11 +90,7 @@ for (const viewport of [
 			await expect.poll(() => requests.length).toBe(1)
 			await expect(banner(page)).toBeHidden()
 			const data = await commands(page)
-			expect(data).toContainEqual([
-				'consent',
-				'update',
-				{ ...denied, analytics_storage: 'granted' },
-			])
+			expect(data).toContainEqual(['consent', 'update', full])
 			expect(data).toContainEqual([
 				'event',
 				'page_view',
@@ -105,7 +108,7 @@ for (const viewport of [
 			expect(JSON.stringify(await commands(page))).not.toContain('sudoku')
 		})
 
-		test('non-EEA defaults to analytics only; withdrawal stops the tag and persists in either region', async ({
+		test('non-EEA defaults to analytics and advertising; withdrawal stops the tag and persists in either region', async ({
 			page,
 			context,
 		}) => {
@@ -114,11 +117,7 @@ for (const viewport of [
 			await page.goto('/')
 			await expect.poll(() => requests.length).toBe(1)
 			await expect(banner(page)).toBeHidden()
-			expect(await commands(page)).toContainEqual([
-				'consent',
-				'default',
-				{ ...denied, analytics_storage: 'granted' },
-			])
+			expect(await commands(page)).toContainEqual(['consent', 'default', full])
 			await context.addCookies([{ name: '_ga', value: 'host', url: new URL(page.url()).origin }])
 			const domain = new URL(page.url()).hostname
 			if (domain.endsWith('.lvh.me'))
@@ -130,7 +129,7 @@ for (const viewport of [
 			expect(await page.evaluate((id) => Reflect.get(window, `ga-disable-${id}`), id)).toBe(true)
 			expect(await commands(page)).toContainEqual(['consent', 'update', denied])
 			expect((await context.cookies()).filter(({ name }) => name.startsWith('_ga'))).toEqual([])
-			expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('declined')
+			expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('denied')
 			for (const region of ['US', 'DE']) {
 				await page.setExtraHTTPHeaders({ 'CF-IPCountry': region })
 				await page.reload()
@@ -149,8 +148,7 @@ for (const viewport of [
 				})
 				await page.addInitScript(
 					({ key, signal }) => {
-						localStorage.setItem(key, 'accepted')
-						localStorage.setItem('puzzled:consent:marketing', 'accepted')
+						localStorage.setItem(key, 'granted')
 						if (signal === 'browser')
 							Object.defineProperty(navigator, 'globalPrivacyControl', { value: true })
 					},
@@ -174,10 +172,10 @@ test('context is private no-store, only reads the CF header and never varies pag
 	request,
 }) => {
 	for (const [country, expected] of [
-		['US', 'non-eea'],
-		['US, US', 'eea'],
-		['XX', 'eea'],
-		['', 'eea'],
+		['US', 'ROW'],
+		['US, US', 'EEA'],
+		['XX', 'EEA'],
+		['', 'EEA'],
 	]) {
 		const headers = {
 			...(country ? { 'CF-IPCountry': country } : {}),
@@ -310,7 +308,7 @@ test.describe('GA4 collector', () => {
 	}) => {
 		const collector = await intercept(page, new URL(baseURL!).origin, async () => '')
 		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US', 'Sec-GPC': '1' })
-		await page.addInitScript((consentKey) => localStorage.setItem(consentKey, 'accepted'), key)
+		await page.addInitScript((consentKey) => localStorage.setItem(consentKey, 'granted'), key)
 		await page.goto('/')
 		await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
 		await expect(banner(page)).toBeHidden()

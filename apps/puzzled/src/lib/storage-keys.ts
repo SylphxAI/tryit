@@ -16,11 +16,8 @@
 // ==========================================
 // Consent & Privacy
 // ==========================================
-export const CONSENT_KEY = 'puzzled:consent:cookie'
-export const MARKETING_CONSENT_KEY = 'puzzled:consent:marketing'
-export const CONSENT_TIMESTAMP_KEY = 'puzzled:consent:timestamp'
-/** Ephemeral same-tab attribution (click IDs + UTMs) kept across /login -> checkout before consent. */
-export const ATTRIBUTION_SESSION_KEY = 'puzzled:attr:session'
+export const SIGNAL_STORAGE_KEY = 'puzzled:signal'
+export const CONSENT_KEY = `${SIGNAL_STORAGE_KEY}.consent`
 
 // ==========================================
 // Sound & Audio

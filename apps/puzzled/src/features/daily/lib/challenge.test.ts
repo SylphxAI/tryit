@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { create, fromJson } from '@bufbuild/protobuf'
 import { GetSharedResultResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
-import { attributionCookieValue } from '@/lib/attribution'
 import { CHALLENGE_KEY } from '@/lib/storage-keys'
 import {
 	explicitChallengeGame,
@@ -128,14 +127,10 @@ describe('a shared result is non-spoiler by construction', () => {
 describe('ref attribution', () => {
 	test('a share link lands with its share id as the first-touch ref and utm_source=share', () => {
 		const path = shareLandingPath(ID)
-		const [pathname, search] = path.split('?')
-		const cookie = attributionCookieValue(`?${search}`, pathname ?? '/', 1790000000000)
-		const decoded = new URLSearchParams(decodeURIComponent(cookie ?? ''))
-		// `r` is what the api stores as account_attribution.ref and reads as the share id.
-		expect(decoded.get('r')).toBe(ID)
-		expect(decoded.get('s')).toBe('share')
-		expect(decoded.get('p')).toBe(`/r/${ID}`)
-		expect(decoded.get('at')).toBe('1790000000000')
+		const url = new URL(path, 'https://tryit.fun')
+		expect(url.pathname).toBe(`/r/${ID}`)
+		expect(url.searchParams.get('ref')).toBe(ID)
+		expect(url.searchParams.get('utm_source')).toBe('share')
 	})
 })
 
