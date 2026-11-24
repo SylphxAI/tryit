@@ -118,7 +118,7 @@ function hasCageConflict(
 /**
  * Check if cage sum is violated (when all cells filled)
  */
-function isCageSumValid(cells: KillerCell[][], cage: Cage): boolean | null {
+export function isCageSumValid(cells: KillerCell[][], cage: Cage): boolean | null {
 	let sum = 0
 	let allFilled = true
 
@@ -190,6 +190,7 @@ export function getCellConflicts(
 	if (hasColConflict(cells, row, col, value)) conflicts.add('col')
 	if (hasBoxConflict(cells, row, col, value)) conflicts.add('box')
 	if (hasCageConflict(cells, cages, row, col, value)) conflicts.add('cage')
+	if (isCageSumValid(cells, cages[cells[row][col].cageId]) === false) conflicts.add('cage_sum')
 
 	return conflicts
 }

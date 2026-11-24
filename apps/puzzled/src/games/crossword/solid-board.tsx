@@ -1,20 +1,23 @@
 /** @jsxImportSource solid-js */
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { playButton } from '@/features/catalog/solid/game-landing'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { type CrosswordAction, createInitialState, crosswordReducer } from './board-state'
+import { incorrectCells } from './check-feedback'
 import { parseCrosswordClientPayload } from './parse-client'
 import {
 	type CrosswordClue,
 	type CrosswordDirection,
 	type CrosswordPuzzleClientData,
+	GRID_SIZE,
 	hasDownClues,
 } from './types'
 
 const keyboard = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM⌫']
 const directions = ['across', 'down'] as const
+const cellBit = (row: number, col: number) => 1 << (row * GRID_SIZE + col)
 
 export default function CrosswordBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -36,8 +39,14 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 	const t = createTranslator(props.locale)
 	const data = props.data
 	const acrossOnly = !hasDownClues(data.clues)
-	const [wrong, setWrong] = createSignal(false)
-	const finish = createBoardFinish(props, 'crossword', { onRejected: () => setWrong(true) })
+	const [feedback, setFeedback] = createSignal<'incomplete' | 'incorrect'>()
+	const [wrongCells, setWrongCells] = createSignal(0)
+	const finish = createBoardFinish(props, 'crossword', {
+		onRejected(error) {
+			setWrongCells(incorrectCells(error))
+			setFeedback('incorrect')
+		},
+	})
 	const [state, setState] = createSignal(createInitialState(data))
 	const playing = () => finish.state() === 'playing'
 	const cells: Record<string, HTMLButtonElement> = {}
@@ -56,7 +65,15 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 		setState((previous) => {
 			const next = crosswordReducer(previous, action, data)
 			if (next.userGrid === previous.userGrid) return next
-			setWrong(false)
+			setWrongCells((mask) => {
+				for (let r = 0; r < GRID_SIZE; r++) {
+					for (let c = 0; c < GRID_SIZE; c++) {
+						if (previous.userGrid[r][c] !== next.userGrid[r][c]) mask &= ~cellBit(r, c)
+					}
+				}
+				return mask
+			})
+			if (!wrongCells()) setFeedback(undefined)
 			return crosswordReducer(next, { type: 'CHECK_PROGRESS', puzzleData: data }, data)
 		})
 	}
@@ -88,7 +105,22 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 		dispatch(letter === '⌫' ? { type: 'DELETE_LETTER' } : { type: 'INPUT_LETTER', letter })
 	}
 	function keydown(event: KeyboardEvent) {
-		if (!playing() || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return
+		if (
+			!playing() ||
+			event.defaultPrevented ||
+			event.ctrlKey ||
+			event.altKey ||
+			event.metaKey ||
+			event.isComposing
+		)
+			return
+		const target = event.target
+		if (
+			target instanceof HTMLElement &&
+			(target.isContentEditable ||
+				target.closest('input, textarea, select, [role="textbox"], dialog, [role="dialog"]'))
+		)
+			return
 		const key = event.key
 		if (key === 'Backspace' || key === 'Delete' || /^[a-z]$/i.test(key)) {
 			event.preventDefault()
@@ -100,6 +132,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 			key === 'ArrowUp' ||
 			key === 'ArrowDown'
 		) {
+			if (!(target instanceof HTMLElement && target.closest('[data-crossword-cell]'))) return
 			event.preventDefault()
 			const vertical = key === 'ArrowUp' || key === 'ArrowDown'
 			const direction = vertical ? 'down' : 'across'
@@ -121,13 +154,25 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 		}
 	}
 	function check() {
-		if (playing() && state().isFilled) {
-			setWrong(false)
-			finish.finish({ finalGrid: state().userGrid })
+		if (!playing()) return
+		if (!state().isFilled) {
+			setFeedback('incomplete')
+			return
 		}
+		setFeedback(undefined)
+		finish.finish({ finalGrid: state().userGrid })
 	}
 	const clueLabel = (clue: CrosswordClue, direction: CrosswordDirection) =>
 		`${clue.number} ${directionName(direction)}: ${clue.clue}`
+
+	onMount(() => {
+		window.addEventListener('keydown', keydown)
+		onCleanup(() => window.removeEventListener('keydown', keydown))
+	})
+	const activeClueLabel = () => {
+		const clue = activeClue()
+		return clue ? clueLabel(clue, state().direction) : t('games.crossword.selectCell')
+	}
 
 	return (
 		<div class="mx-auto flex w-full max-w-md flex-col gap-2 md:gap-4" data-crossword-board>
@@ -141,9 +186,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 				</a>
 			</div>
 			<p role="status" class="min-h-12 rounded-xl bg-muted p-3 text-sm font-semibold">
-				<Show when={activeClue()} fallback={t('games.crossword.selectCell')}>
-					{(clue) => clueLabel(clue(), state().direction)}
-				</Show>
+				{activeClueLabel()}
 			</p>
 			<fieldset
 				class="mx-auto grid w-full max-w-64 grid-cols-5 gap-1 rounded-xl border border-border bg-border p-1 md:max-w-xs"
@@ -182,11 +225,11 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 										]
 											.filter(Boolean)
 											.join(', ')}
-										class="relative grid aspect-square place-items-center rounded-sm bg-background font-display text-xl font-bold data-word:bg-primary/15 aria-pressed:bg-primary aria-pressed:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-										data-word={highlighted() || undefined}
+										class="relative grid aspect-square place-items-center rounded-sm bg-background font-display text-xl font-bold data-word:bg-primary/15 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-invalid:ring-2 aria-invalid:ring-inset aria-invalid:ring-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+										data-word={(!selected() && highlighted()) || undefined}
+										aria-invalid={Boolean(wrongCells() & cellBit(r(), c())) || undefined}
 										data-crossword-cell={token(r(), c())}
 										onClick={() => dispatch({ type: 'SELECT_CELL', row: r(), col: c() })}
-										onKeyDown={keydown}
 									>
 										<Show when={number}>
 											<span
@@ -225,11 +268,13 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 						)}
 					</For>
 				</div>
-				<button type="button" class={playButton} disabled={!state().isFilled} onClick={check}>
+				<button type="button" class={playButton} onClick={check}>
 					{t('games.crossword.check')}
 				</button>
-				<Show when={wrong()}>
-					<p role="alert">{t('games.crossword.messages.incorrect')}</p>
+				<Show when={feedback()}>
+					<p role="alert" class="text-sm text-destructive">
+						{t(`games.crossword.messages.${feedback()}`)}
+					</p>
 				</Show>
 			</Show>
 			<BoardFinish
@@ -255,9 +300,6 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 												onClick={() => selectClue(clue, direction)}
 											>
 												<strong>{clue.number}.</strong> {clue.clue}
-												<Show when={state().solvedClues[direction].includes(clue.number)}>
-													<span aria-hidden="true"> ✓</span>
-												</Show>
 											</button>
 										</li>
 									)}

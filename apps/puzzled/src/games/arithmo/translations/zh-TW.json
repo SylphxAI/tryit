@@ -17,7 +17,8 @@
 	},
 	"messages": {
 		"notComplete": "字元數量不足",
-		"invalid": "算式無效"
+		"invalid": "算式無效",
+		"entryOrder": "算式會由左至右填入。"
 	},
 	"feedback": {
 		"correct": "字元和位置皆正確",

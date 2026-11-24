@@ -17,7 +17,8 @@
 	},
 	"messages": {
 		"notComplete": "文字数が足りません",
-		"invalid": "正しい数式ではありません"
+		"invalid": "正しい数式ではありません",
+		"entryOrder": "数式は左から右に入力されます。"
 	},
 	"feedback": {
 		"correct": "正しい位置にある文字",

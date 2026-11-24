@@ -18,7 +18,8 @@
 	"complete": "¡Puzle completado!",
 	"messages": {
 		"correct": "¡Correcto!",
-		"incorrect": "Inténtalo de nuevo"
+		"incorrect": "Inténtalo de nuevo",
+		"incomplete": "Rellena todas las casillas antes de comprobar."
 	},
 	"check": "Comprobar"
 }

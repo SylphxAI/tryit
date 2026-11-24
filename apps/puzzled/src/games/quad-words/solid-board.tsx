@@ -2,6 +2,7 @@
 import { Delete } from 'lucide-solid'
 import { batch, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
+import { isValidWord } from '@/games/word-guess/words'
 import { checkGuess } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
@@ -29,7 +30,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
 	const finish = createBoardFinish(props, slug)
 	const [state, setState] = createSignal(createInitialState())
-	const [error, setError] = createSignal<'length' | 'grade'>()
+	const [error, setError] = createSignal<'length' | 'notInWordList' | 'grade'>()
 	const dispatch = (action: Parameters<typeof quordleReducer>[1]) =>
 		setState((current) => quordleReducer(current, action))
 	const canPlay = () => state().gameStatus === 'playing' && !state().grading
@@ -56,6 +57,11 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 		const word = state().currentGuess
 		if (word.length !== 5) {
 			setError('length')
+			triggerHaptic('error')
+			return
+		}
+		if (!isValidWord(word)) {
+			setError('notInWordList')
 			triggerHaptic('error')
 			return
 		}
@@ -164,6 +170,20 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 					{t('games.quadWords.clearGuess')}
 				</button>
 			</div>
+			<Show when={error()}>
+				<p role="alert" class="text-sm text-destructive">
+					{error() === 'length'
+						? t('games.quadWords.messages.notEnoughLetters')
+						: error() === 'notInWordList'
+							? t('games.wordGuess.messages.notInWordList')
+							: t('common.error')}{' '}
+					<Show when={error() === 'grade'}>
+						<button type="button" class="min-h-12 font-semibold underline" onClick={submit}>
+							{t('common.retry')}
+						</button>
+					</Show>
+				</p>
+			</Show>
 			<details class="rounded-xl bg-muted px-3 text-sm">
 				<summary class="min-h-12 cursor-pointer py-3 font-semibold">
 					{t('games.quadWords.howToPlay')}
@@ -269,18 +289,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 			<Show when={state().grading}>
 				<p role="status">{t('common.syncing')}</p>
 			</Show>
-			<Show when={error()}>
-				<p role="alert" class="text-sm text-destructive">
-					{error() === 'length'
-						? t('games.quadWords.messages.notEnoughLetters')
-						: t('common.error')}{' '}
-					<Show when={error() === 'grade'}>
-						<button type="button" class="min-h-12 font-semibold underline" onClick={submit}>
-							{t('common.retry')}
-						</button>
-					</Show>
-				</p>
-			</Show>
+
 			<BoardFinish
 				finish={finish}
 				locale={props.locale}

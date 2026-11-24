@@ -18,7 +18,8 @@
 	"complete": "Desafio concluído!",
 	"messages": {
 		"correct": "Certo!",
-		"incorrect": "Tente de novo"
+		"incorrect": "Tente de novo",
+		"incomplete": "Preencha todos os quadrados antes de conferir."
 	},
 	"check": "Verificar"
 }

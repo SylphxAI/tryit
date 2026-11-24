@@ -1053,6 +1053,9 @@ impl PuzzleService for PuzzleConnectService {
         let Some(solution) = puzzle else {
             return Err(ConnectError::new(ErrorCode::NotFound, "puzzle_unavailable"));
         };
+        // Reject invalid input before claiming a pick or charging an attempt.
+        let result = grade_guess(game_slug, &solution, &guess)
+            .map_err(|error| ConnectError::new(ErrorCode::InvalidArgument, error))?;
         // A direct graded guess is also active play; even a fresh credential
         // must persist its pick before we return any graded result.
         let mut access = self.adopt_guest_progress_if_needed(&ctx, true).await?;
@@ -1083,8 +1086,6 @@ impl PuzzleService for PuzzleConnectService {
                 "guess_limit_reached",
             ));
         }
-        let result = grade_guess(game_slug, &solution, &guess)
-            .map_err(|error| ConnectError::new(ErrorCode::InvalidArgument, error))?;
         access.commit().await?;
         Response::ok(CheckGuessResponse {
             result_json: result.to_string(),

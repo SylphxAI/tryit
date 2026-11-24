@@ -81,21 +81,9 @@ export function killerSudokuReducer(
 
 			const { value } = action
 
-			if (state.notesMode) {
-				// Toggle note
-				const newNotes = new Set(cell.notes)
-				if (newNotes.has(value)) {
-					newNotes.delete(value)
-				} else {
-					newNotes.add(value)
-				}
-
-				const newCells = state.cells.map((r, ri) =>
-					r.map((c, ci) => (ri === row && ci === col ? { ...c, notes: newNotes, value: null } : c)),
-				)
-
-				return { ...state, cells: newCells }
-			}
+			if (state.notesMode)
+				return killerSudokuReducer(state, { type: 'TOGGLE_NOTE', value }, puzzleData)
+			if (cell.value === value) return state
 
 			// Set value
 			const newCells = state.cells.map((r, ri) =>
@@ -138,7 +126,7 @@ export function killerSudokuReducer(
 
 			const [row, col] = state.selectedCell
 			const cell = state.cells[row][col]
-			if (cell.isGiven) return state
+			if (cell.isGiven || cell.value !== null) return state
 
 			const { value } = action
 			const newNotes = new Set(cell.notes)

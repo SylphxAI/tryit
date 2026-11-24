@@ -18,7 +18,8 @@
 	"complete": "谜题完成！",
 	"messages": {
 		"correct": "正确！",
-		"incorrect": "再试一次"
+		"incorrect": "再试一次",
+		"incomplete": "请填满所有方格再检查。"
 	},
 	"check": "检查"
 }

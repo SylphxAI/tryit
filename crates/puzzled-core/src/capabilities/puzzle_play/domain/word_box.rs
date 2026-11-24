@@ -2,7 +2,12 @@
 //! `apps/puzzled/src/games/word-box/types.ts` + `config.ts#validateAndScore`.
 //! PORTFOLIO residual pure deepen. NO authority_rust / ts_deleted.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
+use std::sync::LazyLock;
+
+// Use the generator's full dictionary, not a subset of common words.
+const WORDS: &str = include_str!("../generate/data/word_box_words.txt");
+static DICTIONARY: LazyLock<HashSet<&str>> = LazyLock::new(|| WORDS.lines().collect());
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LetterBox {
@@ -174,7 +179,7 @@ pub fn validate_and_score(
         };
     }
 
-    if all_letters.len() < 12 {
+    if all_letters.len() != 12 {
         return GameResult::Invalid {
             error: "Invalid solution letters".into(),
         };
@@ -188,6 +193,23 @@ pub fn validate_and_score(
     };
 
     let word_refs: Vec<&str> = words.iter().map(String::as_str).collect();
+    let mut previous = "";
+    for &word in &word_refs {
+        if word.len() < 3 || !DICTIONARY.contains(word.to_ascii_uppercase().as_str()) {
+            return GameResult::Invalid {
+                error: "Not in word list".into(),
+            };
+        }
+        if !uses_valid_letters(&box_, word)
+            || !has_valid_side_transitions(&box_, word)
+            || !starts_with_last_letter(previous, word)
+        {
+            return GameResult::Invalid {
+                error: "Invalid word chain".into(),
+            };
+        }
+        previous = word;
+    }
     let used = get_used_letters(&word_refs);
     if !all_letters_used(&box_, &used) {
         return GameResult::Invalid {
@@ -242,36 +264,51 @@ mod tests {
         assert_eq!(word_box_score(3), 80);
         assert_eq!(word_box_score(4), 60);
         assert_eq!(word_box_score(5), 40);
-        let letters: Vec<char> = "ABCDEFGHIJKL".chars().collect();
-        let words = vec!["ABC".into(), "DEF".into(), "GHI".into(), "JKL".into()];
-        let r = validate_and_score(&letters, Some(&words), SubmissionStatus::Won);
+        let letters: Vec<char> = "NRFBOGCUMALH".chars().collect();
+        let words = ["macrofauna", "ABA", "ABCOULOMB", "BACH", "HOMBURG"].map(String::from);
         assert_eq!(
-            r,
+            validate_and_score(&letters, Some(&words), SubmissionStatus::Won),
             GameResult::Valid {
                 status: SubmissionStatus::Won,
-                score: 60
+                score: 40
             }
         );
-        let lost = validate_and_score(&letters, None, SubmissionStatus::Lost);
         assert_eq!(
-            lost,
+            validate_and_score(&letters, None, SubmissionStatus::Lost),
             GameResult::Valid {
                 status: SubmissionStatus::Lost,
                 score: 0
             }
         );
-        let incomplete = validate_and_score(&letters, Some(&["ABC".into()]), SubmissionStatus::Won);
-        assert!(!incomplete.is_valid());
-        let two = validate_and_score(
-            &letters,
-            Some(&["ABCDEF".into(), "GHIJKL".into()]),
-            SubmissionStatus::Won,
-        );
         assert_eq!(
-            two,
-            GameResult::Valid {
-                status: SubmissionStatus::Won,
-                score: 100
+            validate_and_score(&letters, Some(&words[..1]), SubmissionStatus::Won),
+            GameResult::Invalid {
+                error: "Not all letters used".into()
+            }
+        );
+        let out_of_order = ["ABA", "MACROFAUNA", "ABCOULOMB", "BACH", "HOMBURG"].map(String::from);
+        assert_eq!(
+            validate_and_score(&letters, Some(&out_of_order), SubmissionStatus::Won),
+            GameResult::Invalid {
+                error: "Invalid word chain".into()
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_nonword_even_with_complete_coverage_and_legal_transitions() {
+        let b = sample();
+        let word = "ADGJBEHKCFIL";
+        assert!(has_valid_side_transitions(&b, word));
+        assert!(all_letters_used(&b, &get_used_letters(&[word])));
+        assert_eq!(
+            validate_and_score(
+                &all_letters(&b),
+                Some(&[word.into()]),
+                SubmissionStatus::Won
+            ),
+            GameResult::Invalid {
+                error: "Not in word list".into()
             }
         );
     }
