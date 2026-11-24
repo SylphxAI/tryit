@@ -232,6 +232,7 @@ test('Japanese shell localizes the skip link and corporate footer', async ({ pag
 for (const viewport of [
 	{ width: 1280, height: 800 },
 	DESKTOP,
+	{ width: 1920, height: 937 },
 	{ width: 1920, height: 1080 },
 	MOBILE,
 ]) {
