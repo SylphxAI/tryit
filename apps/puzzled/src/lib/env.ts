@@ -1,7 +1,7 @@
 /**
  * Environment Variable Validation (SSOT)
  *
- * Presentation (Next.js web) boot must listen without owning api or Platform
+ * Presentation (SolidStart web) boot must listen without owning api or Platform
  * root secrets. Platform injects API_INTERNAL_URL from sylphx.toml
  * connect.services = ["api"]. DATABASE_URL / REDIS_URL
  * belong to the Rust api. SYLPHX_SECRET_KEY / SYLPHX_SECRET_URL are injected
@@ -56,11 +56,6 @@ export const KNOWN_VARS: readonly EnvVar[] = [
 		name: 'NODE_ENV',
 		required: false,
 		description: 'Node runtime mode (development/production/test); inlined by the bundler',
-	},
-	{
-		name: 'NEXT_PHASE',
-		required: false,
-		description: 'Next.js phase; phase-production-build relaxes the Redis connect',
 	},
 	// Advertising (off until both are set)
 	{
@@ -230,10 +225,6 @@ export const env = {
 	/** Node runtime mode (development/production/test) */
 	get NODE_ENV(): string | undefined {
 		return process.env.NODE_ENV
-	},
-	/** Next.js phase; phase-production-build during build */
-	get NEXT_PHASE(): string | undefined {
-		return process.env.NEXT_PHASE
 	},
 	/** Configured site origin (baked at build) */
 	/** Sylphx app id for the login surface (baked at build) */

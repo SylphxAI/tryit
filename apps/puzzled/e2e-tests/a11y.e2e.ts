@@ -16,7 +16,7 @@ import { serveSudoku } from './sudoku-fixture'
  * violation axe can see", not "no accessibility work left".
  *
  * Known page-owned findings: this branch owns `apps/puzzled/src/shared/**`,
- * `packages/ui/**`, `apps/puzzled/src/games/**` and `globals.css`. Findings that
+ * `apps/puzzled/src/games/**` and `globals.css`. Findings that
  * live in page files owned by the parallel workstreams are listed per route in
  * `owned` with the file that must close them and the owning PR recorded in the
  * PR body. Anything not listed must stay clean, so the shared shell and every

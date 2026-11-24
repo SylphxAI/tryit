@@ -10,7 +10,6 @@ export { safeNext } from './return-path'
  * Tryit's players are end users of its own Sylphx Auth instance, reached
  * through the Auth client API in server mode:
  *
- * - sign-up: `POST /v1/client/sign-up` (publishable key), then sign in;
  * - password sign-in: `POST /v1/client/sign-in/password` → one-time ticket;
  * - Google: the verified tenant portal or shared Auth starts OAuth and
  *   returns to our callback with a one-time ticket;
@@ -104,33 +103,6 @@ async function call<T>(
 		throw new AuthCallError(response.status, code, response.headers.get('retry-after'))
 	}
 	return body as T
-}
-
-/** Create an account; Auth answers the same whether or not the email exists. */
-export async function signUp(
-	config: AuthConfig,
-	input: {
-		email: string
-		password: string
-		name: string
-		verifyUrl: string
-		userAgent: string
-		acceptance: PolicyAcceptance
-	},
-): Promise<void> {
-	if (!isPolicyAcceptance(input.acceptance))
-		throw new AuthCallError(400, 'policy_acceptance_required')
-	await call(config, '/v1/client/sign-up', {
-		bearer: config.publishableKey,
-		userAgent: input.userAgent,
-		body: {
-			email: input.email,
-			password: input.password,
-			name: input.name,
-			redirect_url: input.verifyUrl,
-			...input.acceptance,
-		},
-	})
 }
 
 /** Password sign-in in server mode: a one-time ticket for this backend. */
@@ -362,11 +334,6 @@ export async function passkeyTicket(config: AuthConfig, userAgent: string, proof
 	)
 }
 
-/** Legacy pages only need the provider list, even when methods are absent. */
-export async function socialProviders(config: AuthConfig): Promise<string[]> {
-	return (await readClientConfig(config, 'puzzled-web')).providers
-}
-
 const GOOGLE_API_START = '/v1/client/oauth/google/start'
 const GOOGLE_ORIGIN = 'https://accounts.google.com'
 // Product-owned trust root. Neither a request header nor Auth's response sets it.
@@ -423,14 +390,13 @@ export async function googleStartUrl(
 		return withAcceptance(withCallback(hosted))
 	}
 
-	// The gateway is advertised even when this deployment talks to the Auth peel.
-	// Never fetch an advertised URL: the shared start uses the configured origin.
+	// A shared start always uses the server binding. Discovery's advertised
+	// URL is neither a credential destination nor a browser redirect.
 	const shared = new URL(GOOGLE_API_START, config.url)
 	if (
-		(google.credentials !== undefined && google.credentials !== 'shared') ||
-		(google.start_url !== undefined &&
-			google.start_url !== shared.href &&
-			google.start_url !== `https://api.sylphx.com${GOOGLE_API_START}`)
+		google.credentials !== 'shared' &&
+		(google.credentials !== undefined ||
+			(google.start_url !== undefined && google.start_url !== shared.href))
 	)
 		throw new AuthCallError(503, 'identity_unconfigured')
 	const response = await fetch(withAcceptance(withCallback(shared)), {

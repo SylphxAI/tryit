@@ -31,7 +31,7 @@ Browser coverage for discovery and statutory disclosures lives in
 browser -> /puzzled.v1.*, /healthz, /readyz -> api (Rust)
 Compute -> /internal/compute/*              -> api (Rust)  scheduled jobs
 ops     -> /observability/test              -> api (Rust)
-        -> everything else (/api/health)    -> web (Next.js)
+        -> everything else (/api/health)    -> web (SolidStart)
 ```
 
 - **api** ([crates/puzzled-server](crates/puzzled-server)): a
@@ -44,7 +44,7 @@ ops     -> /observability/test              -> api (Rust)
   while the api keeps only the family membership list.
 - **core** ([crates/puzzled-core](crates/puzzled-core)): the game rules,
   answer checking and scoring, with no I/O.
-- **web** ([apps/puzzled](apps/puzzled)): the Next.js site. It renders pages
+- **web** ([apps/puzzled](apps/puzzled)): the SolidStart site. It renders pages
   and calls the api through a generated Connect client.
 - **db**: PostgreSQL, with schema migrations managed by Atlas.
 

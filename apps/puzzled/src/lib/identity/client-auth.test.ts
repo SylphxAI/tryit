@@ -118,6 +118,12 @@ describe('Sylphx Auth client', () => {
 			}
 		})
 
+		test('never fetches or returns a shared start URL advertised by discovery', async () => {
+			const fetcher = stub({ social: [{ ...shared, start_url: 'https://foreign.test' }] })
+			expect(await googleStartUrl(config, callback, 'Test Browser')).toBe(google)
+			expect(fetcher).toHaveBeenCalledTimes(2)
+		})
+
 		test('handles activation between settings and the shared API start', async () => {
 			const raced = new URL(hostedStart)
 			raced.searchParams.set('redirect_url', callback)
@@ -144,7 +150,7 @@ describe('Sylphx Auth client', () => {
 					...active,
 					social: [{ ...hosted, start_url: `${hostedStart}&redirect_url=https://foreign.test` }],
 				},
-				{ ...active, social: [{ ...shared, start_url: 'https://foreign.test' }] },
+				{ ...active, social: [{ provider: 'google', start_url: 'https://foreign.test' }] },
 				{ ...active, instance: { id: 'deaddead-dead-dead-dead-deaddeaddead', slug: 'tryit-test' } },
 				{ ...active, instance: { id: instanceId, slug: '-invalid' } },
 				{ ...active, social: [] },

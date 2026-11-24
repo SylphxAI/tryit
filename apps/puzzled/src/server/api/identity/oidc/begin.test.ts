@@ -73,6 +73,26 @@ describe('Google OAuth begin', () => {
 		expect(fetcher).toHaveBeenCalledTimes(1)
 	})
 
+	test('uses the bound tenant origin for discovery and returns its verified portal start', async () => {
+		process.env.SYLPHX_AUTH_URL = portal
+		const fetcher = mock(async (input: string) => {
+			expect(input).toBe(`${portal}/v1/client/config`)
+			return Response.json({
+				instance,
+				portal_origin_mode: 'hosted',
+				portal_url: portal,
+				social: [hosted],
+			})
+		})
+		globalThis.fetch = fetcher as unknown as typeof fetch
+		const response = await POST(request({ provider: 'google', acceptance: POLICY_ACCEPTANCE }))
+		expect(response.status).toBe(200)
+		const target = new URL((await response.json()).authorizationUrl)
+		expect(target.origin + target.pathname).toBe(`${portal}/oauth/google/start`)
+		expect(target.searchParams.get('terms_version')).toBe(POLICY_ACCEPTANCE.terms_version)
+		expect(fetcher).toHaveBeenCalledTimes(1)
+	})
+
 	test('still returns a Google authorization URL for the shared client', async () => {
 		const google = 'https://accounts.google.com/o/oauth2/v2/auth?state=provider-state'
 		const fetcher = mock(async (input: string) =>
