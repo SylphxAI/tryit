@@ -171,3 +171,60 @@ test('the lineup cards keep a stationary hit target', async ({ page }) => {
 		await page.mouse.up()
 	}
 })
+
+test('Taiwan home and all 19 catalog tiles use local names and minute badges', async ({ page }) => {
+	await page.goto('/zh-TW')
+	const featured = page.locator('.home-featured-title')
+	await expect(featured).toHaveText(/^\p{Script=Han}+$/u)
+	await expect(page.locator('[data-day-primary-action]')).toHaveText(
+		`遊玩今日的「${await featured.textContent()}」`,
+	)
+	await expect(page.getByText('今天的謎題準備好了！任選 3 款免費玩，不用註冊。')).toBeVisible()
+	await expect(page.getByText(/今天已有 .* 位玩家完成/)).toHaveCount(0)
+	await expect(page.getByRole('link', { name: '跳至主要內容', exact: true })).toHaveAttribute(
+		'href',
+		'#main-content',
+	)
+
+	await page.goto('/zh-TW/games')
+	const tiles = page.locator('main [data-game-tile]')
+	await expect(tiles).toHaveCount(19)
+	for (const [slug, name, minutes] of [
+		['arithmo', '算式猜謎', 3],
+		['block-slide', '華容道', 5],
+		['crossword', '迷你填字', 5],
+		['cryptogram', '密碼文', 5],
+		['killer-sudoku', '殺手數獨', 10],
+		['nonogram', '數繪', 8],
+		['number-path', '數字連線', 5],
+		['pattern-match', '圖卡配對', 4],
+		['pip-place', '骨牌拼圖', 5],
+		['quad-words', '四詞同猜', 5],
+		['crowns', '皇冠', 5],
+		['sudoku', '數獨', 10],
+		['duo', '日月平衡', 5],
+		['word-box', '字母方框', 5],
+		['word-groups', '詞語分組', 3],
+		['word-guess', '五字母猜詞', 2],
+		['word-hive', '字母蜂巢', 5],
+		['word-ladder', '單字階梯', 3],
+		['word-search', '字母尋詞', 5],
+	] as const) {
+		const tile = page.locator(`main [data-game-tile="${slug}"]`)
+		await expect(tile.getByRole('heading', { name, exact: true })).toBeVisible()
+		await expect(tile.getByText(`約 ${minutes} 分鐘`, { exact: true })).toBeVisible()
+	}
+	await page.goto('/zh-TW/games/crowns')
+	await expect(page.getByRole('heading', { name: '皇冠', exact: true, level: 1 })).toBeVisible()
+	await expect(page.getByText('約 5 分鐘', { exact: true }).first()).toBeVisible()
+})
+
+test('Japanese shell localizes the skip link and corporate footer', async ({ page }) => {
+	await page.goto('/ja')
+	await expect(page.getByRole('link', { name: 'メインコンテンツへスキップ' })).toHaveAttribute(
+		'href',
+		'#main-content',
+	)
+	await expect(page.locator('footer small')).toContainText('会社登録番号：16438428')
+	await expect(page.locator('footer small')).not.toContainText('Registered in England and Wales')
+})

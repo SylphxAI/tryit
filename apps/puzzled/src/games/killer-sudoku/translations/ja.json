@@ -1,5 +1,5 @@
 {
-	"name": "Cage Sudoku",
+	"name": "キラー数独",
 	"tagline": "数独 • ケージ合計",
 	"highlight": "合計パズル",
 	"description": "ケージの合計条件つき数独",

@@ -80,7 +80,7 @@ export const wordHiveConfig: GameConfig<
 	display: {
 		taglineKey: 'games.wordHive.tagline',
 		highlightKey: 'games.wordHive.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'amber',
 	},
 

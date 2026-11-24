@@ -30,6 +30,7 @@ import { markStartIntent } from '@/features/daily/lib/start-intent'
 import { todayPlayPath, todayResultPath } from '@/features/daily/lib/today-play-path'
 import { formatCountdown } from '@/features/home/lib/day-boundary'
 import { homeDayCopy, lineupStatus } from '@/features/home/lib/home-day-copy'
+import { homeParticipationCopy } from '@/features/home/lib/home-participation-copy'
 import { getGameColors } from '@/games/theme-colors'
 import { formatTrialEnd } from '@/lib/billing/plus'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -232,11 +233,9 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 					})}
 				/>
 			</Show>
-			<Show when={(props.facts()?.playerCount ?? 0) > 0}>
-				<p class="text-sm text-muted-foreground">
-					{t('home.hero.playersToday', { count: format.format(props.facts()?.playerCount ?? 0) })}
-				</p>
-			</Show>
+			<p class="text-sm text-muted-foreground">
+				{homeParticipationCopy(t, props.facts()?.playerCount)}
+			</p>
 		</div>
 	)
 	return (

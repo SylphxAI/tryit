@@ -167,19 +167,20 @@ describe('game copy: locale selection', () => {
 		}
 	})
 
-	test('a key the locale file omits falls back to English, never to a blank', () => {
-		const chinese = resolveGameMessages('zh-CN')
-		const english = GAME_TRANSLATIONS_EN
-
-		// `name` is a brand name and is deliberately not in the Chinese files.
-		expect(getPath(chinese.wordGuess, 'name')).toBe(getPath(english.wordGuess, 'name'))
-		// `rules.rule1` is translated, so the same module shows real Chinese copy.
-		expect(getPath(chinese.wordGuess, 'rules.rule1')).toBe(
-			getPath(readCopyFromDisk('word-guess', 'zh-CN.json'), 'rules.rule1'),
-		)
-		expect(getPath(chinese.wordGuess, 'rules.rule1')).not.toBe(
-			getPath(english.wordGuess, 'rules.rule1'),
-		)
+	test('non-English catalogues localize each game name', () => {
+		for (const locale of ['zh-HK', 'zh-TW', 'zh-CN', 'ja', 'es', 'pt-BR'] as const) {
+			const resolved = resolveGameMessages(locale)
+			for (const [key, copy] of Object.entries(resolved)) {
+				// Sudoku is also the generic local name in Spanish and Portuguese.
+				if (key === 'sudoku' && (locale === 'es' || locale === 'pt-BR')) continue
+				const name = getPath(copy, 'name')
+				expect({
+					locale,
+					key,
+					translated: name !== getPath(GAME_TRANSLATIONS_EN[key], 'name'),
+				}).toEqual({ locale, key, translated: true })
+			}
+		}
 	})
 
 	test('every locale resolves every module to non-empty, non-key copy', () => {

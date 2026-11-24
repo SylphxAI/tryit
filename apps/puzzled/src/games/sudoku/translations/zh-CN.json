@@ -1,4 +1,5 @@
 {
+	"name": "数独",
 	"tagline": "9×9 方格 • 经典逻辑",
 	"highlight": "经典谜题",
 	"description": "在 9×9 方格中填入 1 到 9",

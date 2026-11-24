@@ -1,4 +1,5 @@
 {
+	"name": "数字连线",
 	"tagline": "从 1 走到 n • 不得交叉",
 	"highlight": "数字路径",
 	"description": "画出一条从 1 到 n、穿过每格的路径",

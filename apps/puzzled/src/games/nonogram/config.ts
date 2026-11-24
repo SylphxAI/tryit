@@ -61,7 +61,7 @@ export const nonogramConfig: GameConfig<
 	display: {
 		taglineKey: 'games.nonogram.tagline',
 		highlightKey: 'games.nonogram.highlight',
-		duration: '~8 min',
+		durationMinutes: 8,
 		theme: 'pink',
 	},
 

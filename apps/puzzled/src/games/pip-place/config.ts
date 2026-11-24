@@ -29,7 +29,7 @@ export const pipPlaceConfig: GameConfig<
 	display: {
 		taglineKey: 'games.pipPlace.tagline',
 		highlightKey: 'games.pipPlace.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'orange',
 	},
 	generationStrategy: 'seed',

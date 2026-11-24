@@ -23,7 +23,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 				rel="external"
 				class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
 			>
-				Skip to main content
+				{props.data.skipToMainContent}
 			</a>
 			<header class="pt-safe sticky top-0 z-header border-b border-hairline bg-background">
 				<div class="page-shell-wide flex h-14 items-center gap-2 md:h-16">

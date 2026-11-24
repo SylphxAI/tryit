@@ -1,4 +1,5 @@
 {
+	"name": "词语分组",
 	"tagline": "找出 4 组，每组 4 个",
 	"highlight": "4 个类别",
 	"description": "把 16 个词分成 4 个类别",

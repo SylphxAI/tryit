@@ -1,4 +1,5 @@
 {
+	"name": "數字連線",
 	"tagline": "從 1 走到 n • 不得交叉",
 	"highlight": "數字路徑",
 	"description": "畫出一條從 1 到 n、穿過每格的路徑",

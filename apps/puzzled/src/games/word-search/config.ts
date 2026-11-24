@@ -30,7 +30,7 @@ export const wordSearchConfig: GameConfig<
 	display: {
 		taglineKey: 'games.wordSearch.tagline',
 		highlightKey: 'games.wordSearch.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'cyan',
 	},
 	generationStrategy: 'seed',

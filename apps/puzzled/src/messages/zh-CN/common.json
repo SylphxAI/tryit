@@ -1,4 +1,6 @@
 {
+	"estimatedPlayTime": "约 {minutes, number} 分钟",
+	"skipToMainContent": "跳至主要内容",
 	"appName": "Tryit",
 	"loading": "加载中...",
 	"error": "出错了",

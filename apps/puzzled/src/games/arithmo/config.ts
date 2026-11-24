@@ -26,7 +26,7 @@ export const arithmoConfig: GameConfig<
 	display: {
 		taglineKey: 'games.arithmo.tagline',
 		highlightKey: 'games.arithmo.highlight',
-		duration: '~3 min',
+		durationMinutes: 3,
 		theme: 'lime',
 	},
 	generationStrategy: 'seed',

@@ -32,7 +32,7 @@ const SHARED_KEYS = new Set([
 
 /** Loanwords and cognates that are the ordinary word in that language. */
 const LOCALE_KEYS: Partial<Record<Locale, string[]>> = {
-	ja: ['footer.copyright', 'share.text'], // legal entity line; share text is brand + placeholders
+	ja: ['share.text'], // brand + placeholders
 	es: [
 		'footer.legalHeading',
 		'footer.cookies',

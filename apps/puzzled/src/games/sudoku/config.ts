@@ -56,7 +56,7 @@ export const sudokuConfig: GameConfig<
 	display: {
 		taglineKey: 'games.sudoku.tagline',
 		highlightKey: 'games.sudoku.highlight',
-		duration: '~10 min',
+		durationMinutes: 10,
 		theme: 'cyan',
 	},
 	generationStrategy: 'seed',

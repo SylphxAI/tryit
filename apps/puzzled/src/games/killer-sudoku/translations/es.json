@@ -1,5 +1,5 @@
 {
-	"name": "Cage Sudoku",
+	"name": "Sudoku de Sumas",
 	"tagline": "Sudoku • Sumas de jaulas",
 	"highlight": "Puzle de sumas",
 	"description": "Sudoku con restricciones de suma por jaula",

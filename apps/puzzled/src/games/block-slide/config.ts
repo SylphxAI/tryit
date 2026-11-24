@@ -83,7 +83,7 @@ export const blockSlideConfig: GameConfig<
 	display: {
 		taglineKey: 'games.blockSlide.tagline',
 		highlightKey: 'games.blockSlide.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'slate',
 	},
 

@@ -258,8 +258,8 @@ export interface GameDisplayMeta {
 	taglineKey: string
 	/** Translation key suffix for highlight text */
 	highlightKey: string
-	/** Estimated time to complete */
-	duration: string
+	/** Estimated time to complete, in whole minutes. */
+	durationMinutes: number
 	/** Color theme token - all color classes derived from this */
 	theme: import('./theme-colors').GameColorTheme
 }

@@ -1,5 +1,5 @@
 {
-	"name": "Path",
+	"name": "Camino Numérico",
 	"tagline": "Visita de 1 a n • Sin cruces",
 	"highlight": "Camino numerado",
 	"description": "Dibuja un camino por todas las casillas del 1 al n",

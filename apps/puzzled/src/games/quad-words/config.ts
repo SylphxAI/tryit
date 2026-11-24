@@ -28,7 +28,7 @@ export const quadWordsConfig: GameConfig<
 	display: {
 		taglineKey: 'games.quadWords.tagline',
 		highlightKey: 'games.quadWords.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'amber',
 	},
 	generationStrategy: 'seed',

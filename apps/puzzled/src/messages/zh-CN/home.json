@@ -11,7 +11,8 @@
 	"hero": {
 		"guestTitle": "19 款谜题，每天任选 3 款免费",
 		"streakChip": "连续 {days} 天",
-		"playersToday": "今天已有 {count} 位玩家完成",
+		"playersToday": "今天已有 {count, number} 位玩家完成",
+		"dailyInvitation": "今天的谜题准备好了！任选 3 款免费玩，无需注册。",
 		"progressRingLabel": "今天已完成 {done} / {total} 题",
 		"progressUnverified": "暂时读不到你的进度。你仍然可以玩，提交时我们会核对你的完成记录。",
 		"ogEyebrow": "每日 19 款谜题",
@@ -84,7 +85,7 @@
 		"titleDone": "今天的{game}已完成",
 		"bodyGuest": "文字、逻辑和数字谜题，每款几分钟就能玩完。今天任选三款，无需注册即可开始，大家玩的是同一套题。",
 		"bodyMember": "你的连胜、统计和今日阵容，一点即到。",
-		"playToday": "玩今天的{game}",
+		"playToday": "玩今天的「{game}」",
 		"playAgain": "再玩一次",
 		"browseAll": "浏览所有游戏",
 		"finishersToday": "今天已有 {count} 人完成",

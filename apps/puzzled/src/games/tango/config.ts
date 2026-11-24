@@ -24,7 +24,7 @@ export const tangoConfig: GameConfig<
 	display: {
 		taglineKey: 'games.tango.tagline',
 		highlightKey: 'games.tango.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'amber',
 	},
 	generationStrategy: 'seed',

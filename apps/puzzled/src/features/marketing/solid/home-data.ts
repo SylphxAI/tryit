@@ -38,7 +38,7 @@ export function homeDocument(locale: Locale, baseUrl: string, now: Date) {
 		slug,
 		sortOrder,
 		category,
-		duration: display.duration,
+		duration: t('common.estimatedPlayTime', { minutes: display.durationMinutes }),
 		theme: display.theme,
 		name: t(`games.${slugToCamelCase(slug)}.name`),
 		tagline: t(`games.${slugToCamelCase(slug)}.tagline`),

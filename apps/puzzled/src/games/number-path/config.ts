@@ -29,7 +29,7 @@ export const numberPathConfig: GameConfig<
 	display: {
 		taglineKey: 'games.numberPath.tagline',
 		highlightKey: 'games.numberPath.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'slate',
 	},
 	generationStrategy: 'seed',

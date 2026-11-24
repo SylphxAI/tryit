@@ -89,7 +89,7 @@ describe('buildCatalogEntries', () => {
 			const camel = slugToCamelCase(entry.slug)
 			expect(entry.titleKey).toBe(`games.${camel}.name`)
 			expect(entry.taglineKey).toBe(`games.${camel}.tagline`)
-			expect(entry.duration.length).toBeGreaterThan(0)
+			expect(entry.durationMinutes).toBeGreaterThan(0)
 		}
 	})
 
