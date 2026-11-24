@@ -12,7 +12,6 @@
 		"guestTitle": "3 de 19 desafios grátis por dia",
 		"streakChip": "Sequência de {days} dias",
 		"playersToday": "{count, plural, =1 {# jogador concluiu hoje} other {# jogadores concluíram hoje}}",
-		"dailyInvitation": "Os desafios de hoje chegaram! Jogue três de graça, sem cadastro.",
 		"progressRingLabel": "{done} de {total} desafios concluídos hoje",
 		"progressUnverified": "Não conseguimos carregar seu progresso salvo agora. Você ainda pode jogar — conferimos sua conclusão quando você enviar.",
 		"ogEyebrow": "19 desafios diários",
@@ -20,7 +19,6 @@
 	},
 	"lineup": {
 		"title": "Seleção de hoje",
-		"subtitle": "Todos os {count} jogos. Quaisquer três são grátis hoje.",
 		"seeAll": "Ver todos os jogos",
 		"play": "Jogar",
 		"freeToday": "Destaque de hoje",
@@ -78,19 +76,16 @@
 		"puzzleNumber": "Desafio nº {number}",
 		"resetsIn": "Renova em",
 		"resetsAt": "Atualização diária: 16:00 UTC",
-		"guestTitle": "{count} desafios por dia. Escolha 3 grátis.",
+		"guestTitle": "{count} jogos por dia. Escolha 3 grátis, sem criar conta.",
 		"titleMemberReady": "O {game} de hoje está pronto",
 		"titleMemberStreak": "Sua sequência de {days} dias está esperando",
 		"titleMemberDone": "Tudo feito por hoje — muito bem",
 		"titleDone": "O {game} de hoje foi concluído",
-		"bodyGuest": "Desafios de palavras, lógica e números que levam poucos minutos cada. Comece três hoje sem cadastro; todo mundo joga a mesma seleção.",
-		"bodyMember": "Sua sequência, suas estatísticas e a seleção de hoje estão a um toque de distância.",
 		"playToday": "Jogar o {game} de hoje",
 		"playAgain": "Jogar o de hoje de novo",
 		"browseAll": "Ver todos os jogos",
 		"finishersToday": "{count} já concluíram hoje",
-		"freeToday": "Grátis hoje",
-		"guestNote": "Sem cadastro, sem cartão. Pronto em poucos minutos."
+		"freeToday": "Grátis hoje"
 	},
 	"seasons": {
 		"newYear": "Feliz Ano Novo",
@@ -102,9 +97,7 @@
 		"christmas": "Feliz Natal"
 	},
 	"picks": {
-		"fresh": "{count} escolhas grátis hoje",
-		"left": "{count, plural, one {Resta # grátis} other {Restam # grátis}}",
-		"none": "Escolhas grátis usadas · Ver o Plus",
-		"unlimited": "Plus · todos os jogos liberados"
+		"unlimited": "Plus · todos os jogos liberados",
+		"progress": "{used} / {total} grátis hoje"
 	}
 }

@@ -78,6 +78,23 @@ test('winning Sudoku reveals Share and See your result above the phone dock befo
 	const share = page.getByRole('button', { name: 'Share', exact: true })
 	const details = page.getByRole('button', { name: 'See your result', exact: true })
 	const bannerBox = (await banner.boundingBox())!
+	expect(bannerBox.height).toBeLessThan(84)
+	await expect(banner.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
+		'href',
+		'/privacy',
+	)
+	await expect(banner.locator('a svg')).toHaveCount(0)
+	const choices = await banner.getByRole('button').all()
+	expect(await banner.getByRole('button').allTextContents()).toEqual([
+		'Decline',
+		'Accept',
+		'Analytics only',
+	])
+	for (const choice of choices) {
+		const { width, height } = (await choice.boundingBox())!
+		expect(Math.min(width, height)).toBeGreaterThanOrEqual(44)
+		await expectDirectHit(choice)
+	}
 	expect(bannerBox.y + bannerBox.height).toBeCloseTo(navBox.y, 0)
 	for (const action of [share, details]) {
 		await expectDirectHit(action, bannerBox.y)

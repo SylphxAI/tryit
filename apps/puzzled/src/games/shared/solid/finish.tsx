@@ -4,17 +4,14 @@ import { Check, Minus } from 'lucide-solid'
 import { createSignal, onCleanup, Show } from 'solid-js'
 import type { DailySnapshot } from '@/features/daily/lib/daily-fallback'
 import { ResultActions } from '@/features/daily/solid/result-actions'
-import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
 import type { PuzzleDifficulty } from '@/games/types'
 import { SubmitGuessResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { isAlreadyPlayedError } from '@/lib/connect/already-played'
 import { submitGuess } from '@/lib/connect/puzzle-client'
 import type { SubmitGuessInput } from '@/lib/connect/puzzle-domain'
-import { isGameFreeOnDay } from '@/lib/free-rotation'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { withIdempotencyKey } from '@/lib/idempotency-key'
-import { isValidDayKey } from '@/lib/product-day'
 import { recordFirstFinishDay } from '@/shared/components/pwa-install-policy'
 
 export type DailyBoardProps = {
@@ -119,15 +116,6 @@ export function BoardFinish(props: {
 	shareText?: string
 }) {
 	const t = createTranslator(props.locale)
-	const featuredFinish = () => {
-		const result = props.finish.result()
-		return (
-			result?.mode === 'daily' &&
-			!!result.puzzleDate &&
-			isValidDayKey(result.puzzleDate) &&
-			isGameFreeOnDay(result.gameSlug, result.puzzleDate)
-		)
-	}
 	return (
 		<>
 			<Show when={props.finish.state() === 'pending'}>
@@ -164,9 +152,6 @@ export function BoardFinish(props: {
 							shareTitle={props.shareTitle}
 							shareText={props.shareText}
 						/>
-						<Show when={featuredFinish()}>
-							<FinishPassLink locale={props.locale} />
-						</Show>
 					</div>
 				)}
 			</Show>

@@ -19,7 +19,7 @@ import { file_google_protobuf_cpp_features } from '@bufbuild/protobuf/wkt'
 export const file_puzzled_v1_puzzle: GenFile =
 	/*@__PURE__*/
 	fileDesc(
-		'ChdwdXp6bGVkL3YxL3B1enpsZS5wcm90bxIKcHV6emxlZC52MSJHChBHZXRQdXp6bGVSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIMCgRzZWVkGAIgASgDEhIKCmRpZmZpY3VsdHkYAyABKAkidwoRR2V0UHV6emxlUmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEgwKBHNlZWQYAiABKAMSEgoKZGlmZmljdWx0eRgDIAEoCRIYChBwdXp6bGVfZGF0YV9qc29uGAQgASgJEg0KBXNsaWNlGAYgASgJSgQIBRAGInQKD0dldERhaWx5UmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgCIAEoCRIYCglwdXp6bGVfaWQYAyABKAlCBaoBAggBEhoKC3B1enpsZV9kYXRlGAUgASgJQgWqAQIIAUoECAQQBSKLAQoPRGFpbHlDb21wbGV0aW9uEg4KBnN0YXR1cxgBIAEoCRIUCgVzY29yZRgCIAEoDUIFqgECCAESFwoIYXR0ZW1wdHMYAyABKA1CBaoBAggBEh4KD2NvbXBsZXRlZF9hdF9tcxgEIAEoA0IFqgECCAESGQoKZGlmZmljdWx0eRgFIAEoCUIFqgECCAEivQIKEEdldERhaWx5UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhUKDXB1enpsZV9udW1iZXIYAiABKA0SEwoLcHV6emxlX2RhdGUYAyABKAkSGAoJcHV6emxlX2lkGAQgASgJQgWqAQIIARISCgpkaWZmaWN1bHR5GAUgASgJEhUKDWhhc19jb21wbGV0ZWQYBiABKAgSEAoIY2FuX3BsYXkYByABKAgSDAoEbW9kZRgIIAEoCRINCgVzbGljZRgJIAEoCRIMCgRzdHViGAogASgIEhgKEHB1enpsZV9kYXRhX2pzb24YCyABKAkSNgoRY29tcGxldGVkX3Nlc3Npb24YDCABKAsyGy5wdXp6bGVkLnYxLkRhaWx5Q29tcGxldGlvbhIWCg5yZXF1aXJlc19zdGFydBgNIAEoCCItChdHZXRUb2RheVByb2dyZXNzUmVxdWVzdBISCgpnYW1lX3NsdWdzGAEgAygJInAKDEdhbWVQcm9ncmVzcxIRCglnYW1lX3NsdWcYASABKAkSFQoNaGFzX2NvbXBsZXRlZBgCIAEoCBI2ChFjb21wbGV0ZWRfc2Vzc2lvbhgDIAEoCzIbLnB1enpsZWQudjEuRGFpbHlDb21wbGV0aW9uIlQKGEdldFRvZGF5UHJvZ3Jlc3NSZXNwb25zZRIPCgdkYXlfa2V5GAEgASgJEicKBWdhbWVzGAIgAygLMhgucHV6emxlZC52MS5HYW1lUHJvZ3Jlc3MiyQEKElN1Ym1pdEd1ZXNzUmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSEAoIYXR0ZW1wdHMYBSABKA0SFQoNdGltZV9zcGVudF9tcxgGIAEoBBIXCg9zdWJtaXNzaW9uX2pzb24YByABKAkSGAoJcHV6emxlX2lkGAggASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgJIAEoCUIFqgECCAFKBAgCEAMipAEKE1N1Ym1pdEd1ZXNzUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDgoGc3RhdHVzGAIgASgJEhQKBXNjb3JlGAMgASgNQgWqAQIIARIRCglnYW1lX3NsdWcYBCABKAkSFAoFZXJyb3IYBiABKAlCBaoBAggBEg0KBXNsaWNlGAcgASgJEhoKC3JldmVhbF9qc29uGAggASgJQgWqAQIIAUoECAUQBiKEAQoRQ2hlY2tHdWVzc1JlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSGAoJcHV6emxlX2lkGAMgASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgEIAEoCUIFqgECCAESEgoKZ3Vlc3NfanNvbhgFIAEoCSIpChJDaGVja0d1ZXNzUmVzcG9uc2USEwoLcmVzdWx0X2pzb24YASABKAkiUAoSU2hhcmVSZXN1bHRSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIaCgtwdXp6bGVfZGF0ZRgCIAEoCUIFqgECCAESCwoDdGFwGAMgASgIIicKE1NoYXJlUmVzdWx0UmVzcG9uc2USEAoIc2hhcmVfaWQYASABKAkiKgoWR2V0U2hhcmVkUmVzdWx0UmVxdWVzdBIQCghzaGFyZV9pZBgBIAEoCSLCAQoXR2V0U2hhcmVkUmVzdWx0UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhMKC3B1enpsZV9kYXRlGAIgASgJEhIKCmRpZmZpY3VsdHkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhAKCGF0dGVtcHRzGAUgASgNEhQKBXNjb3JlGAYgASgNQgWqAQIIARIcCg10aW1lX3NwZW50X21zGAcgASgEQgWqAQIIARIVCgZzdHJlYWsYCCABKA1CBaoBAggBIkgKGVJlY29yZFNoYXJlTGFuZGluZ1JlcXVlc3QSEAoIc2hhcmVfaWQYASABKAkSGQoRYW5hbHl0aWNzX2NvbnNlbnQYAiABKAgiHAoaUmVjb3JkU2hhcmVMYW5kaW5nUmVzcG9uc2UiTwoRU3RhcnREYWlseVJlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSEwoLcHV6emxlX2RhdGUYAyABKAkiQQoSU3RhcnREYWlseVJlc3BvbnNlEisKBWRhaWx5GAEgASgLMhwucHV6emxlZC52MS5HZXREYWlseVJlc3BvbnNlMvoFCg1QdXp6bGVTZXJ2aWNlEmMKElJlY29yZFNoYXJlTGFuZGluZxIlLnB1enpsZWQudjEuUmVjb3JkU2hhcmVMYW5kaW5nUmVxdWVzdBomLnB1enpsZWQudjEuUmVjb3JkU2hhcmVMYW5kaW5nUmVzcG9uc2USSAoJR2V0UHV6emxlEhwucHV6emxlZC52MS5HZXRQdXp6bGVSZXF1ZXN0Gh0ucHV6emxlZC52MS5HZXRQdXp6bGVSZXNwb25zZRJFCghHZXREYWlseRIbLnB1enpsZWQudjEuR2V0RGFpbHlSZXF1ZXN0GhwucHV6emxlZC52MS5HZXREYWlseVJlc3BvbnNlEl0KEEdldFRvZGF5UHJvZ3Jlc3MSIy5wdXp6bGVkLnYxLkdldFRvZGF5UHJvZ3Jlc3NSZXF1ZXN0GiQucHV6emxlZC52MS5HZXRUb2RheVByb2dyZXNzUmVzcG9uc2USTgoLU3VibWl0R3Vlc3MSHi5wdXp6bGVkLnYxLlN1Ym1pdEd1ZXNzUmVxdWVzdBofLnB1enpsZWQudjEuU3VibWl0R3Vlc3NSZXNwb25zZRJLCgpDaGVja0d1ZXNzEh0ucHV6emxlZC52MS5DaGVja0d1ZXNzUmVxdWVzdBoeLnB1enpsZWQudjEuQ2hlY2tHdWVzc1Jlc3BvbnNlEk4KC1NoYXJlUmVzdWx0Eh4ucHV6emxlZC52MS5TaGFyZVJlc3VsdFJlcXVlc3QaHy5wdXp6bGVkLnYxLlNoYXJlUmVzdWx0UmVzcG9uc2USWgoPR2V0U2hhcmVkUmVzdWx0EiIucHV6emxlZC52MS5HZXRTaGFyZWRSZXN1bHRSZXF1ZXN0GiMucHV6emxlZC52MS5HZXRTaGFyZWRSZXN1bHRSZXNwb25zZRJLCgpTdGFydERhaWx5Eh0ucHV6emxlZC52MS5TdGFydERhaWx5UmVxdWVzdBoeLnB1enpsZWQudjEuU3RhcnREYWlseVJlc3BvbnNlQhSSAxEIAhABGAEgAigBMAHCPgIQA2IIZWRpdGlvbnNw6Qc',
+		'ChdwdXp6bGVkL3YxL3B1enpsZS5wcm90bxIKcHV6emxlZC52MSJHChBHZXRQdXp6bGVSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIMCgRzZWVkGAIgASgDEhIKCmRpZmZpY3VsdHkYAyABKAkidwoRR2V0UHV6emxlUmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEgwKBHNlZWQYAiABKAMSEgoKZGlmZmljdWx0eRgDIAEoCRIYChBwdXp6bGVfZGF0YV9qc29uGAQgASgJEg0KBXNsaWNlGAYgASgJSgQIBRAGInQKD0dldERhaWx5UmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgCIAEoCRIYCglwdXp6bGVfaWQYAyABKAlCBaoBAggBEhoKC3B1enpsZV9kYXRlGAUgASgJQgWqAQIIAUoECAQQBSKpAQoPRGFpbHlDb21wbGV0aW9uEg4KBnN0YXR1cxgBIAEoCRIUCgVzY29yZRgCIAEoDUIFqgECCAESFwoIYXR0ZW1wdHMYAyABKA1CBaoBAggBEh4KD2NvbXBsZXRlZF9hdF9tcxgEIAEoA0IFqgECCAESGQoKZGlmZmljdWx0eRgFIAEoCUIFqgECCAESHAoNdGltZV9zcGVudF9tcxgGIAEoBEIFqgECCAEivQIKEEdldERhaWx5UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhUKDXB1enpsZV9udW1iZXIYAiABKA0SEwoLcHV6emxlX2RhdGUYAyABKAkSGAoJcHV6emxlX2lkGAQgASgJQgWqAQIIARISCgpkaWZmaWN1bHR5GAUgASgJEhUKDWhhc19jb21wbGV0ZWQYBiABKAgSEAoIY2FuX3BsYXkYByABKAgSDAoEbW9kZRgIIAEoCRINCgVzbGljZRgJIAEoCRIMCgRzdHViGAogASgIEhgKEHB1enpsZV9kYXRhX2pzb24YCyABKAkSNgoRY29tcGxldGVkX3Nlc3Npb24YDCABKAsyGy5wdXp6bGVkLnYxLkRhaWx5Q29tcGxldGlvbhIWCg5yZXF1aXJlc19zdGFydBgNIAEoCCItChdHZXRUb2RheVByb2dyZXNzUmVxdWVzdBISCgpnYW1lX3NsdWdzGAEgAygJInAKDEdhbWVQcm9ncmVzcxIRCglnYW1lX3NsdWcYASABKAkSFQoNaGFzX2NvbXBsZXRlZBgCIAEoCBI2ChFjb21wbGV0ZWRfc2Vzc2lvbhgDIAEoCzIbLnB1enpsZWQudjEuRGFpbHlDb21wbGV0aW9uIoQBChhHZXRUb2RheVByb2dyZXNzUmVzcG9uc2USDwoHZGF5X2tleRgBIAEoCRInCgVnYW1lcxgCIAMoCzIYLnB1enpsZWQudjEuR2FtZVByb2dyZXNzEi4KCmZyZWVfcGlja3MYAyABKAsyGi5wdXp6bGVkLnYxLlRvZGF5RnJlZVBpY2tzIiQKDlRvZGF5RnJlZVBpY2tzEhIKCmdhbWVfc2x1Z3MYASADKAkiyQEKElN1Ym1pdEd1ZXNzUmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSEAoIYXR0ZW1wdHMYBSABKA0SFQoNdGltZV9zcGVudF9tcxgGIAEoBBIXCg9zdWJtaXNzaW9uX2pzb24YByABKAkSGAoJcHV6emxlX2lkGAggASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgJIAEoCUIFqgECCAFKBAgCEAMipAEKE1N1Ym1pdEd1ZXNzUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDgoGc3RhdHVzGAIgASgJEhQKBXNjb3JlGAMgASgNQgWqAQIIARIRCglnYW1lX3NsdWcYBCABKAkSFAoFZXJyb3IYBiABKAlCBaoBAggBEg0KBXNsaWNlGAcgASgJEhoKC3JldmVhbF9qc29uGAggASgJQgWqAQIIAUoECAUQBiKEAQoRQ2hlY2tHdWVzc1JlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSGAoJcHV6emxlX2lkGAMgASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgEIAEoCUIFqgECCAESEgoKZ3Vlc3NfanNvbhgFIAEoCSIpChJDaGVja0d1ZXNzUmVzcG9uc2USEwoLcmVzdWx0X2pzb24YASABKAkiUAoSU2hhcmVSZXN1bHRSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIaCgtwdXp6bGVfZGF0ZRgCIAEoCUIFqgECCAESCwoDdGFwGAMgASgIIicKE1NoYXJlUmVzdWx0UmVzcG9uc2USEAoIc2hhcmVfaWQYASABKAkiKgoWR2V0U2hhcmVkUmVzdWx0UmVxdWVzdBIQCghzaGFyZV9pZBgBIAEoCSLCAQoXR2V0U2hhcmVkUmVzdWx0UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhMKC3B1enpsZV9kYXRlGAIgASgJEhIKCmRpZmZpY3VsdHkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhAKCGF0dGVtcHRzGAUgASgNEhQKBXNjb3JlGAYgASgNQgWqAQIIARIcCg10aW1lX3NwZW50X21zGAcgASgEQgWqAQIIARIVCgZzdHJlYWsYCCABKA1CBaoBAggBIkgKGVJlY29yZFNoYXJlTGFuZGluZ1JlcXVlc3QSEAoIc2hhcmVfaWQYASABKAkSGQoRYW5hbHl0aWNzX2NvbnNlbnQYAiABKAgiHAoaUmVjb3JkU2hhcmVMYW5kaW5nUmVzcG9uc2UiTwoRU3RhcnREYWlseVJlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSEwoLcHV6emxlX2RhdGUYAyABKAkiQQoSU3RhcnREYWlseVJlc3BvbnNlEisKBWRhaWx5GAEgASgLMhwucHV6emxlZC52MS5HZXREYWlseVJlc3BvbnNlMvoFCg1QdXp6bGVTZXJ2aWNlEmMKElJlY29yZFNoYXJlTGFuZGluZxIlLnB1enpsZWQudjEuUmVjb3JkU2hhcmVMYW5kaW5nUmVxdWVzdBomLnB1enpsZWQudjEuUmVjb3JkU2hhcmVMYW5kaW5nUmVzcG9uc2USSAoJR2V0UHV6emxlEhwucHV6emxlZC52MS5HZXRQdXp6bGVSZXF1ZXN0Gh0ucHV6emxlZC52MS5HZXRQdXp6bGVSZXNwb25zZRJFCghHZXREYWlseRIbLnB1enpsZWQudjEuR2V0RGFpbHlSZXF1ZXN0GhwucHV6emxlZC52MS5HZXREYWlseVJlc3BvbnNlEl0KEEdldFRvZGF5UHJvZ3Jlc3MSIy5wdXp6bGVkLnYxLkdldFRvZGF5UHJvZ3Jlc3NSZXF1ZXN0GiQucHV6emxlZC52MS5HZXRUb2RheVByb2dyZXNzUmVzcG9uc2USTgoLU3VibWl0R3Vlc3MSHi5wdXp6bGVkLnYxLlN1Ym1pdEd1ZXNzUmVxdWVzdBofLnB1enpsZWQudjEuU3VibWl0R3Vlc3NSZXNwb25zZRJLCgpDaGVja0d1ZXNzEh0ucHV6emxlZC52MS5DaGVja0d1ZXNzUmVxdWVzdBoeLnB1enpsZWQudjEuQ2hlY2tHdWVzc1Jlc3BvbnNlEk4KC1NoYXJlUmVzdWx0Eh4ucHV6emxlZC52MS5TaGFyZVJlc3VsdFJlcXVlc3QaHy5wdXp6bGVkLnYxLlNoYXJlUmVzdWx0UmVzcG9uc2USWgoPR2V0U2hhcmVkUmVzdWx0EiIucHV6emxlZC52MS5HZXRTaGFyZWRSZXN1bHRSZXF1ZXN0GiMucHV6emxlZC52MS5HZXRTaGFyZWRSZXN1bHRSZXNwb25zZRJLCgpTdGFydERhaWx5Eh0ucHV6emxlZC52MS5TdGFydERhaWx5UmVxdWVzdBoeLnB1enpsZWQudjEuU3RhcnREYWlseVJlc3BvbnNlQhSSAxEIAhABGAEgAigBMAHCPgIQA2IIZWRpdGlvbnNw6Qc',
 		[file_google_protobuf_cpp_features],
 	)
 
@@ -157,6 +157,13 @@ export type DailyCompletion = Message<'puzzled.v1.DailyCompletion'> & {
 	 * @generated from field: string difficulty = 5 [features.field_presence = EXPLICIT];
 	 */
 	difficulty: string
+
+	/**
+	 * Private elapsed time from the accepted session. Never read from a shared result.
+	 *
+	 * @generated from field: uint64 time_spent_ms = 6 [features.field_presence = EXPLICIT];
+	 */
+	timeSpentMs: bigint
 }
 
 /**
@@ -323,6 +330,14 @@ export type GetTodayProgressResponse = Message<'puzzled.v1.GetTodayProgressRespo
 	 * @generated from field: repeated puzzled.v1.GameProgress games = 2;
 	 */
 	games: GameProgress[]
+
+	/**
+	 * The request identity's claimed free picks, including unfinished games.
+	 * A present, empty message means no picks have been claimed.
+	 *
+	 * @generated from field: puzzled.v1.TodayFreePicks free_picks = 3;
+	 */
+	freePicks?: TodayFreePicks | undefined
 }
 
 /**
@@ -332,6 +347,24 @@ export type GetTodayProgressResponse = Message<'puzzled.v1.GetTodayProgressRespo
 export const GetTodayProgressResponseSchema: GenMessage<GetTodayProgressResponse> =
 	/*@__PURE__*/
 	messageDesc(file_puzzled_v1_puzzle, 7)
+
+/**
+ * @generated from message puzzled.v1.TodayFreePicks
+ */
+export type TodayFreePicks = Message<'puzzled.v1.TodayFreePicks'> & {
+	/**
+	 * @generated from field: repeated string game_slugs = 1;
+	 */
+	gameSlugs: string[]
+}
+
+/**
+ * Describes the message puzzled.v1.TodayFreePicks.
+ * Use `create(TodayFreePicksSchema)` to create a new message.
+ */
+export const TodayFreePicksSchema: GenMessage<TodayFreePicks> =
+	/*@__PURE__*/
+	messageDesc(file_puzzled_v1_puzzle, 8)
 
 /**
  * @generated from message puzzled.v1.SubmitGuessRequest
@@ -388,7 +421,7 @@ export type SubmitGuessRequest = Message<'puzzled.v1.SubmitGuessRequest'> & {
  */
 export const SubmitGuessRequestSchema: GenMessage<SubmitGuessRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 8)
+	messageDesc(file_puzzled_v1_puzzle, 9)
 
 /**
  * @generated from message puzzled.v1.SubmitGuessResponse
@@ -439,7 +472,7 @@ export type SubmitGuessResponse = Message<'puzzled.v1.SubmitGuessResponse'> & {
  */
 export const SubmitGuessResponseSchema: GenMessage<SubmitGuessResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 9)
+	messageDesc(file_puzzled_v1_puzzle, 10)
 
 /**
  * CheckGuess grades one in-game guess against the served puzzle, so the
@@ -482,7 +515,7 @@ export type CheckGuessRequest = Message<'puzzled.v1.CheckGuessRequest'> & {
  */
 export const CheckGuessRequestSchema: GenMessage<CheckGuessRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 10)
+	messageDesc(file_puzzled_v1_puzzle, 11)
 
 /**
  * @generated from message puzzled.v1.CheckGuessResponse
@@ -503,7 +536,7 @@ export type CheckGuessResponse = Message<'puzzled.v1.CheckGuessResponse'> & {
  */
 export const CheckGuessResponseSchema: GenMessage<CheckGuessResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 11)
+	messageDesc(file_puzzled_v1_puzzle, 12)
 
 /**
  * ShareResult returns the id the share link carries as `ref` for the signed-in
@@ -539,7 +572,7 @@ export type ShareResultRequest = Message<'puzzled.v1.ShareResultRequest'> & {
  */
 export const ShareResultRequestSchema: GenMessage<ShareResultRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 12)
+	messageDesc(file_puzzled_v1_puzzle, 13)
 
 /**
  * @generated from message puzzled.v1.ShareResultResponse
@@ -557,7 +590,7 @@ export type ShareResultResponse = Message<'puzzled.v1.ShareResultResponse'> & {
  */
 export const ShareResultResponseSchema: GenMessage<ShareResultResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 13)
+	messageDesc(file_puzzled_v1_puzzle, 14)
 
 /**
  * GetSharedResult reads one shared result for the public landing page. No
@@ -579,7 +612,7 @@ export type GetSharedResultRequest = Message<'puzzled.v1.GetSharedResultRequest'
  */
 export const GetSharedResultRequestSchema: GenMessage<GetSharedResultRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 14)
+	messageDesc(file_puzzled_v1_puzzle, 15)
 
 /**
  * @generated from message puzzled.v1.GetSharedResultResponse
@@ -634,7 +667,7 @@ export type GetSharedResultResponse = Message<'puzzled.v1.GetSharedResultRespons
  */
 export const GetSharedResultResponseSchema: GenMessage<GetSharedResultResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 15)
+	messageDesc(file_puzzled_v1_puzzle, 16)
 
 /**
  * @generated from message puzzled.v1.RecordShareLandingRequest
@@ -659,7 +692,7 @@ export type RecordShareLandingRequest = Message<'puzzled.v1.RecordShareLandingRe
  */
 export const RecordShareLandingRequestSchema: GenMessage<RecordShareLandingRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 16)
+	messageDesc(file_puzzled_v1_puzzle, 17)
 
 /**
  * @generated from message puzzled.v1.RecordShareLandingResponse
@@ -672,7 +705,7 @@ export type RecordShareLandingResponse = Message<'puzzled.v1.RecordShareLandingR
  */
 export const RecordShareLandingResponseSchema: GenMessage<RecordShareLandingResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 17)
+	messageDesc(file_puzzled_v1_puzzle, 18)
 
 /**
  * @generated from message puzzled.v1.StartDailyRequest
@@ -702,7 +735,7 @@ export type StartDailyRequest = Message<'puzzled.v1.StartDailyRequest'> & {
  */
 export const StartDailyRequestSchema: GenMessage<StartDailyRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 18)
+	messageDesc(file_puzzled_v1_puzzle, 19)
 
 /**
  * @generated from message puzzled.v1.StartDailyResponse
@@ -720,7 +753,7 @@ export type StartDailyResponse = Message<'puzzled.v1.StartDailyResponse'> & {
  */
 export const StartDailyResponseSchema: GenMessage<StartDailyResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_puzzle, 19)
+	messageDesc(file_puzzled_v1_puzzle, 20)
 
 /**
  * @generated from service puzzled.v1.PuzzleService

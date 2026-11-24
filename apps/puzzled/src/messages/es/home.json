@@ -12,7 +12,6 @@
 		"guestTitle": "3 de 19 puzzles gratis cada día",
 		"streakChip": "Racha de {days} días",
 		"playersToday": "{count, plural, one {# jugador ha terminado hoy} other {# jugadores han terminado hoy}}",
-		"dailyInvitation": "¡Ya están aquí los retos de hoy! Juega gratis a tres de ellos, sin registrarte.",
 		"progressRingLabel": "{done} de {total} puzzles completados hoy",
 		"progressUnverified": "No pudimos cargar tu progreso guardado ahora mismo. Aun así puedes jugar: comprobamos tu resultado cuando lo envíes.",
 		"ogEyebrow": "19 puzzles diarios",
@@ -20,7 +19,6 @@
 	},
 	"lineup": {
 		"title": "Selección de hoy",
-		"subtitle": "Los {count} juegos de hoy. Elige tres gratis.",
 		"seeAll": "Ver todos los juegos",
 		"play": "Jugar",
 		"freeToday": "Elegido de hoy",
@@ -78,19 +76,16 @@
 		"puzzleNumber": "Puzzle n.º {number}",
 		"resetsIn": "Se renueva en",
 		"resetsAt": "Actualización diaria: 16:00 UTC",
-		"guestTitle": "{count} puzzles diarios. Elige 3 gratis.",
+		"guestTitle": "{count} puzzles diarios. Juega a 3 gratis, sin cuenta.",
 		"titleMemberReady": "{game} de hoy está listo",
 		"titleMemberStreak": "Tu racha de {days} días te espera",
 		"titleMemberDone": "Todo hecho por hoy: bien jugado",
 		"titleDone": "{game} de hoy está completado",
-		"bodyGuest": "Puzzles de palabras, lógica y números de pocos minutos cada uno. Empieza tres hoy sin registrarte; todo el mundo juega la misma selección.",
-		"bodyMember": "Tu racha, tus estadísticas y la selección de hoy están a un toque.",
 		"playToday": "Juega {game} de hoy",
 		"playAgain": "Jugar hoy otra vez",
 		"browseAll": "Explorar todos los juegos",
 		"finishersToday": "{count} lo han completado hoy hasta ahora",
-		"freeToday": "Gratis hoy",
-		"guestNote": "Sin registro ni tarjeta. Listo en unos minutos."
+		"freeToday": "Gratis hoy"
 	},
 	"seasons": {
 		"newYear": "Feliz Año Nuevo",
@@ -102,9 +97,7 @@
 		"christmas": "Feliz Navidad"
 	},
 	"picks": {
-		"fresh": "{count} elecciones gratis hoy",
-		"left": "{count, plural, one {Te queda # gratis} other {Te quedan # gratis}}",
-		"none": "Elecciones gratis usadas · Ver Plus",
-		"unlimited": "Plus · todos los juegos abiertos"
+		"unlimited": "Plus · todos los juegos abiertos",
+		"progress": "{used} / {total} gratis hoy"
 	}
 }

@@ -52,6 +52,22 @@ where
     })
 }
 
+/// Read the exact picks for the already-admitted player, oldest first.
+/// The caller uses its identity transaction, after any guest adoption.
+pub async fn list_for_player(
+    connection: &mut PgConnection,
+    player: Uuid,
+    day: NaiveDate,
+) -> Result<Vec<String>, sqlx::Error> {
+    sqlx::query_scalar(
+        "SELECT game_slug FROM daily_free_picks WHERE user_id = $1 AND day_key = $2 ORDER BY started_at, game_slug",
+    )
+    .bind(player)
+    .bind(day)
+    .fetch_all(connection)
+    .await
+}
+
 /// Take the game as one of the player's picks; false when none is left.
 ///
 /// The caller holds the player's lock through commit (the same lock admission,

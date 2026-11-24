@@ -7,7 +7,6 @@
 		"groupsSolvedLabel": "Groups solved",
 		"groupsSolvedCount": "Groups solved: {total}/{total}",
 		"mistakeCount": "Mistakes: {mistakes}",
-		"title": "Tryit result card",
 		"unavailable": "Could not share automatically.",
 		"statusWon": "Solved!",
 		"statusLost": "Not this time",

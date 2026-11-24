@@ -3,6 +3,7 @@ import { parseCookie } from 'cookie-es'
 import { DISMISSED_COOKIE } from '@/features/announcements/lib/dismissed'
 import { getServerActiveAnnouncements } from '@/features/announcements/lib/public-announcements'
 import { visibleAnnouncements } from '@/features/announcements/lib/visible'
+import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
 import { deriveHomeExposure } from '@/features/daily/lib/home-exposure'
 import type { HomePersonalResult } from '@/features/daily/lib/home-play-state'
 import { getPuzzleNumber } from '@/features/daily/lib/puzzle-utils'
@@ -145,6 +146,10 @@ export async function readHomeFacts(request: Request, dayKey: string) {
 		hasIdentity,
 		results,
 		playerCount,
+		freePicks:
+			daily?.dayKey === dayKey && daily.freePicks
+				? Math.min(DAILY_FREE_PICKS, new Set(daily.freePicks.gameSlugs).size)
+				: undefined,
 		unlimited: member && subscription?.entitled === true,
 		trialEndsMs: member && subscription?.entitled ? Number(subscription.trialEndsMs) || null : null,
 		streak: productDayKey(now) === dayKey && productDayKey() === dayKey ? streak : null,

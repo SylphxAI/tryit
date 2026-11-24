@@ -89,6 +89,10 @@ export async function getDaily(
 	)
 }
 
+export async function getTodayProgress(gameSlugs: readonly string[]) {
+	return createPuzzleServiceClient().getTodayProgress({ gameSlugs: [...gameSlugs] })
+}
+
 export async function submitGuess(
 	input: SubmitGuessInput,
 	client?: PuzzleServiceClient,

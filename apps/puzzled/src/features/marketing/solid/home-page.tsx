@@ -62,7 +62,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 	const href = (path: string) => localizedPath(page.locale, path)
 	const count = page.catalog.length
 	const [now, setNow] = createSignal(page.servedAt)
-	const [picks, setPicks] = createSignal(0)
+	const [localPicks, setPicks] = createSignal(0)
 	const [mounted, setMounted] = createSignal(false)
 	const [dismissed, setDismissed] = createSignal<readonly string[]>([])
 	onMount(() => {
@@ -112,12 +112,8 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		}),
 	)
 	const format = new Intl.NumberFormat(page.locale)
-	const pickLabel = () =>
-		picks() === 0
-			? t('home.picks.fresh', { count: DAILY_FREE_PICKS })
-			: picksLeft(picks()) > 0
-				? t('home.picks.left', { count: picksLeft(picks()) })
-				: t('home.picks.none')
+	const picks = () => props.facts()?.freePicks ?? localPicks()
+	const pickLabel = () => t('home.picks.progress', { used: picks(), total: DAILY_FREE_PICKS })
 	const pickSlots = () => (
 		<span class="flex items-center gap-1" aria-hidden="true">
 			<For each={Array.from({ length: DAILY_FREE_PICKS })}>
@@ -137,7 +133,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		document.cookie = serializeDismissedCookie(ids, location.protocol === 'https:')
 		setDismissed(ids)
 	}
-	const featuredCard = (cta: Accessor<'play' | 'result'>, showsNote: Accessor<boolean>) => (
+	const featuredCard = (cta: Accessor<'play' | 'result'>) => (
 		<div
 			data-day-puzzle-card=""
 			class="home-featured-card editorial-surface grid grid-cols-[6.5rem_minmax(0,1fr)] overflow-hidden rounded-3xl sm:block"
@@ -196,11 +192,6 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 							: t('home.day.playToday', { game: page.featured.name })}
 					</span>
 				</a>
-				<Show when={showsNote()}>
-					<p class="mt-2 text-center text-xs text-muted-foreground sm:mt-2.5 sm:text-[13px]">
-						{t('home.day.guestNote')}
-					</p>
-				</Show>
 			</div>
 		</div>
 	)
@@ -213,13 +204,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 					days: props.facts()?.streak?.currentStreak ?? 0,
 				})}
 			</h1>
-			<p class="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
-				{t(props.facts()?.member ? 'home.day.bodyMember' : 'home.day.bodyGuest')}
-			</p>
-			{featuredCard(
-				() => copy().cta,
-				() => copy().showsNote,
-			)}
+			{featuredCard(() => copy().cta)}
 			<Show when={props.facts()?.hasIdentity && status().unread}>
 				<p class="text-sm text-muted-foreground">{t('home.hero.progressUnverified')}</p>
 			</Show>
@@ -234,9 +219,9 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 					})}
 				/>
 			</Show>
-			<p class="text-sm text-muted-foreground">
-				{homeParticipationCopy(t, props.facts()?.playerCount)}
-			</p>
+			<Show when={homeParticipationCopy(t, props.facts()?.playerCount)}>
+				{(message) => <p class="text-sm text-muted-foreground">{message()}</p>}
+			</Show>
 		</div>
 	)
 	return (
@@ -367,10 +352,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 								fallback={
 									<div class="min-w-0">
 										<h1 class="editorial-title max-w-xl">{t('home.day.guestTitle', { count })}</h1>
-										{featuredCard(
-											() => 'play',
-											() => true,
-										)}
+										{featuredCard(() => 'play')}
 									</div>
 								}
 							>
@@ -382,9 +364,6 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 										<h2 id="home-lineup-title" class="font-display text-2xl">
 											{t('home.lineup.title')}
 										</h2>
-										<p class="text-sm text-muted-foreground">
-											{t('home.lineup.subtitle', { count })}
-										</p>
 									</div>
 									<a class="chrome-control gap-1" href={href('/games')}>
 										{t('home.lineup.seeAll')}
@@ -409,7 +388,9 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 									</For>
 								</ul>
 								<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-									<For each={status().renderedGames}>
+									<For
+										each={status().renderedGames.filter(({ slug }) => slug !== page.featured.slug)}
+									>
 										{(state) => {
 											const game = bySlug.get(state.slug)
 											if (!game) return null
@@ -493,7 +474,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 							</h2>
 							<p class="text-muted-foreground">{t('home.tomorrow.body')}</p>
 						</div>
-						<a class="inline-flex min-h-11 items-center underline" href={href('/games')}>
+						<a class="chrome-control" href={href('/games')}>
 							{t('home.tomorrow.cta')}
 						</a>
 					</div>

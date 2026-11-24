@@ -15,15 +15,14 @@ describe('home day copy', () => {
 		expect(homeDayCopy({ ...base, freeGameDone: true })).toEqual({
 			headlineKey: 'titleDone',
 			cta: 'result',
-			showsNote: false,
 		})
 	})
 	test('guest not done: guest title, play, note', () => {
-		expect(homeDayCopy(base)).toEqual({ headlineKey: 'guestTitle', cta: 'play', showsNote: true })
+		expect(homeDayCopy(base)).toEqual({ headlineKey: 'guestTitle', cta: 'play' })
 	})
 	test('member all done: member done headline and See your result, not Play again', () => {
 		const copy = homeDayCopy({ ...base, isMember: true, allDone: true, freeGameDone: true })
-		expect(copy).toEqual({ headlineKey: 'titleMemberDone', cta: 'result', showsNote: false })
+		expect(copy).toEqual({ headlineKey: 'titleMemberDone', cta: 'result' })
 	})
 	test('member free done only: done headline', () => {
 		expect(homeDayCopy({ ...base, isMember: true, freeGameDone: true }).headlineKey).toBe(
@@ -32,7 +31,7 @@ describe('home day copy', () => {
 	})
 	test('member streak waiting and not played', () => {
 		const copy = homeDayCopy({ ...base, isMember: true, currentStreak: 4 })
-		expect(copy).toEqual({ headlineKey: 'titleMemberStreak', cta: 'play', showsNote: false })
+		expect(copy).toEqual({ headlineKey: 'titleMemberStreak', cta: 'play' })
 		expect(homeDayCopy({ ...base, isMember: true }).headlineKey).toBe('titleMemberReady')
 	})
 	test('an unverified read is not done', () => {

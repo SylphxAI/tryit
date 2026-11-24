@@ -7,7 +7,6 @@
 		"groupsSolvedLabel": "見つけたグループ",
 		"groupsSolvedCount": "見つけたグループ：{total}/{total}",
 		"mistakeCount": "ミス：{mistakes}回",
-		"title": "Tryit結果カード",
 		"unavailable": "自動でシェアできませんでした。",
 		"statusWon": "クリア!",
 		"statusLost": "今回は惜しくも失敗",

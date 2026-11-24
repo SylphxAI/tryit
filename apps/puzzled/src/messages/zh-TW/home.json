@@ -9,7 +9,6 @@
 		"guestTitle": "19 款謎題，每天任選 3 款免費",
 		"streakChip": "連續 {days} 天",
 		"playersToday": "今天已有 {count, number} 位玩家完成",
-		"dailyInvitation": "今天的謎題準備好了！任選 3 款免費玩，不用註冊。",
 		"progressRingLabel": "今天已完成 {done} / {total} 題",
 		"progressUnverified": "暫時讀不到你的進度。你仍然可以玩，送出時我們會核對你的完成紀錄。",
 		"ogBadge": "每天任選 3 款免費",
@@ -17,7 +16,6 @@
 	},
 	"lineup": {
 		"title": "今天的陣容",
-		"subtitle": "全部 {count} 款遊戲，今天任選三款免費。",
 		"seeAll": "看全部遊戲",
 		"freeToday": "今天精選",
 		"subtitleShort": "今天 {count} 款遊戲"
@@ -64,23 +62,18 @@
 		}
 	},
 	"day": {
-		"guestTitle": "每天 {count} 款謎題，任選 3 款免費",
+		"guestTitle": "每天 {count} 款謎題，任選 3 款免費玩，不用註冊。",
 		"titleMemberReady": "今天的{game}已準備好",
 		"titleMemberStreak": "你的 {days} 天連續紀錄等著你",
 		"titleMemberDone": "今天已完成 — 玩得漂亮",
 		"titleDone": "今天的{game}已完成",
-		"bodyGuest": "文字、邏輯和數字謎題，每款幾分鐘就能完成。今天任選三款，不用註冊就能開始，大家玩的是同一套題目。",
-		"bodyMember": "你的連續紀錄、統計與今天的陣容，一鍵即達。",
 		"playToday": "遊玩今日的「{game}」",
 		"finishersToday": "今天已有 {count} 人完成",
-		"freeToday": "今天免費",
-		"guestNote": "不必註冊、不必信用卡，幾分鐘玩完。"
+		"freeToday": "今天免費"
 	},
 	"todaysPuzzles": "今天的謎題",
 	"picks": {
-		"fresh": "今天可免費選 {count} 款",
-		"left": "還可免費選 {count} 款",
-		"none": "今天的免費額度已用完 · 看看 Plus",
-		"unlimited": "Plus · 所有遊戲都能玩"
+		"unlimited": "Plus · 所有遊戲都能玩",
+		"progress": "今日免費已選 {used} / {total} 款"
 	}
 }

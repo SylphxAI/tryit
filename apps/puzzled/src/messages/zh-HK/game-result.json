@@ -1,5 +1,4 @@
 {
-	"finishPassLink": "用 3 日通行證解鎖全部 {games} 款遊戲同過去 {days} 日嘅題庫",
 	"seeResult": "查看成績",
 	"congratulations": "恭喜！",
 	"gameOver": "遊戲結束",
@@ -29,5 +28,10 @@
 	"finishedTitle": "《{game}》成績",
 	"shareResult": "分享成績",
 	"savePng": "儲存 PNG",
-	"saveFailed": "未能儲存圖片，請再試一次。"
+	"saveFailed": "未能儲存圖片，請再試一次。",
+	"freeProgress": "今日免費已完成 {done} / {total} 款",
+	"freeFinished": "今日免費嘅謎題玩晒喇，叻！",
+	"keepPlayingPlus": "用 Tryit Plus 繼續玩",
+	"resumeNext": "繼續玩：{game}",
+	"savedAndCopied": "圖片已儲存，結果文字已複製。"
 }

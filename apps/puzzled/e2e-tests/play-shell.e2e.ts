@@ -130,7 +130,7 @@ async function canvasGeometry(page: Page) {
 		})
 		const choices = [...dock.querySelectorAll('button')].map((el) => {
 			const { width, height } = el.getBoundingClientRect()
-			return JSON.stringify([el.className, width, height])
+			return JSON.stringify([el.className, Math.round(width), Math.round(height)])
 		})
 		return {
 			bad,

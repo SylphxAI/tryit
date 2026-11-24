@@ -1,12 +1,11 @@
 /** @jsxImportSource solid-js */
-import { ArrowUpRight } from 'lucide-solid'
 import { createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { cookieConsent, onConsentChange, saveCookieChoice } from '@/features/analytics/lib/consent'
 import type { SiteShellData } from './site-shell-data'
 
 type Copy = SiteShellData['consent']
 const action =
-	'chrome-control border border-hairline bg-background px-2 text-sm sm:min-w-24 sm:px-3'
+	'chrome-control border border-muted-foreground/70 bg-background px-1.5 text-xs sm:min-w-24 sm:px-3 sm:text-sm'
 
 function useCookieConsent() {
 	// Keep the server and initial hydration independent of visitor state.
@@ -61,20 +60,17 @@ export function ConsentBanner(props: { copy: Copy }) {
 				aria-label={props.copy.title}
 				data-consent-banner
 			>
-				<div class="page-shell-wide grid items-center gap-x-4 gap-y-1 py-1 text-sm leading-5 md:flex md:flex-wrap md:justify-between md:py-1.5">
-					{/* Keep the disclosure and its link separate, so the late notice does not
-					    paint as one full-width text block over the game’s initial content. */}
-					<div class="flex flex-wrap items-baseline gap-x-2 text-muted-foreground max-md:justify-between">
-						<p>{props.copy.message}</p>
+				<div class="page-shell-wide flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 py-1">
+					<div class="flex w-full flex-wrap items-baseline justify-between gap-x-2 md:w-auto md:justify-start">
+						<p class="text-xs leading-4 text-muted-foreground sm:text-sm">{props.copy.message}</p>
 						<a
-							class="consent-privacy chrome-control shrink-0 text-xs"
+							class="consent-privacy text-xs underline underline-offset-2"
 							href={props.copy.privacyHref}
 						>
 							{props.copy.learnMore}
-							<ArrowUpRight size={12} aria-hidden="true" />
 						</a>
 					</div>
-					<ChoiceButtons copy={props.copy} class="grid grid-cols-3 gap-2 md:shrink-0" />
+					<ChoiceButtons copy={props.copy} class="grid w-full grid-cols-3 gap-1.5 md:w-auto" />
 				</div>
 			</section>
 		</Show>

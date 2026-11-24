@@ -1,5 +1,4 @@
 {
-	"finishPassLink": "Desbloqueie os {games} jogos e o arquivo dos últimos {days} dias com um passe de 3 dias",
 	"seeResult": "Ver seu resultado",
 	"congratulations": "Parabéns!",
 	"gameOver": "Fim de jogo",
@@ -22,12 +21,17 @@
 	"topPercent": "Top {percent}% hoje!",
 	"perfectGame": "Jogo perfeito! 🎯",
 	"playersToday": "{count} jogadores hoje",
-	"playNext": "Jogar a seguir: {game}",
+	"playNext": "Próximo jogo: {game}",
 	"backToHome": "Voltar ao início",
 	"missedCategories": "Você errou:",
 	"solvedTitle": "{game} concluído!",
 	"finishedTitle": "{game}: resultado",
 	"shareResult": "Compartilhar resultado",
 	"savePng": "Salvar PNG",
-	"saveFailed": "Não foi possível salvar a imagem. Tente novamente."
+	"saveFailed": "Não foi possível salvar a imagem. Tente novamente.",
+	"freeProgress": "{done} / {total} jogos grátis hoje",
+	"freeFinished": "Você completou os jogos grátis de hoje!",
+	"keepPlayingPlus": "Continue jogando com o Tryit Plus",
+	"resumeNext": "Continuar: {game}",
+	"savedAndCopied": "Imagem salva e legenda copiada."
 }

@@ -1,5 +1,4 @@
 {
-	"finishPassLink": "用 3 天通行证解锁全部 {games} 款游戏和过去 {days} 天的题库",
 	"seeResult": "查看成绩",
 	"congratulations": "恭喜！",
 	"gameOver": "游戏结束",
@@ -29,5 +28,10 @@
 	"finishedTitle": "《{game}》游戏结果",
 	"shareResult": "分享结果",
 	"savePng": "保存 PNG",
-	"saveFailed": "未能保存图片，请重试。"
+	"saveFailed": "未能保存图片，请重试。",
+	"freeProgress": "今日免费已完成 {done} / {total} 款",
+	"freeFinished": "今天的免费谜题全部完成，玩得漂亮！",
+	"keepPlayingPlus": "用 Tryit Plus 继续玩",
+	"resumeNext": "继续玩：{game}",
+	"savedAndCopied": "图片已保存，结果文字已复制。"
 }

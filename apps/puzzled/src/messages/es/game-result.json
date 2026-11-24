@@ -1,5 +1,4 @@
 {
-	"finishPassLink": "Desbloquea los {games} juegos y el archivo de {days} días con un pase de 3 días",
 	"seeResult": "Ver tu resultado",
 	"congratulations": "¡Felicidades!",
 	"gameOver": "Fin de la partida",
@@ -29,5 +28,10 @@
 	"finishedTitle": "{game}: resultado",
 	"shareResult": "Compartir resultado",
 	"savePng": "Guardar PNG",
-	"saveFailed": "No se ha podido guardar la imagen. Inténtalo otra vez."
+	"saveFailed": "No se ha podido guardar la imagen. Inténtalo otra vez.",
+	"freeProgress": "{done} / {total} juegos gratis hoy",
+	"freeFinished": "¡Completaste los juegos gratis de hoy!",
+	"keepPlayingPlus": "Sigue jugando con Tryit Plus",
+	"resumeNext": "Continuar: {game}",
+	"savedAndCopied": "Imagen guardada y texto copiado."
 }

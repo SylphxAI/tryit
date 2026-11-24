@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, test } from '@playwright/test'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import { fixtureShareId } from '../scripts/share-fixture-facts'
+import { freeGameForDayKey } from '../src/lib/free-rotation'
 import { productDayKey } from '../src/lib/product-day'
 import { WCAG_TAGS } from './a11y-support'
 
@@ -22,13 +23,37 @@ async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
 	await page.route('**/puzzled.v1.BillingService/GetSubscription', (route) =>
 		route.fulfill({ json: { salesOpen: false } }),
 	)
+	const dayKey = productDayKey()
+	const next = freeGameForDayKey(dayKey) === slug ? 'crowns' : freeGameForDayKey(dayKey)
 	await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
 		route.fulfill({
+			json:
+				route.request().postDataJSON().gameSlug === next
+					? { gameSlug: next, puzzleDate: dayKey, canPlay: true, requiresStart: true }
+					: {
+							gameSlug: slug,
+							canPlay: true,
+							puzzleDate: dayKey,
+							puzzleDataJson: JSON.stringify(isPath ? pathPuzzle.puzzleData : sudokuPuzzle),
+						},
+		}),
+	)
+	await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) =>
+		route.fulfill({
 			json: {
-				gameSlug: slug,
-				canPlay: true,
-				puzzleDate: productDayKey(),
-				puzzleDataJson: JSON.stringify(isPath ? pathPuzzle.puzzleData : sudokuPuzzle),
+				daily: { gameSlug: next, puzzleDate: dayKey, canPlay: true, puzzleDataJson: '{}' },
+			},
+		}),
+	)
+	await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
+		route.fulfill({
+			json: {
+				dayKey,
+				freePicks: { gameSlugs: [slug] },
+				games: [
+					{ gameSlug: slug, hasCompleted: true },
+					{ gameSlug: next, hasCompleted: false },
+				],
 			},
 		}),
 	)
@@ -43,7 +68,7 @@ async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
 	await expect(board).toBeVisible()
 	await expect(page.locator('[data-consent-banner]')).toBeVisible()
 	await page.evaluate(() => document.fonts.ready)
-	return board
+	return { board, next }
 }
 
 async function canvasGeometry(page: Page) {
@@ -86,7 +111,8 @@ for (const viewport of [
 					}
 					await page.emulateMedia({ reducedMotion: 'reduce' })
 					await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
-					const board = await playFixture(page, slug)
+					const { board, next } = await playFixture(page, slug)
+					const elapsed = page.waitForRequest((request) => request.url().endsWith('/SubmitGuess'))
 					const before = await canvasGeometry(page)
 					expect(before.scroll).toEqual([0, 0, 0, 0, 0, 0])
 					if (slug === 'number-path') {
@@ -161,18 +187,36 @@ for (const viewport of [
 					await expect(dialog.locator('.result-stats dd')).toHaveText([
 						'1',
 						'487',
-						'Under a minute',
+						await elapsed.then((request) => {
+							const seconds = Math.floor(Number(request.postDataJSON().timeSpentMs) / 1000)
+							return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+						}),
 					])
 					await expect(dialog.locator('.result-stats > div').first()).toHaveCSS(
 						'background-color',
 						'rgb(247, 245, 240)',
 					)
-					await expect(dialog.locator('canvas[data-painted]')).toBeVisible()
+					await expect(dialog.locator('canvas, .result-preview')).toHaveCount(0)
+					await expect(dialog.getByText('Tryit result card')).toHaveCount(0)
+					await expect(card).toHaveCSS('opacity', '0')
+					expect((await canvasGeometry(page)).board).toEqual(after.board)
+					await expect(dialog.getByText('1 / 3 free puzzles today')).toBeVisible()
+					await expect(dialog.locator('.result-steps > span')).toHaveCount(3)
+					await expect(dialog.locator('.result-steps [data-filled]')).toHaveCount(1)
+					const playNext = dialog.getByRole('link', { name: /^Play next:/ })
+					await expect(playNext).toHaveAttribute(
+						'href',
+						new RegExp(`/games/${next}\\?.*start=1#play$`),
+					)
+					await expect(dialog.getByRole('link', { name: 'All games' })).toHaveAttribute(
+						'href',
+						'/games',
+					)
 					const dialogRect = (await dialog.boundingBox())!
 					expect(dialogRect.y + dialogRect.height).toBeLessThanOrEqual(after.dock.top)
 					expect(
 						await dialog.evaluate((el) => getComputedStyle(el, '::backdrop').backdropFilter),
-					).toBe('blur(8px)')
+					).toBe('blur(5px)')
 					if (slug === 'number-path') {
 						await page.screenshot({ path: info.outputPath('path-result.png') })
 						const axe = await new AxeBuilder({ page })
@@ -184,7 +228,7 @@ for (const viewport of [
 					const share = dialog.getByRole('button', { name: 'Share Result' })
 					const save = dialog.getByRole('button', { name: 'Save PNG' })
 					const close = dialog.getByRole('button', { name: 'Dismiss' })
-					for (const action of [share, save, close]) {
+					for (const action of [playNext, share, save, close]) {
 						const box = (await action.boundingBox())!
 						expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44)
 						expect(
@@ -196,8 +240,10 @@ for (const viewport of [
 							}),
 						).toBe(true)
 					}
-					// Chromium without an OS share sheet exercises the real clipboard path.
+					// No native file sharing in headless Chromium: share downloads and copies.
+					const shareDownload = page.waitForEvent('download')
 					await share.click()
+					expect((await shareDownload).suggestedFilename()).toMatch(/^tryit-result-.*\.png$/)
 					await expect
 						.poll(() => page.evaluate(() => navigator.clipboard.readText()))
 						.toContain(`/r/${fixtureShareId}?utm_source=share`)
@@ -211,6 +257,8 @@ for (const viewport of [
 					expect(png.readUInt32BE(20)).toBe(1080)
 					await close.click()
 					await expect(trigger).toBeFocused()
+					await expect(card).toHaveCSS('opacity', '1')
+					expect((await canvasGeometry(page)).board).toEqual(after.board)
 					await trigger.press('Enter')
 					await expect(dialog).toBeVisible()
 					await page.keyboard.press('Shift+Tab')
@@ -221,6 +269,13 @@ for (const viewport of [
 					await expect(trigger).toBeFocused()
 					await expect(page.locator('[data-consent-banner]')).toBeVisible()
 					expect((await canvasGeometry(page)).scroll).toEqual(before.scroll)
+					if (slug === 'number-path') {
+						await trigger.click()
+						const started = page.waitForRequest((request) => request.url().endsWith('/StartDaily'))
+						await playNext.click()
+						expect((await started).postDataJSON()).toMatchObject({ gameSlug: next })
+						await expect(page).toHaveURL(new RegExp(`/games/${next}\\?.*start=1#play$`))
+					}
 				},
 			)
 		}

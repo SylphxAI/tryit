@@ -18,10 +18,7 @@ export default function NotFound() {
 			<p class="text-sm font-semibold text-muted-foreground">{t()('common.notFound.eyebrow')}</p>
 			<h1 class="font-display text-3xl">{t()('common.notFound.title')}</h1>
 			<p>{t()('common.notFound.description')}</p>
-			<a
-				class="inline-flex min-h-11 items-center underline"
-				href={localizedPath(locale(), '/games')}
-			>
+			<a class="chrome-control border border-hairline" href={localizedPath(locale(), '/games')}>
 				{t()('common.notFound.browseCta')}
 			</a>
 		</main>

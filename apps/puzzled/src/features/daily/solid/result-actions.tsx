@@ -90,7 +90,22 @@ export function ResultActions(props: {
 			)
 		}
 		try {
-			const outcome = await shareResultText(caption)
+			const result =
+				surface === 'dialog'
+					? await (await import('../lib/share-result-card')).shareRitualResultCard({
+							model: card,
+							strings,
+							text: caption,
+							title: card.gameName,
+						})
+					: { outcome: await shareResultText(caption), captionCopied: false }
+			const { outcome } = result
+			if (outcome === 'downloaded')
+				setFeedback({
+					surface,
+					message: result.captionCopied ? 'gameResult.savedAndCopied' : 'share.card.saved',
+					caption: result.captionCopied ? undefined : caption,
+				})
 			if (outcome === 'copied') setFeedback({ surface, message: 'common.copied' })
 			if (outcome === 'unavailable') {
 				setFeedback({ surface, message: 'share.card.unavailable', caption })
@@ -144,7 +159,7 @@ export function ResultActions(props: {
 			<div class="result-action-row">
 				<button
 					type="button"
-					class="result-button result-button-primary"
+					class="result-button"
 					aria-disabled={pending() || undefined}
 					onClick={() => void share('rail')}
 				>
@@ -155,6 +170,7 @@ export function ResultActions(props: {
 					locale={props.locale}
 					model={model()}
 					strings={strings}
+					timeSpentMs={props.facts.timeSpentMs}
 					difficulty={props.facts.difficulty}
 					trigger={
 						<>
@@ -166,7 +182,7 @@ export function ResultActions(props: {
 					<div class="result-action-row">
 						<button
 							type="button"
-							class="result-button result-button-primary"
+							class="result-button"
 							aria-disabled={pending() || undefined}
 							onClick={() => void share('dialog')}
 						>

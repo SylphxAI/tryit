@@ -52,6 +52,8 @@ message DailyCompletion {
   int64 completed_at_ms = 4 [features.field_presence = EXPLICIT];
   // The level the one accepted finish was played at; absent for games without levels.
   string difficulty = 5 [features.field_presence = EXPLICIT];
+  // Private elapsed time from the accepted session. Never read from a shared result.
+  uint64 time_spent_ms = 6 [features.field_presence = EXPLICIT];
 }
 
 message GetDailyResponse {
@@ -95,6 +97,13 @@ message GetTodayProgressResponse {
   string day_key = 1;
   // One entry per requested slug, in request order.
   repeated GameProgress games = 2;
+  // The request identity's claimed free picks, including unfinished games.
+  // A present, empty message means no picks have been claimed.
+  TodayFreePicks free_picks = 3;
+}
+
+message TodayFreePicks {
+  repeated string game_slugs = 1;
 }
 
 message SubmitGuessRequest {

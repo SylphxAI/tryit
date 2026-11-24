@@ -143,7 +143,7 @@ export function getConnectTransport(baseUrl?: string): Transport {
 			((next) => async (req) => {
 				// A passive daily read forwards cookies already present; it never
 				// bootstraps a new guest or claims legacy state on arrival.
-				if (req.method.name !== 'GetDaily') {
+				if (req.method.name !== 'GetDaily' && req.method.name !== 'GetTodayProgress') {
 					await ensureGuestSession(base).catch(() => undefined)
 				}
 				return next(req)
