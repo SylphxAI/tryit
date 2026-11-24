@@ -52,6 +52,8 @@ async function canvasGeometry(page: Page) {
 			document.querySelector(selector)?.getBoundingClientRect().toJSON()
 		return {
 			board: rect('.play-body .play-board')!,
+			pathProgress: rect('[data-number-path-board] > .play-meta'),
+			pathTools: rect('[data-number-path-board] > .play-tools'),
 			card: rect('[data-board-finished]'),
 			dock: rect('[data-consent-banner]')!,
 			scroll: [
@@ -92,8 +94,16 @@ for (const viewport of [
 						if (mobile) {
 							expect(before.board.width).toBe(viewport.width - 32)
 						} else {
-							const progress = (await page.locator('.play-meta').boundingBox())!
-							expect(progress.y - before.board.top).toBeGreaterThan(60)
+							// Compare the centers of the entire in-play control stack and board,
+							// not an absolute top gap that varies with the available height.
+							const { board, pathProgress, pathTools } = before
+							const railCenter = (pathProgress!.top + pathTools!.bottom) / 2
+							const boardCenter = (board.top + board.bottom) / 2
+							expect(pathProgress!.left).toBeGreaterThan(board.right)
+							expect(
+								Math.abs(railCenter - boardCenter),
+								JSON.stringify(before),
+							).toBeLessThanOrEqual(1)
 						}
 						for (const { row, col } of pathPuzzle.solution.path) {
 							const cell = board.getByRole('button', {

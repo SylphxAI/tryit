@@ -273,6 +273,14 @@
 		inset-inline-start: calc((100% - 3rem) * 1.27 / 2.27 + 3rem);
 	}
 
+	/* Center the progress and tools as one stack within a definite play frame.
+	   Zero minimums keep the spanning board from sizing either spacer track. */
+	[data-play-canvas] [data-number-path-board] {
+		block-size: 100%;
+		grid-template-areas: "board ." "board meta" "board tools" "board .";
+		grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr);
+	}
+
 	[data-play-canvas] [data-number-path-board] .play-meta {
 		min-height: 3.25rem;
 		padding: .625rem 1rem;
