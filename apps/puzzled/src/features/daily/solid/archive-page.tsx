@@ -1,5 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ArrowLeft, ArrowRight, Crown } from 'lucide-solid'
+import { Show } from 'solid-js'
 import { AdSlot } from '@/features/ads/solid/ad-slot'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -19,7 +20,7 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 		translate(`plus.offer.${key}`, values)
 	const tPlus = (key: string) => translate(`plus.${key}`)
 	const tCatalog = (key: string) => translate(`catalog.${key}`)
-	const mobilePriceLine =
+	const priceLine =
 		offerPrices.passPrice && offerPrices.yearlyPrice
 			? tOffer('resultPriceWithPass', {
 					days: offerPrices.passDays ?? 3,
@@ -39,30 +40,6 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 	const pricingHref = localizedPath(
 		locale,
 		`/pricing?${new URLSearchParams({ callbackUrl: localizedPath(locale, '/archive'), trigger: 'archive_banner' })}`,
-	)
-	const unlock = () => (
-		<aside class="editorial-surface rounded-2xl border border-hairline bg-card p-4 shadow-md md:p-5">
-			<h2 class="flex items-center gap-2.5 font-display text-lg leading-tight lg:flex-col lg:items-start">
-				<span
-					class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-warm-soft text-accent-warm-foreground lg:size-10"
-					aria-hidden="true"
-				>
-					<Crown size={18} />
-				</span>
-				{t('mobileUnlockTitle')}
-			</h2>
-			<p class="mt-1.5 text-sm leading-relaxed text-muted-foreground tabular-nums">
-				{mobilePriceLine ??
-					t('mobileUnlockBody', { count: ARCHIVE_WINDOW_DAYS, games: games.length })}
-			</p>
-			<a
-				href={pricingHref}
-				class="editorial-interactive mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-cta px-4 py-2 text-center text-sm font-bold text-cta-foreground shadow-sm hover:bg-cta-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-			>
-				{t('mobileUnlockCta')}
-				<ArrowRight size={16} class="shrink-0" aria-hidden="true" />
-			</a>
-		</aside>
 	)
 
 	return (
@@ -92,47 +69,62 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 							{t('backToGames')}
 						</a>
 					</div>
-					<div
-						class={
-							locked
-								? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]'
-								: 'grid items-start gap-6'
-						}
-					>
-						<div class="min-w-0">
-							{locked && (
-								<div class="mb-4 lg:hidden" data-archive-mobile-unlock>
-									{unlock()}
+					<Show when={locked}>
+						<aside
+							aria-labelledby="archive-unlock-title"
+							class="editorial-surface mb-5 grid items-center gap-3 rounded-2xl p-4 md:mb-6 md:grid-cols-[minmax(0,1fr)_auto] md:gap-6 md:p-5"
+							data-archive-unlock
+						>
+							<div class="flex min-w-0 items-center gap-3">
+								<span
+									class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-warm-soft text-accent-warm-foreground md:size-12"
+									aria-hidden="true"
+								>
+									<Crown size={20} />
+								</span>
+								<div class="min-w-0">
+									<h2
+										id="archive-unlock-title"
+										class="font-display text-lg leading-tight md:text-xl"
+									>
+										{t('mobileUnlockTitle')}
+									</h2>
+									<p class="mt-1 text-sm leading-relaxed text-muted-foreground tabular-nums">
+										{priceLine ??
+											t('mobileUnlockBody', { count: ARCHIVE_WINDOW_DAYS, games: games.length })}
+									</p>
 								</div>
-							)}
-							<section aria-labelledby="archive-list-title">
-								<h2 id="archive-list-title" class="sr-only">
-									{t('listTitle')}
-								</h2>
-								<ArchiveAlmanac
-									days={days}
-									games={games}
-									locale={locale}
-									locked={locked}
-									categories={categories}
-									labels={{
-										dayPicker: t('dayPicker'),
-										filter: t('filterLabel'),
-										all: tCatalog('filterAll'),
-										yesterday: t('yesterday'),
-										dayCount: String(translate.raw('archive.dayCount')),
-										play: t('play'),
-										locked: t('locked'),
-									}}
-								/>
-							</section>
-						</div>
-						{locked && (
-							<div class="hidden lg:sticky lg:top-20 lg:block" data-archive-unlock>
-								{unlock()}
 							</div>
-						)}
-					</div>
+							<a
+								href={pricingHref}
+								class="chrome-control chrome-primary w-full gap-2 px-5 text-center text-sm font-bold md:w-auto"
+							>
+								{t('mobileUnlockCta')}
+								<ArrowRight size={16} aria-hidden="true" />
+							</a>
+						</aside>
+					</Show>
+					<section aria-labelledby="archive-list-title">
+						<h2 id="archive-list-title" class="sr-only">
+							{t('listTitle')}
+						</h2>
+						<ArchiveAlmanac
+							days={days}
+							games={games}
+							locale={locale}
+							locked={locked}
+							categories={categories}
+							labels={{
+								dayPicker: t('dayPicker'),
+								filter: t('filterLabel'),
+								all: tCatalog('filterAll'),
+								yesterday: t('yesterday'),
+								dayCount: String(translate.raw('archive.dayCount')),
+								play: t('play'),
+								locked: t('locked'),
+							}}
+						/>
+					</section>
 					{ads ? (
 						<div class="mt-8 max-w-2xl">
 							<AdSlot config={ads} label={translate('common.advertisement')} />
