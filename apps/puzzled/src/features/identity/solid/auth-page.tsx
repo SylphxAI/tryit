@@ -77,12 +77,7 @@ export function AuthPage(props: { kind: AuthPageKind }) {
 				{(page) => (
 					<>
 						<PageMeta value={page.meta} />
-						<AuthShell
-							locale={page.locale}
-							freeGameSlug={page.freeGameSlug}
-							freeGameName={page.freeGameName}
-							playersToday={page.playersToday}
-						>
+						<AuthShell locale={page.locale}>
 							<Switch>
 								<Match when={props.kind === 'sign-in'}>
 									<SignInForm

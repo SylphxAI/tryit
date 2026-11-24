@@ -48,6 +48,23 @@ async function fixture(
 	return (await response.json()).calls
 }
 
+test('desktop sign-in explains the benefits without competing with account entry', async ({
+	page,
+}) => {
+	await fixture('enabled')
+	await page.setViewportSize({ width: 1440, height: 900 })
+	await page.goto('/sign-in')
+	const panel = page.getByRole('complementary')
+	await expect(panel.getByRole('heading', { name: 'Keep your progress with you' })).toBeVisible()
+	await expect(panel.getByRole('listitem')).toHaveText([
+		'Sync your streaks across devices',
+		'Save your puzzle stats',
+		'Unlock the 30-day archive with Tryit Plus',
+	])
+	await expect(page.getByText(/No account needed to/)).toHaveCount(0)
+	await expect(page.locator('#email')).toBeVisible()
+})
+
 test('legacy 308 aliases preserve only safe localized returns and pending links are not consumed by opening', async ({
 	page,
 	request,

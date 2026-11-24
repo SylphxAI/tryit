@@ -45,9 +45,11 @@ type Props = {
 	checkoutTrigger?: string
 	/** Compact spacing for locked-game unlock surfaces so checkout stays above the fold. */
 	compact?: boolean
+	/** Standalone pricing presents the benefits before plan selection. */
+	pricingPage?: boolean
 	/** Slot rendered at the top of the column above the card (e.g. currency switcher). */
 	headerSlot?: JSX.Element
-	/** Related navigation beside the purchase decision, before the benefits list. */
+	/** Related navigation below the card. */
 	afterCheckout?: JSX.Element
 	/** Slot rendered below the card (e.g. compare plans). */
 	footerSlot?: JSX.Element
@@ -77,6 +79,19 @@ export function PlusOffer(props: Props) {
 			? yearlySavingPercent(props.monthly.amountMinor, props.yearly.amountMinor)
 			: null
 	const features = () => props.features ?? []
+	const benefits = () =>
+		features().length > 0 ? (
+			<ul class={styles.features}>
+				<For each={features()}>
+					{(line) => (
+						<li class="flex items-start gap-2">
+							<Check class="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+							{line}
+						</li>
+					)}
+				</For>
+			</ul>
+		) : null
 
 	return (
 		<Show when={current()}>
@@ -107,6 +122,7 @@ export function PlusOffer(props: Props) {
 							{props.subtitle}
 						</p>
 					</div>
+					{props.pricingPage ? benefits() : null}
 					<fieldset class={cn('grid border-0 p-0', props.compact ? 'gap-1.5' : 'gap-2')}>
 						<legend class="sr-only">{t('planChoice')}</legend>
 						<For each={options()}>
@@ -193,6 +209,7 @@ export function PlusOffer(props: Props) {
 										<SubscribeButton
 											checkoutTrigger={props.checkoutTrigger ?? 'pricing_card'}
 											compact={props.compact}
+											pricingPage={props.pricingPage}
 											callbackUrl={props.callbackUrl}
 											planId={selected.id}
 											currency={selected.currency}
@@ -203,7 +220,9 @@ export function PlusOffer(props: Props) {
 											label={
 												trialDays() > 0
 													? t('startTrial', { days: trialDays() })
-													: t('continueToPayment')
+													: props.pricingPage && props.id === 'plus' && selected.interval !== 'once'
+														? t('startPlus')
+														: t('continueToPayment')
 											}
 											renewalNote={
 												selected.interval === 'once'
@@ -218,20 +237,9 @@ export function PlusOffer(props: Props) {
 							)
 						}}
 					</Show>
-					{props.afterCheckout}
-					{features().length > 0 ? (
-						<ul class={styles.features}>
-							<For each={features()}>
-								{(line) => (
-									<li class="flex items-start gap-2">
-										<Check class="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
-										{line}
-									</li>
-								)}
-							</For>
-						</ul>
-					) : null}
+					{!props.pricingPage ? benefits() : null}
 				</div>
+				{props.afterCheckout}
 				{props.footerSlot}
 			</div>
 		</Show>

@@ -1,7 +1,7 @@
 /** @jsxImportSource solid-js */
-import { ArrowLeft, ArrowRight, Check } from 'lucide-solid'
+import { ArrowLeft, Check } from 'lucide-solid'
 import { For, type ParentProps } from 'solid-js'
-import { MIN_PLAYERS_SHOWN } from '@/features/home/lib/player-count'
+import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -26,18 +26,15 @@ function Brand(props: { locale: Locale }) {
 export function AuthShell(
 	props: ParentProps<{
 		locale: Locale
-		freeGameSlug: string
-		freeGameName: string
-		playersToday: number | null
 	}>,
 ) {
 	const translate = createTranslator(props.locale)
 	const t = (key: string, values?: Record<string, string | number>) =>
 		translate(`auth.${key}`, values)
-	const trustPoints = [
-		t('brandPanel.trustFree'),
-		t('brandPanel.trustNoAccount'),
-		t('brandPanel.trustDailyPuzzles'),
+	const benefits = [
+		t('brandPanel.syncStreaks'),
+		t('brandPanel.saveStats'),
+		t('brandPanel.plusArchive', { count: ARCHIVE_WINDOW_DAYS }),
 	]
 
 	return (
@@ -55,35 +52,8 @@ export function AuthShell(
 						<h2 class="mt-10 max-w-md font-display text-3xl leading-tight text-balance text-white xl:text-4xl">
 							{t('brandPanel.title')}
 						</h2>
-						<p class="mt-3 max-w-md text-sm leading-relaxed text-white/80">
-							{t('brandPanel.body')}
-						</p>
-
-						<div class="mt-8 max-w-md rounded-2xl border border-white/15 bg-white/[0.06] p-4 backdrop-blur">
-							<p class="text-xs font-semibold uppercase tracking-[0.14em] text-white/75">
-								{t('brandPanel.proofLabel')}
-							</p>
-							<p class="mt-1.5 font-display text-lg text-white">
-								{t('brandPanel.proofGame', { game: props.freeGameName })}
-							</p>
-							<p class="mt-1 text-sm text-white/80">
-								{props.playersToday === null || props.playersToday <= MIN_PLAYERS_SHOWN
-									? t('brandPanel.proofNoCount')
-									: t('brandPanel.proofPlayers', {
-											count: new Intl.NumberFormat(props.locale).format(props.playersToday),
-										})}
-							</p>
-							<a
-								href={localizedPath(props.locale, `/games/${props.freeGameSlug}`)}
-								class="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/12 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--color-ink)]"
-							>
-								{t('brandPanel.playFree')}
-								<ArrowRight class="h-4 w-4" aria-hidden="true" />
-							</a>
-						</div>
-
-						<ul class="mt-8 max-w-md space-y-2 text-sm text-white/85">
-							<For each={trustPoints}>
+						<ul class="mt-5 max-w-md space-y-3 text-base leading-relaxed text-white/90">
+							<For each={benefits}>
 								{(point) => (
 									<li class="flex items-start gap-2">
 										<Check class="mt-0.5 h-4 w-4 shrink-0 text-[#6fcf8e]" aria-hidden="true" />

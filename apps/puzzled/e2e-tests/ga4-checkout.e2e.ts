@@ -78,7 +78,9 @@ for (const [country, consent, gpc, entry, expected] of [
 				.poll(async () => (await commands(page)).map((row) => row[1]))
 				.toContain('page_view')
 		}
-		const button = page.locator('#plus').getByRole('button', { name: 'Continue to payment' })
+		const button = page
+			.locator('#plus')
+			.getByRole('button', { name: /^(Start Tryit Plus|Continue to payment)$/ })
 		if (failCheckout) {
 			await button.click()
 			await expect(page.locator('#plus').getByRole('alert')).toBeVisible()
