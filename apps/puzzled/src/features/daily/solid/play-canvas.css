@@ -98,7 +98,7 @@
    not size the canvas or push the consent choices and tab bar down. */
 [data-play-canvas] .play-body > .play-entry {
 	margin: auto;
-	max-inline-size: 100%;
+	min-inline-size: 0;
 	flex-shrink: 1;
 }
 
@@ -252,7 +252,7 @@
 
 [data-play-canvas] .play-result { display: contents; }
 
-[data-play-canvas] .completion-card {
+[data-play-canvas] .completion-card:not(.play-entry) {
 	position: absolute;
 	z-index: 5;
 	inset-inline: max(.25rem, calc((100% - 28rem) / 2));

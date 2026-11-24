@@ -90,6 +90,7 @@ export function DailyPlay(props: {
 	const board = boards.get(slug)
 	const explicitPlay = props.started && !choose && Boolean(board)
 	const [starting, setStarting] = createSignal(false)
+	const [resultOpen, setResultOpen] = createSignal(false)
 	const [entered, setEntered] = createSignal(false)
 	const input = { gameSlug: slug, difficulty: props.difficulty, puzzleDate: props.day.puzzleDate }
 	const [mounted, setMounted] = createSignal(false)
@@ -197,9 +198,10 @@ export function DailyPlay(props: {
 			<Match when={snapshot('completed')}>
 				{(result) => (
 					<div
-						class="mx-auto max-w-xl space-y-2 text-center"
-						classList={{ 'completion-card': !explicitPlay, 'play-entry': explicitPlay }}
+						class="completion-card mx-auto max-w-xl space-y-2 text-center"
+						classList={{ 'play-entry': explicitPlay }}
 						data-game-stage="completed"
+						data-result-open={resultOpen() || undefined}
 					>
 						<h2 class="font-display text-2xl">{t('daily.alreadyCompleted')}</h2>
 						<p>
@@ -217,6 +219,7 @@ export function DailyPlay(props: {
 							{t('gameResult.attempts')}: {result().session.attempts}
 						</p>
 						<ResultActions
+							onDetailsOpenChange={setResultOpen}
 							facts={{
 								gameSlug: slug,
 								mode: props.day.mode,
@@ -283,6 +286,7 @@ export function DailyPlay(props: {
 									type="button"
 									class={playButton}
 									disabled={starting()}
+									aria-busy={starting()}
 									onClick={() => void play(value().puzzleDate)}
 								>
 									<Play size={16} aria-hidden="true" />

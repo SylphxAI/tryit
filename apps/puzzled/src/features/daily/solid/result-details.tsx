@@ -1,6 +1,15 @@
 /** @jsxImportSource solid-js */
 import { ArrowRight, Check, Minus, X } from 'lucide-solid'
-import { createResource, createSignal, createUniqueId, For, type JSX, Show } from 'solid-js'
+import {
+	createResource,
+	createSignal,
+	createUniqueId,
+	For,
+	type JSX,
+	onCleanup,
+	Show,
+} from 'solid-js'
+import { Portal } from 'solid-js/web'
 import { recallChallenge, sharedResultCard, toSharedResult } from '@/features/daily/lib/challenge'
 import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
 import { deriveHomeExposure } from '@/features/daily/lib/home-exposure'
@@ -28,6 +37,7 @@ export function ResultDetails(props: {
 	difficulty?: string | null
 	locale: Locale
 	trigger: JSX.Element
+	onOpenChange: (open: boolean) => void
 	children: JSX.Element
 }) {
 	const t = createTranslator(props.locale)
@@ -36,9 +46,11 @@ export function ResultDetails(props: {
 	let dialog!: HTMLDialogElement
 	let trigger!: HTMLButtonElement
 	let heading!: HTMLHeadingElement
+	onCleanup(() => {
+		if (opened()) props.onOpenChange(false)
+	})
 	function dismiss() {
-		// Make the trigger focusable before the native close restores focus.
-		dialog.closest('.completion-card')?.removeAttribute('data-result-open')
+		props.onOpenChange(false)
 		dialog.close()
 		setOpened(false)
 		trigger.focus({ preventScroll: true })
@@ -106,24 +118,10 @@ export function ResultDetails(props: {
 			</For>
 		</dl>
 	)
-	return (
-		<>
-			<button
-				ref={trigger}
-				type="button"
-				class="result-button"
-				aria-haspopup="dialog"
-				onClick={() => {
-					dialog.showModal()
-					dialog.closest('.completion-card')?.setAttribute('data-result-open', '')
-					setOpened(true)
-					queueMicrotask(() => {
-						if (dialog.open) heading.focus({ preventScroll: true })
-					})
-				}}
-			>
-				{props.trigger}
-			</button>
+	// Mount outside the completion card: the rail becomes transparent while
+	// the dialog is open, and must not participate in compositing the dialog.
+	const overlay = () => (
+		<Portal>
 			<dialog
 				ref={dialog}
 				aria-labelledby={title}
@@ -234,6 +232,27 @@ export function ResultDetails(props: {
 					</a>
 				</div>
 			</dialog>
+		</Portal>
+	)
+	return (
+		<>
+			<button
+				ref={trigger}
+				type="button"
+				class="result-button"
+				aria-haspopup="dialog"
+				onClick={() => {
+					dialog.showModal()
+					props.onOpenChange(true)
+					setOpened(true)
+					queueMicrotask(() => {
+						if (dialog.open) heading.focus({ preventScroll: true })
+					})
+				}}
+			>
+				{props.trigger}
+			</button>
+			{overlay()}
 		</>
 	)
 }
