@@ -25,17 +25,43 @@ const LEGACY_PAGES = new Map<string, `/games/${GameSlug}` | '/vs'>([
 	['/compare', '/vs'],
 ])
 
+// Match whole, retired namespaces without turning arbitrary 404s into redirects.
+const RETIRED_BLOG = /^\/blog(?:\/|$)/
+const RETIRED_CONTENT = /^\/(?:apps|memes|avatars|wallpapers|stickers)(?:\/|$)/
+const RETIRED_OG_IMAGE = /\/opengraph-image\/?$/
+
+export function retiredOpenGraphImage(request: Request): Response | undefined {
+	if (RETIRED_OG_IMAGE.test(new URL(request.url).pathname)) {
+		// This was an image URL, not a page alias. Never invoke the live /og
+		// renderer or let page/locale redirects run for this endpoint.
+		return new Response(null, { status: 404 })
+	}
+}
+
 export function legacyPageRedirect(request: Request): Response | undefined {
 	if (request.method !== 'GET' && request.method !== 'HEAD') return
 	const { pathname, search } = new URL(request.url)
+	if (RETIRED_OG_IMAGE.test(pathname)) return
+
 	const locale = localeFromPathname(pathname)
 	const path = locale ? pathname.slice(locale.length + 1) : pathname
-	const target = LEGACY_PAGES.get(path.endsWith('/') ? path.slice(0, -1) : path)
+	const exactTarget = LEGACY_PAGES.get(path.endsWith('/') ? path.slice(0, -1) : path)
+	const oldLocale = locale ? undefined : /^\/(en|zh)(?=\/)/.exec(path)?.[1]
+	const retiredPath = oldLocale ? path.slice(3) : path
+	const target = exactTarget ?? retiredPageTarget(retiredPath)
 	if (!target) return
-	// Only the fixed target and a known locale set the path. Keep the query
-	// verbatim for shared games and attribution; it cannot change the origin.
+
+	// Only a fixed target and a known locale set the path. The query is kept
+	// verbatim for attribution and cannot change the origin.
 	return new Response(null, {
 		status: 301,
-		headers: { Location: `${localizedPath(locale ?? defaultLocale, target)}${search}` },
+		headers: {
+			Location: `${localizedPath(locale ?? (oldLocale === 'zh' ? 'zh-TW' : defaultLocale), target)}${search}`,
+		},
 	})
+}
+
+function retiredPageTarget(path: string) {
+	if (RETIRED_BLOG.test(path)) return '/'
+	if (RETIRED_CONTENT.test(path)) return '/games'
 }

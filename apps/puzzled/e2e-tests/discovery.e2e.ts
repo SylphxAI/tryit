@@ -44,7 +44,7 @@ for (const { path, locale, currency } of [
 						name: (plan.name as Record<string, string>)[locale] ?? plan.name['en-US'],
 						price,
 						priceCurrency: currency.toUpperCase(),
-						url: `${app.url}/pricing`,
+						url: new URL(path === '/' ? '/pricing' : `${path}/pricing`, app.url).href,
 						priceSpecification: {
 							'@type': 'UnitPriceSpecification',
 							price,
@@ -94,19 +94,79 @@ for (const path of ['/terms', '/privacy']) {
 	})
 }
 
+const googlebot = { 'User-Agent': 'Googlebot/2.1' }
+
+test('all locale homepages serve an indexable Tryit Plus image in initial HTML', async ({
+	request,
+	page,
+}) => {
+	const prefixes = ['', '/en-GB', '/zh-HK', '/zh-TW', '/zh-CN', '/ja', '/es', '/pt-BR']
+	let imageUrl: URL | undefined
+	for (const prefix of prefixes) {
+		const home = await request.get(prefix || '/', { maxRedirects: 0, headers: googlebot })
+		expect(home.status(), prefix).toBe(200)
+		const products = await page.evaluate(
+			(html) => {
+				const doc = new DOMParser().parseFromString(html, 'text/html')
+				return [...doc.querySelectorAll('script[type="application/ld+json"]')]
+					.map((script) => JSON.parse(script.textContent ?? ''))
+					.filter((schema) => schema['@type'] === 'Product' && schema.name === 'Tryit Plus')
+			},
+			await home.text(),
+		)
+		expect(products, prefix).toHaveLength(1)
+		const [product] = products
+		const image = new URL(product.image)
+		const pricing = new URL(product.url)
+		expect(pricing.href).toBe(new URL(`${prefix}/pricing`, image.origin).href)
+		expect(product.offers.length).toBeGreaterThan(0)
+		for (const offer of product.offers) {
+			expect(offer['@type']).toBe('Offer')
+			expect(offer.url).toBe(pricing.href)
+			expect(offer.priceCurrency).toMatch(/^[A-Z]{3}$/)
+			expect(Number(offer.price)).toBeGreaterThan(0)
+		}
+		if (imageUrl) expect(image.href).toBe(imageUrl.href)
+		else imageUrl = image
+	}
+	if (!imageUrl) throw new Error('No structured product image served')
+	// CI sets the canonical production origin while serving the built app locally.
+	const image = await request.get(imageUrl.pathname + imageUrl.search, {
+		maxRedirects: 0,
+		headers: googlebot,
+	})
+	expect(image.status()).toBe(200)
+	expect(image.headers()['content-type']).toBe('image/png')
+	expect(image.headers()['x-robots-tag']).toBeUndefined()
+	const data = await image.body()
+	expect(data.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+	expect(data.readUInt32BE(16) * data.readUInt32BE(20)).toBeGreaterThanOrEqual(50_000)
+})
+
 test('the sitemap index serves one canonical XML URL set per locale', async ({ page, request }) => {
 	const sitemapNamespace = 'http://www.sitemaps.org/schemas/sitemap/0.9'
 	const xhtmlNamespace = 'http://www.w3.org/1999/xhtml'
 	const locales = ['en-US', 'en-GB', 'zh-HK', 'zh-TW', 'zh-CN', 'ja', 'es', 'pt-BR']
 	const getXml = async (path: string, root: 'sitemapindex' | 'urlset') => {
-		const response = await request.get(path, {
-			maxRedirects: 0,
-			headers: { cookie: 'NEXT_LOCALE=es; sylphx_identity_session=ignored-fixture' },
-		})
+		const headers = {
+			...googlebot,
+			cookie: 'NEXT_LOCALE=es; sylphx_identity_session=ignored-fixture',
+		}
+		const response = await request.get(path, { maxRedirects: 0, headers })
 		expect(response.status(), path).toBe(200)
 		expect(response.headers()['content-type']).toBe('application/xml; charset=utf-8')
 		expect(response.headers()['cache-control']).toBe('public, max-age=3600')
 		expect(response.headers()['set-cookie']).toBeUndefined()
+		expect(response.headers()['x-robots-tag']).toBeUndefined()
+		const bytes = await response.body()
+		expect(bytes.subarray(0, 38).toString('ascii')).toBe('<?xml version="1.0" encoding="UTF-8"?>')
+		expect(bytes.length).toBeLessThan(52_428_800)
+		const head = await request.head(path, { maxRedirects: 0, headers })
+		expect(head.status(), path).toBe(200)
+		for (const name of ['content-type', 'cache-control', 'x-robots-tag', 'set-cookie']) {
+			expect(head.headers()[name], name).toBe(response.headers()[name])
+		}
+		expect(await head.body()).toHaveLength(0)
 		return page.evaluate(
 			({ xml, root, sitemapNamespace, xhtmlNamespace }) => {
 				const doc = new DOMParser().parseFromString(xml, 'application/xml')
@@ -125,6 +185,15 @@ test('the sitemap index serves one canonical XML URL set per locale', async ({ p
 					if (entry.localName !== entryTag || locs.length !== 1 || !loc) {
 						throw new Error(`Malformed ${entryTag} entry`)
 					}
+					if (root === 'urlset') {
+						const tags = [...entry.children].map((child) => child.tagName)
+						if (
+							tags.slice(0, 3).join(',') !== 'loc,changefreq,priority' ||
+							tags.slice(3).some((tag) => tag !== 'xhtml:link')
+						) {
+							throw new Error(`Sitemap extensions must follow core fields: ${loc}`)
+						}
+					}
 					return {
 						loc,
 						alternates: [...entry.getElementsByTagNameNS(xhtmlNamespace, 'link')].map((link) => [
@@ -135,7 +204,12 @@ test('the sitemap index serves one canonical XML URL set per locale', async ({ p
 					}
 				})
 			},
-			{ xml: await response.text(), root, sitemapNamespace, xhtmlNamespace },
+			{
+				xml: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
+				root,
+				sitemapNamespace,
+				xhtmlNamespace,
+			},
 		)
 	}
 
