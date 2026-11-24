@@ -1,9 +1,11 @@
 import { getAllGameMetadata } from '@/games/registry'
 import { currencyFractionDigits, minorUnitsToMajor } from '@/lib/billing/plus'
+import { canonicalUrl } from '@/lib/seo/urls'
 import catalogue from '../../../../../../config/commercial/catalogue.json'
 
 /** Discovery prices come from the declaration applied to Money, never a second price list. */
 export function homeOfferSchemas(locale: string, baseUrl: string) {
+	const pricingUrl = canonicalUrl(baseUrl, locale, '/pricing')
 	const gameCount = getAllGameMetadata().length
 	const currency =
 		(catalogue.currency_display as { by_locale?: Record<string, string> }).by_locale?.[locale] ??
@@ -43,7 +45,7 @@ export function homeOfferSchemas(locale: string, baseUrl: string) {
 							name: nameFor(plan.name),
 							price,
 							priceCurrency: currency.toUpperCase(),
-							url: `${baseUrl}/pricing`,
+							url: pricingUrl,
 							priceSpecification: {
 								'@type': 'UnitPriceSpecification',
 								price,
@@ -66,7 +68,9 @@ export function homeOfferSchemas(locale: string, baseUrl: string) {
 			'@context': 'https://schema.org',
 			'@type': 'Product',
 			name: 'Tryit Plus',
-			url: `${baseUrl}/pricing`,
+			// The static card is indexable; the dynamic /og renderer sends noindex.
+			image: new URL('/brand/tryit-plus.png', baseUrl).href,
+			url: pricingUrl,
 			brand: { '@type': 'Brand', name: 'Tryit' },
 			offers: schema.offers.slice(1),
 		},

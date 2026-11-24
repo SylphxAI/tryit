@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { legacyPageRedirect } from './legacy-page-redirect'
+import { legacyPageRedirect, retiredOpenGraphImage } from './legacy-page-redirect'
 
 const origin = 'http://web.example.internal'
 
@@ -61,6 +61,11 @@ describe('legacy public page redirects', () => {
 
 	test.each([
 		'/games/word-groups',
+		'/blogger/post',
+		'/apps-other/post',
+		'/zh/help',
+		'/en/games/mini',
+		'/sign-in',
 		'/games/constructor',
 		'/games/unknown',
 		'/games/threadsville',
@@ -78,5 +83,37 @@ describe('legacy public page redirects', () => {
 
 	test('leaves writes to their owning endpoints', () => {
 		expect(legacyPageRedirect(new Request(`${origin}/compare`, { method: 'POST' }))).toBeUndefined()
+	})
+
+	test.each([
+		['/blog', '/'],
+		['/blog/post/older', '/'],
+		['/apps/name-fortune', '/games'],
+		['/en/memes/old-meme', '/games'],
+		['/en-US/avatars/old-avatar', '/games'],
+		['/zh-hk/wallpapers/old-wallpaper', '/zh-HK/games'],
+		['/stickers/old-sticker', '/games'],
+		['/zh/blog/post', '/zh-TW'],
+		['/zh/apps/fortune', '/zh-TW/games'],
+	])('redirects retired page %s directly to %s', (path, target) => {
+		for (const method of ['GET', 'HEAD']) {
+			const response = legacyPageRedirect(
+				new Request(`${origin + path}?utm_source=old%20link`, { method }),
+			)
+			expect(response?.status).toBe(301)
+			expect(response?.headers.get('location')).toBe(`${target}?utm_source=old%20link`)
+		}
+	})
+
+	test.each([
+		'/opengraph-image',
+		'/en-US/memes/old/opengraph-image/',
+		'/apps/name-fortune/opengraph-image',
+	])('returns a terminal 404 for %s', (path) => {
+		const request = new Request(`${origin + path}?8549f2ec514e79e6`)
+		expect(legacyPageRedirect(request)).toBeUndefined()
+		const response = retiredOpenGraphImage(request)
+		expect(response?.status).toBe(404)
+		expect(response?.body).toBeNull()
 	})
 })

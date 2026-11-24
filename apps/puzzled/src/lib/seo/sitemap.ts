@@ -87,9 +87,10 @@ export function serveLocaleSitemap(baseUrl: string, locale: Locale): Response {
 			return [
 				'  <url>',
 				`    <loc>${escapeXml(url)}</loc>`,
-				...links,
 				`    <changefreq>${changeFrequency}</changefreq>`,
 				`    <priority>${priority}</priority>`,
+				// The Sitemap XSD places namespace extensions after the core fields.
+				...links,
 				'  </url>',
 			].join('\n')
 		},

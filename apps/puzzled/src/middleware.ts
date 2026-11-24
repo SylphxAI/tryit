@@ -8,7 +8,7 @@ import { buildCsp, createNonce } from '@/lib/csp'
 import { env } from '@/lib/env'
 import { canonicalPageRedirect, preferredPageRedirect } from '@/lib/i18n/page-redirect'
 import { migratedSessionHeaders } from '@/lib/identity/session-response'
-import { legacyPageRedirect } from '@/lib/legacy-page-redirect'
+import { legacyPageRedirect, retiredOpenGraphImage } from '@/lib/legacy-page-redirect'
 import { isProxySkippedPath } from '@/lib/proxy-paths'
 
 export default createMiddleware({
@@ -31,6 +31,7 @@ export default createMiddleware({
 		headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
 		headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
 		return (
+			retiredOpenGraphImage(event.request) ??
 			legacySignInRedirect(event.request) ??
 			legacyChallengeRedirect(event.request) ??
 			// Resolve legacy aliases and locale spelling in one permanent redirect.

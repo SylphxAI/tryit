@@ -293,6 +293,11 @@ describe('sitemap', () => {
 			expect([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])).toEqual(expected)
 			expect(xml).toContain('hreflang="x-default" href="https://tryit.fun/archive"')
 			expect(xml).toContain('hreflang="zh-HK" href="https://tryit.fun/zh-HK/archive"')
+			for (const [, entry] of xml.matchAll(/<url>([\s\S]*?)<\/url>/g)) {
+				const tags = [...entry.matchAll(/<([\w:]+)[ >]/g)].map(([, tag]) => tag)
+				expect(tags.slice(0, 3)).toEqual(['loc', 'changefreq', 'priority'])
+				expect(tags.slice(3).every((tag) => tag === 'xhtml:link')).toBe(true)
+			}
 		}
 	})
 })
