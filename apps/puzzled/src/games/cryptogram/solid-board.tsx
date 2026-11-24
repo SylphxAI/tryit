@@ -37,7 +37,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 	const copy = (key: string, values?: Record<string, string | number>) =>
 		t(`games.cryptogram.${key}`, values)
 	const finish = createBoardFinish(props, slug)
-	const [state, setState] = createSignal(createCryptogramState(props.data))
+	const [state, setState] = finish.draft.signal('state', createCryptogramState(props.data))
 	const [hintPending, setHintPending] = createSignal(false)
 	const [gradePending, setGradePending] = createSignal(false)
 	const [gradeFailed, setGradeFailed] = createSignal(false)

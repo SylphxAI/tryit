@@ -73,7 +73,6 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 	const t = createTranslator(props.locale)
 	const data = props.data
 	const [wrong, setWrong] = createSignal(false)
-	const [board, setBoard] = createSignal(createInitialState(data))
 	const finish = createBoardFinish(props, 'pip-place', {
 		onRejected: () => {
 			// A fully placed candidate is only a local rule check. The server can reject it.
@@ -81,6 +80,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 			setWrong(true)
 		},
 	})
+	const [board, setBoard] = finish.draft.signal('board', createInitialState(data))
 	const playing = () => finish.state() === 'playing'
 	const cells = data.regionOf.flatMap((row, r) => row.map((id, col) => ({ row: r, col, id })))
 	const regions = new Map(data.regions.map((region) => [region.id, region]))

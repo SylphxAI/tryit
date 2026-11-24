@@ -30,8 +30,8 @@ export default function SudokuBoard(props: DailyBoardProps) {
 
 function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 	const t = createTranslator(props.locale)
-	const [state, setState] = createSignal(createInitialState(props.data))
 	const finish = createBoardFinish(props, 'sudoku')
+	const [state, setState] = finish.draft.signal('state', createInitialState(props.data))
 	const [cue, setCue] = createSignal<'selectBlank' | 'lockedNumber' | null>(null)
 	const dispatch = (action: SudokuAction) => {
 		const current = state()

@@ -31,10 +31,14 @@ export function forgetFiveRun(scope: string | undefined, puzzle: FivePuzzle) {
 	if (scope) runs.delete(runKey(scope, puzzle))
 }
 
-export function openFiveRun(scope: string | undefined, puzzle: FivePuzzle): FiveRun {
+export function openFiveRun(
+	scope: string | undefined,
+	puzzle: FivePuzzle,
+	rows: FiveRow[] = [],
+): FiveRun {
 	const previous = getFiveRun(scope, puzzle)
 	if (previous) return previous
-	const run: FiveRun = { rows: [] }
+	const run: FiveRun = { rows }
 	if (scope) runs.set(runKey(scope, puzzle), run)
 	return run
 }

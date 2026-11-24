@@ -87,16 +87,16 @@ export default function GroupsBoard(props: DailyBoardProps) {
 function Board(props: DailyBoardProps & { words: string[] }) {
 	const t = createTranslator(props.locale)
 	const finish = createBoardFinish(props, gameSlug)
-	const [remaining, setRemaining] = createSignal(props.words)
-	const [selected, setSelected] = createSignal<string[]>([])
-	const [solved, setSolved] = createSignal<Category[]>([])
-	const [mistakes, setMistakes] = createSignal(0)
+	const [remaining, setRemaining] = finish.draft.signal('remaining', props.words)
+	const [selected, setSelected] = finish.draft.signal<string[]>('selected', [])
+	const [solved, setSolved] = finish.draft.signal<Category[]>('solved', [])
+	const [mistakes, setMistakes] = finish.draft.signal('mistakes', 0)
 	const [grading, setGrading] = createSignal(false)
 	const [feedback, setFeedback] = createSignal<
 		'correct' | 'oneAway' | 'incorrect' | 'error' | 'selectionFull' | 'pickMore' | 'alreadyGuessed'
 	>()
 	const [shuffleRound, setShuffleRound] = createSignal(0)
-	const history = new Set<string>()
+	const [history, setHistory] = finish.draft.signal('history', new Set<string>())
 	let disposed = false
 	onCleanup(() => {
 		disposed = true
@@ -138,7 +138,7 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 			return
 		}
 		const key = JSON.stringify([...words].sort())
-		if (history.has(key)) {
+		if (history().has(key)) {
 			setFeedback('alreadyGuessed')
 			setSelected([])
 			return
@@ -158,7 +158,7 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 				solved(),
 			)
 			if (disposed) return
-			history.add(key)
+			setHistory((seen) => new Set([...seen, key]))
 			setSelected([])
 			if (next.category) {
 				const category = next.category
@@ -177,7 +177,7 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 					{ foundCategories: solved().map(({ words }) => words), mistakes: mistakes() },
 					{
 						status: won ? 'won' : 'lost',
-						attempts: history.size,
+						attempts: history().size,
 					},
 				)
 			}

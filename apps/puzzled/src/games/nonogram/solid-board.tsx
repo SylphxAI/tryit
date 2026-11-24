@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { Paintbrush, X } from 'lucide-solid'
-import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
+import { createMemo, For, onCleanup, Show } from 'solid-js'
 import { puzzleThemeLabel } from '@/games/shared/puzzle-theme-label'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -37,10 +37,10 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 	const rows = Array.from({ length: height }, (_, index) => index)
 	const cols = Array.from({ length: width }, (_, index) => index)
 	const emptyGrid = () => rows.map(() => cols.map((): CellState => 'empty'))
-	const [grid, setGrid] = createSignal(emptyGrid())
-	const [history, setHistory] = createSignal<CellState[][][]>([])
-	const [mode, setMode] = createSignal<'filled' | 'marked'>('filled')
 	const finish = createBoardFinish(props, 'nonogram')
+	const [grid, setGrid] = finish.draft.signal('grid', emptyGrid())
+	const [history, setHistory] = finish.draft.signal<CellState[][][]>('history', [])
+	const [mode, setMode] = finish.draft.signal<'filled' | 'marked'>('mode', 'filled')
 	const locked = () => finish.state() !== 'playing'
 	let stroke:
 		| {
@@ -126,7 +126,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 	onCleanup(clearStroke)
 
 	// A manual toggle overrides automatic clue completion for that line only.
-	const [dimmed, setDimmed] = createSignal<Record<string, boolean>>({})
+	const [dimmed, setDimmed] = finish.draft.signal<Record<string, boolean>>('dimmed', {})
 	const clueDimmed = (id: string, met: boolean) => dimmed()[id] ?? met
 	const toggleClue = (id: string, met: boolean) =>
 		setDimmed((prev) => ({ ...prev, [id]: !clueDimmed(id, met) }))

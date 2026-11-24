@@ -28,6 +28,7 @@ import { recordDailyPick } from '../lib/daily-picks'
 import type { GameDayRequest } from '../lib/day-request'
 import { markStartIntent, takeStartIntent } from '../lib/start-intent'
 import { todayPlayPath } from '../lib/today-play-path'
+import { readPlayDraftScope } from './play-scope'
 import { ResultActions } from './result-actions'
 
 const boards = new Map([
@@ -69,7 +70,14 @@ const arithmoFeedback = [
 	['absent', 'border-border bg-muted'],
 ] as const
 
-type State = DailySnapshot | { kind: 'locked' }
+type Playable = Extract<DailySnapshot, { kind: 'playable' }> & { draftScope?: string | null }
+type State = Exclude<DailySnapshot, { kind: 'playable' }> | Playable | { kind: 'locked' }
+
+async function withDraftScope(snapshot: State, archive: boolean): Promise<State> {
+	if (archive || snapshot.kind !== 'playable' || !snapshot.puzzleId) return snapshot
+	const draftScope = await readPlayDraftScope()
+	return { ...snapshot, draftScope: draftScope ?? null }
+}
 
 const failed = (error: unknown): State =>
 	isPlusRequiredError(ConnectError.from(error).rawMessage)
@@ -98,9 +106,9 @@ export function DailyPlay(props: {
 		mounted,
 		async (_, { refetching }): Promise<State> => {
 			// Keep the SSR snapshot on hydration; only a fallback or explicit retry reads again.
-			if (!refetching && props.initial) return props.initial
+			if (!refetching && props.initial) return withDraftScope(props.initial, archive)
 			try {
-				return await loadDailySnapshot(input)
+				return await withDraftScope(await loadDailySnapshot(input), archive)
 			} catch (error) {
 				return failed(error)
 			}
@@ -112,7 +120,10 @@ export function DailyPlay(props: {
 		if (starting() || !board) return
 		setStarting(true)
 		try {
-			const next = classifyDailyResponse(await startDaily({ ...input, puzzleDate }))
+			const next = await withDraftScope(
+				classifyDailyResponse(await startDaily({ ...input, puzzleDate })),
+				archive,
+			)
 			if (next.kind === 'playable') setEntered(true)
 			mutate(next)
 		} catch (error) {
@@ -131,6 +142,9 @@ export function DailyPlay(props: {
 	})
 	const snapshot = <K extends State['kind']>(kind: K) => {
 		const value = state.latest
+		// Do not mount editable real boards until the scope read has settled.
+		if (!archive && value?.kind === 'playable' && value.puzzleId && value.draftScope === undefined)
+			return undefined
 		return value?.kind === kind ? (value as Extract<State, { kind: K }>) : undefined
 	}
 	let seen = false
@@ -309,6 +323,7 @@ export function DailyPlay(props: {
 							mode={props.day.mode}
 							locale={props.data.locale}
 							difficulty={props.difficulty}
+							draftScope={value().draftScope ?? undefined}
 							onAlreadyPlayed={() => void refetch()}
 						/>
 					)

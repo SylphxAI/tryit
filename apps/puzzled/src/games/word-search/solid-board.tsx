@@ -41,9 +41,9 @@ export default function WordSearchBoard(props: DailyBoardProps) {
 function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 	const t = createTranslator(props.locale)
 	const { grid, words, theme } = props.data
-	const finish = createBoardFinish(props, 'word-search')
 	const locked = () => finish.state() !== 'playing'
-	const [found, setFound] = createSignal(new Map<string, Line>())
+	const finish = createBoardFinish(props, 'word-search')
+	const [found, setFound] = finish.draft.signal('found', new Map<string, Line>())
 	const [anchor, setAnchor] = createSignal<Position>()
 	const [preview, setPreview] = createSignal<Line>()
 	const [invalid, setInvalid] = createSignal(false)

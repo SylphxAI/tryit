@@ -13,12 +13,14 @@ import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { withIdempotencyKey } from '@/lib/idempotency-key'
 import { recordFirstFinishDay } from '@/shared/components/pwa-install-policy'
+import { createPlayDraft } from './play-draft'
 
 export type DailyBoardProps = {
 	puzzle: Extract<DailySnapshot, { kind: 'playable' }>
 	locale: Locale
 	mode?: 'daily' | 'archive'
 	difficulty?: PuzzleDifficulty
+	draftScope?: string
 	onAlreadyPlayed: () => void
 }
 
@@ -28,8 +30,19 @@ export function createBoardFinish(
 	gameSlug: string,
 	options?: { onRejected: (error: string) => void },
 ) {
-	const mountedAt = Date.now()
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
+	const draft = createPlayDraft(
+		props.mode !== 'archive' && props.puzzle.puzzleId && props.draftScope
+			? {
+					day: props.puzzle.puzzleDate,
+					game: gameSlug,
+					difficulty: props.difficulty,
+					puzzleId: props.puzzle.puzzleId,
+					owner: props.draftScope,
+				}
+			: undefined,
+		() => state() === 'playing',
+	)
 	const [score, setScore] = createSignal<number>()
 	const [revealJson, setRevealJson] = createSignal<string>()
 	let intent: SubmitGuessInput | undefined
@@ -44,12 +57,13 @@ export function createBoardFinish(
 			const result = await submitGuess(intent)
 			if (!disposed) {
 				if (result.valid && result.status === intent.status) {
+					draft.discard()
 					if (props.mode !== 'archive')
 						recordFirstFinishDay(intent.puzzleDate ?? props.puzzle.puzzleDate)
 					setRevealJson(result.revealJson)
 					if (isFieldSet(result, SubmitGuessResponseSchema.field.score)) setScore(result.score)
 					setState('accepted')
-				} else if (isAlreadyPlayedError(result.error)) props.onAlreadyPlayed()
+				} else if (isAlreadyPlayedError(result.error)) alreadyPlayed()
 				else if (
 					options &&
 					!result.valid &&
@@ -66,13 +80,18 @@ export function createBoardFinish(
 			}
 		} catch (error) {
 			if (!disposed) {
-				if (isAlreadyPlayedError(error)) props.onAlreadyPlayed()
+				if (isAlreadyPlayedError(error)) alreadyPlayed()
 				else setState('failed')
 			}
 		}
 	}
+	function alreadyPlayed() {
+		draft.discard()
+		props.onAlreadyPlayed()
+	}
 	return {
 		state,
+		draft,
 		result() {
 			if (state() !== 'accepted' || !intent) return
 			return {
@@ -96,7 +115,7 @@ export function createBoardFinish(
 				gameSlug,
 				status: options?.status ?? 'won',
 				attempts: options?.attempts ?? 1,
-				timeSpentMs: Math.max(0, Date.now() - mountedAt),
+				timeSpentMs: draft.elapsedMs(),
 				puzzleDate: props.puzzle.puzzleDate,
 				puzzleId: props.puzzle.puzzleId,
 				difficulty: options?.difficulty ?? props.difficulty,

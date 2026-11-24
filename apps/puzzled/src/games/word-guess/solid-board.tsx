@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { Delete } from 'lucide-solid'
 import { createMemo, createSignal, For, Index, onCleanup, onMount, Show } from 'solid-js'
+import { readPlayDraftScope } from '@/features/daily/solid/play-scope'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { ensureGuestSession } from '@/lib/connect/transport'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -34,14 +35,15 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 	const config = props.puzzle.puzzleData as { wordLength?: unknown; maxAttempts?: unknown } | null
 	const playable = config?.wordLength === WORD_LENGTH && config.maxAttempts === MAX_GUESSES
 	const puzzle = { puzzleId: props.puzzle.puzzleId, puzzleDate: props.puzzle.puzzleDate }
-	const [rows, setRows] = createSignal<FiveRow[]>([])
-	const [draft, setDraft] = createSignal('')
+	const finish = createBoardFinish(props, gameSlug)
+	const [rows, setRows] = finish.draft.signal<FiveRow[]>('rows', [])
+	const [draft, setDraft] = finish.draft.signal('draft', '')
+	const [pendingWord, setPendingWord] = createSignal<string>()
 	const [grading, setGrading] = createSignal(false)
 	const [checkingScope, setCheckingScope] = createSignal(false)
 	const [error, setError] = createSignal<string>()
 	const [showInputHint, setShowInputHint] = createSignal(false)
 	const [outcome, setOutcome] = createSignal<'won' | 'lost'>()
-	const finish = createBoardFinish(props, gameSlug)
 	const keys = createMemo(() => wordKeyFeedback(rows()))
 	const shareText = () =>
 		rows()
@@ -79,6 +81,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 	function applyRun(run: FiveRun, scope: string | undefined) {
 		const next = run.rows
 		setRows(next)
+		setPendingWord(undefined)
 		setDraft(run.failedWord ?? '')
 		setError(run.failedWord ? t('common.error') : undefined)
 		const status = next.at(-1)?.tiles.every((tile) => tile === 'correct')
@@ -98,7 +101,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		if (pending) {
 			setGrading(true)
 			setRows(run.rows)
-			setDraft(pending.word)
+			setPendingWord(pending.word)
 			await pending.settled
 		}
 		if (!disposed) applyRun(run, scope)
@@ -123,16 +126,24 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		try {
 			// Bootstrap before reading the HttpOnly credential scope, just as CheckGuess does.
 			await ensureGuestSession().catch(() => undefined)
-			const scope = await readFiveRunScope()
+			const [scope, draftScope] = await Promise.all([
+				readFiveRunScope(),
+				props.draftScope ? readPlayDraftScope() : undefined,
+			])
 			if (disposed) return
-			if (!scope && visibleScope) throw new Error('five_scope_unavailable')
+			if ((!scope && visibleScope) || (props.draftScope && draftScope !== props.draftScope)) {
+				throw new Error('five_scope_unavailable')
+			}
 			const previous = visibleRun
-			const run = scope === visibleScope && previous ? previous : openFiveRun(scope, puzzle)
+			const same = previous ? scope === visibleScope : true
+			const run = same && previous ? previous : openFiveRun(scope, puzzle, same ? rows() : [])
 			visibleRun = run
 			visibleScope = scope
 			// If credentials or rows changed, reconcile what was already graded
 			// rather than sending a word entered against a different view.
-			if (!run.pending && (previous === run || (!previous && !run.rows.length))) {
+			if (!run.pending && (previous === run || (!previous && run.rows === rows()))) {
+				// Pending input belongs only to the document-scoped request, never the draft.
+				setDraft('')
 				sendFiveGuess(run, puzzle, word)
 			}
 			await watchRun(run, scope)
@@ -216,7 +227,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 											const letter = () =>
 												(
 													rows()[row]?.word[col] ??
-													(row === rows().length ? draft()[col] : '') ??
+													(row === rows().length ? (pendingWord() ?? draft())[col] : '') ??
 													''
 												).toUpperCase()
 											return (

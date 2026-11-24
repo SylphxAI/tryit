@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
 import { productDayKey } from '../src/lib/product-day'
+import { capture } from './google-tag-support'
 
 const wordGames = [
 	'word-guess',
@@ -419,3 +420,201 @@ for (const [width, height] of [
 		})
 	}
 }
+
+const reloadSolution = Array.from({ length: 9 }, (_, r) =>
+	Array.from({ length: 9 }, (_, c) => {
+		const digit = ((r * 3 + Math.floor(r / 3) + c) % 9) + 1
+		return digit === 8 ? 6 : digit === 6 ? 8 : digit
+	}),
+)
+
+for (const [width, height] of [
+	[1440, 900],
+	[390, 844],
+]) {
+	test(`guest Sudoku survives both reloads before consent at ${width}×${height}`, async ({
+		page,
+		context,
+	}) => {
+		await page.setViewportSize({ width, height })
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		const google = await capture(page)
+		await page.addInitScript(() => {
+			const shifts: number[] = []
+			new PerformanceObserver((list) => {
+				for (const entry of list.getEntries() as (PerformanceEntry & {
+					value: number
+					hadRecentInput: boolean
+				})[]) {
+					if (!entry.hadRecentInput) shifts.push(entry.value)
+				}
+			}).observe({ type: 'layout-shift', buffered: true })
+			Object.defineProperty(window, 'observedShifts', { value: shifts })
+		})
+		const blank = [
+			[2, 1],
+			[8, 7],
+			[8, 8],
+		]
+		const daily = {
+			...playable('sudoku'),
+			difficulty: 'medium',
+			puzzleDataJson: JSON.stringify({
+				difficulty: 'medium',
+				grid: reloadSolution.map((row, r) =>
+					row.map((v, c) => (blank.some(([br, bc]) => br === r && bc === c) ? null : v)),
+				),
+			}),
+		}
+		let starts = 0
+		let finished = false
+		await page.route('**/v1/guest/session', (route) =>
+			route.fulfill({
+				json: { issued: true },
+				headers: { 'Set-Cookie': '__Host-puzzled_guest=reload-fixture; HttpOnly; Secure; Path=/' },
+			}),
+		)
+		await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+			route.fulfill({
+				json: starts
+					? daily
+					: {
+							gameSlug: 'sudoku',
+							puzzleDate: daily.puzzleDate,
+							canPlay: true,
+							requiresStart: true,
+						},
+			}),
+		)
+		await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) => {
+			expect(route.request().postDataJSON()).toMatchObject({
+				gameSlug: 'sudoku',
+				difficulty: 'medium',
+				puzzleDate: daily.puzzleDate,
+			})
+			starts++
+			return route.fulfill({ json: { daily } })
+		})
+		await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => {
+			const body = route.request().postDataJSON()
+			expect(body).toMatchObject({ status: 'won', puzzleId: daily.puzzleId, difficulty: 'medium' })
+			expect(JSON.parse(body.submissionJson)).toMatchObject({ finalGrid: reloadSolution })
+			expect(Number(body.timeSpentMs)).toBeGreaterThanOrEqual(3_100)
+			finished = true
+			return route.fulfill({ json: { valid: true, status: 'won', score: 900, gameSlug: 'sudoku' } })
+		})
+		await page.goto('/')
+		expect(await context.cookies()).toEqual([])
+		const banner = page.locator('[data-consent-banner]')
+		await expect(banner).toBeVisible()
+		const hero = page.getByRole('link', { name: "Play today's Sudoku", exact: true })
+		// The daily hero rotates on the server calendar. On other days, the
+		// Sudoku Home tile uses the same one-tap intent and medium play route.
+		await ((await hero.count()) ? hero : page.locator('[data-home-game="sudoku"]')).click()
+		await expect(page).toHaveURL(/\/games\/sudoku\?difficulty=medium&start=1#play$/)
+		const board = page.getByRole('group', { name: 'Sudoku', exact: true })
+		const move = board.getByRole('button', { name: 'Row 3, Column 2, 6', exact: true })
+		const notes = board.getByRole('button', { name: 'Row 9, Column 8', exact: true })
+		const digit = (value: number) =>
+			page.locator('.play-tools').getByRole('button', { name: String(value), exact: true })
+		await board.getByRole('button', { name: 'Row 3, Column 2', exact: true }).click()
+		await digit(6).click()
+		await expect(move).toHaveText('6')
+		await notes.click()
+		await page.getByRole('button', { name: 'Notes', exact: true }).click()
+		await digit(4).click()
+		await expect(notes.locator('[data-visible]')).toHaveText('4')
+		await expect
+			.poll(() =>
+				page.evaluate(() =>
+					Object.keys(sessionStorage).some((key) => key.startsWith('puzzled:play-draft:v2:')),
+				),
+			)
+			.toBe(true)
+		await page.evaluate(() => document.fonts.ready.then(() => undefined))
+		const geometry = await page.locator('#play').boundingBox()
+		const cdp = await context.newCDPSession(page)
+		// Real elapsed time is part of the assertion, not a save debounce.
+		await new Promise((resolve) => setTimeout(resolve, 3_100))
+		for (const bypass of [false, true]) {
+			if (bypass) {
+				const loaded = page.waitForEvent('domcontentloaded')
+				await cdp.send('Page.reload', { ignoreCache: true })
+				await loaded
+			} else await page.reload()
+			await expect(move).toHaveText('6')
+			await expect(notes.locator('[data-visible]')).toHaveText('4')
+			await expect(banner).toBeVisible()
+			await page.evaluate(() => document.fonts.ready.then(() => undefined))
+			await twoFrames(page)
+			expect(await page.locator('#play').boundingBox()).toEqual(geometry)
+			const cls = await page.evaluate(() =>
+				(window as unknown as { observedShifts: number[] }).observedShifts.reduce(
+					(sum, value) => sum + value,
+					0,
+				),
+			)
+			expect(cls).toBeLessThan(0.05)
+		}
+		expect(starts).toBe(1)
+		await page.getByRole('button', { name: 'Undo', exact: true }).click()
+		await expect(notes.locator('[data-visible]')).toHaveCount(0)
+		await expect(move).toHaveText('6')
+		await page.locator('.play-tools button[aria-pressed="true"]').click()
+		for (const [r, c] of blank.slice(1)) {
+			await board
+				.getByRole('button', { name: `Row ${r + 1}, Column ${c + 1}`, exact: true })
+				.click()
+			await digit(reloadSolution[r][c]).click()
+		}
+		await page.getByRole('button', { name: 'See your result', exact: true }).click()
+		await expect(page.locator('dialog:modal').filter({ hasText: 'Sudoku Complete' })).toBeVisible()
+		expect(finished).toBe(true)
+		await expect(banner).toBeVisible()
+		expect(google).toEqual([])
+		expect((await context.cookies()).map(({ name, httpOnly }) => ({ name, httpOnly }))).toEqual([
+			{ name: '__Host-puzzled_guest', httpOnly: true },
+		])
+		const storage = await page.evaluate(async () => ({
+			local: Object.keys(localStorage).sort(),
+			session: Object.keys(sessionStorage),
+			idb: (await indexedDB.databases()).map(({ name }) => name),
+		}))
+		expect(storage).toEqual({
+			local: [`puzzled:picks:${daily.puzzleDate}`, 'puzzled:pwa:first-finish-day'],
+			session: ['puzzled:play-draft-tab'],
+			idb: [],
+		})
+	})
+}
+
+test('Path restores only the same viewer and served puzzle', async ({ page, context, baseURL }) => {
+	if (!baseURL) throw new Error('Path requires the fixture server URL')
+	const account = (value: string) => ({
+		name: 'puzzled_session',
+		value,
+		url: baseURL,
+		httpOnly: true,
+	})
+	await context.addCookies([account('path-fixture-a')])
+	const daily = playable('number-path')
+	await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+		route.fulfill({ json: daily }),
+	)
+	await page.goto('/games/number-path?start=1#play')
+	const path = page.locator('[data-number-path-board]')
+	const clue = path.getByRole('button', { name: /, Clue 1$/ }).first()
+	await clue.click()
+	await expect(clue).toHaveAttribute('aria-pressed', 'true')
+	await page.reload()
+	await expect(clue).toHaveAttribute('aria-pressed', 'true')
+	await context.addCookies([account('path-fixture-b')])
+	await page.reload()
+	await expect(clue).toHaveAttribute('aria-pressed', 'false')
+	await context.addCookies([account('path-fixture-a')])
+	await page.reload()
+	await expect(clue).toHaveAttribute('aria-pressed', 'true')
+	daily.puzzleId = 'f5477d51-a783-48bc-98e0-c37620319042'
+	await page.reload()
+	await expect(clue).toHaveAttribute('aria-pressed', 'false')
+})

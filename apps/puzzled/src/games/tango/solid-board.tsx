@@ -31,9 +31,9 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 	const cells = initial.flatMap((line, row) =>
 		line.map(({ isGiven }, col) => ({ row, col, isGiven })),
 	)
-	const [grid, setGrid] = createSignal(initial)
-	const [lockedClue, setLockedClue] = createSignal(false)
 	const finish = createBoardFinish(props, 'duo')
+	const [grid, setGrid] = finish.draft.signal('grid', initial)
+	const [lockedClue, setLockedClue] = createSignal(false)
 	const locked = () => finish.state() !== 'playing'
 	const conflicts = createMemo(
 		() => new Set(getConflicts(grid()).map(({ row, col }) => row * size + col)),

@@ -47,7 +47,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 			setFeedback('incorrect')
 		},
 	})
-	const [state, setState] = createSignal(createInitialState(data))
+	const [state, setState] = finish.draft.signal('state', createInitialState(data))
 	const playing = () => finish.state() === 'playing'
 	const cells: Record<string, HTMLButtonElement> = {}
 	const numbers = new Map(
