@@ -131,25 +131,27 @@ export function ResultActions(props: {
 	)
 	return (
 		<>
-			<button
-				type="button"
-				class="min-h-11 font-semibold underline"
-				disabled={pending()}
-				onClick={() => void share(false)}
-			>
-				{t('common.share')}
-			</button>
-			<ResultDetails locale={props.locale} model={model()}>
+			<div class="inline-flex max-w-full flex-wrap items-center justify-center gap-2 max-md:flex">
 				<button
 					type="button"
-					class="min-h-11 font-semibold underline"
+					class="min-h-11 min-w-11 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
 					disabled={pending()}
-					onClick={() => void share(true)}
+					onClick={() => void share(false)}
 				>
-					{t('share.card.title')} · PNG
+					{t('common.share')}
 				</button>
-				{feedback()}
-			</ResultDetails>
+				<ResultDetails locale={props.locale} model={model()}>
+					<button
+						type="button"
+						class="min-h-11 font-semibold underline"
+						disabled={pending()}
+						onClick={() => void share(true)}
+					>
+						{t('share.card.title')} · PNG
+					</button>
+					{feedback()}
+				</ResultDetails>
+			</div>
 			{feedback()}
 		</>
 	)
