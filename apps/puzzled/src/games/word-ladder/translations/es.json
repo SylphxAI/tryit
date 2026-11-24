@@ -19,7 +19,7 @@
 	"steps": "{count, plural, one {# paso} other {# pasos}} · Mínimo: {minimum}",
 	"messages": {
 		"notInList": "No es una palabra válida",
-		"wrongLength": "La palabra debe tener la misma longitud",
+		"wrongLength": "Introduce una palabra de {number} letras",
 		"notOneChange": "Cambia exactamente una letra",
 		"alreadyUsed": "Ya has usado esta palabra"
 	}

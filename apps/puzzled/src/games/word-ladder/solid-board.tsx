@@ -145,7 +145,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 				<Show when={error()}>
 					{(key) => (
 						<p id="ladder-error" role="alert" class="text-sm text-destructive">
-							{t(`games.wordLadder.messages.${key()}`)}
+							{t(`games.wordLadder.messages.${key()}`, { number: wordLength })}
 						</p>
 					)}
 				</Show>

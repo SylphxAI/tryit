@@ -19,7 +19,7 @@
 	"steps": "{count} 手 · 最短 {minimum} 手",
 	"messages": {
 		"notInList": "有効な単語ではありません",
-		"wrongLength": "同じ文字数の単語にしてください",
+		"wrongLength": "{number} 文字の単語を入力してください",
 		"notOneChange": "変えるのはちょうど1文字だけです",
 		"alreadyUsed": "この単語はすでに使用済みです"
 	}

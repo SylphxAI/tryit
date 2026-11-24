@@ -118,6 +118,14 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 		else setInvalid(true)
 	}
 
+	function reset() {
+		if (locked()) return
+		clearPointer()
+		setFound(new Map())
+		setAnchor(undefined)
+		setInvalid(false)
+	}
+
 	return (
 		<div class="mx-auto w-full max-w-sm space-y-3">
 			<div class="flex items-center justify-between gap-2 text-sm">
@@ -129,15 +137,22 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 				</output>
 				<button
 					type="button"
-					class="grid size-11 place-items-center rounded-lg border border-border"
+					class="grid size-11 touch-manipulation place-items-center rounded-lg border border-border"
 					aria-label={t('common.reset')}
 					disabled={locked()}
-					onClick={() => {
-						clearPointer()
-						setFound(new Map())
-						setAnchor(undefined)
-						setInvalid(false)
+					onPointerUp={(event) => {
+						// After a touch drag Chromium can deliver the next tap's pointerup
+						// but suppress its click. Only activate a touch that started on
+						// this button (implicit capture) and still ends inside it.
+						if (
+							event.pointerType === 'touch' &&
+							event.isPrimary &&
+							event.currentTarget.hasPointerCapture(event.pointerId) &&
+							event.currentTarget.contains(document.elementFromPoint(event.clientX, event.clientY))
+						)
+							reset()
 					}}
+					onClick={reset}
 				>
 					<RotateCcw size={16} aria-hidden="true" />
 				</button>

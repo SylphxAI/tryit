@@ -19,7 +19,7 @@
 	"steps": "已走 {count} 步 · 最少 {minimum} 步",
 	"messages": {
 		"notInList": "不是有效的词",
-		"wrongLength": "词语长度必须相同",
+		"wrongLength": "请输入 {number} 个字母的单词",
 		"notOneChange": "必须只改一个字母",
 		"alreadyUsed": "这个词已经用过"
 	}

@@ -1,4 +1,4 @@
-import { devices, expect, type Locator, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 import nonogram from '../../../crates/puzzled-core/tests/fixtures/generate/nonogram.json'
 
 // Against the production build paired with scripts/serve-puzzle-fixture.ts.
@@ -7,14 +7,13 @@ test.beforeEach(async ({ page, baseURL }) => {
 	if (!['localhost', '127.0.0.1'].includes(new URL(baseURL ?? 'http://localhost:3000').hostname)) {
 		throw new Error('Game feedback checks require a local fixture')
 	}
+	await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
 	await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => route.abort())
 	await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => route.abort())
 })
 
 async function open(page: Page, slug: string, difficulty?: string, locale = 'en-US') {
-	await page.goto(
-		`/${locale}/games/${slug}?${difficulty ? `difficulty=${difficulty}&` : ''}start=1#play`,
-	)
+	await page.goto(`/${locale}/games/${slug}${difficulty ? `?difficulty=${difficulty}` : ''}#play`)
 	const decline = page.getByRole('button', { name: /^(Decline|拒絕)$/ })
 	if (await decline.isVisible()) await decline.click()
 	const board = page.locator('[data-game-stage="board"]')
@@ -85,7 +84,7 @@ test('Path highlights clue 1, explains blocked moves, then advances by taps and 
 	await expect(progress).toHaveText('2/36')
 	await mouseDrag(page, cell(5, 4), cell(6, 4))
 	await expect(progress).toHaveText('3/36')
-	await board.getByRole('button', { name: 'Reset', exact: true }).click()
+	await board.getByRole('button', { name: 'Start over', exact: true }).click()
 	await mouseDrag(page, first, cell(6, 4))
 	await expect(progress).toHaveText('3/36')
 })
@@ -144,7 +143,7 @@ test('Block Slide reports a blocked drag and Undo restores the last move', async
 	await page.mouse.up()
 	await expect(board.getByText(/That block cannot move in (this|that) direction/)).toBeVisible()
 	await expect(board.locator('[data-move-count]')).toHaveText('0')
-	await target.click()
+	await expect(target).toHaveAttribute('aria-pressed', 'true')
 	await page.keyboard.press('ArrowUp')
 	await expect(board.locator('[data-move-count]')).toHaveText('1')
 	await expect(target).toHaveAccessibleName(/Row 1/)
@@ -171,6 +170,7 @@ for (const viewport of [
 		const first = board.locator('[data-pip-cell="0,0"]')
 		await first.click()
 		await expect(board.getByText('Select a domino below first')).toBeVisible()
+		await expect(board.locator('[data-pip-tray]')).toHaveAttribute('data-highlight')
 		await board.locator('[data-pip-tile="0-1"]').click()
 		await first.click()
 		await board.locator('[data-pip-cell="1,1"]').click()
@@ -178,6 +178,13 @@ for (const viewport of [
 		await expect(first).toHaveAttribute('aria-pressed', 'true')
 		await board.locator('[data-pip-cell="1,0"]').click()
 		await expect(board.locator('[data-pip-tile="0-1"]')).toHaveCount(0)
+		await board.locator('[data-pip-tile="0-2"]').click()
+		await mouseDrag(
+			page,
+			board.locator('[data-pip-cell="0,1"]'),
+			board.locator('[data-pip-cell="0,2"]'),
+		)
+		await expect(board.locator('[data-pip-tile="0-2"]')).toHaveCount(0)
 	})
 }
 
@@ -217,7 +224,7 @@ test('Hive physical Enter submits instead of repeating a pointer-clicked control
 	const board = await open(page, 'word-hive')
 	const draft = board.locator('[data-hive-draft]')
 	await board.locator('button[data-letter]').first().click()
-	const letter = (await draft.textContent()).trim()
+	const letter = (await draft.textContent())?.trim() ?? ''
 	expect(letter).toMatch(/^[A-Z]$/)
 	await page.keyboard.press('Enter')
 	await expect(board.getByText('Too short (min 4 letters)')).toBeVisible()
@@ -234,7 +241,7 @@ test('Hive physical Enter submits instead of repeating a pointer-clicked control
 })
 
 test.describe('phone touch input', () => {
-	test.use({ ...devices['Pixel 7'], defaultBrowserType: 'chromium' })
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
 
 	test('Paint marks every cell crossed by a finger', async ({ page }) => {
 		const board = await open(page, 'nonogram', 'easy')
@@ -267,7 +274,7 @@ test.describe('phone touch input', () => {
 		await expect(board.getByText(/doesn.t match a word on the list/i)).toBeVisible()
 		await touchDrag(page, cell(1, 4), cell(1, 9)) // MELODY
 		await expect(progress).toHaveText('1/8')
-		await board.getByRole('button', { name: 'Reset', exact: true }).tap()
+		await board.getByRole('button', { name: 'Start over', exact: true }).tap()
 		await expect(progress).toHaveText('0/8')
 		await expect(board.locator('[data-found]')).toHaveCount(0)
 	})
