@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { ATTRIBUTION_SESSION_KEY, CONSENT_KEY } from '@/lib/storage-keys'
+import { CONSENT_KEY } from '@/lib/storage-keys'
+import { ENTRY_SURFACE_KEY } from './checkout-entry-surface'
 import { setConsentContext } from './consent'
 import { trackGa4KeyEvent } from './ga4-key-events'
 import { createGoogleTag, setActiveGoogleTag, type TagWindow } from './google-tag'
@@ -27,12 +28,14 @@ function installBrowserStubs() {
 	g.sessionStorage = sessionStorage
 	g.window = {
 		gtag,
-		location: { origin: 'https://tryit.fun', hostname: 'tryit.fun' },
+		addEventListener: () => {},
+		removeEventListener: () => {},
+		location: { href: 'https://tryit.fun/', origin: 'https://tryit.fun', hostname: 'tryit.fun' },
 		dispatchEvent: () => {},
 		localStorage,
 		sessionStorage,
 	}
-	setConsentContext({ region: 'eea', gpc: false })
+	setConsentContext({ region: 'EEA', gpc: false })
 	const tag = createGoogleTag({
 		ids: { ga: 'G-TEST1234', ads: null },
 		win: g.window as TagWindow,
@@ -41,7 +44,12 @@ function installBrowserStubs() {
 			head: { appendChild: () => {} },
 			createElement: () => ({ src: '', async: false }),
 		},
-		consent: () => ({ analytics: true, marketing: false }),
+		consent: () => ({
+			analytics_storage: 'granted',
+			ad_storage: 'denied',
+			ad_user_data: 'denied',
+			ad_personalization: 'denied',
+		}),
 	})
 	tag.sync()
 	setActiveGoogleTag(tag)
@@ -73,7 +81,7 @@ describe('trackGa4KeyEvent', () => {
 		).toBe(false)
 
 		// Explicitly declined
-		localItems.set(CONSENT_KEY, 'declined')
+		localItems.set(CONSENT_KEY, 'denied')
 		expect(trackGa4KeyEvent('sign_up', { method: 'oauth' })).toBe(false)
 
 		expect(gtagCalls).toEqual([])
@@ -82,18 +90,15 @@ describe('trackGa4KeyEvent', () => {
 
 	test('returns false when there is no active GA destination', () => {
 		const { localItems } = installBrowserStubs()
-		localItems.set(CONSENT_KEY, 'accepted')
+		localItems.set(CONSENT_KEY, 'granted')
 		setActiveGoogleTag(null)
 		expect(trackGa4KeyEvent('sign_up', { method: 'email' })).toBe(false)
 	})
 
 	test('post-consent emits sign_up and begin_checkout with custom dimensions', () => {
 		const { localItems, sessionItems, gtagCalls } = installBrowserStubs()
-		localItems.set(CONSENT_KEY, 'accepted')
-		sessionItems.set(
-			ATTRIBUTION_SESSION_KEY,
-			encodeURIComponent('s=google&es=seo_daily-word-and-logic-puzzles-online'),
-		)
+		localItems.set(CONSENT_KEY, 'granted')
+		sessionItems.set(ENTRY_SURFACE_KEY, 'seo_daily-word-and-logic-puzzles-online')
 
 		expect(trackGa4KeyEvent('sign_up', { method: 'oauth' })).toBe(true)
 		expect(
@@ -134,7 +139,7 @@ describe('trackGa4KeyEvent', () => {
 
 	test('strips undefined, empty, and PII fields', () => {
 		const { localItems, gtagCalls } = installBrowserStubs()
-		localItems.set(CONSENT_KEY, 'accepted')
+		localItems.set(CONSENT_KEY, 'granted')
 
 		expect(
 			trackGa4KeyEvent('begin_checkout', {
@@ -167,11 +172,8 @@ describe('trackGa4KeyEvent', () => {
 
 	test('falls back to the checkout trigger instead of sending arbitrary inbound attribution', () => {
 		const { localItems, sessionItems, gtagCalls } = installBrowserStubs()
-		localItems.set(CONSENT_KEY, 'accepted')
-		sessionItems.set(
-			ATTRIBUTION_SESSION_KEY,
-			encodeURIComponent('s=google&es=Ada-Lovelace-12345678'),
-		)
+		localItems.set(CONSENT_KEY, 'granted')
+		sessionItems.set(ENTRY_SURFACE_KEY, 'Ada-Lovelace-12345678')
 		expect(
 			trackGa4KeyEvent('begin_checkout', {
 				entry_surface: 'Ada Lovelace',

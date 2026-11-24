@@ -1,93 +1,90 @@
-import {
-	ATTRIBUTION_SESSION_KEY,
-	CONSENT_KEY,
-	CONSENT_TIMESTAMP_KEY,
-	MARKETING_CONSENT_KEY,
-} from '@/lib/storage-keys'
-import type { ConsentRegion } from './consent-region'
+import { createSignalBrowser, resolveEffectiveConsent } from '@sylphx/sdk/signal'
+import { CONSENT_KEY, SIGNAL_STORAGE_KEY } from '@/lib/storage-keys'
 
-export type ConsentStatus = 'pending' | 'accepted' | 'declined'
-export type ConsentContext = { region: ConsentRegion; gpc: boolean }
-
-export function resolveConsent(input: {
-	context: ConsentContext | null
-	browserGpc: boolean
-	status: ConsentStatus
-	marketing: ConsentStatus
-	storageAvailable: boolean
-}) {
-	const { context, status, marketing, storageAvailable } = input
-	const gpc = input.browserGpc || context?.gpc === true
-	const available = context !== null && storageAvailable && !gpc
-	return {
-		gpc,
-		ready: context !== null,
-		status,
-		storageAvailable,
-		prompt: available && context.region === 'eea' && status === 'pending',
-		analytics:
-			available &&
-			(status === 'accepted' || (status === 'pending' && context.region === 'non-eea')),
-		marketing: available && status === 'accepted' && marketing === 'accepted',
-	}
-}
-
+export type ConsentContext = { region: 'EEA' | 'ROW'; gpc: boolean }
+const EVENT = 'consent-change'
+export const CHECKOUT_QUOTE_KEY = 'puzzled:ads:checkout-quote'
 let context: ConsentContext | null = null
-let optedOut = false
+let browser: ReturnType<typeof createSignalBrowser> | undefined
 
-function statusOf(value: string | null): ConsentStatus {
-	return value === 'accepted' || value === 'declined' ? value : 'pending'
+function storedChoice() {
+	try {
+		return window.localStorage.getItem(CONSENT_KEY)
+	} catch {
+		return undefined
+	}
 }
 
 export function cookieConsent() {
-	const browserGpc =
-		typeof navigator !== 'undefined' &&
-		(navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true
-	let status: ConsentStatus = 'pending'
-	let marketing: ConsentStatus = 'pending'
-	let storageAvailable = false
-	try {
-		if (typeof window !== 'undefined') {
-			status = statusOf(window.localStorage.getItem(CONSENT_KEY))
-			marketing = statusOf(window.localStorage.getItem(MARKETING_CONSENT_KEY))
-			storageAvailable = true
-		}
-	} catch {
-		// An unreadable stored opt-out must not be treated as a default grant.
+	const signals = browser?.getConsent() ?? resolveEffectiveConsent({ storedChoice: 'denied' })
+	const gpc =
+		context?.gpc === true ||
+		(typeof navigator !== 'undefined' && Reflect.get(navigator, 'globalPrivacyControl') === true)
+	const choice = storedChoice()
+	const analytics = signals.analytics_storage === 'granted'
+	return {
+		signals,
+		gpc,
+		ready: context !== null,
+		storageAvailable: browser !== undefined && choice !== undefined,
+		prompt: browser !== undefined && context?.region === 'EEA' && !gpc && choice === null,
+		analytics,
+		marketing: signals.ad_storage === 'granted',
+		explicit: choice === 'granted' || choice === 'analytics_only',
 	}
-	return resolveConsent({
-		context,
-		browserGpc,
-		status: optedOut ? 'declined' : status,
-		marketing,
-		storageAvailable,
-	})
 }
 
-/** Effective permission for Google Analytics, including a regional default. */
-export function canTrackAnalytics(): boolean {
+export function hasAnalyticsConsent(): boolean {
 	return cookieConsent().analytics
 }
 
-/** Other integrations retain their explicit-grant boundary. */
-export function hasAnalyticsConsent(): boolean {
+/** Linking a shared-result visit to a player still requires affirmative consent. */
+export function hasExplicitAnalyticsConsent(): boolean {
 	const consent = cookieConsent()
-	return consent.analytics && consent.status === 'accepted'
+	return consent.analytics && consent.explicit
 }
 
 export function canStoreMarketing(): boolean {
-	return cookieConsent().marketing
+	const consent = cookieConsent()
+	return consent.marketing && consent.explicit
 }
-
-const EVENT = 'consent-change'
 
 export function notifyConsentChange(): void {
 	window.dispatchEvent(new Event(EVENT))
 }
 
 export function setConsentContext(value: ConsentContext | null): void {
+	browser?.dispose()
+	browser = undefined
 	context = value
+	if (value) {
+		// Migrate affirmative choices without upgrading analytics-only grants.
+		try {
+			const storage = window.localStorage
+			if (storage.getItem(CONSENT_KEY) === null) {
+				const analytics = storage.getItem('puzzled:consent:cookie')
+				const marketing = storage.getItem('puzzled:consent:marketing')
+				if (analytics !== null || marketing !== null) {
+					storage.setItem(
+						CONSENT_KEY,
+						analytics === 'accepted'
+							? marketing === 'accepted'
+								? 'granted'
+								: 'analytics_only'
+							: 'denied',
+					)
+				}
+			}
+			browser = createSignalBrowser({ ...value, storageKey: SIGNAL_STORAGE_KEY })
+		} catch {
+			// If an old choice cannot be read or carried forward, leave defaults off.
+		}
+	}
 	if (typeof window !== 'undefined') notifyConsentChange()
+}
+
+export function captureSignalTouch() {
+	return browser?.capture() ?? {}
 }
 
 export function onConsentChange(callback: () => void): () => void {
@@ -96,26 +93,15 @@ export function onConsentChange(callback: () => void): () => void {
 	return () => window.removeEventListener(EVENT, callback)
 }
 
-export const CHECKOUT_QUOTE_KEY = 'puzzled:ads:checkout-quote'
-
-export function saveCookieChoice(status: 'accepted' | 'declined'): void {
+export function saveCookieChoice(
+	choice: Parameters<ReturnType<typeof createSignalBrowser>['setConsent']>[0],
+): void {
 	const consent = cookieConsent()
-	if (status === 'accepted' && (!consent.ready || consent.gpc || !consent.storageAvailable)) return
-	if (status === 'declined') optedOut = true
-	try {
-		// The analytics buttons grant analytics only and revoke any historic ad grant.
-		if (status === 'declined') window.localStorage.setItem(CONSENT_KEY, status)
-		window.localStorage.setItem(MARKETING_CONSENT_KEY, 'declined')
-		window.localStorage.setItem(CONSENT_TIMESTAMP_KEY, new Date().toISOString())
-		if (status === 'accepted') window.localStorage.setItem(CONSENT_KEY, status)
-		if (status === 'accepted') optedOut = false
-	} catch {
-		// An unsuccessful grant must not enable tracking. A decline still applies now.
-	}
-	if (status === 'declined') {
+	if (choice !== 'denied' && (consent.gpc || !consent.storageAvailable)) return
+	browser?.setConsent(choice)
+	if (choice === 'denied') {
 		try {
 			window.localStorage.removeItem(CHECKOUT_QUOTE_KEY)
-			window.sessionStorage.removeItem(ATTRIBUTION_SESSION_KEY)
 		} catch {
 			// Non-essential storage may be blocked.
 		}

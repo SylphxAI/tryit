@@ -5,8 +5,7 @@
  */
 import { create } from '@bufbuild/protobuf'
 import { createClient } from '@connectrpc/connect'
-import { checkoutEntrySurface } from '@/features/analytics/lib/checkout-entry-surface'
-import { cookieConsent } from '@/features/analytics/lib/consent'
+import { checkoutSignalHeaders } from '@/features/analytics/lib/checkout-signal'
 import {
 	BillingService,
 	CancelSubscriptionRequestSchema,
@@ -19,12 +18,6 @@ import {
 	ResetFamilyInviteRequestSchema,
 	ResumeSubscriptionRequestSchema,
 } from '@/gen/connect/puzzled/v1/billing_pb'
-import {
-	ATTRIBUTION_HEADER,
-	nextSessionAttribution,
-	RETURN_TO_HEADER,
-	readSessionAttribution,
-} from '@/lib/attribution'
 import { getConnectTransport } from './transport'
 
 function client() {
@@ -39,38 +32,8 @@ export async function startCheckout(
 	returnTo?: string,
 	checkoutTrigger?: string,
 ) {
-	const headers: Record<string, string> = {}
-	const consent = cookieConsent()
-	// A regional default is not an explicit grant for settled-purchase attribution.
-	if (consent.analytics && consent.status === 'accepted') {
-		headers['x-puzzled-analytics-storage'] = 'granted'
-	}
-	let surface = checkoutEntrySurface(checkoutTrigger, null)
-	if (
-		typeof window !== 'undefined' &&
-		consent.ready &&
-		consent.storageAvailable &&
-		!consent.gpc &&
-		consent.status !== 'declined'
-	) {
-		try {
-			const existing = readSessionAttribution(window.sessionStorage)
-			surface = checkoutEntrySurface(checkoutTrigger, window.sessionStorage)
-			const action = nextSessionAttribution({
-				existing,
-				search: '',
-				analyticsDeclined: false,
-				marketingDeclined: !consent.marketing,
-			})
-			const attribution =
-				action.kind === 'keep' ? existing : action.kind === 'set' ? action.value : null
-			if (attribution) headers[ATTRIBUTION_HEADER] = attribution
-		} catch {
-			// Storage denial never blocks checkout.
-		}
-	}
-	if (surface) headers['x-puzzled-entry-surface'] = surface
-	if (returnTo) headers[RETURN_TO_HEADER] = returnTo
+	const headers = checkoutSignalHeaders(checkoutTrigger)
+	if (returnTo) headers['x-puzzled-return-to'] = returnTo
 	const res = await client().createCheckout(
 		create(CreateCheckoutRequestSchema, { planId, locale, currency, immediateSupplyConsent }),
 		Object.keys(headers).length > 0 ? { headers } : undefined,

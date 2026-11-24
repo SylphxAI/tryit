@@ -578,11 +578,16 @@ impl PreferencesService for PreferencesConnectService {
             .get_all(axum::http::header::COOKIE)
             .iter()
             .filter_map(|value| value.to_str().ok())
-            .find_map(puzzled_core::attribution::from_cookie_header);
+            .flat_map(|cookie| cookie.split(';'))
+            .filter_map(|pair| pair.trim().strip_prefix("puzzled_signup_attr="))
+            .find_map(puzzled_core::attribution::Attribution::from_cookie);
         // An advertising-only cookie (click id, no tags) writes no analytics row and
         // does not use up the account's one first-touch row.
         let (Some(tags), Some(pool)) = (
-            tags.filter(puzzled_core::attribution::Attribution::has_tag),
+            tags.filter(|tags| {
+                !crate::capabilities::money::checkout_attribution::gpc(ctx.headers())
+                    && tags.has_tag()
+            }),
             &self.state.pool,
         ) else {
             return Response::ok(RecordSignupAttributionResponse::default());

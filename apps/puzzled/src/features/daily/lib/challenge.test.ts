@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { create, fromJson } from '@bufbuild/protobuf'
+import { parseSignalAttribution } from '@sylphx/sdk/signal'
+import { SIGNUP_ATTRIBUTION_COOKIE, syncReferral } from '@/features/analytics/lib/referral'
 import { GetSharedResultResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
-import { attributionCookieValue } from '@/lib/attribution'
 import { CHALLENGE_KEY } from '@/lib/storage-keys'
 import {
 	explicitChallengeGame,
@@ -127,15 +128,31 @@ describe('a shared result is non-spoiler by construction', () => {
 
 describe('ref attribution', () => {
 	test('a share link lands with its share id as the first-touch ref and utm_source=share', () => {
-		const path = shareLandingPath(ID)
-		const [pathname, search] = path.split('?')
-		const cookie = attributionCookieValue(`?${search}`, pathname ?? '/', 1790000000000)
-		const decoded = new URLSearchParams(decodeURIComponent(cookie ?? ''))
-		// `r` is what the api stores as account_attribution.ref and reads as the share id.
-		expect(decoded.get('r')).toBe(ID)
-		expect(decoded.get('s')).toBe('share')
-		expect(decoded.get('p')).toBe(`/r/${ID}`)
-		expect(decoded.get('at')).toBe('1790000000000')
+		const url = new URL(shareLandingPath(ID), 'https://tryit.fun')
+		expect(url.pathname).toBe(`/r/${ID}`)
+		expect(url.searchParams.has('ref')).toBe(false)
+		const globals = globalThis as unknown as Record<string, unknown>
+		const { window: originalWindow, document: originalDocument } = globals
+		const document = { cookie: '' }
+		globals.window = { location: url }
+		globals.document = document
+		try {
+			const input = {
+				pathname: url.pathname,
+				search: url.search,
+				touch: parseSignalAttribution(url),
+			}
+			syncReferral({ ...input, granted: false })
+			expect(document.cookie).toBe('')
+			syncReferral({ ...input, granted: true })
+			const [pair = ''] = document.cookie.split(';')
+			expect(pair.startsWith(`${SIGNUP_ATTRIBUTION_COOKIE}=`)).toBe(true)
+			const tags = new URLSearchParams(decodeURIComponent(pair.slice(pair.indexOf('=') + 1)))
+			expect(Object.fromEntries(tags)).toEqual({ r: ID, s: 'share' })
+		} finally {
+			globals.window = originalWindow
+			globals.document = originalDocument
+		}
 	})
 })
 

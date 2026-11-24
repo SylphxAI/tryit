@@ -3,12 +3,12 @@ import 'server-only'
 import { create } from '@bufbuild/protobuf'
 import { createClient } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
+import { SIGNUP_ATTRIBUTION_COOKIE } from '@/features/analytics/lib/referral'
 import {
 	PreferencesService,
 	RecordSignupAttributionRequestSchema,
 } from '@/gen/connect/puzzled/v1/preferences_pb'
 import { mergeServerConnectInit } from '@/lib/api/connect-fetch'
-import { ATTRIBUTION_COOKIE, hasAttributionCookie } from '@/lib/attribution'
 import { resolveServerConnectBaseUrl } from '@/lib/connect/transport'
 import { logger } from '@/lib/logger'
 
@@ -19,16 +19,20 @@ import { logger } from '@/lib/logger'
  */
 export async function recordSignupAttribution(
 	accessToken: string | undefined,
-	cookieHeader: string | null,
+	browserHeaders: Headers,
 	userAgent: string,
 ): Promise<void> {
 	// Every new account is recorded (the first-party signup count); the campaign tags
 	// are forwarded only when the attribution cookie is present.
 	if (!accessToken) return
-	const cookie = (hasAttributionCookie(cookieHeader ?? '') ? (cookieHeader ?? '') : '')
+	const gpc = browserHeaders
+		.get('Sec-GPC')
+		?.split(',')
+		.some((value) => value.trim() === '1')
+	const cookie = (gpc ? '' : (browserHeaders.get('Cookie') ?? ''))
 		.split(';')
 		.map((pair) => pair.trim())
-		.filter((pair) => pair.startsWith(`${ATTRIBUTION_COOKIE}=`))
+		.filter((pair) => pair.startsWith(`${SIGNUP_ATTRIBUTION_COOKIE}=`))
 		.join('; ')
 	try {
 		const transport = createConnectTransport({

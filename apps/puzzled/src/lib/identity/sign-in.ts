@@ -38,7 +38,7 @@ export async function completeSignIn(
 				: await sessionTimes(config, session.token, userAgent, destIdentityProjectId())
 		if (isNewUser({ flag: session.isNewUser, ...times, now: Date.now() / 1000 })) {
 			newAccount = true
-			await recordSignupAttribution(session.token, request.headers.get('cookie'), userAgent)
+			await recordSignupAttribution(session.token, request.headers, userAgent)
 		}
 	} catch (error) {
 		// Attribution never blocks a sign-in.

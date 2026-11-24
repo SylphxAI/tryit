@@ -189,24 +189,16 @@ end of Times Puzzles in pounds. We do not undercut on cost.
   (`billing:read` + `billing:write`), never a browser or general platform key.
   The free daily puzzle never reads Money. The outage policy is stated below.
 
-### Referral attribution
+### Referral and checkout attribution
 
-A landing with campaign tags (`utm_*`, `ref`; Tryit links use
-`utm_source=tryit&utm_medium=referral&utm_campaign=…&ref=<result id>`) is kept
-first-touch for 30 days in the `puzzled_attr` first-party cookie, only after
-analytics consent (declining clears it). Sign-up stores it once in
-`account_attribution`. Checkout passes the account's tags (or, without them,
-the cookie) to Money's checkout-session attribution. A Google Ads click id
-(`gclid`, `gbraid`, `wbraid`) on a landing is kept in the same cookie for 90
-days, only after *marketing* consent (the SDK `marketing` preference, mirrored
-to `puzzled:consent:marketing`; the banner grants analytics only today, so the
-click id is not stored until a marketing choice is offered). Withdrawing
-marketing consent removes it; declining everything clears the cookie. Checkout
-sends it from the live cookie, never from the account row, as
-`metadata.gclid` (or `gbraid` / `wbraid`) after a `[A-Za-z0-9_-]{1,100}`
-check; Money has no `client_reference_id`. No Stripe subscription
-metadata or local billing table is written. `/daily` redirects to today's
-free game and keeps the query string.
+Signal captures consented campaign tags and ad clicks in the browser for up to
+30 days. A separate first-touch referral cookie (no ad click IDs) still requires
+an affirmative analytics choice; sign-up records its tags in `account_attribution`.
+The same Signal consent snapshot gates the checkout RPC. Rust accepts only the
+three supported snapshots and honors Sec-GPC independently. Only permitted
+campaign dimensions go to Money, and Events gets the checkout ID, consent flags,
+and only the analytics and ad identifiers those flags allow. No raw browser
+URL, session cookie, or account ID enters the Events binding.
 
 ## 6. Conversion moments (ethical)
 
@@ -227,26 +219,13 @@ never for a Puzzled Plus subscriber ("no ads" is a Plus perk). The ad loads only
 after the visitor accepts cookies. The site's Content Security Policy allows the
 ad network's hosts only while ads are configured.
 
-### Google Analytics and Ads conversions
+### Google Analytics and advertising measurement
 
-Off until `GA_MEASUREMENT_ID` (GA4, `G-...`) or `GOOGLE_ADS_ID` (`AW-...`) is set in
-the web environment; with neither, no Google script, request or CSP host exists.
-The cookie banner has three equal choices: Decline, Settings (separate Analytics and
-Advertising switches, both off) and Accept (analytics only, never advertising). gtag.js is
-injected only when an effective consent choice permits it. In strict regions, with
-an unknown region, or with Global Privacy Control active, no Google tag loads
-without permission (GPC always denies). In other regions the unanswered default
-permits analytics only. Ads always need a separate opt-in, and ad personalization
-and Google signals are disabled. Tryit emits its own GA4 page views with the
-public page's locale, pathname and document title, omitting the query, fragment,
-and referrer. Games, shares and account routes do not emit page views. Keep
-Enhanced Measurement and Google signals disabled in GA4. Tryit also suppresses
-automatic page views (including history changes) and site search before tag startup. Events: `sign_up` (new
-account only, from Auth's new-account answer),
-`trial_start` (value = the plan's post-trial price in the checkout currency, plan as item id)
-and `purchase` on the checkout return, each once per Money checkout session (`s`); mark them as
-Ads conversions. "Change cookie choice" on the privacy page withdraws consent, deletes
-`_ga*` and `_gcl_*`, and reopens the banner.
+Signal uses opt-in in EEA/UK/CH and unknown regions; elsewhere both purposes
+are enabled by default unless the user opts out. An affirmative analytics-only
+choice preserves GA but disables ads and ad identifiers. GPC disables both.
+Public page views omit queries and referrers; paid conversion delivery belongs
+to Money and Events. AdSense slots remain limited to explicit full consent.
 
 ## 7. Metrics (supporting, not the North Star)
 

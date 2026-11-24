@@ -17,6 +17,8 @@ export function consentCopy(locale: Locale, t: Translate) {
 		message: t('consent.message'),
 		learnMore: t('consent.learnMore'),
 		accept: t('consent.accept'),
+		analyticsOnly: t('consent.analyticsOnly'),
+		full: t('consent.full'),
 		decline: t('consent.decline'),
 		change: t('consent.change'),
 		close: t('consent.close'),

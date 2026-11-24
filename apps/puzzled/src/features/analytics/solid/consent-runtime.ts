@@ -2,8 +2,11 @@ import { useIsRouting, useLocation } from '@solidjs/router'
 import { createEffect, onCleanup, onMount } from 'solid-js'
 import { subscriptionReturn } from '@/features/settings/solid/subscription-return'
 import { consumeSignUpCookie, type SignUpMethod } from '@/lib/identity/after-sign-up'
-import { CONSENT_KEY, MARKETING_CONSENT_KEY } from '@/lib/storage-keys'
+import { CONSENT_KEY } from '@/lib/storage-keys'
+import { syncEntrySurface } from '../lib/checkout-entry-surface'
+import { setCheckoutMeasurementId } from '../lib/checkout-signal'
 import {
+	captureSignalTouch,
 	cookieConsent,
 	notifyConsentChange,
 	onConsentChange,
@@ -20,6 +23,7 @@ import {
 	type TagWindow,
 	trackablePath,
 } from '../lib/google-tag'
+import { syncReferral } from '../lib/referral'
 
 function publicDocumentTitle(path: string): string | null {
 	const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
@@ -44,7 +48,7 @@ export function ConsentRuntime() {
 		// Only public paths track page views. Tag initialization also supports the
 		// explicit conversion on the subscription return page.
 		const checkoutReturn =
-			consent.status === 'accepted' &&
+			consent.analytics &&
 			/^(?:\/[^/]+)?\/settings\/subscription\/?$/.test(path) &&
 			subscriptionReturn(new URLSearchParams(search)).session !== null
 		const isPublic = trackablePath(path) !== null
@@ -60,12 +64,28 @@ export function ConsentRuntime() {
 		}
 	}
 
-	createEffect(sync)
+	function capture() {
+		if (isRouting() || typeof window === 'undefined') return
+		const { pathname, search } = location
+		const consent = cookieConsent()
+		if (!consent.ready) return
+		const touch = captureSignalTouch()
+		syncEntrySurface(search, consent.analytics)
+		syncReferral({ pathname, search, touch, granted: consent.analytics && consent.explicit })
+	}
+
+	createEffect(() => {
+		capture()
+		sync()
+	})
 	onMount(() => {
 		// Auth sets this only after creating an account. Never replay it on a later opt-in.
 		const method = consumeSignUpCookie(document)
-		if (cookieConsent().status === 'accepted') signup = method
-		const stop = onConsentChange(sync)
+		signup = method
+		const stop = onConsentChange(() => {
+			capture()
+			sync()
+		})
 		// SolidStart may insert the new title and canonical link after the
 		// location has committed. Recheck only after head content changes.
 		const metadata = new MutationObserver(sync)
@@ -77,7 +97,7 @@ export function ConsentRuntime() {
 			attributeFilter: ['href'],
 		})
 		const storageChanged = (event: StorageEvent) => {
-			if (event.key === null || event.key === CONSENT_KEY || event.key === MARKETING_CONSENT_KEY) {
+			if (event.key === null || event.key === CONSENT_KEY) {
 				notifyConsentChange()
 			}
 		}
@@ -94,7 +114,8 @@ export function ConsentRuntime() {
 				if (!response.ok) return
 				const data = await response.json()
 				if (abort.signal.aborted || typeof data?.gpc !== 'boolean') return
-				const region = data.region === 'non-eea' ? 'non-eea' : 'eea'
+				if (data.region !== 'ROW' && data.region !== 'EEA') return
+				const region = data.region
 				const ids = googleTagIds({
 					GA_MEASUREMENT_ID: typeof data.ids?.ga === 'string' ? data.ids.ga : undefined,
 					GOOGLE_ADS_ID: typeof data.ids?.ads === 'string' ? data.ids.ads : undefined,
@@ -104,11 +125,11 @@ export function ConsentRuntime() {
 						ids,
 						win: window as unknown as TagWindow,
 						doc: document as unknown as TagDocument,
-						consent: cookieConsent,
-						defaultAnalytics: () => region === 'non-eea' && cookieConsent().status === 'pending',
+						consent: () => cookieConsent().signals,
 					})
 					setActiveGoogleTag(tag)
 				}
+				setCheckoutMeasurementId(ids?.ga ?? null)
 				setConsentContext({ region, gpc: data.gpc })
 			} catch {
 				// If the HTTP privacy signal could not be read, leave measurement off.
@@ -120,6 +141,7 @@ export function ConsentRuntime() {
 			stop()
 			window.removeEventListener('storage', storageChanged)
 			setActiveGoogleTag(null)
+			setConsentContext(null)
 		})
 	})
 	return null

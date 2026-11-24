@@ -271,12 +271,8 @@ for (const viewport of VIEWPORTS) {
 				locale: 'en-US',
 			})
 			expect(capturedBody).not.toMatchObject({ immediateSupplyConsent: true })
-			const attrHeader = decodeURIComponent(capturedHeaders['x-puzzled-attribution'] ?? '')
-			expect(attrHeader).not.toContain('g=Cj0_e2e_test')
-			expect(attrHeader).not.toContain('gb=gb_e2e')
-			expect(attrHeader).not.toContain('wb=wb_e2e')
-			expect(attrHeader).not.toContain('fb=fb_e2e')
-			expect(attrHeader).toContain('s=google')
+			expect(capturedHeaders['x-puzzled-signal-attribution']).toBeUndefined()
+			expect(capturedHeaders['x-puzzled-signal-consent']).toBe('denied,denied,denied,denied')
 			expect(capturedHeaders['x-puzzled-return-to']).toBe('/games/sudoku')
 
 			// Post-payment unauthenticated claim prompt preserves return destination with zero secret leak.

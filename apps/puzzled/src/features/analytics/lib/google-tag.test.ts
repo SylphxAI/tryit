@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
 import { reportCheckoutReturn } from '@/features/plus/lib/checkout-return'
 import { CONSENT_KEY } from '@/lib/storage-keys'
 import { CHECKOUT_QUOTE_KEY, setConsentContext } from './consent'
 import {
 	cleanEventParams,
-	consentSignals,
 	createGoogleTag,
 	deleteGoogleCookies,
 	googleCookieNames,
@@ -18,13 +18,14 @@ import {
 	trackSignUp,
 } from './google-tag'
 
+const consentSignals = (choice: { analytics: boolean; marketing: boolean }) =>
+	resolveEffectiveConsent({
+		storedChoice: choice.marketing ? 'granted' : choice.analytics ? 'analytics_only' : 'denied',
+	})
+
 const IDS = { ga: 'G-TEST1234', ads: 'AW-123456789' }
 
-function harness(
-	choice: { analytics: boolean; marketing: boolean },
-	ids = IDS,
-	defaultAnalytics = false,
-) {
+function harness(choice: { analytics: boolean; marketing: boolean }, ids = IDS) {
 	const scripts: string[] = []
 	const calls: unknown[][] = []
 	const store = new Map<string, string>()
@@ -43,8 +44,7 @@ function harness(
 		ids,
 		win,
 		doc,
-		consent: () => state,
-		defaultAnalytics: () => defaultAnalytics,
+		consent: () => consentSignals(state),
 	})
 	return { tag, scripts, calls, state, store, win }
 }
@@ -73,23 +73,6 @@ describe('ids', () => {
 	})
 })
 
-describe('consent mode', () => {
-	test('signals follow the two choices and personalization is never granted', () => {
-		expect(consentSignals({ analytics: true, marketing: false })).toEqual({
-			ad_storage: 'denied',
-			ad_user_data: 'denied',
-			ad_personalization: 'denied',
-			analytics_storage: 'granted',
-		})
-		expect(consentSignals({ analytics: false, marketing: true })).toEqual({
-			ad_storage: 'granted',
-			ad_user_data: 'granted',
-			ad_personalization: 'denied',
-			analytics_storage: 'denied',
-		})
-	})
-})
-
 describe('loading', () => {
 	test('queues only denied defaults and never loads without permission', () => {
 		const h = harness({ analytics: false, marketing: false })
@@ -103,16 +86,16 @@ describe('loading', () => {
 	test('consent and page-view guards precede Google startup and config', () => {
 		const h = harness({ analytics: true, marketing: true })
 		h.tag.sync()
-		expect(names(h.calls)).toEqual(['consent', 'consent', 'set', 'set', 'js', 'config', 'config'])
+		expect(names(h.calls)).toEqual(['consent', 'set', 'set', 'js', 'config', 'config'])
 		expect(h.scripts).toEqual(['https://www.googletagmanager.com/gtag/js?id=G-TEST1234'])
-		expect(h.calls[2]?.[1]).toEqual({
+		expect(h.calls[1]?.[1]).toEqual({
 			send_page_view: false,
 			page_location: 'https://tryit.fun/',
 			page_referrer: '',
 			page_title: 'Tryit',
 		})
-		expect(h.calls[3]).toEqual(['set', 'gtm.blocklist', ['ccd_em_page_view', 'ccd_em_site_search']])
-		expect(h.calls[5]?.[2]).toMatchObject({
+		expect(h.calls[2]).toEqual(['set', 'gtm.blocklist', ['ccd_em_page_view', 'ccd_em_site_search']])
+		expect(h.calls[4]?.[2]).toMatchObject({
 			send_page_view: false,
 			allow_google_signals: false,
 			allow_ad_personalization_signals: false,
@@ -122,20 +105,16 @@ describe('loading', () => {
 		expect(names(h.calls).filter((n) => n === 'config')).toHaveLength(2)
 	})
 
-	test('regional default grants analytics only', () => {
-		const h = harness({ analytics: true, marketing: false }, IDS, true)
+	test('analytics-only choice queues an analytics-only snapshot', () => {
+		const h = harness({ analytics: true, marketing: false })
 		h.tag.sync()
 		expect(h.calls[0]).toEqual(['consent', 'default', consentSignals(h.state)])
 	})
 
-	test('analytics only configures GA4; marketing only configures Ads', () => {
+	test('analytics-only configures GA4 without Ads', () => {
 		const a = harness({ analytics: true, marketing: false })
 		a.tag.sync()
 		expect(a.calls.filter((c) => c[0] === 'config').map((c) => c[1])).toEqual(['G-TEST1234'])
-		const m = harness({ analytics: false, marketing: true })
-		m.tag.sync()
-		expect(m.calls.filter((c) => c[0] === 'config').map((c) => c[1])).toEqual(['AW-123456789'])
-		expect(m.scripts).toEqual(['https://www.googletagmanager.com/gtag/js?id=AW-123456789'])
 	})
 
 	test('withdrawing denies every signal and disables the tag', () => {
@@ -192,7 +171,7 @@ describe('events', () => {
 		h.tag.sync()
 		expect(h.tag.event('sign_up', { method: 'email' })).toBe(true)
 		const event = h.calls.filter((c) => c[0] === 'event')[0]
-		expect(event?.[2]).toEqual({ method: 'email', send_to: ['AW-123456789'] })
+		expect(event?.[2]).toEqual({ method: 'email', send_to: ['G-TEST1234', 'AW-123456789'] })
 	})
 
 	test('parameters carry no personal data', () => {
@@ -229,6 +208,9 @@ describe('conversions', () => {
 		// biome-ignore lint/suspicious/noExplicitAny: stub browser window
 		;(globalThis as any).window = {
 			dispatchEvent: () => {},
+			addEventListener: () => {},
+			removeEventListener: () => {},
+			location: { href: 'https://tryit.fun/' },
 			localStorage: {
 				getItem: (k: string) => items.get(k) ?? null,
 				setItem: (k: string, v: string) => void items.set(k, v),
@@ -263,9 +245,9 @@ describe('conversions', () => {
 
 	test('confirmed paid return emits no browser purchase even with both destinations live', () => {
 		const { h, items } = install()
-		setConsentContext({ region: 'eea', gpc: false })
+		setConsentContext({ region: 'EEA', gpc: false })
 		try {
-			items.set(CONSENT_KEY, 'accepted')
+			items.set(CONSENT_KEY, 'granted')
 			rememberCheckoutQuote({ plan: 'individual_monthly', value: 4.99, currency: 'GBP' })
 			expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(true)
 			const paid = { sessionId: 'cs_fixture_paid_1', status: 'paid' as const }
@@ -336,7 +318,7 @@ describe('config privacy flags', () => {
 	test('Ads config also turns off personalization signals', () => {
 		const h = harness({ analytics: false, marketing: true })
 		h.tag.sync()
-		const cfg = h.calls.find((c) => c[0] === 'config')
+		const cfg = h.calls.find((c) => c[0] === 'config' && c[1] === IDS.ads)
 		expect(cfg?.[2]).toMatchObject({
 			allow_google_signals: false,
 			allow_ad_personalization_signals: false,

@@ -31,7 +31,7 @@
         "@solidjs/meta": "0.29.8",
         "@solidjs/router": "0.16.3",
         "@solidjs/start": "2.2.3",
-        "@sylphx/sdk": "^0.31.0",
+        "@sylphx/sdk": "0.32.36",
         "clsx": "^2.1.1",
         "cookie-es": "3.1.1",
         "drizzle-orm": "^0.45.1",
@@ -422,7 +422,7 @@
 
     "@sylphx/puzzled": ["@sylphx/puzzled@workspace:apps/puzzled"],
 
-    "@sylphx/sdk": ["@sylphx/sdk@0.31.0", "", {}, "sha512-Za2goPzr+yarxR6W9qpaCtBkAenOuVpG74vLz2xjjSa4x5KjBMBXeRbmZNKaFVR+UO8QLDA/yKbFwE5PlWqOHw=="],
+    "@sylphx/sdk": ["@sylphx/sdk@0.32.36", "", { "peerDependencies": { "react": ">=18" }, "optionalPeers": ["react"] }, "sha512-HwURU78LKiOOhGClxH8HcbLOwjAckCce+6rlqCHeYWVjP/PuNFNefcEY9ZXq/mNbICAxDJ8zmiMver8F9cip5g=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.3.5", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.24.5", "jiti": "^2.7.0", "lightningcss": "1.33.0", "magic-string": "^1.1.0", "source-map-js": "^1.2.1", "tailwindcss": "4.3.5" } }, "sha512-yT53FzV4ke0cr/BguDxhWMpm5MJu1O2muzk+tKw6lKHjODAsYArBbWwFbJiaksfzFv1tpkO9QHGzmfs1hJT66g=="],
 

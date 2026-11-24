@@ -37,7 +37,7 @@
 		"@solidjs/meta": "0.29.8",
 		"@solidjs/router": "0.16.3",
 		"@solidjs/start": "2.2.3",
-		"@sylphx/sdk": "^0.31.0",
+		"@sylphx/sdk": "0.32.36",
 		"clsx": "^2.1.1",
 		"cookie-es": "3.1.1",
 		"drizzle-orm": "^0.45.1",

@@ -1,6 +1,5 @@
 import { isComparisonSlug } from '@/features/marketing/components/comparison-slugs'
 import { PAYWALL_CHECKOUT_TRIGGERS } from '@/features/plus-offer/lib/plus-offer'
-import { readSessionEntrySurface } from '@/lib/attribution'
 
 export function trustedCheckoutTrigger(value: unknown): string | undefined {
 	if (typeof value !== 'string') return undefined
@@ -19,9 +18,28 @@ export function trustedEntrySurface(value: unknown): string | undefined {
 		return value
 }
 
-export function checkoutEntrySurface(
-	trigger: string | undefined,
-	storage: Pick<Storage, 'getItem'> | null,
-): string | undefined {
-	return trustedEntrySurface(readSessionEntrySurface(storage)) ?? trustedCheckoutTrigger(trigger)
+export const ENTRY_SURFACE_KEY = 'puzzled:attr:entry-surface'
+
+export function syncEntrySurface(search: string, granted: boolean) {
+	try {
+		const storage = window.sessionStorage
+		storage.removeItem('puzzled:attr:session') // Retired store could contain pre-consent tags.
+		if (!granted) storage.removeItem(ENTRY_SURFACE_KEY)
+		else if (!trustedEntrySurface(storage.getItem(ENTRY_SURFACE_KEY))) {
+			const surface = trustedEntrySurface(new URLSearchParams(search).get('entry_surface'))
+			if (surface) storage.setItem(ENTRY_SURFACE_KEY, surface)
+		}
+	} catch {
+		// Optional analytics storage.
+	}
+}
+
+export function checkoutEntrySurface(trigger?: unknown): string | undefined {
+	try {
+		const surface = trustedEntrySurface(window.sessionStorage.getItem(ENTRY_SURFACE_KEY))
+		if (surface) return surface
+	} catch {
+		// No stored source.
+	}
+	return trustedCheckoutTrigger(trigger)
 }

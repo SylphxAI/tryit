@@ -277,7 +277,7 @@ test('real sign-in endpoint requires browser Origin, valid proof and current con
 
 for (const [isNew, consent, expected] of [
 	[true, 'accepted', 1],
-	[true, 'pending', 0],
+	[true, 'pending', 1],
 	[true, 'declined', 0],
 	[false, 'accepted', 0],
 ] as const) {
@@ -291,7 +291,8 @@ for (const [isNew, consent, expected] of [
 		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
 		await page.addInitScript(
 			({ consent, key }) => {
-				if (consent !== 'pending') localStorage.setItem(key, consent)
+				if (consent !== 'pending')
+					localStorage.setItem(key, consent === 'accepted' ? 'analytics_only' : 'denied')
 				window.addEventListener('consent-change', () => {
 					document.documentElement.dataset.fixtureConsentReady = 'true'
 				})

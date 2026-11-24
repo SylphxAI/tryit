@@ -4,22 +4,32 @@ import { capture, commands, id } from './google-tag-support'
 
 const snapshotKey = 'fixture-tag-commands'
 
-for (const { consent, gpc, entry, surface } of [
-	{ consent: null, gpc: false, entry: 'seo_vs-nyt-games', surface: 'seo_vs-nyt-games' },
-	{ consent: 'accepted', gpc: false, entry: 'private_person_5551234', surface: 'pricing_card' },
-	{ consent: 'declined', gpc: false, entry: 'seo_vs-nyt-games', surface: 'pricing_card' },
-	{ consent: 'accepted', gpc: true, entry: 'seo_vs-nyt-games', surface: 'pricing_card' },
+for (const [country, consent, gpc, entry, expected] of [
+	['US', null, false, 'seo_vs-nyt-games', 'full'],
+	['CA', null, false, 'seo_vs-nyt-games', 'full'],
+	['AU', null, false, 'seo_vs-nyt-games', 'full'],
+	['DE', null, false, 'seo_vs-nyt-games', 'denied'],
+	['GB', null, false, 'seo_vs-nyt-games', 'denied'],
+	['CH', null, false, 'seo_vs-nyt-games', 'denied'],
+	['XX', null, false, 'seo_vs-nyt-games', 'denied'],
+	['US', 'analytics_only', false, 'private_person_5551234', 'analytics'],
+	['US', 'denied', false, 'seo_vs-nyt-games', 'denied'],
+	['US', 'granted', true, 'seo_vs-nyt-games', 'denied'],
 ] as const) {
-	test(`checkout handoff: ${gpc ? 'GPC' : (consent ?? 'non-EEA default')}`, async ({
+	test(`checkout handoff: ${country} / ${gpc ? 'GPC' : (consent ?? 'default')}`, async ({
 		page,
 		context,
 		baseURL,
 	}) => {
 		await capture(page)
-		const granted = consent === 'accepted' && !gpc
-		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US', ...(gpc ? { 'Sec-GPC': '1' } : {}) })
+		const granted = expected !== 'denied'
+		const surface = granted ? (entry === 'seo_vs-nyt-games' ? entry : 'pricing_card') : undefined
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': country, ...(gpc ? { 'Sec-GPC': '1' } : {}) })
 		const origin = baseURL ?? 'http://localhost:3000'
-		await context.addCookies([{ name: '_ga', value: 'GA1.1.12345.67890', url: origin }])
+		await context.addCookies([
+			{ name: '_ga', value: 'GA1.1.12345.67890', url: origin },
+			{ name: 'puzzled_currency', value: 'usd', url: origin },
+		])
 		await page.addInitScript(
 			({ consent, key }) => {
 				if (consent) localStorage.setItem(key, consent)
@@ -30,7 +40,7 @@ for (const { consent, gpc, entry, surface } of [
 		await page.route('**/__fixture-checkout', (route) =>
 			route.fulfill({ body: 'Synthetic payment page' }),
 		)
-		let failCheckout = granted
+		let failCheckout = expected === 'analytics'
 		const checkoutRequests: Record<string, string>[] = []
 		await page.route('**/puzzled.v1.BillingService/CreateCheckout', async (route) => {
 			checkoutRequests.push(await route.request().allHeaders())
@@ -46,13 +56,24 @@ for (const { consent, gpc, entry, surface } of [
 					})
 				: route.fulfill({ json: { url: `${origin}/__fixture-checkout` } })
 		})
-		const contextReady = page.waitForResponse('**/api/consent-context')
 		await page.goto(
-			`/pricing?${new URLSearchParams({ entry_surface: entry, email: 'fixture@example.test' })}`,
+			'/pricing?' +
+				new URLSearchParams({
+					entry_surface: entry,
+					email: 'fixture@example.test',
+					utm_source: 'fixture',
+					gclid: 'click_1',
+				}),
 		)
-		await contextReady
+		// Full navigations emulate the auth round trip without making a real account or payment.
+		await expect.poll(() => commands(page)).not.toEqual([])
+		if (granted) {
+			await page.goto('/sign-in?nextUrl=%2Fpricing')
+			await page.goto('/pricing')
+			await expect.poll(() => commands(page)).not.toEqual([])
+		}
 		const begin = (rows: unknown[][]) => rows.filter((row) => row[1] === 'begin_checkout')
-		if (consent !== 'declined' && !gpc) {
+		if (granted) {
 			await expect
 				.poll(async () => (await commands(page)).map((row) => row[1]))
 				.toContain('page_view')
@@ -87,17 +108,31 @@ for (const { consent, gpc, entry, surface } of [
 								send_to: id,
 								value: 39.99,
 								currency: 'USD',
-								entry_surface: 'pricing_card',
+								entry_surface: surface,
 							}),
 						],
 					]
 				: [],
 		)
-		expect(checkoutRequests).toHaveLength(granted ? 2 : 1)
+		expect(checkoutRequests).toHaveLength(expected === 'analytics' ? 2 : 1)
 		for (const headers of checkoutRequests) {
 			expect(headers['x-puzzled-entry-surface']).toBe(surface)
-			expect(headers['x-puzzled-analytics-storage']).toBe(granted ? 'granted' : undefined)
+			const bits =
+				expected === 'full'
+					? 'granted,granted,granted,granted'
+					: expected === 'analytics'
+						? 'granted,denied,denied,denied'
+						: 'denied,denied,denied,denied'
+			expect(headers['x-puzzled-signal-consent']).toBe(bits)
+			const encoded = headers['x-puzzled-signal-attribution']
+			if (!granted) expect(encoded).toBeUndefined()
+			else {
+				const fields = JSON.parse(Buffer.from(encoded ?? '', 'base64url').toString('utf8'))
+				expect(fields).toMatchObject({ utm_source: 'fixture', ga_client_id: '12345.67890' })
+				expect(fields.gclid).toBe(expected === 'full' ? 'click_1' : undefined)
+				expect(JSON.stringify(fields)).not.toContain('fixture@example.test')
+			}
 		}
-		if (granted) expect(JSON.stringify(rows)).not.toContain(entry)
+		expect(JSON.stringify(rows)).not.toContain('private_person_5551234')
 	})
 }

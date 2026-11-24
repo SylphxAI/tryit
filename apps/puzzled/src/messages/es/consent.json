@@ -1,6 +1,6 @@
 {
-	"title": "Cookies de análisis",
-	"message": "¿Permitir cookies de análisis?",
+	"title": "Cookies opcionales",
+	"message": "¿Permitir análisis y publicidad?",
 	"accept": "Aceptar",
 	"decline": "Rechazar",
 	"learnMore": "Política de privacidad",
@@ -8,5 +8,7 @@
 	"close": "Cerrar",
 	"gpc": "El Control Global de Privacidad (GPC) está activo. El análisis y la publicidad opcionales están desactivados.",
 	"enabled": "Las cookies de análisis están activadas.",
-	"disabled": "Las cookies de análisis están desactivadas."
+	"disabled": "Las cookies de análisis están desactivadas.",
+	"analyticsOnly": "Solo análisis",
+	"full": "El análisis y la publicidad están activados."
 }

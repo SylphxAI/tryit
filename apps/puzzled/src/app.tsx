@@ -3,7 +3,6 @@ import { MetaProvider } from '@solidjs/meta'
 import { Router } from '@solidjs/router'
 import { FileRoutes } from '@solidjs/start/router'
 import { Suspense } from 'solid-js'
-import { AttributionCapture } from './features/analytics/solid/attribution-capture'
 import { ConsentRuntime } from './features/analytics/solid/consent-runtime'
 import { ThemeProvider } from './shared/solid/theme'
 import './app/globals.css'
@@ -16,7 +15,6 @@ export default function App() {
 				<MetaProvider>
 					<ThemeProvider>
 						<ConsentRuntime />
-						<AttributionCapture />
 						<Suspense>{props.children}</Suspense>
 					</ThemeProvider>
 				</MetaProvider>

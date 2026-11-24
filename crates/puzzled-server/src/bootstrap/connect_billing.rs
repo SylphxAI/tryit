@@ -36,7 +36,6 @@ use crate::proto::puzzled::v1::{
     RemoveFamilyMemberRequest, RemoveFamilyMemberResponse, ResetFamilyInviteRequest,
     ResetFamilyInviteResponse, ResumeSubscriptionRequest, ResumeSubscriptionResponse,
 };
-use puzzled_core::attribution::Attribution;
 
 // Family references are scoped to one owner and never contain an account id.
 fn family_handle(secret: &str, owner: &str, member: &str) -> Result<String, ConnectError> {
@@ -182,7 +181,6 @@ impl BillingConnectService {
         money: &Money,
         identity: &VerifiedIdentity,
         req: &CreateCheckoutRequest,
-        landing: Option<&Attribution>,
         return_to: Option<&str>,
         request_id: Option<&str>,
         measurement: CheckoutAttribution<'_>,
@@ -203,9 +201,14 @@ impl BillingConnectService {
             plan.is_one_time_pass(),
             req.immediate_supply_consent,
         )?;
-        let stored = attribution_for_user(pool, &identity.user_id)
-            .await
-            .map_err(CheckoutError::Failed)?;
+        let stored = if measurement.analytics_granted() {
+            attribution_for_user(pool, &identity.user_id)
+                .await
+                .map_err(CheckoutError::Failed)?
+        } else {
+            None
+        };
+        let attribution = measurement.money_tags(stored);
         consent_db::record(
             pool,
             &identity.user_id,
@@ -226,7 +229,7 @@ impl BillingConnectService {
                 plan_id,
                 locale,
                 &req.currency,
-                Attribution::for_checkout(stored.as_ref(), landing).as_ref(),
+                attribution.as_ref(),
                 return_to,
                 consent,
                 measurement,
@@ -240,7 +243,7 @@ impl BillingConnectService {
             plan_id,
             locale,
             &req.currency,
-            Attribution::for_checkout(stored.as_ref(), landing).as_ref(),
+            attribution.as_ref(),
             return_to,
             consent,
             measurement,
@@ -256,19 +259,7 @@ impl BillingConnectService {
     ) -> Result<String, ConnectError> {
         let identity = Self::account(&ctx)?;
         require_purchase_allowed(&identity)?;
-        let cookie_attr = ctx
-            .headers()
-            .get_all(axum::http::header::COOKIE)
-            .iter()
-            .filter_map(|value| value.to_str().ok())
-            .find_map(puzzled_core::attribution::from_cookie_header);
-        let session_attr = ctx
-            .headers()
-            .get("x-puzzled-attribution")
-            .and_then(|value| value.to_str().ok())
-            .map(str::trim)
-            .and_then(Attribution::from_cookie);
-        let landing = merge_landing_attribution(cookie_attr, session_attr);
+        let measurement = CheckoutAttribution::from_headers(ctx.headers());
         let return_to = ctx
             .headers()
             .get("x-puzzled-return-to")
@@ -280,10 +271,9 @@ impl BillingConnectService {
                 money,
                 &identity,
                 &req,
-                landing.as_ref(),
                 return_to.as_deref(),
                 request_id,
-                CheckoutAttribution::from_headers(ctx.headers()),
+                measurement,
             )
             .await;
         started.map_err(Self::map_checkout_error)
@@ -589,19 +579,7 @@ impl BillingService for BillingConnectService {
         // `guest:{id}`, and keep the returned single-use `claim_secret`
         // strictly in an HttpOnly cookie.
         let (_, money) = self.store()?;
-        let cookie_attr = ctx
-            .headers()
-            .get_all(axum::http::header::COOKIE)
-            .iter()
-            .filter_map(|value| value.to_str().ok())
-            .find_map(puzzled_core::attribution::from_cookie_header);
-        let session_attr = ctx
-            .headers()
-            .get("x-puzzled-attribution")
-            .and_then(|value| value.to_str().ok())
-            .map(str::trim)
-            .and_then(Attribution::from_cookie);
-        let landing = merge_landing_attribution(cookie_attr, session_attr);
+        let measurement = CheckoutAttribution::from_headers(ctx.headers());
         let return_to = ctx
             .headers()
             .get("x-puzzled-return-to")
@@ -626,10 +604,10 @@ impl BillingService for BillingConnectService {
             plan_id,
             req.locale.trim(),
             &req.currency,
-            landing.as_ref(),
+            measurement.money_tags(None).as_ref(),
             return_to.as_deref(),
             consent,
-            CheckoutAttribution::from_headers(ctx.headers()),
+            measurement,
         )
         .await
         .map_err(Self::map_checkout_error)?;
@@ -1125,54 +1103,9 @@ pub fn billing_connect_service(state: AppState) -> Arc<BillingConnectService> {
     Arc::new(BillingConnectService::new(state))
 }
 
-/// Merge the durable attribution cookie with same-tab session attribution
-/// (`x-puzzled-attribution`) so ad click ids and UTMs survive sign-in even
-/// before optional marketing cookie consent is settled.
-fn merge_landing_attribution(
-    cookie_attr: Option<Attribution>,
-    session_attr: Option<Attribution>,
-) -> Option<Attribution> {
-    match (cookie_attr, session_attr) {
-        (None, None) => None,
-        (Some(cookie), None) => Some(cookie),
-        (None, Some(session)) => Some(session),
-        (Some(mut cookie), Some(session)) => {
-            let session_has_click = session.has_click_id();
-            if cookie.source.is_none() {
-                cookie.source = session.source;
-            }
-            if cookie.medium.is_none() {
-                cookie.medium = session.medium;
-            }
-            if cookie.campaign.is_none() {
-                cookie.campaign = session.campaign;
-            }
-            if cookie.term.is_none() {
-                cookie.term = session.term;
-            }
-            if cookie.content.is_none() {
-                cookie.content = session.content;
-            }
-            if cookie.referral.is_none() {
-                cookie.referral = session.referral;
-            }
-            if !cookie.has_click_id() && session_has_click {
-                cookie.gclid = session.gclid;
-                cookie.gbraid = session.gbraid;
-                cookie.wbraid = session.wbraid;
-                cookie.fbclid = session.fbclid;
-            }
-            Some(cookie)
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::new_invite_code;
-
-    use super::merge_landing_attribution;
-    use puzzled_core::attribution::Attribution;
 
     #[test]
     fn invite_codes_are_ten_unambiguous_characters() {
@@ -1183,21 +1116,6 @@ mod tests {
             .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()));
         assert!(!code.contains(['O', '0', 'I', '1']));
         assert_ne!(code, new_invite_code());
-    }
-
-    #[test]
-    fn session_attribution_forwards_click_ids_when_cookie_is_absent_or_partial() {
-        let session =
-            Attribution::from_cookie("s%3Dgoogle%26m%3Dcpc%26g%3DCj0_session%26fb%3Dfb_1");
-        let from_session_only = merge_landing_attribution(None, session.clone()).expect("session");
-        assert_eq!(from_session_only.source.as_deref(), Some("google"));
-        assert_eq!(from_session_only.gclid.as_deref(), Some("Cj0_session"));
-        assert_eq!(from_session_only.fbclid.as_deref(), Some("fb_1"));
-
-        let analytics_only_cookie = Attribution::from_cookie("s=tryit&m=referral");
-        let merged = merge_landing_attribution(analytics_only_cookie, session).expect("merged");
-        assert_eq!(merged.source.as_deref(), Some("tryit"));
-        assert_eq!(merged.gclid.as_deref(), Some("Cj0_session"));
     }
 }
 
