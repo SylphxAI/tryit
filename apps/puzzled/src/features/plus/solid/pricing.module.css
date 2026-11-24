@@ -134,6 +134,20 @@
 	transform: translateY(4px);
 }
 
+/* Keep both exits beside the primary action, before the long benefits list. */
+.planLinks {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 4px;
+	text-align: center;
+}
+
+.planLinks a {
+	line-height: 1.2;
+	text-wrap: balance;
+}
+
 .free {
 	background: var(--pricing-tray);
 	border: 0;
@@ -218,7 +232,7 @@
 
 @media (max-width: 767px) {
 	.intro {
-		margin-bottom: 16px;
+		margin-bottom: 8px;
 	}
 
 	.eyebrow {

@@ -47,7 +47,9 @@ type Props = {
 	compact?: boolean
 	/** Slot rendered at the top of the column above the card (e.g. currency switcher). */
 	headerSlot?: JSX.Element
-	/** Slot rendered below the card (e.g. anchor & free-play links). */
+	/** Related navigation beside the purchase decision, before the benefits list. */
+	afterCheckout?: JSX.Element
+	/** Slot rendered below the card (e.g. compare plans). */
 	footerSlot?: JSX.Element
 }
 
@@ -216,6 +218,7 @@ export function PlusOffer(props: Props) {
 							)
 						}}
 					</Show>
+					{props.afterCheckout}
 					{features().length > 0 ? (
 						<ul class={styles.features}>
 							<For each={features()}>

@@ -13,6 +13,7 @@
 	"startGame": "Começar jogo",
 	"complete": "Desafio concluído!",
 	"progress": "{used}/{total} letras usadas",
+	"confirmReset": "Confirmar reinício?",
 	"input": "Palavra atual",
 	"backspace": "Apagar a última letra",
 	"enter": "Adicionar palavra",

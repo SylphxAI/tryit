@@ -68,16 +68,60 @@ for (const [locale, error] of [
 	})
 }
 
-test('Frame submits the next typed word after Start over', async ({ page }) => {
-	await play(page, 'word-box', frameFixtures[0].puzzleData)
-	const board = page.locator('[data-word-box-board]')
-	await page.keyboard.type('BA')
-	await board.getByRole('button', { name: 'Start over' }).click()
-	await expect(board.locator('input')).toBeEmpty()
-	await page.keyboard.type('BACH')
-	await page.keyboard.press('Enter')
-	await expect(board.locator('ol li')).toHaveText('BACH')
-})
+for (const [locale, resetCopy, confirmCopy] of [
+	['en-US', 'Start over', 'Confirm reset?'],
+	['zh-TW', '重新開始', '確定要重新開始嗎？'],
+] as const) {
+	test(
+		'Frame protects the word chain from an accidental reset (' + locale + ')',
+		async ({ page }) => {
+			await play(page, 'word-box', frameFixtures[0].puzzleData, locale)
+			const board = page.locator('[data-word-box-board]')
+			const input = board.locator('input')
+			const reset = board.getByRole('button', { name: resetCopy, exact: true })
+			const confirm = board.getByRole('button', { name: confirmCopy, exact: true })
+			const chain = board.locator('ol li')
+			// Empty boards need no confirmation and retain the type-and-submit path.
+			await reset.click()
+			await expect(input).toBeFocused()
+			await expect(confirm).toHaveCount(0)
+			await page.keyboard.type('BACH')
+			await page.keyboard.press('Enter')
+			await expect(chain).toHaveText('BACH')
+			await reset.focus()
+			await page.keyboard.down('Enter')
+			await expect(confirm).toBeFocused()
+			await expect(confirm.locator('[aria-live="polite"]')).toHaveText(confirmCopy)
+			await expect(chain).toHaveText('BACH')
+			// Holding Enter cannot confirm both steps.
+			await page.keyboard.down('Enter')
+			await expect(confirm).toBeFocused()
+			await expect(chain).toHaveText('BACH')
+			await page.keyboard.up('Enter')
+			await confirm.press('Enter')
+			await expect(chain).toHaveCount(0)
+			await expect(input).toBeFocused()
+			await page.keyboard.type('BACH')
+			await page.keyboard.press('Enter')
+			await expect(chain).toHaveText('BACH')
+			await reset.click()
+			await page.keyboard.press('Escape')
+			await expect(reset).toBeFocused()
+			await expect(chain).toHaveText('BACH')
+			await reset.click()
+			await input.focus()
+			await expect(reset).toBeVisible()
+			await expect(chain).toHaveText('BACH')
+			await reset.click()
+			await confirm.click()
+			await expect(chain).toHaveCount(0)
+			await expect(input).toBeFocused()
+			await page.keyboard.type('BACH')
+			await page.keyboard.press('Enter')
+			await expect(chain).toHaveText('BACH')
+		},
+	)
+}
 
 test('Quad shows a dictionary error in the mobile viewport without using a guess', async ({
 	page,

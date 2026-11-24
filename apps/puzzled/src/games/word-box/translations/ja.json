@@ -13,6 +13,7 @@
 	"startGame": "ゲーム開始",
 	"complete": "パズルクリア！",
 	"progress": "{used}/{total} 文字を使用",
+	"confirmReset": "最初からやり直しますか？",
 	"input": "入力中の単語",
 	"backspace": "最後の文字を消す",
 	"enter": "単語を追加",
