@@ -48,7 +48,7 @@
 		"arithmo": "Digite uma equação válida para obter pistas.",
 		"blockSlide": "Arraste um bloco ou mova-o com as setas.",
 		"crossword": "Toque numa casa e digite a resposta da pista.",
-		"pipPlace": "Escolha uma peça de dominó e toque numa casa vazia.",
+		"pipPlace": "Escolha um dominó na bandeja e toque em duas casas vizinhas.",
 		"quadWords": "Digite uma palavra de cinco letras para ver as pistas.",
 		"wordHive": "Forme uma palavra que use a letra do centro."
 	}

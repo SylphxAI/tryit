@@ -192,7 +192,7 @@ export function GameLanding(
 						</Show>
 					</div>
 				</section>
-				<section id="play" class="page-shell scroll-mt-16 py-3" aria-label={t().play}>
+				<section id="play" tabIndex={-1} class="page-shell scroll-mt-16 py-3" aria-label={t().play}>
 					{props.children}
 				</section>
 				<Show when={d().rules.length}>

@@ -93,77 +93,117 @@ async function checkHelp(page: Page, label: string) {
 	await expect(page).toHaveURL(url)
 }
 
+const splitGames = [
+	'killer-sudoku',
+	'nonogram',
+	'block-slide',
+	'sudoku',
+	'quad-words',
+	'number-path',
+	'pip-place',
+	'crossword',
+]
 const layouts = [
-	[1280, 800],
 	[1280, 803],
 	[1440, 900],
+	[1920, 1080],
 	[390, 844],
 ]
+
+async function canvasGeometry(page: Page) {
+	return page.locator('[data-play-canvas]').evaluate((canvas) => {
+		const dock = document.querySelector('[data-consent-banner]')!
+		const dockRect = dock.getBoundingClientRect()
+		const shell = canvas.closest('.site-shell')!
+		const body = canvas.querySelector('.play-body')!
+		const controls = [...canvas.querySelectorAll('button, a, input, summary')].filter(
+			(el) =>
+				el.getClientRects().length &&
+				!el.closest('dialog:not([open]), details:not([open]) > :not(summary)'),
+		)
+		const bad = controls.flatMap((el) => {
+			const r = el.getBoundingClientRect()
+			const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+			return r.bottom <= dockRect.top && el.contains(hit)
+				? []
+				: [el.getAttribute('aria-label') || el.textContent]
+		})
+		const choices = [...dock.querySelectorAll('button')].map((el) => {
+			const { width, height } = el.getBoundingClientRect()
+			return JSON.stringify([el.className, width, height])
+		})
+		return {
+			bad,
+			inFlow: getComputedStyle(dock).position === 'static',
+			frameless:
+				getComputedStyle(canvas).borderWidth === '0px' &&
+				getComputedStyle(canvas).boxShadow === 'none',
+			fillsViewport: shell.getBoundingClientRect().height === innerHeight,
+			equalChoices: choices.length === 3 && new Set(choices).size === 1,
+			overflow: [document.documentElement, shell, body].map((el) => [
+				el.scrollWidth - el.clientWidth,
+				el.scrollHeight - el.clientHeight,
+				el.scrollTop,
+			]),
+		}
+	})
+}
+
 for (const [width, height] of layouts) {
-	test.describe(`${width}×${height}`, () => {
+	test.describe(width + '×' + height, () => {
 		test.use({ viewport: { width, height }, hasTouch: width === 390, isMobile: width === 390 })
-		for (const slug of [...otherGames.slice(0, 4), 'quad-words', 'crossword']) {
-			test(`${slug} entry keeps the cue and game controls clear of consent`, async ({ page }) => {
-				await openBoard(page, slug)
-				const banner = page.locator('[data-consent-banner]')
-				await expect(banner.getByRole('button')).toHaveText(['Decline', 'Accept', 'Analytics only'])
-				await expect(page.locator(cue)).toBeInViewport({ ratio: 1 })
-				expect(
-					await page.locator(cue).evaluate((el) => {
-						const range = document.createRange()
-						range.selectNodeContents(el)
-						return range.getClientRects().length
-					}),
-				).toBe(1)
-				const geometry = await page.evaluate((stageSelector) => {
-					const dock = document.querySelector('[data-consent-banner]')!.getBoundingClientRect()
-					const stage = document.querySelector(stageSelector)!
-					const controls = [...stage.querySelectorAll('button, a, input, [role="button"]')]
-					const overlaps = controls
-						.filter((el) => {
-							const r = el.getBoundingClientRect()
-							return (
-								r.width > 0 &&
-								r.bottom > dock.top &&
-								r.top < dock.bottom &&
-								r.left < dock.right &&
-								r.right > dock.left &&
-								document
-									.elementsFromPoint(
-										(r.left + r.right) / 2,
-										(Math.max(r.top, dock.top) + Math.min(r.bottom, dock.bottom)) / 2,
-									)
-									.some((hit) => el.contains(hit))
-							)
-						})
-						.map((el) => el.getAttribute('aria-label') || el.textContent)
-					const choices = [...document.querySelectorAll('[data-consent-banner] button')].map(
-						(el) => [
-							el.className,
-							el.getBoundingClientRect().width,
-							el.getBoundingClientRect().height,
-						],
+		for (const [locale, slugs] of [
+			['en-US', [...wordGames, ...otherGames]],
+			['zh-TW', ['nonogram', 'number-path', 'quad-words', 'block-slide']],
+		] as const) {
+			for (const slug of slugs) {
+				test(slug + ' fits the frameless play canvas (' + locale + ')', async ({ page }) => {
+					await openBoard(page, slug, locale)
+					const dock = page.locator('[data-consent-banner]')
+					await expect(dock.getByRole('button')).toHaveText(
+						locale === 'en-US'
+							? ['Decline', 'Accept', 'Analytics only']
+							: ['拒絕', '接受', '僅限分析'],
 					)
-					return {
-						overlaps,
-						equalChoices: new Set(choices.map((item) => JSON.stringify(item))).size === 1,
-					}
-				}, stage)
-				expect(geometry).toEqual({ overlaps: [], equalChoices: true })
-				await checkHelp(page, 'How to play')
-				// Scroll to a real board control if the puzzle is taller than the scrollport.
-				// Hit-test the unassisted pointer position (no retry/auto-scroll click).
-				const key = page.locator(stage).getByRole('button').and(page.locator(':enabled')).last()
-				await key.evaluate((el) => el.scrollIntoView({ block: 'end' }))
-				expect(
-					await key.evaluate((el) => {
-						const r = el.getBoundingClientRect()
-						return el.contains(
-							document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2),
+					await page.evaluate(() => document.fonts.ready)
+					await expect(page.locator(cue)).toBeInViewport({ ratio: 1 })
+					if (slug === 'quad-words') {
+						const keyboard = page.locator('[data-key="Enter"]')
+						const before = await keyboard.boundingBox()
+						await page.keyboard.type('ZZZZZ')
+						await page.keyboard.press('Enter')
+						await expect(page.locator('[data-quad-board]').getByRole('alert')).toHaveText(
+							locale === 'en-US' ? 'Not in word list' : '不在詞庫中',
 						)
-					}),
-				).toBe(true)
-			})
+						expect(await keyboard.boundingBox()).toEqual(before)
+					}
+					expect(await canvasGeometry(page)).toEqual({
+						bad: [],
+						inFlow: true,
+						frameless: true,
+						fillsViewport: true,
+						equalChoices: true,
+						overflow: [
+							[0, 0, 0],
+							[0, 0, 0],
+							[0, 0, 0],
+						],
+					})
+					if (width >= 1024 && splitGames.includes(slug)) {
+						const board = (await page.locator('.play-board').boundingBox())!
+						const tools = (await page.locator('.play-tools').boundingBox())!
+						expect(board.x + board.width).toBeLessThan(tools.x)
+					}
+					if (slug === 'nonogram') {
+						await checkHelp(page, locale === 'en-US' ? 'How to play' : '玩法')
+						const play = page.locator('#play')
+						const before = (await play.boundingBox())!.height
+						await dock.getByRole('button').first().click()
+						await expect(dock).toHaveCount(0)
+						expect((await play.boundingBox())!.height).toBeGreaterThan(before)
+					}
+				})
+			}
 		}
 	})
 }

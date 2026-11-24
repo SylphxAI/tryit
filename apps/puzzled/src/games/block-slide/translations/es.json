@@ -11,7 +11,7 @@
 		"rule3": "Intenta resolverlo con el mínimo de movimientos"
 	},
 	"startGame": "Empezar partida",
-	"moves": "movimientos",
+	"moveCount": "{count, plural, one {# movimiento} other {# movimientos}}",
 	"minMoves": "Mín.",
 	"reset": "Reiniciar",
 	"giveUp": "Rendirse",

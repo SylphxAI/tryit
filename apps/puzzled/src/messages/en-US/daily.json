@@ -48,7 +48,7 @@
 		"arithmo": "Enter a valid equation to get your first clues.",
 		"blockSlide": "Drag a block or use the arrows to free the target piece.",
 		"crossword": "Tap a square, then type an answer to its clue.",
-		"pipPlace": "Pick a domino from the tray, then tap an empty square.",
+		"pipPlace": "Pick a domino from the tray, then tap two neighboring squares.",
 		"quadWords": "Enter a five-letter word for clues in all four grids.",
 		"wordHive": "Make a word using the center letter."
 	}

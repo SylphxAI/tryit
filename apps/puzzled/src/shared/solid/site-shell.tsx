@@ -25,7 +25,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 			>
 				{props.data.skipToMainContent}
 			</a>
-			<header class="pt-safe sticky top-0 z-header border-b border-hairline bg-background">
+			<header class="site-header pt-safe sticky top-0 z-header border-b border-hairline bg-background">
 				<div class="page-shell-wide flex h-14 items-center gap-2 md:h-16">
 					<a
 						href={props.data.home}
@@ -84,7 +84,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 				</div>
 			</header>
 			{props.children}
-			<footer class="border-t border-hairline">
+			<footer class="site-footer border-t border-hairline">
 				<div class="page-shell-wide space-y-4 py-8 text-sm text-muted-foreground">
 					<p class="font-display text-xl text-foreground">Tryit</p>
 					<p>{props.data.footer.tagline}</p>

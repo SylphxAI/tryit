@@ -204,8 +204,11 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 		)
 	}
 	return (
-		<div class="mx-auto flex w-full max-w-[26rem] flex-col gap-4" data-killer-sudoku-board>
-			<div class={styles.board}>
+		<div
+			class="play-split sudoku-layout mx-auto flex w-full max-w-[26rem] flex-col gap-3"
+			data-killer-sudoku-board
+		>
+			<div class={`play-board ${styles.board}`}>
 				{/* biome-ignore lint/a11y/useSemanticElements: the visual grid is a named group of game controls */}
 				<div class={styles.boxes} role="group" aria-label={t('games.killerSudoku.name')}>
 					<For each={boxes}>
@@ -217,70 +220,72 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 					</For>
 				</div>
 			</div>
-			<p role="status" class="min-h-5 text-center text-sm">
-				{feedback() ? t(`games.killerSudoku.messages.${feedback()}`) : ''}
-				<Show when={wrongCage()} keyed>
-					{(cage) => (
-						<span class="block text-destructive">
-							{t('games.killerSudoku.messages.wrongSum', { sum: cage.sum })}
-						</span>
-					)}
-				</Show>
-			</p>
-			<div class={styles.pad}>
-				<div class={styles.digits}>
-					<For each={digits}>
-						{(digit) => (
-							<button
-								type="button"
-								class={styles.key}
-								disabled={!playing()}
-								data-notes={state().notesMode || undefined}
-								onClick={() => dispatch({ type: 'SET_VALUE', value: digit })}
-							>
-								{digit}
-							</button>
+			<div class="play-tools">
+				<p role="status" class="min-h-5 text-center text-sm">
+					{feedback() ? t(`games.killerSudoku.messages.${feedback()}`) : ''}
+					<Show when={wrongCage()} keyed>
+						{(cage) => (
+							<span class="block text-destructive">
+								{t('games.killerSudoku.messages.wrongSum', { sum: cage.sum })}
+							</span>
 						)}
-					</For>
-					<button
-						type="button"
-						class={`${styles.key} ${styles.erase}`}
-						disabled={!playing()}
-						aria-label={t('games.sudoku.clear')}
-						onClick={() => dispatch({ type: 'CLEAR_CELL' })}
-					>
-						<Delete size={20} aria-hidden="true" />
-					</button>
-				</div>
-				<div class={styles.tools}>
-					<button
-						type="button"
-						class={[styles.key, styles.tool].join(' ')}
-						disabled={!playing() || !history().length}
-						onClick={undo}
-					>
-						<Undo2 size={16} aria-hidden="true" />
-						{t('games.sudoku.undo')}
-					</button>
-					<button
-						type="button"
-						class={`${styles.key} ${styles.tool}`}
-						aria-pressed={state().notesMode}
-						disabled={!playing()}
-						onClick={() => dispatch({ type: 'TOGGLE_NOTES_MODE' })}
-					>
-						<PencilLine size={16} aria-hidden="true" />
-						{t('games.killerSudoku.notes')}
-					</button>
-					<button
-						type="button"
-						class={`${styles.key} ${styles.tool}`}
-						disabled={!playing()}
-						onClick={() => dispatch({ type: 'RESET' })}
-					>
-						<RotateCcw size={16} aria-hidden="true" />
-						{t('games.killerSudoku.startOver')}
-					</button>
+					</Show>
+				</p>
+				<div class={styles.pad}>
+					<div class={styles.digits}>
+						<For each={digits}>
+							{(digit) => (
+								<button
+									type="button"
+									class={styles.key}
+									disabled={!playing()}
+									data-notes={state().notesMode || undefined}
+									onClick={() => dispatch({ type: 'SET_VALUE', value: digit })}
+								>
+									{digit}
+								</button>
+							)}
+						</For>
+						<button
+							type="button"
+							class={`${styles.key} ${styles.erase}`}
+							disabled={!playing()}
+							aria-label={t('games.sudoku.clear')}
+							onClick={() => dispatch({ type: 'CLEAR_CELL' })}
+						>
+							<Delete size={20} aria-hidden="true" />
+						</button>
+					</div>
+					<div class={styles.tools}>
+						<button
+							type="button"
+							class={[styles.key, styles.tool].join(' ')}
+							disabled={!playing() || !history().length}
+							onClick={undo}
+						>
+							<Undo2 size={16} aria-hidden="true" />
+							{t('games.sudoku.undo')}
+						</button>
+						<button
+							type="button"
+							class={`${styles.key} ${styles.tool}`}
+							aria-pressed={state().notesMode}
+							disabled={!playing()}
+							onClick={() => dispatch({ type: 'TOGGLE_NOTES_MODE' })}
+						>
+							<PencilLine size={16} aria-hidden="true" />
+							{t('games.killerSudoku.notes')}
+						</button>
+						<button
+							type="button"
+							class={`${styles.key} ${styles.tool}`}
+							disabled={!playing()}
+							onClick={() => dispatch({ type: 'RESET' })}
+						>
+							<RotateCcw size={16} aria-hidden="true" />
+							{t('games.killerSudoku.startOver')}
+						</button>
+					</div>
 				</div>
 			</div>
 			<BoardFinish

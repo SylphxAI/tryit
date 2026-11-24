@@ -48,7 +48,7 @@
 		"arithmo": "Escribe una ecuación válida para obtener pistas.",
 		"blockSlide": "Arrastra un bloque o muévelo con las flechas.",
 		"crossword": "Toca una casilla y escribe la respuesta a su pista.",
-		"pipPlace": "Elige una ficha de dominó y toca una casilla vacía.",
+		"pipPlace": "Elige una ficha de la bandeja y toca dos casillas contiguas.",
 		"quadWords": "Escribe una palabra de cinco letras para ver las pistas.",
 		"wordHive": "Forma una palabra que incluya la letra central."
 	}

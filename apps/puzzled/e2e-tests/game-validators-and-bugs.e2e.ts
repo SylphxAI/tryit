@@ -68,6 +68,17 @@ for (const [locale, error] of [
 	})
 }
 
+test('Frame submits the next typed word after Start over', async ({ page }) => {
+	await play(page, 'word-box', frameFixtures[0].puzzleData)
+	const board = page.locator('[data-word-box-board]')
+	await page.keyboard.type('BA')
+	await board.getByRole('button', { name: 'Start over' }).click()
+	await expect(board.locator('input')).toBeEmpty()
+	await page.keyboard.type('BACH')
+	await page.keyboard.press('Enter')
+	await expect(board.locator('ol li')).toHaveText('BACH')
+})
+
 test('Quad shows a dictionary error in the mobile viewport without using a guess', async ({
 	page,
 }) => {
@@ -164,6 +175,7 @@ test('Crossword types immediately, switches clues live, and marks only rejected 
 	await first.dblclick()
 	await expect(banner).toHaveText('1 Down: Down hint')
 	await expect(third).toHaveAttribute('data-word', 'true')
+	await board.getByText('Clues', { exact: true }).click()
 	await board.getByRole('button', { name: '1. Across hint' }).click()
 	await expect(banner).toHaveText('1 Across: Across hint')
 	await page.keyboard.type('AB')

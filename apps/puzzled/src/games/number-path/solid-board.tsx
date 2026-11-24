@@ -85,14 +85,18 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 	}
 
 	return (
-		<div class="mx-auto w-full max-w-[30rem] space-y-3">
-			<div class="flex items-center justify-between gap-2 text-sm">
+		<div class="play-split mx-auto w-full max-w-[30rem] space-y-3" data-number-path-board>
+			<div class="play-meta flex items-center justify-between gap-2 text-sm">
 				<span class="font-semibold">{t('games.numberPath.name')}</span>
 				<output class="tabular-nums" aria-live="polite">
 					{path().length}/{tiles.length}
 				</output>
 			</div>
-			<fieldset class="min-w-0" disabled={locked()} aria-label={t('games.numberPath.name')}>
+			<fieldset
+				class="play-board w-full min-w-0"
+				disabled={locked()}
+				aria-label={t('games.numberPath.name')}
+			>
 				<div class="overflow-hidden rounded-xl border border-border">
 					<div
 						class="relative grid aspect-square touch-none select-none"
@@ -187,35 +191,37 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 					</div>
 				</div>
 			</fieldset>
-			<p role="status" class="min-h-5 text-sm text-muted-foreground">
-				{hint()}
-			</p>
-			<Show when={!locked()}>
-				<div class="flex flex-wrap items-center gap-3">
-					<button
-						type="button"
-						class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
-						disabled={!path().length}
-						onClick={() => {
-							setHint('')
-							setPath((steps) => steps.slice(0, -1))
-						}}
-					>
-						{t('games.numberPath.undo')}
-					</button>
-					<button
-						type="button"
-						class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
-						disabled={!path().length}
-						onClick={() => {
-							setHint('')
-							setPath([])
-						}}
-					>
-						{t('common.reset')}
-					</button>
-				</div>
-			</Show>
+			<div class="play-tools space-y-3">
+				<p role="status" class="min-h-5 text-sm text-muted-foreground">
+					{hint()}
+				</p>
+				<Show when={!locked()}>
+					<div class="flex flex-wrap items-center gap-3">
+						<button
+							type="button"
+							class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
+							disabled={!path().length}
+							onClick={() => {
+								setHint('')
+								setPath((steps) => steps.slice(0, -1))
+							}}
+						>
+							{t('games.numberPath.undo')}
+						</button>
+						<button
+							type="button"
+							class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
+							disabled={!path().length}
+							onClick={() => {
+								setHint('')
+								setPath([])
+							}}
+						>
+							{t('common.reset')}
+						</button>
+					</div>
+				</Show>
+			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.numberPath.complete')} />
 		</div>
 	)

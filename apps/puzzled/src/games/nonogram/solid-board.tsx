@@ -137,8 +137,8 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 	const modeClass =
 		'flex min-h-11 items-center gap-2 rounded-xl border border-border px-4 font-semibold aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground'
 	return (
-		<div class="mx-auto w-full max-w-[30rem] space-y-3">
-			<div class="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+		<div class="play-split mx-auto w-full max-w-[30rem] space-y-3" data-nonogram-board>
+			<div class="play-meta flex items-center justify-between gap-2 text-sm text-muted-foreground">
 				<span>
 					{finish.state() === 'accepted'
 						? puzzleThemeLabel(theme, props.locale, zhTwThemes, t('games.nonogram.name'))
@@ -146,7 +146,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 				</span>
 			</div>
 			<div
-				class="grid w-full overflow-hidden rounded-xl border border-border bg-surface-muted p-1"
+				class="play-board grid w-full overflow-hidden rounded-xl border border-border bg-surface-muted p-1"
 				style={{ 'grid-template-columns': `auto repeat(${width}, minmax(0, 1fr))` }}
 				onPointerDown={(event) => {
 					const alternate = event.button === 2
@@ -252,47 +252,49 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 					)}
 				</For>
 			</div>
-			<div class="flex justify-center gap-2">
-				<button
-					type="button"
-					class={modeClass}
-					aria-pressed={mode() === 'filled'}
-					disabled={locked()}
-					onClick={() => setMode('filled')}
-				>
-					<Paintbrush size={16} aria-hidden="true" />
-					{t('games.nonogram.fillMode')}
-				</button>
-				<button
-					type="button"
-					class={modeClass}
-					aria-pressed={mode() === 'marked'}
-					disabled={locked()}
-					onClick={() => setMode('marked')}
-				>
-					<X size={16} aria-hidden="true" />
-					{t('games.nonogram.markMode')}
-				</button>
-			</div>
-			<Show when={!locked()}>
-				<div class="flex flex-wrap items-center justify-center gap-2">
+			<div class="play-tools space-y-2">
+				<div class="flex justify-center gap-2">
 					<button
 						type="button"
-						class="min-h-12 rounded-xl border border-border px-3 font-semibold disabled:opacity-50"
-						disabled={!history().length}
-						onClick={undo}
+						class={modeClass}
+						aria-pressed={mode() === 'filled'}
+						disabled={locked()}
+						onClick={() => setMode('filled')}
 					>
-						{t('games.nonogram.undo')}
+						<Paintbrush size={16} aria-hidden="true" />
+						{t('games.nonogram.fillMode')}
 					</button>
 					<button
 						type="button"
-						class="min-h-12 rounded-xl border border-border px-3 font-semibold"
-						onClick={startOver}
+						class={modeClass}
+						aria-pressed={mode() === 'marked'}
+						disabled={locked()}
+						onClick={() => setMode('marked')}
 					>
-						{t('games.nonogram.startOver')}
+						<X size={16} aria-hidden="true" />
+						{t('games.nonogram.markMode')}
 					</button>
 				</div>
-			</Show>
+				<Show when={!locked()}>
+					<div class="flex flex-wrap items-center justify-center gap-2">
+						<button
+							type="button"
+							class="min-h-12 rounded-xl border border-border px-3 font-semibold disabled:opacity-50"
+							disabled={!history().length}
+							onClick={undo}
+						>
+							{t('games.nonogram.undo')}
+						</button>
+						<button
+							type="button"
+							class="min-h-12 rounded-xl border border-border px-3 font-semibold"
+							onClick={startOver}
+						>
+							{t('games.nonogram.startOver')}
+						</button>
+					</div>
+				</Show>
+			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.nonogram.complete')} />
 		</div>
 	)

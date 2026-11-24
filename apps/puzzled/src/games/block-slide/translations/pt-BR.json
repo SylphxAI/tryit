@@ -11,7 +11,7 @@
 		"rule3": "Tente resolver com o mínimo de jogadas"
 	},
 	"startGame": "Começar jogo",
-	"moves": "jogadas",
+	"moveCount": "{count, plural, one {# jogada} other {# jogadas}}",
 	"minMoves": "Mín.",
 	"reset": "Reiniciar",
 	"giveUp": "Desistir",
