@@ -18,6 +18,7 @@
 		"delete": "删除"
 	},
 	"messages": {
+		"useKeyboard": "请打字或使用下方键盘",
 		"notEnoughLetters": "字母数量不足",
 		"notInWordList": "不在词库中",
 		"correct": "太棒了！",

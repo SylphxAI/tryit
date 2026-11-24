@@ -12,9 +12,9 @@
 		"rule4": "Letters can be used more than once"
 	},
 	"messages": {
-		"tooShort": "Words must be at least 4 letters",
+		"tooShort": "Too short (min 4 letters)",
 		"missingCenter": "Missing center letter",
-		"invalidLetter": "Invalid letter used",
+		"invalidLetter": "Letter not in hive",
 		"notInList": "Not in word list",
 		"alreadyFound": "Already found!"
 	},

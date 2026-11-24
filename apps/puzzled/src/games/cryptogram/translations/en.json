@@ -18,5 +18,7 @@
 	"cipherLetter": "{cipher}: {guess}",
 	"blank": "blank",
 	"wrong": "Not solved yet: some letters are wrong.",
+	"selectFirst": "Tap a cipher letter above first",
+	"letterMoved": "Moved {letter} from {from} to {to}",
 	"clear": "Clear letter"
 }

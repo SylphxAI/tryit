@@ -16,6 +16,9 @@
 	"mistakes": "剩餘錯誤次數",
 	"mistakesRemaining": "剩下 {remaining}／{total} 次錯誤",
 	"messages": {
+		"selectionFull": "選好 4 個方塊，再點選提交",
+		"pickMore": "再選 {count} 個",
+		"alreadyGuessed": "已經猜過這組",
 		"correct": "正確！",
 		"oneAway": "差一個…",
 		"incorrect": "不正確",

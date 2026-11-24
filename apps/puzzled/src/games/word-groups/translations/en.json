@@ -16,6 +16,9 @@
 	"mistakes": "Mistakes remaining",
 	"mistakesRemaining": "{remaining} of {total} mistakes remaining",
 	"messages": {
+		"selectionFull": "Select 4 tiles, then tap Submit",
+		"pickMore": "Pick {count} more",
+		"alreadyGuessed": "Already guessed",
 		"correct": "Correct!",
 		"oneAway": "One away...",
 		"incorrect": "Incorrect",

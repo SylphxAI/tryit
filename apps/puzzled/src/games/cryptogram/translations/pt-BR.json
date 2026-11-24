@@ -18,5 +18,7 @@
 	"cipherLetter": "{cipher}: {guess}",
 	"blank": "em branco",
 	"wrong": "Ainda não foi resolvido: algumas letras estão erradas.",
+	"selectFirst": "Toque primeiro em uma letra cifrada acima",
+	"letterMoved": "A letra {letter} passou de {from} para {to}",
 	"clear": "Apagar letra"
 }

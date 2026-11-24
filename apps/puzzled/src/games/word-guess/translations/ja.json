@@ -18,6 +18,7 @@
 		"delete": "削除"
 	},
 	"messages": {
+		"useKeyboard": "文字を入力するか、下のキーボードを使ってください",
 		"notEnoughLetters": "文字数が足りません",
 		"notInWordList": "単語リストにありません",
 		"correct": "お見事！",

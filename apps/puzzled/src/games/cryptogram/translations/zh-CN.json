@@ -18,5 +18,7 @@
 	"cipherLetter": "{cipher}：{guess}",
 	"blank": "空白",
 	"wrong": "还没解开：有些字母不正确。",
+	"selectFirst": "请先点选上方密文字母",
+	"letterMoved": "已将 {letter} 从 {from} 移到 {to}",
 	"clear": "清除字母"
 }

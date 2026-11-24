@@ -18,6 +18,7 @@
 		"delete": "Delete"
 	},
 	"messages": {
+		"useKeyboard": "Type or use the keyboard below",
 		"notEnoughLetters": "Not enough letters",
 		"notInWordList": "Not in word list",
 		"correct": "Excellent!",

@@ -10,6 +10,10 @@ test('gives distinct feedback for dictionary, length, distance and repeats', () 
 	expect(checkLadderStep(['damp'], 'lamp', 4)).toBeNull()
 })
 
+test('prioritizes the length rule for an out-of-dictionary word of the wrong length', () => {
+	expect(checkLadderStep(['damp'], 'zzz', 4)).toBe('wrongLength')
+})
+
 test('accepts each generated golden step', () => {
 	for (const {
 		solution: { path },
