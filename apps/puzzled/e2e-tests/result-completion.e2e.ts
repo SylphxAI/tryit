@@ -103,6 +103,22 @@ async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
 	return { board, next, firstWidth }
 }
 
+// Decode the browser's actual paint, not the DOM box or computed backdrop style.
+async function paintedPixels(page: Page, png: Buffer, points: { x: number; y: number }[]) {
+	return page.evaluate(
+		async ({ png, points }) => {
+			const bytes = Uint8Array.from(atob(png), (char) => char.charCodeAt(0))
+			const image = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
+			const canvas = new OffscreenCanvas(image.width, image.height)
+			const ctx = canvas.getContext('2d')!
+			ctx.drawImage(image, 0, 0)
+			image.close()
+			return points.map(({ x, y }) => Array.from(ctx.getImageData(x, y, 1, 1).data).slice(0, 3))
+		},
+		{ png: png.toString('base64'), points },
+	)
+}
+
 async function canvasGeometry(page: Page) {
 	return page.locator('.play-body').evaluate((canvas) => {
 		const rect = (selector: string) =>
@@ -254,8 +270,36 @@ for (const viewport of [
 					expect(
 						await dialog.evaluate((el) => getComputedStyle(el, '::backdrop').backdropFilter),
 					).toBe('blur(5px)')
+					const badAncestors = await dialog.evaluate((el) => {
+						const invisible: string[] = []
+						for (let ancestor: Element | null = el; ancestor; ancestor = ancestor.parentElement) {
+							const { opacity, visibility } = getComputedStyle(ancestor)
+							if (Number.parseFloat(opacity) !== 1 || visibility !== 'visible') {
+								invisible.push(
+									`${ancestor.tagName}.${ancestor.className}: opacity=${opacity}, visibility=${visibility}`,
+								)
+							}
+						}
+						return invisible
+					})
+					expect(badAncestors).toEqual([])
+					await expect(page.locator('dialog.result-dialog:modal')).toHaveCount(1)
+					const scrim = { x: 8, y: 8 } // Clear of the dialog and dock at every tested size.
+					let openScrim: number[] | undefined
 					if (slug === 'number-path') {
-						await page.screenshot({ path: info.outputPath('path-result.png') })
+						const cta = (await playNext.boundingBox())!
+						const result = await page.screenshot({
+							path: info.outputPath('path-result.png'),
+							scale: 'css',
+						})
+						const [shade, paper, amber] = await paintedPixels(page, result, [
+							scrim,
+							{ x: dialogRect.x + 12, y: dialogRect.y + 36 },
+							{ x: cta.x + 20, y: cta.y + cta.height / 2 },
+						])
+						openScrim = shade
+						expect(paper).toEqual([255, 255, 255])
+						expect(amber).toEqual([244, 180, 42])
 						const axe = await new AxeBuilder({ page })
 							.include('.result-dialog')
 							.withTags(WCAG_TAGS)
@@ -296,6 +340,16 @@ for (const viewport of [
 					await expect(trigger).toBeFocused()
 					await expect(card).toHaveCSS('opacity', '1')
 					expect((await canvasGeometry(page)).board).toEqual(after.board)
+					if (openScrim) {
+						const dismissed = await page.screenshot({
+							path: info.outputPath('path-dismissed.png'),
+							scale: 'css',
+						})
+						const [closedScrim] = await paintedPixels(page, dismissed, [scrim])
+						for (const [channel, value] of closedScrim.entries()) {
+							expect(value - openScrim[channel]).toBeGreaterThan(50)
+						}
+					}
 					await trigger.press('Enter')
 					await expect(dialog).toBeVisible()
 					await page.keyboard.press('Shift+Tab')

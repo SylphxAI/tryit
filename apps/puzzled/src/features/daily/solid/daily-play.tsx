@@ -89,6 +89,7 @@ export function DailyPlay(props: {
 	const choose = !archive && props.data.difficultyLevels.length > 0 && !props.difficulty
 	const board = boards.get(slug)
 	const [starting, setStarting] = createSignal(false)
+	const [resultOpen, setResultOpen] = createSignal(false)
 	const [entered, setEntered] = createSignal(false)
 	const input = { gameSlug: slug, difficulty: props.difficulty, puzzleDate: props.day.puzzleDate }
 	const [mounted, setMounted] = createSignal(false)
@@ -187,6 +188,7 @@ export function DailyPlay(props: {
 						<div
 							class="completion-card mx-auto max-w-xl space-y-2 text-center"
 							data-game-stage="completed"
+							data-result-open={resultOpen() || undefined}
 						>
 							<h2 class="font-display text-2xl">{t('daily.alreadyCompleted')}</h2>
 							<p>
@@ -204,6 +206,7 @@ export function DailyPlay(props: {
 								{t('gameResult.attempts')}: {result().session.attempts}
 							</p>
 							<ResultActions
+								onDetailsOpenChange={setResultOpen}
 								facts={{
 									gameSlug: slug,
 									mode: props.day.mode,
