@@ -1,11 +1,22 @@
 /** Local only: Auth response fixture for the real SolidStart routes. No credentials, email or accounts. */
+import { readFileSync } from 'node:fs'
 import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
 import { fixtureToken } from './auth-fixture-facts'
 
 export const org = 'organization-00000000-0000-4000-8000-000000000123'
 export const flow = 'A'.repeat(43)
 const email = 'synthetic@example.test'
-const user = { principal_id: 'fixture-user', project_id: org, primary_email: email }
+const user = {
+	principal_id: 'fixture-user',
+	project_id: org,
+	primary_email: email,
+	primary_email_verified: true,
+}
+const publishable = process.env.SYLPHX_PUBLISHABLE_KEY
+const secret = process.env.SYLPHX_AUTH_SECRET_KEY
+const fixtureTLS = process.env.FIXTURE_AUTH_TLS_DIR!
+if (!fixtureTLS || !publishable || !secret)
+	throw new Error('Fixture TLS and synthetic keys are required')
 const response = (data: object, status = 200) => Response.json(data, { status })
 
 function browserSession(id: string, name: string, state = 'active') {
@@ -30,6 +41,7 @@ const issue = () => {
 }
 
 Bun.serve({
+	tls: { cert: readFileSync(`${fixtureTLS}/cert.pem`), key: readFileSync(`${fixtureTLS}/key.pem`) },
 	hostname: '127.0.0.1',
 	port: Number(process.env.FIXTURE_AUTH_PORT ?? 18875),
 	async fetch(request) {
@@ -48,30 +60,30 @@ Bun.serve({
 		}
 		calls.push({ path, body })
 		const enabled = !['legacy', 'off'].includes(mode)
+		const pk = auth === `Bearer ${publishable}`
 		if (path === '/v1/client/config') {
-			if (auth !== 'Bearer pk_local_fixture') return response({}, 403)
+			if (!pk) return response({}, 403)
 			return response({
+				instance: { id: org, slug: 'tryit-test', environment: 'test' },
 				methods: { email_otp: enabled, passkey: enabled, password: mode !== 'off' },
-				...(mode === 'hosted-google' && {
-					instance: { id: org, slug: 'tryit-test' },
-					portal_origin_mode: 'hosted',
-					portal_url: 'https://auth.tryit.fun',
-				}),
-				social:
-					mode === 'off'
-						? []
-						: [
-								{
-									provider: 'google',
-									...(mode === 'hosted-google' && {
-										credentials: 'custom',
-										start_url: 'https://auth.tryit.fun/oauth/google/start?instance=tryit-test',
-									}),
-								},
-							],
+				social: mode === 'off' ? [] : [{ provider: 'google', credentials: 'shared' }],
 			})
 		}
-		const pk = auth === 'Bearer pk_local_fixture'
+		if (path === '/v1/client/oauth/google/start' && pk && mode === 'google') {
+			const callback = new URL(url.searchParams.get('redirect_url') ?? '')
+			if (
+				callback.origin !== 'https://tryit.fun' ||
+				!callback.searchParams.has('flow') ||
+				url.searchParams.get('session_mode') !== 'server'
+			)
+				return response({}, 400)
+			const { ticket } = await issue().json()
+			callback.searchParams.set('auth_ticket', ticket)
+			const next = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+			// The test intercepts the provider navigation and completes the fixture round trip.
+			next.searchParams.set('state', callback.pathname + callback.search)
+			return Response.redirect(next, 303)
+		}
 		if (
 			path === '/v1/client/continue' &&
 			pk &&
@@ -109,15 +121,19 @@ Bun.serve({
 		if (path === '/v1/client/sign-in/password' && pk && body.password === 'old') return issue()
 		if (
 			path === '/v1/client/tickets:redeem' &&
-			auth === 'Bearer sk_local_fixture' &&
+			auth === `Bearer ${secret}` &&
 			tickets.delete(body?.ticket)
 		) {
-			return response({ session: { token: fixtureToken }, is_new_user: mode === 'new' })
+			return response({
+				session: { token: fixtureToken, expires_at: Math.floor(Date.now() / 1000) + 600 },
+				user: { id: user.principal_id, email_verified: true },
+				is_new_user: mode === 'new',
+			})
 		}
 		if (
 			path === '/v1/sessions/current' &&
 			auth === `Bearer ${fixtureToken}` &&
-			request.headers.get('x-sylphx-caller-key') === 'pk_local_fixture'
+			request.headers.get('x-sylphx-caller-key') === publishable
 		) {
 			return response({
 				principal: user,

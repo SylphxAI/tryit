@@ -144,20 +144,6 @@ test('OTP is inline; keeps input on refusal, resends after cooldown and permits 
 	})
 })
 
-test('Google forwards the safe next destination and policy notice versions', async ({ page }) => {
-	await page.route('**/api/identity/oidc/begin', (route) => {
-		expect(route.request().postDataJSON()).toMatchObject({
-			provider: 'google',
-			redirectUrl: destination,
-			acceptance: { terms_accepted: true },
-		})
-		return route.fulfill({ json: { authorizationUrl: destination } })
-	})
-	await page.goto(`/sign-in?next=${encodeURIComponent(destination)}`)
-	await page.getByRole('button', { name: 'Continue with Google' }).click()
-	await expect(page).toHaveURL(/\/support\?from=sign-in$/)
-})
-
 test('legacy-password-only config shows the existing password on step two, not registration', async ({
 	page,
 }) => {

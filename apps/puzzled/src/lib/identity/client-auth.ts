@@ -2,9 +2,6 @@ import 'server-only'
 
 import { destIdentityProjectId } from './credentials'
 import { authIdValue, destIdentityOrigin } from './dest'
-import { isPolicyAcceptance, type PolicyAcceptance } from './policy-consent'
-
-export { safeNext } from './return-path'
 
 /**
  * Tryit's players are end users of its own Sylphx Auth instance, reached
@@ -199,42 +196,6 @@ export async function sessionTimes(
 	}
 }
 
-/** Client API calls use only the published key, never a secret or a session credential. */
-export function authClient<T>(config: AuthConfig, path: string, userAgent: string, body?: unknown) {
-	return call<T>(config, `/v1/client/${path}`, {
-		method: body === undefined ? 'GET' : 'POST',
-		bearer: config.publishableKey,
-		userAgent,
-		body,
-	})
-}
-
-/** Instance-wide client config, never an email/account eligibility lookup. */
-async function readClientConfig(config: AuthConfig, userAgent: string) {
-	const body = await authClient<{
-		methods?: Record<string, unknown>
-		social?: Array<{ provider?: unknown } | null>
-	}>(config, 'config', userAgent)
-	if (!Array.isArray(body?.social)) throw new AuthCallError(502, 'invalid_config')
-	const providers = body.social.flatMap((entry) =>
-		typeof entry?.provider === 'string' && entry.provider ? [entry.provider] : [],
-	)
-	return { methods: body.methods, providers }
-}
-
-export async function clientMethods(config: AuthConfig, userAgent = 'puzzled-web') {
-	const { methods, providers } = await readClientConfig(config, userAgent)
-	if (!methods || typeof methods !== 'object' || Array.isArray(methods)) {
-		throw new AuthCallError(502, 'invalid_config')
-	}
-	return {
-		emailCode: methods.email_otp === true,
-		password: methods.password === true,
-		passkey: methods.passkey === true,
-		google: providers.includes('google'),
-	}
-}
-
 /** Public Continue API; the browser never receives an Auth session or ticket. */
 export async function beginEmailCode(config: AuthConfig, userAgent: string, email: string) {
 	const body = await call<{ step?: unknown; flow?: unknown; expires_in?: unknown }>(
@@ -332,87 +293,4 @@ export async function passkeyTicket(config: AuthConfig, userAgent: string, proof
 			body: { ...proof, session_mode: 'server' },
 		}),
 	)
-}
-
-const GOOGLE_API_START = '/v1/client/oauth/google/start'
-const GOOGLE_ORIGIN = 'https://accounts.google.com'
-// Product-owned trust root. Neither a request header nor Auth's response sets it.
-const TRYIT_AUTH_PORTAL = 'https://auth.tryit.fun'
-
-/** Resolve the browser's next hop from this instance's live Auth settings. */
-export async function googleStartUrl(
-	config: AuthConfig,
-	returnUrl: string,
-	userAgent: string,
-	acceptance?: PolicyAcceptance,
-): Promise<string> {
-	if (acceptance && !isPolicyAcceptance(acceptance))
-		throw new AuthCallError(400, 'policy_acceptance_required')
-	const settings = await authClient<{
-		instance?: { id?: unknown; slug?: unknown }
-		portal_origin_mode?: unknown
-		portal_url?: unknown
-		social?: Array<{ provider?: unknown; credentials?: unknown; start_url?: unknown } | null>
-	}>(config, 'config', userAgent)
-	const expectedId = authIdValue(config.instanceId)
-	const { id, slug } = settings.instance ?? {}
-	if (!expectedId || typeof id !== 'string' || authIdValue(id) !== expectedId)
-		throw new AuthCallError(503, 'identity_unconfigured')
-	if (!Array.isArray(settings.social)) throw new AuthCallError(502, 'invalid_config')
-	const [google, duplicate] = settings.social.filter((entry) => entry?.provider === 'google')
-	if (!google) throw new AuthCallError(403, 'oidc_provider_unavailable')
-	if (duplicate) throw new AuthCallError(502, 'invalid_config')
-
-	const hosted =
-		typeof slug === 'string' && /^[a-z0-9][a-z0-9-]{0,62}$/.test(slug)
-			? new URL(`/oauth/google/start?instance=${slug}`, TRYIT_AUTH_PORTAL)
-			: null
-	const withCallback = (start: URL) => {
-		start.searchParams.set('redirect_url', returnUrl)
-		start.searchParams.set('session_mode', 'server')
-		return start
-	}
-	const withAcceptance = (start: URL) => {
-		if (acceptance) {
-			for (const [key, value] of Object.entries(acceptance))
-				start.searchParams.set(key, String(value))
-		}
-		return start.href
-	}
-	if (google.credentials === 'custom') {
-		if (
-			!hosted ||
-			settings.portal_origin_mode !== 'hosted' ||
-			settings.portal_url !== TRYIT_AUTH_PORTAL ||
-			google.start_url !== hosted.href
-		)
-			throw new AuthCallError(503, 'identity_unconfigured')
-		return withAcceptance(withCallback(hosted))
-	}
-
-	// A shared start always uses the server binding. Discovery's advertised
-	// URL is neither a credential destination nor a browser redirect.
-	const shared = new URL(GOOGLE_API_START, config.url)
-	if (
-		google.credentials !== 'shared' &&
-		(google.credentials !== undefined ||
-			(google.start_url !== undefined && google.start_url !== shared.href))
-	)
-		throw new AuthCallError(503, 'identity_unconfigured')
-	const response = await fetch(withAcceptance(withCallback(shared)), {
-		headers: { authorization: `Bearer ${config.publishableKey}`, 'user-agent': userAgent },
-		cache: 'no-store',
-		redirect: 'manual',
-		signal: AbortSignal.timeout(8_000),
-	})
-	const location = response.headers.get('location')
-	await response.body?.cancel()
-	if (response.status === 303 && location) {
-		// Activation can race the settings read. Accept only the exact hosted hop
-		// Auth would construct, and retain the original policy acceptance fields.
-		if (hosted && location === withCallback(hosted).href) return withAcceptance(hosted)
-		const target = URL.parse(location)
-		if (target?.origin === GOOGLE_ORIGIN && !target.username && !target.password) return target.href
-	}
-	throw new AuthCallError(502, 'oidc_begin_failed')
 }

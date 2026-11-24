@@ -8,7 +8,7 @@ import { getTodaysFreeGame } from '@/lib/free-rotation'
 import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
-import { authConfig, clientMethods } from '@/lib/identity/client-auth'
+import { readEntryConfig } from '@/lib/identity/oauth-server'
 import { withPresentationDeadline } from '@/lib/presentation-document'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
@@ -31,10 +31,9 @@ export async function readAuthPage(locale: Locale, kind: keyof typeof authPages,
 	const gameKey = `games.${slugToCamelCase(freeGameSlug)}.name`
 	const freeGameName = t.has(gameKey) ? t(gameKey) : freeGameSlug
 	const overview = withPresentationDeadline(readTodayOverview(), null)
-	const config = kind === 'sign-in' ? authConfig() : null
-	const [result, methods] = await Promise.all([
+	const [result, entry] = await Promise.all([
 		overview,
-		config ? clientMethods(config).catch(() => null) : null,
+		kind === 'sign-in' ? readEntryConfig(request) : null,
 	])
 	const [titleKey, descriptionKey] = authPages[kind]
 	const title = t(`auth.${titleKey}`)
@@ -43,7 +42,7 @@ export async function readAuthPage(locale: Locale, kind: keyof typeof authPages,
 		freeGameSlug,
 		freeGameName,
 		playersToday: result ? Number(result.playerCount) : null,
-		methods,
+		entry,
 		meta: pageMetadata({
 			locale,
 			path: `/${kind}`,

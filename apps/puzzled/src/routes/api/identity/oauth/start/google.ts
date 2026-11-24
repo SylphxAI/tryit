@@ -1,8 +1,8 @@
 import type { APIEvent } from '@solidjs/start/server'
-import { POST as handlePOST } from '@/server/api/identity/oidc/begin'
+import { handleOAuth } from '@/lib/identity/oauth-server'
 import { apiMethodResponses } from '@/server/api-methods'
 
-export const POST = ({ request }: APIEvent) => handlePOST(request)
+export const POST = ({ request }: APIEvent) => handleOAuth(request)
 
 const methods = apiMethodResponses(['POST'])
 export const OPTIONS = methods.options

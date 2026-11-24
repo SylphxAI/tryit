@@ -802,22 +802,26 @@ jobs:
           NODE_ENV: production
           API_INTERNAL_URL: http://127.0.0.1:8787
           SYLPHX_PUBLIC_URL: https://tryit.fun
-          SOLID_AUTH_FIXTURE_URL: http://127.0.0.1:18875
-          SYLPHX_AUTH_URL: http://127.0.0.1:18875
+          SOLID_AUTH_FIXTURE_URL: https://127.0.0.1:18875
+          SYLPHX_AUTH_URL: https://127.0.0.1:18875
           SYLPHX_AUTH_ORGANIZATION_ID: organization-00000000-0000-4000-8000-000000000123
-          SYLPHX_PUBLISHABLE_KEY: pk_local_fixture
-          SYLPHX_AUTH_SECRET_KEY: sk_local_fixture
+          SYLPHX_PUBLISHABLE_KEY: sylphx_pk_local_fixture
+          SYLPHX_AUTH_SECRET_KEY: sylphx_sk_local_fixture
           PORT: '3019'
           BASE_URL: http://localhost:3019
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/auth
         run: |
           set -euo pipefail
+          export FIXTURE_AUTH_TLS_DIR="$(mktemp -d "$RUNNER_TEMP/auth-tls.XXXXXXXX")"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=127.0.0.1 \
+            -addext subjectAltName=IP:127.0.0.1 -keyout "$FIXTURE_AUTH_TLS_DIR/key.pem" -out "$FIXTURE_AUTH_TLS_DIR/cert.pem"
+          export NODE_EXTRA_CA_CERTS="$FIXTURE_AUTH_TLS_DIR/cert.pem"
           bun scripts/serve-sign-in-fixture.ts > "$RUNNER_TEMP/fixture-auth.log" 2>&1 &
           echo "$!" >> "$RUNNER_TEMP/craft.pids"
           bun run start > "$RUNNER_TEMP/serve-auth.log" 2>&1 &
           echo "$!" >> "$RUNNER_TEMP/craft.pids"
           for attempt in $(seq 1 30); do
-            if curl -fsS --max-time 2 "$SOLID_AUTH_FIXTURE_URL/__fixture" >/dev/null &&
+            if curl --cacert "$NODE_EXTRA_CA_CERTS" -fsS --max-time 2 "$SOLID_AUTH_FIXTURE_URL/__fixture" >/dev/null &&
                curl -fsS --max-time 2 "$BASE_URL/sign-in" >/dev/null; then break; fi
             if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-auth.log" "$RUNNER_TEMP/serve-auth.log"; exit 1; fi
             sleep 1

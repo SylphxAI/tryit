@@ -1,10 +1,8 @@
 import { createSignal } from 'solid-js'
-import { POLICY_ACCEPTANCE } from '@/lib/identity/policy-consent'
 
 type Endpoint =
 	| 'login'
 	| 'sign-in'
-	| 'oidc/begin'
 	| 'recovery'
 	| 'recovery/complete'
 	| 'verify-email'
@@ -29,7 +27,6 @@ export async function postIdentity(endpoint: Endpoint, data: object) {
 export function createIdentityAction() {
 	const [pending, setPending] = createSignal(false)
 	const [error, setError] = createSignal<string | null>(null)
-	const [loadingProvider, setLoadingProvider] = createSignal<string | null>(null)
 	async function run(action: () => Promise<void>, fallback: string) {
 		if (pending()) return
 		setPending(true)
@@ -39,28 +36,10 @@ export function createIdentityAction() {
 		} catch (cause) {
 			setError(cause instanceof IdentityRefusal ? cause.message : fallback)
 		} finally {
-			setLoadingProvider(null)
 			setPending(false)
 		}
 	}
-	function oauth(provider: string, redirectUrl: string, acceptPolicy = false) {
-		return run(async () => {
-			setLoadingProvider(provider)
-			const result = await postIdentity('oidc/begin', {
-				provider,
-				redirectUrl,
-				...(acceptPolicy ? { acceptance: POLICY_ACCEPTANCE } : {}),
-			})
-			if (
-				!result.ok ||
-				typeof result.body.authorizationUrl !== 'string' ||
-				!result.body.authorizationUrl
-			)
-				throw new IdentityRefusal('oidc_begin_failed')
-			window.location.assign(result.body.authorizationUrl)
-		}, 'oidc_begin_failed')
-	}
-	return { pending, error, clearError: () => setError(null), loadingProvider, run, oauth }
+	return { pending, error, clearError: () => setError(null), run }
 }
 
 export class IdentityRefusal extends Error {}

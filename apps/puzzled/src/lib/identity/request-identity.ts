@@ -1,15 +1,11 @@
 import 'server-only'
 
-import { parseCookie } from 'cookie-es'
 import { env } from '../env'
 import { destIdentityCredential, destIdentityProjectId, destProductCredential } from './credentials'
 import { destIdentityJson, destIdentityOrigin, destIdentityUser, type IdentityUser } from './dest'
 import { readSessionToken } from './session-cookie'
 
-export function requestSessionToken(request: Request): string | undefined {
-	const cookies = parseCookie(request.headers.get('cookie') ?? '')
-	return readSessionToken({ get: (name) => ({ value: cookies[name] ?? '' }) })
-}
+export { readSessionToken as requestSessionToken }
 
 /** Auth binds the session to the original browser's User-Agent. */
 export function requestUserAgent(request: Request): string {
@@ -17,7 +13,7 @@ export function requestUserAgent(request: Request): string {
 }
 
 export function requestUser(request: Request): Promise<IdentityUser | null> {
-	return resolveUser(requestSessionToken(request), requestUserAgent(request))
+	return resolveUser(readSessionToken(request), requestUserAgent(request))
 }
 
 export async function resolveUser(
@@ -44,7 +40,7 @@ export async function resolveUser(
 }
 
 export async function endRequestSession(request: Request): Promise<void> {
-	const token = requestSessionToken(request)
+	const token = readSessionToken(request)
 	if (!token) return
 	try {
 		await destIdentityJson(destIdentityOrigin(env.SYLPHX_AUTH_URL), '/v1/client/sign-out', {
