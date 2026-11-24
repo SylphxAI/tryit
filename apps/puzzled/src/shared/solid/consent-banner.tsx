@@ -61,12 +61,14 @@ export function ConsentBanner(props: { copy: Copy }) {
 				data-consent-banner
 			>
 				<div class="page-shell-wide grid items-center gap-x-4 gap-y-1 py-1 text-sm leading-5 md:flex md:flex-wrap md:justify-between md:py-1.5">
-					<p class="text-muted-foreground">
-						{props.copy.message}{' '}
-						<a class="underline" href={props.copy.privacyHref}>
+					{/* Keep the disclosure and its link separate, so the late notice does not
+					    paint as one full-width text block over the game’s initial content. */}
+					<div class="flex flex-wrap items-baseline gap-x-2 text-muted-foreground max-md:justify-between">
+						<p>{props.copy.message}</p>
+						<a class="shrink-0 underline" href={props.copy.privacyHref}>
 							{props.copy.learnMore}
 						</a>
-					</p>
+					</div>
 					<ChoiceButtons copy={props.copy} class="grid grid-cols-3 gap-2 md:shrink-0" />
 				</div>
 			</section>

@@ -228,6 +228,51 @@ test('mobile opt-in bar fits every supported locale and Decline does not load Go
 	expect(requests).toEqual([])
 })
 
+test('late consent leaves the cold Nonogram LCP on game content', async ({ page, browserName }) => {
+	test.skip(browserName !== 'chromium', 'Largest Contentful Paint entries require Chromium here')
+	await page.setViewportSize({ width: 412, height: 823 })
+	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+	await page.addInitScript(() => {
+		const lcp = { count: 0, inBanner: false }
+		Object.defineProperty(window, 'consentLcpProbe', { value: lcp })
+		new PerformanceObserver((list) => {
+			for (const entry of list.getEntries() as LargestContentfulPaint[]) {
+				if (entry.element?.closest('main')) lcp.count++
+				if (entry.element?.closest('[data-consent-banner]')) lcp.inBanner = true
+			}
+		}).observe({ type: 'largest-contentful-paint', buffered: true })
+	})
+	const held = Promise.withResolvers<void>()
+	const requested = Promise.withResolvers<void>()
+	await page.route('**/api/consent-context', async (route) => {
+		requested.resolve()
+		await held.promise
+		await route.continue()
+	})
+	const lcp = () =>
+		page.evaluate(
+			() => Reflect.get(window, 'consentLcpProbe') as { count: number; inBanner: boolean },
+		)
+	try {
+		await page.goto('/games/nonogram', { waitUntil: 'domcontentloaded' })
+		await requested.promise
+		await expect.poll(async () => (await lcp()).count).toBeGreaterThan(0)
+		await expect(banner(page)).toBeHidden()
+	} finally {
+		held.resolve()
+	}
+	await expect(banner(page).getByRole('button')).toHaveCount(3)
+	await expect(banner(page).getByRole('link', { name: 'Privacy policy' })).toBeVisible()
+	// Let Chromium paint the revealed notice and deliver any new entry before the first input.
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))),
+			),
+	)
+	expect((await lcp()).inBanner).toBe(false)
+})
+
 // A fake dataLayer consumer cannot reproduce the destination's startup hit.
 // Fetch only the public script; intercept every cross-origin browser request
 // before it reaches Google (including POST batches and beacon transports).
