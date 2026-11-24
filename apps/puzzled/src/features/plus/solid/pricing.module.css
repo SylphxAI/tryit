@@ -1,8 +1,10 @@
 .page {
-	background: #fcfbf8;
+	background: #f7f5f0;
 	--pricing-tray: #f2efe8;
-	--pricing-card: #fcfbf8;
-	--pricing-edge: #ddd7cb;
+	--pricing-card: #fff;
+	--pricing-edge: rgb(20 20 19 / 0.1);
+	--pricing-gold-ring: #966318;
+	--pricing-gold-tint: #fff7e6;
 }
 
 .shell {
@@ -36,7 +38,7 @@
 	color: #1a1712;
 	font-size: 22px;
 	line-height: 1;
-	box-shadow: 0 3px 0 #c98a0b;
+	box-shadow: var(--editorial-shadow);
 }
 
 .title {
@@ -73,6 +75,16 @@
 	box-shadow: 0 4px 0 var(--color-foreground);
 }
 
+/* PlusOffer also renders in compact game unlocks. Keep the editorial surfaces on pricing. */
+.page .card {
+	border: 1px solid var(--pricing-edge);
+	box-shadow: var(--editorial-shadow);
+}
+
+.page .featured {
+	box-shadow: var(--editorial-lift);
+}
+
 .cardHeading {
 	display: flex;
 	flex-direction: column;
@@ -101,6 +113,28 @@
 	border-color: var(--color-foreground);
 	background: var(--pricing-tray);
 	box-shadow: 0 2px 0 var(--color-foreground);
+}
+
+.page .cardHeading h2 > span {
+	box-shadow: var(--editorial-shadow);
+}
+
+.page .option {
+	border: 1px solid var(--pricing-edge);
+}
+
+.page .option:not(.selected):hover {
+	background: var(--pricing-tray);
+}
+
+.page .selected {
+	border-color: var(--pricing-gold-ring);
+	background: var(--pricing-gold-tint);
+	box-shadow: 0 0 0 1px var(--pricing-gold-ring), var(--editorial-shadow);
+}
+
+.page .option input {
+	accent-color: var(--pricing-gold-ring);
 }
 
 .currency {
@@ -134,6 +168,19 @@
 	transform: translateY(4px);
 }
 
+.page .checkout {
+	border-radius: 999px;
+}
+
+.page .featured .checkout {
+	box-shadow: 0 1px 2px rgb(20 20 19 / 0.09), 0 5px 12px -5px rgb(134 75 14 / 0.32);
+}
+
+.page .featured .checkout:active {
+	box-shadow: 0 1px 2px rgb(20 20 19 / 0.09);
+	transform: none;
+}
+
 /* Keep both exits beside the primary action, before the long benefits list. */
 .planLinks {
 	display: grid;
@@ -143,9 +190,34 @@
 	text-align: center;
 }
 
-.planLinks a {
+.planLink {
+	display: inline-flex;
+	min-height: 44px;
+	align-items: center;
+	justify-content: center;
+	padding: 2px 6px;
+	border: 1px solid var(--pricing-edge);
+	border-radius: 999px;
+	background: var(--pricing-card);
+	color: var(--color-foreground);
+	font-size: 15px;
+	font-weight: 650;
 	line-height: 1.2;
+	text-decoration: none;
 	text-wrap: balance;
+}
+
+.planLink:hover {
+	background: var(--pricing-tray);
+}
+
+.planLink:focus:not(:focus-visible) {
+	outline: none;
+}
+
+.planLink:focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: 2px;
 }
 
 .free {
@@ -217,8 +289,10 @@
 :global(.dark) .page {
 	background: #141311;
 	--pricing-tray: #1f1d1a;
-	--pricing-card: #141311;
-	--pricing-edge: #38342e;
+	--pricing-card: #1c1a17;
+	--pricing-edge: rgb(247 245 240 / 0.12);
+	--pricing-gold-ring: #e0b257;
+	--pricing-gold-tint: #302619;
 }
 
 .page > section:global(#plans) > div {
@@ -231,6 +305,11 @@
 }
 
 @media (max-width: 767px) {
+	.planLink {
+		padding-inline: 4px;
+		font-size: 14px;
+	}
+
 	.intro {
 		margin-bottom: 8px;
 	}
