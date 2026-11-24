@@ -2,5 +2,9 @@
 	"finishPassLink": "用 3 天通行證解鎖全部 {games} 款遊戲和過去 {days} 天的題庫",
 	"topPercent": "今天的前 {percent}%！",
 	"playersToday": "今天有 {count} 位玩家挑戰",
-	"missedCategories": "你錯過了："
+	"missedCategories": "你錯過了：",
+	"finishedTitle": "《{game}》遊玩結果",
+	"shareResult": "分享結果",
+	"savePng": "下載 PNG",
+	"saveFailed": "無法儲存圖片，請再試一次。"
 }

@@ -24,5 +24,10 @@
 	"playersToday": "{count} jugadores hoy",
 	"playNext": "Siguiente juego: {game}",
 	"backToHome": "Volver al inicio",
-	"missedCategories": "Te faltaron:"
+	"missedCategories": "Te faltaron:",
+	"solvedTitle": "¡{game} completado!",
+	"finishedTitle": "{game}: resultado",
+	"shareResult": "Compartir resultado",
+	"savePng": "Guardar PNG",
+	"saveFailed": "No se ha podido guardar la imagen. Inténtalo otra vez."
 }

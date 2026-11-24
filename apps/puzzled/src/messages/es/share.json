@@ -8,8 +8,6 @@
 		"groupsSolvedCount": "Grupos resueltos: {total}/{total}",
 		"mistakeCount": "Errores: {mistakes}",
 		"title": "Tarjeta de resultado de Tryit",
-		"downloaded": "Imagen de la tarjeta guardada; texto copiado al portapapeles.",
-		"copied": "Texto copiado al portapapeles; este navegador no pudo generar la imagen.",
 		"unavailable": "No se pudo compartir automáticamente.",
 		"statusWon": "¡Resuelto!",
 		"statusLost": "Esta vez no",

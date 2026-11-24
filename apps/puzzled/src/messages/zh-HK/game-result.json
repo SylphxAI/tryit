@@ -24,5 +24,10 @@
 	"playersToday": "今日有 {count} 位玩家挑戰",
 	"playNext": "下一款：{game}",
 	"backToHome": "返回首頁",
-	"missedCategories": "你錯過咗："
+	"missedCategories": "你錯過咗：",
+	"solvedTitle": "完成《{game}》！",
+	"finishedTitle": "《{game}》成績",
+	"shareResult": "分享成績",
+	"savePng": "儲存 PNG",
+	"saveFailed": "未能儲存圖片，請再試一次。"
 }

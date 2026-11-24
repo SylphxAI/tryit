@@ -24,5 +24,10 @@
 	"playersToday": "今天有 {count} 位玩家挑战",
 	"playNext": "下一款：{game}",
 	"backToHome": "返回首页",
-	"missedCategories": "你错过了："
+	"missedCategories": "你错过了：",
+	"solvedTitle": "完成《{game}》！",
+	"finishedTitle": "《{game}》游戏结果",
+	"shareResult": "分享结果",
+	"savePng": "保存 PNG",
+	"saveFailed": "未能保存图片，请重试。"
 }

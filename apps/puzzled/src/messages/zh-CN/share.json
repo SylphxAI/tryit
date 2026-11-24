@@ -8,8 +8,6 @@
 		"groupsSolvedCount": "已找到的分组：{total}/{total} 组",
 		"mistakeCount": "错误：{mistakes} 次",
 		"title": "Tryit 成绩卡",
-		"downloaded": "成绩卡已保存，说明文字已复制到剪贴板。",
-		"copied": "说明文字已复制；此浏览器无法生成图片。",
 		"unavailable": "无法自动分享。",
 		"statusWon": "完成！",
 		"statusLost": "这次没成功",

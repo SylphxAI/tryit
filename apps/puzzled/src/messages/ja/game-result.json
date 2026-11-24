@@ -24,5 +24,10 @@
 	"playersToday": "今日のプレイヤー: {count}人",
 	"playNext": "次に遊ぶ: {game}",
 	"backToHome": "ホームに戻る",
-	"missedCategories": "見逃したカテゴリ:"
+	"missedCategories": "見逃したカテゴリ:",
+	"solvedTitle": "{game} クリア！",
+	"finishedTitle": "{game}の結果",
+	"shareResult": "成績をシェア",
+	"savePng": "PNGを保存",
+	"saveFailed": "画像を保存できませんでした。もう一度お試しください。"
 }

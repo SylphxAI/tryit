@@ -93,7 +93,7 @@ test('winning Sudoku reveals Share and See your result above the phone dock befo
 	expect((await shareTap).postDataJSON()).toMatchObject({ gameSlug: 'sudoku', puzzleDate: today })
 	await expect(share).toBeEnabled()
 	await details.tap()
-	const dialog = page.getByRole('dialog', { name: 'See your result' })
+	const dialog = page.getByRole('dialog', { name: 'Sudoku Complete' })
 	await expect(dialog).toBeVisible()
 	await expect(dialog.getByText('900', { exact: true })).toBeVisible()
 
