@@ -73,7 +73,7 @@ for (const viewport of [
 ]) {
 	const mobile = viewport.width === 390
 	test.describe(viewport.width + '×' + viewport.height, () => {
-		test.use({ viewport, isMobile: mobile, hasTouch: mobile, reducedMotion: 'reduce' })
+		test.use({ viewport, isMobile: mobile, hasTouch: mobile })
 		for (const slug of ['number-path', 'sudoku'] as const) {
 			test(
 				slug + ' finishes in place with consent open',
@@ -82,6 +82,7 @@ for (const viewport of [
 					if (!['localhost', '127.0.0.1'].includes(new URL(origin).hostname)) {
 						throw new Error('Completion checks require a loopback fixture')
 					}
+					await page.emulateMedia({ reducedMotion: 'reduce' })
 					await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
 					const board = await playFixture(page, slug)
 					const before = await canvasGeometry(page)
