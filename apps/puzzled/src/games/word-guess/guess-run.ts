@@ -1,0 +1,68 @@
+import { checkGuess } from '@/lib/connect/puzzle-client'
+import { type Feedback, readWordFeedback } from './feedback'
+
+export type FiveRow = { word: string; tiles: Feedback[] }
+type FivePuzzle = { puzzleDate: string; puzzleId: string }
+type PendingGuess = { word: string; settled: Promise<void> }
+export type FiveRun = {
+	rows: FiveRow[]
+	pending?: PendingGuess
+	failedWord?: string
+}
+
+// Only the browser document that sent CheckGuess can observe its reply. Do not
+// store this in Web Storage or replay it: CheckGuess spends a server guess and
+// exposes neither an idempotency key nor a read of partially completed rows.
+const runs = new Map<string, FiveRun>()
+
+function runKey(scope: string, { puzzleDate, puzzleId }: FivePuzzle) {
+	return JSON.stringify([scope, puzzleDate, puzzleId])
+}
+
+export function hasFiveRuns() {
+	return runs.size > 0
+}
+
+export function getFiveRun(scope: string | undefined, puzzle: FivePuzzle) {
+	return scope ? runs.get(runKey(scope, puzzle)) : undefined
+}
+
+export function forgetFiveRun(scope: string | undefined, puzzle: FivePuzzle) {
+	if (scope) runs.delete(runKey(scope, puzzle))
+}
+
+export function openFiveRun(scope: string | undefined, puzzle: FivePuzzle): FiveRun {
+	const previous = getFiveRun(scope, puzzle)
+	if (previous) return previous
+	const run: FiveRun = { rows: [] }
+	if (scope) runs.set(runKey(scope, puzzle), run)
+	return run
+}
+
+export function sendFiveGuess(run: FiveRun, puzzle: FivePuzzle, word: string): PendingGuess {
+	if (run.pending) return run.pending
+	const pending: PendingGuess = {
+		word,
+		// Publish the pending intent before sending; a new board only joins this promise.
+		settled: Promise.resolve().then(async () => {
+			try {
+				const response = (await checkGuess({
+					gameSlug: 'word-guess',
+					puzzleId: puzzle.puzzleId,
+					puzzleDate: puzzle.puzzleDate,
+					guess: { word },
+				})) as { tiles?: unknown } | null
+				const tiles = readWordFeedback(response?.tiles)
+				if (!tiles) throw new Error('invalid_word_grade')
+				run.rows = [...run.rows, { word, tiles }]
+			} catch {
+				run.failedWord = word
+			} finally {
+				run.pending = undefined
+			}
+		}),
+	}
+	run.failedWord = undefined
+	run.pending = pending
+	return pending
+}

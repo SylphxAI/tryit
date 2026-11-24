@@ -29,6 +29,13 @@ export function hasAccountSessionCookie(headers: Headers): boolean {
 	)
 }
 
+/** Cookie inputs that can own play progress, in request order. */
+export function progressCredentialCookies(headers: Headers): string[] {
+	return cookieParts(headers.get('cookie'))
+		.filter(({ name, value }) => isProgressCookie(name) && !!value)
+		.map(({ pair }) => pair)
+}
+
 export function hasProgressCookie(headers: Headers): boolean {
 	return cookieParts(headers.get('cookie')).some(
 		({ name, value }) => isProgressCookie(name) && !!value,
