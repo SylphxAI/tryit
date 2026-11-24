@@ -16,5 +16,7 @@
 	"undo": "Deshacer",
 	"region": "Región",
 	"tile": "Ficha {a}–{b}",
-	"rejected": "Aún no. Retira una ficha para seguir jugando."
+	"rejected": "Aún no. Retira una ficha para seguir jugando.",
+	"selectDomino": "Elige primero una ficha de dominó de abajo",
+	"pickAdjacent": "Elige una casilla contigua: arriba, abajo, a la izquierda o a la derecha"
 }

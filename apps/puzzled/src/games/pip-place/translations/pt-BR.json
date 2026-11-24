@@ -16,5 +16,7 @@
 	"undo": "Desfazer",
 	"region": "Região",
 	"tile": "Peça {a}–{b}",
-	"rejected": "Ainda não. Retire uma peça para continuar."
+	"rejected": "Ainda não. Retire uma peça para continuar.",
+	"selectDomino": "Primeiro, escolha uma peça de dominó abaixo",
+	"pickAdjacent": "Escolha uma casa vizinha: acima, abaixo, à esquerda ou à direita"
 }

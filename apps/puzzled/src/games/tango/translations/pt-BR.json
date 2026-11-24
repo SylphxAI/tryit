@@ -17,5 +17,6 @@
 		"blank": "Vazia"
 	},
 	"hasConflicts": "Algumas células violam as regras",
-	"complete": "Desafio concluído!"
+	"complete": "Desafio concluído!",
+	"lockedClue": "Pista fixa."
 }

@@ -21,12 +21,15 @@
 	"clear": "清除",
 	"complete": "謎題完成！",
 	"messages": {
-		"conflict": "這個數字與另一格衝突"
+		"conflict": "同行、同列或同宮有重複數字"
 	},
 	"difficultyDescriptions": {
 		"easy": "已填 49 格，輕鬆開始",
 		"medium": "已填 39 格，難度均衡",
 		"hard": "只填 29 格，起步位置不多"
 	},
-	"undo": "復原"
+	"undo": "復原",
+	"selectBlank": "請先點選空格",
+	"lockedNumber": "這是題目固定數字",
+	"confirmReset": "重新開始？你填寫的數字和筆記都會清除。"
 }

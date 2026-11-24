@@ -17,5 +17,6 @@
 		"blank": "空欄"
 	},
 	"hasConflicts": "ルールに反しているマスがあります",
-	"complete": "パズルクリア！"
+	"complete": "パズルクリア！",
+	"lockedClue": "最初からあるヒントは変更できません。"
 }

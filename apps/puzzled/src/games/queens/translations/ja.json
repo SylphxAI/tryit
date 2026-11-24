@@ -13,7 +13,6 @@
 	},
 	"startGame": "ゲーム開始",
 	"region": "領域 {index}",
-	"hasConflicts": "競合している王冠があります",
 	"complete": "パズルクリア！",
 	"difficulty": {
 		"easy": "かんたん",
@@ -24,5 +23,11 @@
 		"easy": "5×5のボード。各行・各列・各領域に王冠が1つずつ",
 		"medium": "6×6のボード。考える領域が増えます",
 		"hard": "8×8のボードで、条件は最も厳しめ"
+	},
+	"conflicts": {
+		"sameRow": "同じ行に王冠が2つあります",
+		"sameColumn": "同じ列に王冠が2つあります",
+		"sameRegion": "同じ色の領域に王冠が2つあります",
+		"diagonalTouch": "王冠が斜めに隣り合っています"
 	}
 }

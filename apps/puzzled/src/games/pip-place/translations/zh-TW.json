@@ -16,5 +16,7 @@
 	"undo": "復原",
 	"region": "區域",
 	"tile": "骨牌 {a}–{b}",
-	"rejected": "還沒完成。拿起一塊骨牌繼續吧。"
+	"rejected": "還沒完成。拿起一塊骨牌繼續吧。",
+	"selectDomino": "請先在下方選擇一張骨牌",
+	"pickAdjacent": "請選擇上、下、左、右相鄰的一格"
 }

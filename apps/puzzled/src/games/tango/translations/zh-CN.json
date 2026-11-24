@@ -17,5 +17,6 @@
 		"blank": "空格"
 	},
 	"hasConflicts": "有格子违反规则",
-	"complete": "谜题完成！"
+	"complete": "谜题完成！",
+	"lockedClue": "这是固定提示。"
 }
