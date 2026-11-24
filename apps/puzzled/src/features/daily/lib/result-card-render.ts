@@ -3,7 +3,7 @@
  *
  * Paints the non-spoiler card described by the model in result-card.ts onto a
  * 1080x1080 canvas: one common layout for every module (wordmark, day, module
- * name, status, chips, pattern, deep link) on paper, with the module's theme
+ * name, status, chips, pattern, brand footer) on paper, with the module's theme
  * (src/games/theme-colors.ts) supplying the band colour and the solved-tile hue. Only data the model
  * carries can reach the pixels - the solution never has a path here.
  *
@@ -16,9 +16,11 @@
  * outside the model, so the same run always renders the same bytes.
  */
 import { type GameColorTheme, getGameColors } from '@/games/theme-colors'
+import { PRODUCTION_SITE_ORIGIN } from '@/lib/site-origin'
 import { type ResultCardModel, type ResultCardStrings, resultCardChips } from './result-card'
 
 export const RESULT_CARD_SIZE = 1080
+const BRAND_HOST = new URL(PRODUCTION_SITE_ORIGIN).hostname
 
 /*
  * The site's display face. On the page it is the self-hosted Fraunces
@@ -120,7 +122,7 @@ export interface ResultCardPaintOptions {
  *
  * Layout: paper ground; a pastel band in the module's colour with the
  * wordmark, the day, the module name and the result; up to four fact chips;
- * the non-spoiler pattern; the dated link.
+ * the non-spoiler pattern; the brand footer.
  */
 export function paintResultCard(
 	ctx: Ctx,
@@ -264,7 +266,7 @@ export function paintResultCard(
 		}
 	}
 
-	// Footer: the dated deep link, the one string that must survive a re-share.
+	// Keep route and attribution in the share caption, not in the painted footer.
 	ctx.strokeStyle = palette.frame
 	ctx.lineWidth = 2 * scale
 	ctx.beginPath()
@@ -274,7 +276,7 @@ export function paintResultCard(
 	ctx.textAlign = 'center'
 	ctx.fillStyle = palette.textMuted
 	ctx.font = `500 ${Math.round(28 * scale)}px ${FONT_FAMILY}`
-	ctx.fillText(model.deepLink, innerX + innerW / 2, 1020 * scale)
+	ctx.fillText(BRAND_HOST, innerX + innerW / 2, 1020 * scale)
 	ctx.textAlign = 'left'
 
 	ctx.restore()

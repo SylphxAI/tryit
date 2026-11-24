@@ -145,6 +145,13 @@
 	max-inline-size: min(100%, clamp(14rem, calc(100cqh - 8rem), 30rem));
 	margin-inline: auto;
 }
+/* A normal portrait phone has room for the full-width Path board. Do not
+   derive its side from a settling flex container's height: Chromium can
+   resolve that height at the 14rem floor on the first hydrated paint. */
+@media (width <= 430px) and (height >= 800px) {
+	[data-play-canvas] [data-number-path-board] .play-board { max-inline-size: 30rem; }
+}
+
 [data-play-canvas] [data-block-slide-board] .play-board {
 	max-inline-size: min(100%, clamp(12rem, calc((100cqh - 12.75rem) * .8), 22rem));
 	margin-inline: auto;

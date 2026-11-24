@@ -89,7 +89,9 @@ for (const viewport of [
 					expect(before.scroll).toEqual([0, 0, 0, 0, 0, 0])
 					if (slug === 'number-path') {
 						await page.screenshot({ path: info.outputPath('path-before.png') })
-						if (!mobile) {
+						if (mobile) {
+							expect(before.board.width).toBe(viewport.width - 32)
+						} else {
 							const progress = (await page.locator('.play-meta').boundingBox())!
 							expect(progress.y - before.board.top).toBeGreaterThan(60)
 						}
@@ -188,7 +190,7 @@ for (const viewport of [
 					await share.click()
 					await expect
 						.poll(() => page.evaluate(() => navigator.clipboard.readText()))
-						.toContain('/r/' + fixtureShareId)
+						.toContain(`/r/${fixtureShareId}?utm_source=share`)
 					const saved = page.waitForEvent('download')
 					await save.click()
 					const download = await saved
