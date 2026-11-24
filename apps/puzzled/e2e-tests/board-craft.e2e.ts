@@ -289,3 +289,21 @@ for (const scenario of [
 		}
 	})
 }
+
+for (const { route, localTheme, englishTheme } of [
+	{ route: '/games/nonogram?difficulty=easy', localTheme: '星星', englishTheme: 'Star' },
+	{ route: '/games/word-search', localTheme: '音樂', englishTheme: 'Music' },
+]) {
+	test(`Taiwan board localizes the fixture theme on ${route} without changing English`, async ({
+		page,
+		baseURL,
+	}) => {
+		requireLocalFixture(baseURL)
+		const board = page.locator('[data-game-stage="board"]')
+		await page.goto(`/zh-TW${route}`)
+		await expect(board.getByText(localTheme, { exact: true })).toBeVisible()
+		await expect(board.getByText(englishTheme, { exact: true })).toHaveCount(0)
+		await page.goto(route)
+		await expect(board.getByText(englishTheme, { exact: true })).toBeVisible()
+	})
+}

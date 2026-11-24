@@ -204,7 +204,7 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		</div>
 	)
 	const lead = () => (
-		<div class="min-w-0 space-y-4">
+		<div class="home-day-lead min-w-0 space-y-4">
 			<h1 class="max-w-xl font-display text-[clamp(2.35rem,5vw,4rem)] leading-[1.02] text-balance">
 				{t(`home.day.${copy().headlineKey}`, {
 					game: page.featured.name,

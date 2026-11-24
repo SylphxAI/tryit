@@ -1,9 +1,11 @@
 /** @jsxImportSource solid-js */
 import { Paintbrush, X } from 'lucide-solid'
 import { createMemo, createSignal, For, Show } from 'solid-js'
+import { puzzleThemeLabel } from '@/games/shared/puzzle-theme-label'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseNonogramClientPayload } from './parse-client'
+import zhTwThemes from './puzzle-themes.zh-TW.json'
 import {
 	type CellState,
 	isColClueMet,
@@ -56,7 +58,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 	return (
 		<div class="mx-auto w-full max-w-[30rem] space-y-3">
 			<div class="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-				<span>{theme || t('games.nonogram.name')}</span>
+				<span>{puzzleThemeLabel(theme, props.locale, zhTwThemes, t('games.nonogram.name'))}</span>
 				<a class="inline-flex min-h-11 items-center underline" href="#rules">
 					{t('common.help')}
 				</a>
