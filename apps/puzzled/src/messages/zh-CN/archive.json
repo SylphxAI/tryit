@@ -1,13 +1,13 @@
 {
 	"metaTitle": "谜题存档",
-	"metaDescription": "浏览过去 30 天全部 19 款谜题游戏。用 Tryit Plus 解锁往日题目。",
+	"metaDescription": "浏览过去 {days} 天全部 19 款谜题游戏。用 Tryit Plus 解锁往日题目。",
 	"eyebrow": "存档",
 	"title": "你的往日题库",
 	"yesterdayIntro": "不妨从昨天（{date}）开始，也可以选择过去 {count} 天中的任意一天。",
 	"requiresPlus": "需要 Tryit Plus",
 	"body": "喜欢的游戏，还有更多。浏览过去 30 天的全部游戏，用 Plus 挑一道往日谜题慢慢玩。",
 	"playFreeToday": "玩 {game}（每天 19 款任选 3 款免费）",
-	"listTitle": "过去 30 天 · 全部 19 款游戏",
+	"listTitle": "过去 {days} 天 · 全部 19 款游戏",
 	"playDayLabel": "玩 {date} 的 {game}",
 	"play": "开始玩",
 	"playToday": "玩今日的仪式（{game}）",
@@ -18,7 +18,7 @@
 	"filterLabel": "按类别筛选",
 	"yesterday": "昨天",
 	"dayCount": "{count} 款谜题",
-	"mobileUnlockTitle": "解锁过去 30 天完整题库",
+	"mobileUnlockTitle": "解锁过去 {days} 天完整题库",
 	"mobileUnlockBody": "使用 3 天通行证或 Tryit Plus，畅玩过去 {count} 天的全部 {games} 款游戏。",
 	"mobileUnlockCta": "解锁题库"
 }

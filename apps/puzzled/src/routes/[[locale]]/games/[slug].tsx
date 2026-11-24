@@ -17,6 +17,7 @@ import { START_PARAM_ON } from '@/features/daily/lib/start-param'
 import { todayPlayPath } from '@/features/daily/lib/today-play-path'
 import { DailyPlay } from '@/features/daily/solid/daily-play'
 import { defaultLocale, isValidLocale, locales } from '@/lib/i18n/config'
+import { productDayKey } from '@/lib/product-day'
 import { localizedPath } from '@/lib/seo/urls'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import NotFound from '@/shared/solid/not-found'
@@ -53,6 +54,7 @@ const getGamePage = query(
 		return {
 			data,
 			day,
+			todayKey: productDayKey(now),
 			difficulty,
 			started,
 			initialDaily,
@@ -91,6 +93,7 @@ export default function GamePage() {
 				page.data.locale,
 				page.data.slug,
 				page.day.puzzleDate,
+				page.todayKey,
 				page.difficulty,
 				page.started,
 			])
@@ -119,6 +122,7 @@ export default function GamePage() {
 								<DailyPlay
 									data={page().data}
 									day={page().day}
+									todayKey={page().todayKey}
 									difficulty={page().difficulty}
 									initial={page().initialDaily}
 									started={page().started}

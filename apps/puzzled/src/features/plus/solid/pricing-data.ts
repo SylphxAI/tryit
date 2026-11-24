@@ -1,3 +1,4 @@
+import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
 import { getAllGameMetadata } from '@/games/registry'
 import { readBillingPlans, requestBilling } from '@/lib/api/request-billing'
@@ -25,7 +26,7 @@ export async function readPricingPage(
 	const gameCount = getAllGameMetadata().length
 	const freeSlug = getTodaysFreeGame(now)
 	const t = (key: string, values?: Record<string, string | number>) =>
-		translate(`plus.pricing.${key}`, values)
+		translate(`plus.pricing.${key}`, { days: ARCHIVE_WINDOW_DAYS, ...values })
 	const pricingPlans = loadPricingPlans((timeoutMs) => readBillingPlans(request.headers, timeoutMs))
 	const billing = requestBilling(request.headers, pricingPlans)
 	const user = withPresentationDeadline(requestUser(request), null)

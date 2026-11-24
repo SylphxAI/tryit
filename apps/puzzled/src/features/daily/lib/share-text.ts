@@ -8,7 +8,7 @@
  */
 
 import { canonicalizeGameSlug } from '@/lib/game-slug'
-import { isValidDayKey } from '@/lib/product-day'
+import { isValidDayKey, productDayKey } from '@/lib/product-day'
 import { canonicalOrigin } from '@/lib/site-origin'
 import { getPuzzleNumber } from './puzzle-utils'
 
@@ -17,8 +17,10 @@ export type RitualShareInput = {
 	origin: string
 	gameSlug: string
 	gameName: string
-	/** YYYY-MM-DD product day when known; makes the link an archive deep link */
+	/** YYYY-MM-DD product day when known */
 	puzzleDate?: string
+	/** Current server product day when rendered in the browser. */
+	todayKey?: string
 	status: 'won' | 'lost'
 	attempts?: number | null
 	/** Optional preformatted stat line (e.g. time). No solution content. */
@@ -41,21 +43,18 @@ export function shareOrigin(origin: string): string {
 	return canonicalOrigin(`https://${trimmed}`)
 }
 
-/**
- * Module deep-link path (no locale prefix — app redirects) with share attribution.
- *
- * When the day_key is known the link carries **both** halves of the archive
- * contract: `mode=archive` and `date=YYYY-MM-DD`. The landing resolves a day
- * only for an archive request, so a `date=` without the mode used to fall
- * through to today's board — every recipient of a shared card landed on the
- * wrong day. A day the calendar does not have is dropped rather than shared.
- */
-export function ritualSharePath(gameSlug: string, puzzleDate?: string): string {
+/** Only past product days use the archive. Today opens the free daily module. */
+export function ritualSharePath(
+	gameSlug: string,
+	puzzleDate?: string,
+	todayKey = productDayKey(),
+): string {
 	const slug = canonicalizeGameSlug(gameSlug.trim())
 	if (!slug) return '/?utm_source=share'
 	const base = `/games/${slug}`
-	if (isValidDayKey(puzzleDate)) {
-		return `${base}?mode=archive&date=${(puzzleDate as string).trim()}&utm_source=share`
+	const day = puzzleDate?.trim()
+	if (day && isValidDayKey(day) && day < todayKey) {
+		return `${base}?mode=archive&date=${day}&utm_source=share`
 	}
 	return `${base}?utm_source=share`
 }
@@ -79,9 +78,12 @@ export function ritualShareDeepLink(
 	gameSlug: string,
 	puzzleDate?: string,
 	shareId?: string,
+	todayKey?: string,
 ): string {
 	const base = shareOrigin(origin)
-	const path = shareId?.trim() ? shareLandingPath(shareId) : ritualSharePath(gameSlug, puzzleDate)
+	const path = shareId?.trim()
+		? shareLandingPath(shareId)
+		: ritualSharePath(gameSlug, puzzleDate, todayKey)
 	return `${base}${path}`
 }
 
@@ -95,6 +97,7 @@ export function formatRitualShareText(input: RitualShareInput): string {
 		gameSlug,
 		gameName,
 		puzzleDate,
+		todayKey,
 		status,
 		attempts,
 		statLine,
@@ -116,7 +119,7 @@ export function formatRitualShareText(input: RitualShareInput): string {
 			? `✅ ${attempts != null ? `${attempts} attempts` : 'Completed'}`
 			: '❌ Failed')
 	const streakText = currentStreak > 0 ? `🔥 ${currentStreak} day streak\n` : ''
-	const deepLink = ritualShareDeepLink(origin, gameSlug, puzzleDate, shareId)
+	const deepLink = ritualShareDeepLink(origin, gameSlug, puzzleDate, shareId, todayKey)
 
 	const greetingText = greeting?.trim() ? `${greeting.trim()}\n` : ''
 

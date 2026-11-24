@@ -165,3 +165,13 @@ describe('share landing link (ref = server-issued share id)', () => {
 		expect(shareTextLooksNonSpoiler(text)).toBe(true)
 	})
 })
+
+test('only past Hong Kong product days become archive fallback links', () => {
+	const today = '2026-08-13'
+	const todayLink = '/games/sudoku?utm_source=share'
+	expect(ritualSharePath('sudoku', today, today)).toBe(todayLink)
+	expect(ritualSharePath('sudoku', '2026-08-14', today)).toBe(todayLink)
+	expect(ritualSharePath('sudoku', '2026-08-12', today)).toBe(
+		'/games/sudoku?mode=archive&date=2026-08-12&utm_source=share',
+	)
+})

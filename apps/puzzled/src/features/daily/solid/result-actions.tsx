@@ -19,7 +19,7 @@ import './result.css'
 
 type Facts = Pick<
 	ResultCardInput,
-	'gameSlug' | 'mode' | 'status' | 'puzzleDate' | 'attempts' | 'score' | 'timeSpentMs'
+	'gameSlug' | 'mode' | 'status' | 'puzzleDate' | 'todayKey' | 'attempts' | 'score' | 'timeSpentMs'
 > & { difficulty?: string | null }
 const tile: Record<string, ResultCardTile> = {
 	'🟩': 'hit',

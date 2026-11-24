@@ -1,13 +1,13 @@
 {
 	"metaTitle": "パズルアーカイブ",
-	"metaDescription": "過去30日分、全19種類のパズルを見てみよう。Tryit Plusで過去のパズルも遊べます。",
+	"metaDescription": "過去{days}日分、全19種類のパズルを見てみよう。Tryit Plusで過去のパズルも遊べます。",
 	"eyebrow": "アーカイブ",
 	"title": "パズルアーカイブ",
 	"yesterdayIntro": "まずは昨日（{date}）のパズルから。過去{count}日間から好きな日を選べます。",
 	"requiresPlus": "Tryit Plusが必要です",
 	"body": "お気に入りのゲームをもっと。過去30日分の全ゲームから、Plusで遊びたいパズルを選びましょう。",
 	"playFreeToday": "{game}を遊ぶ（毎日19種から3つ無料）",
-	"listTitle": "過去30日分・全19ゲーム",
+	"listTitle": "過去{days}日分・全19ゲーム",
 	"playDayLabel": "{date}の{game}を遊ぶ",
 	"play": "プレイ",
 	"playToday": "今日の日課を遊ぶ({game})",
@@ -18,7 +18,7 @@
 	"filterLabel": "カテゴリーで絞り込む",
 	"yesterday": "昨日",
 	"dayCount": "{count}問",
-	"mobileUnlockTitle": "過去30日間のアーカイブを解放",
+	"mobileUnlockTitle": "過去{days}日間のアーカイブを解放",
 	"mobileUnlockBody": "3日間パスまたはTryit Plusで、過去{count}日間の全{games}ゲームを遊べます。",
 	"mobileUnlockCta": "アーカイブを解放"
 }

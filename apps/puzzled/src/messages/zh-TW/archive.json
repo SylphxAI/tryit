@@ -1,6 +1,6 @@
 {
 	"metaTitle": "謎題典藏",
-	"metaDescription": "瀏覽過去 30 天全部 19 款謎題遊戲。用 Tryit Plus 解鎖過往題目。",
+	"metaDescription": "瀏覽過去 {days} 天全部 19 款謎題遊戲。用 Tryit Plus 解鎖過往題目。",
 	"eyebrow": "典藏",
 	"title": "你的過往題庫",
 	"yesterdayIntro": "不妨從昨天（{date}）開始，也可以選擇過去 {count} 天的任一天。",
@@ -10,6 +10,6 @@
 	"dayPicker": "選擇日期",
 	"filterLabel": "依類別篩選",
 	"yesterday": "昨天",
-	"mobileUnlockTitle": "解鎖過去 30 天完整題庫",
+	"mobileUnlockTitle": "解鎖過去 {days} 天完整題庫",
 	"mobileUnlockBody": "使用 3 天通行證或 Tryit Plus，暢玩過去 {count} 天的全部 {games} 款遊戲。"
 }

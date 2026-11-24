@@ -1,13 +1,13 @@
 {
 	"metaTitle": "Puzzle archive",
-	"metaDescription": "Explore all 19 puzzle games from the past 30 days. Unlock past puzzles with Tryit Plus.",
+	"metaDescription": "Explore all 19 puzzle games from the past {days} days. Unlock past puzzles with Tryit Plus.",
 	"eyebrow": "Archive",
 	"title": "Your puzzle archive",
 	"yesterdayIntro": "Yesterday, {date}, is a good place to start. Pick any of the past {count} days.",
 	"requiresPlus": "Requires Tryit Plus",
 	"body": "Browse every game from the past 30 days, then pick a puzzle to play with Plus.",
 	"playFreeToday": "Play {game} (3 of 19 free daily)",
-	"listTitle": "Past 30 days · all 19 games",
+	"listTitle": "Past {days} days · all 19 games",
 	"playDayLabel": "Play {game} from {date}",
 	"play": "Play",
 	"playToday": "Play today's ritual ({game})",
@@ -18,7 +18,7 @@
 	"filterLabel": "Filter by category",
 	"yesterday": "Yesterday",
 	"dayCount": "{count} puzzles",
-	"mobileUnlockTitle": "Unlock all 30 past days",
+	"mobileUnlockTitle": "Unlock all {days} past days",
 	"mobileUnlockBody": "Play all {games} games from the past {count} days with a 3-day pass or Tryit Plus.",
 	"mobileUnlockCta": "Unlock archive"
 }

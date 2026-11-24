@@ -802,3 +802,35 @@ for (const [locale, path, label] of [
 		expect((await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations).toEqual([])
 	})
 }
+
+const archiveWindowCopy = {
+	'en-US': 'past 30 days',
+	'en-GB': 'past 30 days',
+	'zh-HK': '過去 30 日',
+	'zh-TW': '過去 30 天',
+	'zh-CN': '过去 30 天',
+	ja: '過去30日分',
+	es: 'últimos 30 días',
+	'pt-BR': 'últimos 30 dias',
+} as const
+
+for (const [locale, copy] of Object.entries(archiveWindowCopy)) {
+	test(`pricing and archive promise the same 30-day window (${locale})`, async ({ page }) => {
+		const prefix = locale === 'en-US' ? '' : `/${locale}`
+		await page.goto(`${prefix}/pricing`)
+		await expect(page.locator('html')).toHaveAttribute('lang', locale)
+		await expect(page.locator('main').getByText(copy).first()).toBeVisible()
+		await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+			'content',
+			new RegExp(copy),
+		)
+		await page.goto(`${prefix}/archive`)
+		await expect(page.locator('html')).toHaveAttribute('lang', locale)
+		// Hong Kong's archive SEO currently uses 天; 日 is used on the pricing and unlock cards.
+		const archiveCopy = locale === 'zh-HK' ? '過去 30 天' : copy
+		await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+			'content',
+			new RegExp(archiveCopy),
+		)
+	})
+}

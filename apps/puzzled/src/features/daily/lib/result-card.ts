@@ -52,6 +52,8 @@ export interface ResultCardInput {
 	locale?: string
 	/** YYYY-MM-DD product day the run was served for, when known. */
 	puzzleDate?: string | null
+	/** Current product day from the server-rendered view. */
+	todayKey?: string
 	attempts?: number | null
 	maxAttempts?: number | null
 	mistakes?: number | null
@@ -225,6 +227,7 @@ export function buildResultCard(input: ResultCardInput): ResultCardModel {
 			input.gameSlug,
 			dayKey || undefined,
 			input.shareId ?? undefined,
+			input.todayKey,
 		),
 		attempts: nonNegativeInt(input.attempts),
 		maxAttempts: nonNegativeInt(input.maxAttempts),

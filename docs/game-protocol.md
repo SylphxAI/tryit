@@ -94,9 +94,9 @@ A server-issued share id links to `/daily?ref=<share id>`. That landing shows
 the original result's game and day and offers today's featured free puzzle.
 A comparison with the shared result is available when its game and day match
 today's free puzzle; older or non-featured results still lead to today's free
-game. Without a share id, a dated module link uses
-`/games/<slug>?mode=archive&date=YYYY-MM-DD`: both `mode=archive` and a valid
-`date` select the archived day. An undated link opens `/games/<slug>`.
+game. Without a share id, today’s puzzle links to `/games/<slug>` without archive
+parameters, so a friend can use a free pick to play. A past date uses
+`/games/<slug>?mode=archive&date=YYYY-MM-DD` to preserve the shared day.
 The link forms are defined in
 [`share-text.ts`](../apps/puzzled/src/features/daily/lib/share-text.ts), and the
 landing's play target in
