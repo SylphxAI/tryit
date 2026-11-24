@@ -127,12 +127,19 @@ function formatMajorPrice(
 	locale: string,
 	fractionDigits: 0 | 2,
 ): string {
-	return new Intl.NumberFormat(locale, {
+	const formatter = new Intl.NumberFormat(locale, {
 		style: 'currency',
-		currency: currency.toUpperCase(),
+		currency,
 		minimumFractionDigits: fractionDigits,
 		maximumFractionDigits: fractionDigits,
-	}).format(major)
+	})
+	if (currency !== 'TWD') return formatter.format(major)
+	// The default TWD symbol may be a bare dollar sign. Disambiguate it
+	// without changing the locale-specific number or symbol placement.
+	return formatter
+		.formatToParts(major)
+		.map(({ type, value }) => (type === 'currency' && value === '$' ? 'NT$' : value))
+		.join('')
 }
 
 /** Format minor units as a price in the viewer's locale without redundant whole-unit decimals. */
