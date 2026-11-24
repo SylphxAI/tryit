@@ -76,7 +76,7 @@
 		"puzzleNumber": "パズル #{number}",
 		"resetsIn": "更新まで",
 		"resetsAt": "毎日 16:00 UTC に更新",
-		"guestTitle": "毎日{count}種類。登録なしで、好きな3つを無料で遊べます。",
+		"guestTitle": "毎日{count}種類のパズル。登録なしですぐに遊べます。",
 		"titleMemberReady": "今日の{game}の準備ができました",
 		"titleMemberStreak": "{days}日連続の記録が待っています",
 		"titleMemberDone": "今日はすべて完了です。お疲れさまでした",

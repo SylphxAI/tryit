@@ -54,6 +54,12 @@ test('desktop sign-in explains the benefits without competing with account entry
 	await fixture('enabled')
 	await page.setViewportSize({ width: 1440, height: 900 })
 	await page.goto('/sign-in')
+	await expect(page.getByRole('heading', { name: 'Sign in to Tryit' })).toBeVisible()
+	await expect(
+		page.getByText('Track your progress, compete on leaderboards, and sync across devices.', {
+			exact: true,
+		}),
+	).toBeVisible()
 	const panel = page.getByRole('complementary')
 	await expect(panel.getByRole('heading', { name: 'Keep your progress with you' })).toBeVisible()
 	await expect(panel.getByRole('listitem')).toHaveText([

@@ -299,3 +299,123 @@ for (const admitted of [true, false]) {
 		},
 	)
 }
+
+// Flush painted frames (not just a DOM mutation) before releasing each dependency.
+async function twoFrames(page: Page) {
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+			),
+	)
+}
+
+function holdResponse(page: Page, url: string | RegExp, json?: unknown) {
+	const release = Promise.withResolvers<void>()
+	const requested = Promise.withResolvers<void>()
+	const registered = page.route(url, async (route) => {
+		requested.resolve()
+		await release.promise
+		if (json === undefined) await route.continue()
+		else await route.fulfill({ json })
+	})
+	return { registered, requested: requested.promise, release: release.resolve }
+}
+
+for (const [width, height] of [
+	[1440, 900],
+	[390, 844],
+]) {
+	for (const slug of ['number-path', 'sudoku']) {
+		const fresh = slug === 'number-path'
+		test(`${fresh ? 'fresh Path entry' : 'resumed Sudoku'} keeps a stable play stage at ${width}×${height}`, async ({
+			page,
+		}, info) => {
+			await page.setViewportSize({ width, height })
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			await page.addInitScript(() => {
+				const values: number[] = []
+				new PerformanceObserver((list) => {
+					for (const entry of list.getEntries() as (PerformanceEntry & {
+						value: number
+						hadRecentInput: boolean
+					})[]) {
+						if (!entry.hadRecentInput) values.push(entry.value)
+					}
+				}).observe({ type: 'layout-shift', buffered: true })
+				Object.defineProperty(window, 'observedShifts', { value: values })
+			})
+			const daily = playable(slug)
+			const snapshot = holdResponse(
+				page,
+				'**/puzzled.v1.PuzzleService/GetDaily',
+				fresh
+					? {
+							gameSlug: slug,
+							puzzleDate: daily.puzzleDate,
+							canPlay: true,
+							requiresStart: true,
+						}
+					: daily,
+			)
+			const lazyBoard = holdResponse(page, /\/_build\/assets\/solid-board-[^/]+\.js$/)
+			const start = fresh
+				? holdResponse(page, '**/puzzled.v1.PuzzleService/StartDaily', { daily })
+				: undefined
+			await Promise.all([snapshot.registered, lazyBoard.registered, start?.registered])
+			await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+			const play = page.locator('#play')
+			const dock = page.locator('[data-consent-banner]')
+			const loading = play.getByRole('status').filter({ hasText: /loading/i })
+			const geometry = async () => {
+				await twoFrames(page)
+				return { stage: await play.boundingBox(), dock: await dock.boundingBox() }
+			}
+			try {
+				await page.goto(`/games/${slug}?start=1${fresh ? '' : '&difficulty=medium'}#play`)
+				await snapshot.requested
+				await expect(loading).toBeVisible()
+				await expect(dock).toBeVisible()
+				await page.evaluate(() => document.fonts.ready.then(() => undefined))
+				const initial = await geometry()
+				snapshot.release()
+				if (start) {
+					const playButton = play.getByRole('button', { name: 'Play', exact: true })
+					await expect(playButton).toBeEnabled()
+					expect(await geometry(), 'entry gate').toEqual(initial)
+					await playButton.click()
+					await start.requested
+					await expect(playButton).toBeDisabled()
+					expect(await geometry(), 'pending start').toEqual(initial)
+					// Release the board after the recent-input exclusion window, so
+					// its mount cannot be hidden by the click in Chromium's CLS data.
+					const deadline = await page.evaluate(() => performance.now() + 500)
+					await page.waitForFunction((end) => performance.now() > end, deadline)
+					start.release()
+				}
+				await lazyBoard.requested
+				await expect(loading).toBeVisible()
+				expect(await geometry(), 'board chunk pending').toEqual(initial)
+				lazyBoard.release()
+				const board = page.locator(`${stage} .play-board`)
+				await expect(board).toBeVisible()
+				await expect(loading).toHaveCount(0)
+				expect(await geometry(), 'board rendered').toEqual(initial)
+				const shifts = await page.evaluate(
+					() => (window as unknown as { observedShifts: number[] }).observedShifts,
+				)
+				// Summing the whole transition is stricter than CLS's largest session window.
+				const cls = shifts.reduce((sum, value) => sum + value, 0)
+				await info.attach('non-input layout shifts', {
+					body: JSON.stringify({ cls, shifts }),
+					contentType: 'application/json',
+				})
+				expect(cls).toBeLessThan(0.05)
+			} finally {
+				snapshot.release()
+				if (start) start.release()
+				lazyBoard.release()
+			}
+		})
+	}
+}

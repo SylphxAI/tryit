@@ -88,6 +88,7 @@ export function DailyPlay(props: {
 	const archive = props.day.mode === 'archive'
 	const choose = !archive && props.data.difficultyLevels.length > 0 && !props.difficulty
 	const board = boards.get(slug)
+	const explicitPlay = props.started && !choose && Boolean(board)
 	const [starting, setStarting] = createSignal(false)
 	const [entered, setEntered] = createSignal(false)
 	const input = { gameSlug: slug, difficulty: props.difficulty, puzzleDate: props.day.puzzleDate }
@@ -145,7 +146,7 @@ export function DailyPlay(props: {
 			? `?${new URLSearchParams({ mode: 'archive', date: props.day.puzzleDate ?? '' })}`
 			: '')
 	const unavailable = () => (
-		<div class="mx-auto max-w-md space-y-2 text-center">
+		<div class="play-entry mx-auto max-w-md space-y-2 text-center">
 			<h2 class="font-display text-xl">{t('daily.unavailableTitle')}</h2>
 			<p>{t('daily.unavailableDescription')}</p>
 			<button type="button" class={playButton} onClick={() => void refetch()}>
@@ -154,171 +155,203 @@ export function DailyPlay(props: {
 		</div>
 	)
 
-	return (
-		<Suspense fallback={<p role="status">{t('daily.loadingPuzzle')}</p>}>
-			<Switch fallback={<p role="status">{t('daily.loadingPuzzle')}</p>}>
-				<Match when={snapshot('locked')}>
-					<div
-						data-unlock-panel={archive ? 'archive' : 'picks'}
-						class="mx-auto max-w-xl space-y-4 text-center"
-					>
-						<h2 class="flex items-center justify-center gap-2 font-display text-2xl">
-							<Lock size={20} aria-hidden="true" />
-							{t(archive ? 'plus.unlock.archiveTitle' : 'plus.unlock.title')}
-						</h2>
-						<a
-							class={playButton}
-							href={localizedPath(
-								props.data.locale,
-								`/pricing?${new URLSearchParams({ callbackUrl: returnTo(), trigger: 'game_unlock' })}`,
-							)}
-						>
-							{t('plus.unlock.cta')}
-						</a>
-						<p>
-							<a class="underline" href={props.data.catalog}>
-								{t('plus.unlock.backToToday')}
-							</a>
-						</p>
-					</div>
-				</Match>
-				<Match when={snapshot('completed')}>
-					{(result) => (
-						<div
-							class="completion-card mx-auto max-w-xl space-y-2 text-center"
-							data-game-stage="completed"
-						>
-							<h2 class="font-display text-2xl">{t('daily.alreadyCompleted')}</h2>
-							<p>
-								{t(
-									result().session.status === 'won'
-										? 'daily.youSolvedTodays'
-										: 'daily.youTriedTodays',
-									{ game: props.data.name },
-								)}
-							</p>
-							<Show when={result().session.difficulty}>
-								{(level) => <p>{t(`common.difficulty.${level()}`)}</p>}
-							</Show>
-							<p>
-								{t('gameResult.attempts')}: {result().session.attempts}
-							</p>
-							<ResultActions
-								facts={{
-									gameSlug: slug,
-									mode: props.day.mode,
-									status: result().session.status,
-									puzzleDate: result().puzzleDate,
-									attempts: result().session.attempts,
-									difficulty: result().session.difficulty,
-									score: result().session.score,
-									timeSpentMs: result().session.timeSpentMs,
-								}}
-								locale={props.data.locale}
-							/>
-							<p>{t('daily.comeBackTomorrow')}</p>
-							<a class="inline-flex min-h-11 items-center underline" href={props.data.catalog}>
-								{t('daily.backToGames')}
-							</a>
-						</div>
-					)}
-				</Match>
-				<Match when={snapshot('closed')}>
-					<p role="status">{t('daily.completedNoResult')}</p>
-				</Match>
-				<Match when={choose}>
-					<div class="editorial-surface mx-auto max-w-xl space-y-3 rounded-3xl p-4 sm:p-5">
-						<h2 class="font-display text-2xl">{t('common.difficulty.selectDifficulty')}</h2>
-						<Show when={snapshot('unavailable')}>
-							<p class="text-sm text-muted-foreground">{t('daily.difficultyStatusUnverified')}</p>
-						</Show>
-						<ul class="grid gap-3 sm:grid-cols-3">
-							<For each={props.data.difficultyLevels}>
-								{(level) => (
-									<li>
-										<a
-											class="editorial-surface editorial-interactive block h-full rounded-2xl p-4"
-											href={localizedPath(props.data.locale, todayPlayPath(slug, level.level))}
-											data-start-intent={slug}
-											onClick={(event) => {
-												if (
-													!event.defaultPrevented &&
-													!event.shiftKey &&
-													!event.metaKey &&
-													!event.altKey &&
-													!event.ctrlKey
-												)
-													markStartIntent(slug)
-											}}
-										>
-											<span class="block font-display">{level.label}</span>
-											<span class="text-sm text-muted-foreground">{level.description}</span>
-										</a>
-									</li>
-								)}
-							</For>
-						</ul>
-					</div>
-				</Match>
-				<Match when={snapshot('startable')}>
-					{(value) =>
-						board ? (
-							<div class="mx-auto max-w-md space-y-4 text-center" data-game-stage="start">
-								<p>{t('daily.startUsesPick')}</p>
-								<Show when={archive || props.started}>
-									<button
-										type="button"
-										class={playButton}
-										disabled={starting()}
-										onClick={() => void play(value().puzzleDate)}
-									>
-										<Play size={16} aria-hidden="true" />
-										{t(starting() ? 'daily.loadingPuzzle' : 'common.play')}
-									</button>
-								</Show>
-							</div>
-						) : (
-							unavailable()
-						)
-					}
-				</Match>
-				<Match when={snapshot('playable')}>
-					{(value) =>
-						board ? (
-							<div
-								class="game-stage mx-auto flex min-h-[26rem] max-w-[34rem] flex-col"
-								data-game-stage="board"
-								data-game-slug={slug}
-								data-play-canvas={props.started || entered() || undefined}
-							>
-								<BoardIntro
-									data={props.data}
-									date={value().puzzleDate}
-									changeDifficulty={!archive && props.data.difficultyLevels.length > 0}
-								/>
-								<div class="play-body">
-									<Dynamic
-										component={board}
-										puzzle={value()}
-										mode={props.day.mode}
-										locale={props.data.locale}
-										difficulty={props.difficulty}
-										onAlreadyPlayed={() => void refetch()}
-									/>
-								</div>
-							</div>
-						) : (
-							unavailable()
-						)
-					}
-				</Match>
-				<Match when={snapshot('unavailable')}>{unavailable()}</Match>
-			</Switch>
-		</Suspense>
+	const loading = () => (
+		<p class="play-entry text-center" role="status">
+			{t('daily.loadingPuzzle')}
+		</p>
 	)
+	const intro = (date: () => string | undefined) => (
+		<BoardIntro
+			data={props.data}
+			date={date()}
+			changeDifficulty={!archive && props.data.difficultyLevels.length > 0}
+		/>
+	)
+	const content = () => (
+		<Switch fallback={loading()}>
+			<Match when={snapshot('locked')}>
+				<div
+					data-unlock-panel={archive ? 'archive' : 'picks'}
+					class="play-entry mx-auto max-w-xl space-y-4 text-center"
+				>
+					<h2 class="flex items-center justify-center gap-2 font-display text-2xl">
+						<Lock size={20} aria-hidden="true" />
+						{t(archive ? 'plus.unlock.archiveTitle' : 'plus.unlock.title')}
+					</h2>
+					<a
+						class={playButton}
+						href={localizedPath(
+							props.data.locale,
+							`/pricing?${new URLSearchParams({ callbackUrl: returnTo(), trigger: 'game_unlock' })}`,
+						)}
+					>
+						{t('plus.unlock.cta')}
+					</a>
+					<p>
+						<a class="underline" href={props.data.catalog}>
+							{t('plus.unlock.backToToday')}
+						</a>
+					</p>
+				</div>
+			</Match>
+			<Match when={snapshot('completed')}>
+				{(result) => (
+					<div
+						class="mx-auto max-w-xl space-y-2 text-center"
+						classList={{ 'completion-card': !explicitPlay, 'play-entry': explicitPlay }}
+						data-game-stage="completed"
+					>
+						<h2 class="font-display text-2xl">{t('daily.alreadyCompleted')}</h2>
+						<p>
+							{t(
+								result().session.status === 'won'
+									? 'daily.youSolvedTodays'
+									: 'daily.youTriedTodays',
+								{ game: props.data.name },
+							)}
+						</p>
+						<Show when={result().session.difficulty}>
+							{(level) => <p>{t(`common.difficulty.${level()}`)}</p>}
+						</Show>
+						<p>
+							{t('gameResult.attempts')}: {result().session.attempts}
+						</p>
+						<ResultActions
+							facts={{
+								gameSlug: slug,
+								mode: props.day.mode,
+								status: result().session.status,
+								puzzleDate: result().puzzleDate,
+								attempts: result().session.attempts,
+								difficulty: result().session.difficulty,
+								score: result().session.score,
+								timeSpentMs: result().session.timeSpentMs,
+							}}
+							locale={props.data.locale}
+						/>
+						<p>{t('daily.comeBackTomorrow')}</p>
+						<a class="inline-flex min-h-11 items-center underline" href={props.data.catalog}>
+							{t('daily.backToGames')}
+						</a>
+					</div>
+				)}
+			</Match>
+			<Match when={snapshot('closed')}>
+				<p role="status">{t('daily.completedNoResult')}</p>
+			</Match>
+			<Match when={choose}>
+				<div class="editorial-surface mx-auto max-w-xl space-y-3 rounded-3xl p-4 sm:p-5">
+					<h2 class="font-display text-2xl">{t('common.difficulty.selectDifficulty')}</h2>
+					<Show when={snapshot('unavailable')}>
+						<p class="text-sm text-muted-foreground">{t('daily.difficultyStatusUnverified')}</p>
+					</Show>
+					<ul class="grid gap-3 sm:grid-cols-3">
+						<For each={props.data.difficultyLevels}>
+							{(level) => (
+								<li>
+									<a
+										class="editorial-surface editorial-interactive block h-full rounded-2xl p-4"
+										href={localizedPath(props.data.locale, todayPlayPath(slug, level.level))}
+										data-start-intent={slug}
+										onClick={(event) => {
+											if (
+												!event.defaultPrevented &&
+												!event.shiftKey &&
+												!event.metaKey &&
+												!event.altKey &&
+												!event.ctrlKey
+											)
+												markStartIntent(slug)
+										}}
+									>
+										<span class="block font-display">{level.label}</span>
+										<span class="text-sm text-muted-foreground">{level.description}</span>
+									</a>
+								</li>
+							)}
+						</For>
+					</ul>
+				</div>
+			</Match>
+			<Match when={snapshot('startable')}>
+				{(value) =>
+					board ? (
+						<div class="play-entry mx-auto max-w-md space-y-4 text-center" data-game-stage="start">
+							<p>{t('daily.startUsesPick')}</p>
+							<Show when={archive || props.started}>
+								<button
+									type="button"
+									class={playButton}
+									disabled={starting()}
+									onClick={() => void play(value().puzzleDate)}
+								>
+									<Play size={16} aria-hidden="true" />
+									{t('common.play')}
+								</button>
+							</Show>
+						</div>
+					) : (
+						unavailable()
+					)
+				}
+			</Match>
+			<Match when={snapshot('playable')}>
+				{(value) => {
+					if (!board) return unavailable()
+					const puzzle = () => (
+						<Dynamic
+							component={board}
+							puzzle={value()}
+							mode={props.day.mode}
+							locale={props.data.locale}
+							difficulty={props.difficulty}
+							onAlreadyPlayed={() => void refetch()}
+						/>
+					)
+					return explicitPlay ? (
+						puzzle()
+					) : (
+						<div
+							class="game-stage mx-auto flex min-h-[26rem] max-w-[34rem] flex-col"
+							data-game-stage="board"
+							data-game-slug={slug}
+							data-play-canvas={entered() || undefined}
+						>
+							{intro(() => value().puzzleDate)}
+							<div class="play-body">{puzzle()}</div>
+						</div>
+					)
+				}}
+			</Match>
+			<Match when={snapshot('unavailable')}>{unavailable()}</Match>
+		</Switch>
+	)
+
+	// Keep the viewport shell and HUD outside Suspense. Fetching a snapshot,
+	// waiting for a start, and importing the board all share the same scrollport.
+	if (explicitPlay) {
+		const date = () => {
+			const value = state.latest
+			return value && 'puzzleDate' in value ? value.puzzleDate : props.day.puzzleDate
+		}
+		return (
+			<div
+				class="game-stage mx-auto flex flex-col"
+				data-game-stage={snapshot('playable') ? 'board' : undefined}
+				data-game-slug={slug}
+				data-play-canvas=""
+			>
+				{intro(date)}
+				<div class="play-body">
+					<Suspense fallback={loading()}>{content()}</Suspense>
+				</div>
+			</div>
+		)
+	}
+	return <Suspense fallback={loading()}>{content()}</Suspense>
 }
 
-function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty: boolean }) {
+function BoardIntro(props: { data: GamePageData; date?: string; changeDifficulty: boolean }) {
 	const t = createTranslator(props.data.locale)
 	let rules: HTMLDialogElement | undefined
 	const wordNotice = !props.data.locale.startsWith('en-') && englishWordPuzzles.has(props.data.slug)
@@ -333,10 +366,14 @@ function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty:
 					{props.data.name}
 				</h1>
 				<time class="play-date mr-auto text-muted-foreground" datetime={props.date}>
-					{new Intl.DateTimeFormat(props.data.locale, {
-						dateStyle: 'medium',
-						timeZone: 'UTC',
-					}).format(new Date(props.date))}
+					<Show when={props.date}>
+						{(date) =>
+							new Intl.DateTimeFormat(props.data.locale, {
+								dateStyle: 'medium',
+								timeZone: 'UTC',
+							}).format(new Date(date()))
+						}
+					</Show>
 				</time>
 				<Show when={props.changeDifficulty}>
 					<a class="chrome-control play-difficulty" href={`${props.data.canonicalPath}#play`}>

@@ -121,6 +121,28 @@ for (const viewport of [
 		await page.goto('/', { waitUntil: 'load' })
 		const motifs = page.locator('[data-home-game] img')
 		await expect(motifs).toHaveCount(18)
+		const dock = page.locator('[data-consent-banner]')
+		await expect(dock).toBeVisible()
+		await page.evaluate(() => document.fonts.ready.then(() => undefined))
+		const dockTop = (await dock.boundingBox())!.y
+		const cards = page.locator('[data-home-game]')
+		// Lineup order rotates with the product day. Check the same painted rows
+		// regardless of which games are featured or first in the lineup today.
+		const aboveDock = viewport.width === 390 ? 2 : 16
+		for (const card of (await cards.all()).slice(0, aboveDock)) {
+			const { y, height } = (await card.boundingBox())!
+			expect(y + height + 2, await card.getAttribute('data-home-game')).toBeLessThanOrEqual(dockTop)
+		}
+		for (const card of await cards.all()) {
+			const { y, height } = (await card.locator('strong').boundingBox())!
+			expect(y < dockTop && y + height > dockTop, await card.getAttribute('data-home-game')).toBe(
+				false,
+			)
+		}
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+			'19 daily puzzles. Play now, no account needed.',
+		)
+		await expect(page.getByText('0 / 3 free today')).toBeVisible()
 		const images = await motifs.evaluateAll((nodes: HTMLImageElement[]) =>
 			nodes.map((image) => ({
 				slug: image.closest('a')?.dataset.homeGame,
@@ -183,7 +205,7 @@ test('Taiwan home and all 19 catalog tiles use local names and minute badges', a
 		`遊玩今日的「${await featured.textContent()}」`,
 	)
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-		'每天 19 款謎題，任選 3 款免費玩，不用註冊。',
+		'每天 19 款謎題，不用註冊就能玩。',
 	)
 	await expect(page.getByText('今日免費已選 0 / 3 款')).toBeVisible()
 	await expect(page.getByText(/今天已有 .* 位玩家完成/)).toHaveCount(0)

@@ -76,7 +76,7 @@
 		"puzzleNumber": "Puzzle n.º {number}",
 		"resetsIn": "Se renueva en",
 		"resetsAt": "Actualización diaria: 16:00 UTC",
-		"guestTitle": "{count} puzzles diarios. Juega a 3 gratis, sin cuenta.",
+		"guestTitle": "{count} puzles diarios. Juega sin crear una cuenta.",
 		"titleMemberReady": "{game} de hoy está listo",
 		"titleMemberStreak": "Tu racha de {days} días te espera",
 		"titleMemberDone": "Todo hecho por hoy: bien jugado",
