@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, createUniqueId, For, Show } from 'solid-js'
 import { playButton } from '@/features/catalog/solid/game-landing'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -33,6 +33,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 	const [error, setError] = createSignal<ReturnType<typeof checkLadderStep>>(null)
 	const playing = () => finish.state() === 'playing'
 	let field: HTMLInputElement | undefined
+	const inputId = createUniqueId()
 
 	function addStep(event: SubmitEvent) {
 		event.preventDefault()
@@ -74,27 +75,36 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 				<For each={path()}>
 					{(word, index) => (
 						<li
-							class="rounded-xl border border-border bg-background px-3 py-2 font-display text-lg font-bold uppercase shadow-[0_2px_0_var(--tactile-soft-line)] data-current:border-foreground"
+							class="rounded-xl border border-border bg-background font-display text-lg font-bold uppercase shadow-[0_2px_0_var(--tactile-soft-line)] data-current:border-foreground"
 							data-current={index() === path().length - 1 || undefined}
 							aria-current={index() === path().length - 1 ? 'step' : undefined}
 						>
-							<span class="sr-only" lang="en">
-								{word}
-							</span>
-							<span aria-hidden="true" class="flex justify-center gap-1" dir="ltr">
-								<For each={word.split('')}>
-									{(letter, col) => (
-										<span
-											data-changed={
-												(index() > 0 && path()[index() - 1][col()] !== letter) || undefined
-											}
-											class="grid size-8 place-items-center rounded-md data-changed:bg-muted data-changed:underline data-changed:underline-offset-4"
-										>
-											{letter}
-										</span>
-									)}
-								</For>
-							</span>
+							<button
+								type="button"
+								class="block w-full rounded-xl px-3 py-2"
+								aria-controls={playing() ? inputId : undefined}
+								aria-description={playing() ? t('games.wordLadder.enterWord') : undefined}
+								disabled={!playing()}
+								onClick={() => field?.focus()}
+							>
+								<span class="sr-only" lang="en">
+									{word}
+								</span>
+								<span aria-hidden="true" class="flex justify-center gap-1" dir="ltr">
+									<For each={word.split('')}>
+										{(letter, col) => (
+											<span
+												data-changed={
+													(index() > 0 && path()[index() - 1][col()] !== letter) || undefined
+												}
+												class="grid size-8 place-items-center rounded-md data-changed:bg-muted data-changed:underline data-changed:underline-offset-4"
+											>
+												{letter}
+											</span>
+										)}
+									</For>
+								</span>
+							</button>
 						</li>
 					)}
 				</For>
@@ -106,6 +116,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 				<form class="flex gap-2" onSubmit={addStep}>
 					<input
 						ref={field}
+						id={inputId}
 						class="min-h-12 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-base font-bold uppercase aria-invalid:border-destructive"
 						aria-label={t('games.wordLadder.enterWord')}
 						aria-invalid={error() ? true : undefined}
@@ -134,7 +145,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 				<Show when={error()}>
 					{(key) => (
 						<p id="ladder-error" role="alert" class="text-sm text-destructive">
-							{t(`games.wordLadder.messages.${key()}`)}
+							{t(`games.wordLadder.messages.${key()}`, { number: wordLength })}
 						</p>
 					)}
 				</Show>

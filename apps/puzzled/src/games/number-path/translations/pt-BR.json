@@ -14,5 +14,7 @@
 	"complete": "Caminho completo!",
 	"undo": "Desfazer",
 	"cellClue": "Pista {number}",
-	"cellStep": "Passo {number}"
+	"cellStep": "Passo {number}",
+	"startAtOne": "Comece pelo 1",
+	"nextSquare": "Toque ou arraste até uma casa ao lado do {number}"
 }

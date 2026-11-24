@@ -14,5 +14,7 @@
 	"complete": "Path complete!",
 	"undo": "Undo",
 	"cellClue": "Clue {number}",
-	"cellStep": "Step {number}"
+	"cellStep": "Step {number}",
+	"startAtOne": "Start at 1",
+	"nextSquare": "Tap or drag to a square next to {number}"
 }

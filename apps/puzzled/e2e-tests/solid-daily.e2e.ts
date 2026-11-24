@@ -283,7 +283,7 @@ test('Crowns labels region boundaries, scopes keyboard controls, and submits onl
 	await expect(second).toBeFocused()
 	await page.keyboard.press('Enter')
 	await expect(
-		board.getByRole('status').filter({ hasText: 'Some crowns are in conflict' }),
+		board.getByRole('status').filter({ hasText: 'Two crowns share a row' }),
 	).toBeVisible()
 	await expect(second).toHaveAttribute('aria-invalid', 'true')
 	expect(submits).toHaveLength(0)

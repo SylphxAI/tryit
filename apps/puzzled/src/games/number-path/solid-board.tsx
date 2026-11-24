@@ -30,6 +30,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 	const finish = createBoardFinish(props, 'number-path')
 	const locked = () => finish.state() !== 'playing'
 	const [path, setPath] = createSignal<Cell[]>([])
+	const [hint, setHint] = createSignal('')
 	const visits = createMemo(() => new Map(path().map((cell, step) => [cellKey(cell), step + 1])))
 	const points = () =>
 		path()
@@ -37,25 +38,46 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 			.join(' ')
 	let pointer: { id: number; lastTile?: number } | undefined
 
-	function visit(cell: Cell) {
-		if (locked()) return
-		const next = visitCell(props.data, path(), cell)
-		if (next === path()) return
-		setPath(next)
-		if (isSolved(next, clues)) finish.finish({ path: next })
+	function visit(cell: Cell): boolean {
+		if (locked()) return false
+		const result = visitCell(props.data, path(), cell)
+		switch (result.kind) {
+			case 'startAtOne':
+				setHint(t('games.numberPath.startAtOne'))
+				return false
+			case 'nextSquare':
+				setHint(t('games.numberPath.nextSquare', { number: path().length }))
+				return false
+			case 'outside':
+				return false
+			case 'head':
+				setHint('')
+				return true
+			case 'move':
+				setHint('')
+				setPath(result.path)
+				if (isSolved(result.path, clues)) finish.finish({ path: result.path })
+				return true
+		}
 	}
 
-	function move(event: PointerEvent, grid: HTMLDivElement) {
-		if (pointer?.id !== event.pointerId || locked()) return
+	function tileAt(event: PointerEvent, grid: HTMLDivElement) {
 		const rect = grid.getBoundingClientRect()
 		if (rect.width <= 0 || rect.height <= 0) return
 		const col = Math.floor(((event.clientX - rect.left) / rect.width) * size)
 		const row = Math.floor(((event.clientY - rect.top) / rect.height) * size)
 		if (row < 0 || col < 0 || row >= size || col >= size) return
-		const index = row * size + col
+		return { row, col }
+	}
+
+	function move(event: PointerEvent, grid: HTMLDivElement) {
+		if (pointer?.id !== event.pointerId || locked()) return
+		const cell = tileAt(event, grid)
+		if (!cell) return
+		const index = cell.row * size + cell.col
 		if (pointer.lastTile === index) return
 		pointer.lastTile = index
-		visit({ row, col })
+		visit(cell)
 	}
 
 	function end(event: PointerEvent) {
@@ -83,18 +105,22 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 						}}
 						onPointerDown={(event) => {
 							if (locked() || pointer || !event.isPrimary || event.button !== 0) return
-							pointer = { id: event.pointerId }
+							const cell = tileAt(event, event.currentTarget)
+							if (!cell || !visit(cell) || locked()) return
+							pointer = { id: event.pointerId, lastTile: cell.row * size + cell.col }
 							event.currentTarget.setPointerCapture(event.pointerId)
-							move(event, event.currentTarget)
 						}}
 						onPointerMove={(event) => move(event, event.currentTarget)}
 						onPointerUp={end}
 						onPointerCancel={end}
-						onLostPointerCapture={end}
+						onLostPointerCapture={(event) => {
+							if (event.target === event.currentTarget) end(event)
+						}}
 					>
 						<For each={tiles}>
 							{({ row, col, clue }, index) => {
 								const step = () => visits().get(cellKey({ row, col }))
+								const start = () => clue === 1 && path().length === 0
 								return (
 									<button
 										ref={(el) => {
@@ -136,8 +162,9 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 									>
 										<Show when={clue ?? step()}>
 											<span
-												class="relative z-[2] grid size-[60%] min-w-0 place-items-center rounded-md bg-background font-semibold text-muted-foreground data-clue:bg-foreground data-clue:text-background data-end:bg-primary data-end:text-primary-foreground"
+												class="relative z-[2] grid size-[60%] min-w-0 place-items-center rounded-md bg-background font-semibold text-muted-foreground data-clue:bg-foreground data-clue:text-background data-end:bg-primary data-end:text-primary-foreground data-start:bg-primary data-start:text-primary-foreground motion-safe:data-start:animate-pulse motion-safe:data-start:[animation-iteration-count:2]"
 												data-clue={clue !== null || undefined}
+												data-start={start() || undefined}
 												data-end={(step() !== undefined && step() === path().length) || undefined}
 											>
 												{clue ?? step()}
@@ -163,13 +190,19 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 					</div>
 				</div>
 			</fieldset>
+			<p role="status" class="min-h-5 text-sm text-muted-foreground">
+				{hint()}
+			</p>
 			<Show when={!locked()}>
 				<div class="flex flex-wrap items-center gap-3">
 					<button
 						type="button"
 						class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
 						disabled={!path().length}
-						onClick={() => setPath((steps) => steps.slice(0, -1))}
+						onClick={() => {
+							setHint('')
+							setPath((steps) => steps.slice(0, -1))
+						}}
 					>
 						{t('games.numberPath.undo')}
 					</button>
@@ -177,7 +210,10 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 						type="button"
 						class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
 						disabled={!path().length}
-						onClick={() => setPath([])}
+						onClick={() => {
+							setHint('')
+							setPath([])
+						}}
 					>
 						{t('common.reset')}
 					</button>

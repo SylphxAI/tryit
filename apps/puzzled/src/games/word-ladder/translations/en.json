@@ -19,7 +19,7 @@
 	"steps": "{count, plural, one {# step} other {# steps}} · Minimum: {minimum}",
 	"messages": {
 		"notInList": "Not a valid word",
-		"wrongLength": "Word must be the same length",
+		"wrongLength": "Enter a {number}-letter word",
 		"notOneChange": "Change exactly one letter",
 		"alreadyUsed": "Already used this word"
 	}

@@ -42,6 +42,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 	const [gradePending, setGradePending] = createSignal(false)
 	const [gradeFailed, setGradeFailed] = createSignal(false)
 	const [hintFailed, setHintFailed] = createSignal(false)
+	const [notice, setNotice] = createSignal('')
 	const [retryCount, retryGrade] = createSignal(0)
 	const dispatch = (action: CryptogramAction) =>
 		setState((previous) => cryptogramReducer(previous, action, props.data))
@@ -49,8 +50,10 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 	const playing = createMemo(() => state().gameStatus === 'playing' && finish.state() === 'playing')
 	const editable = () => playing() && !hintPending()
 	let hintVersion = 0
+	let noticeTimer: ReturnType<typeof setTimeout> | undefined
 	onCleanup(() => {
 		hintVersion++
+		clearTimeout(noticeTimer)
 	})
 	const grade = (guess: unknown) =>
 		checkGuess({
@@ -127,25 +130,53 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 		const letter = selected()
 		return editable() && letter !== null && !isRevealed(letter)
 	}
+	function showNotice(message = '') {
+		clearTimeout(noticeTimer)
+		setNotice(message)
+		if (message) noticeTimer = setTimeout(() => setNotice(''), 2500)
+	}
+	function select(letter: string | null) {
+		showNotice()
+		dispatch({ type: 'SELECT_LETTER', encryptedLetter: letter })
+	}
 	function typeLetter(letter: string) {
+		if (!editable()) return
 		const target = selected()
-		if (target && canType()) {
-			dispatch({ type: 'SET_GUESS', encryptedLetter: target, guessedLetter: letter })
-			triggerHaptic('light')
+		if (!target) {
+			showNotice(copy('selectFirst'))
+			return
 		}
+		if (!canType()) return
+		const previous = state()
+		const from = Object.keys(previous.guesses).find(
+			(key) => key !== target && previous.guesses[key] === letter,
+		)
+		const next = dispatch({ type: 'SET_GUESS', encryptedLetter: target, guessedLetter: letter })
+		if (next === previous) return
+		showNotice(from ? copy('letterMoved', { letter, from, to: target }) : '')
+		triggerHaptic('light')
 	}
 	function clear() {
 		const target = selected()
-		if (target && canType()) dispatch({ type: 'CLEAR_GUESS', encryptedLetter: target })
+		if (target && canType()) {
+			showNotice()
+			dispatch({ type: 'CLEAR_GUESS', encryptedLetter: target })
+		}
 	}
 	function reset() {
 		if (!playing()) return
 		hintVersion++
 		setHintPending(false)
 		setHintFailed(false)
+		showNotice()
 		dispatch({ type: 'RESET' })
 	}
 	onMount(() => {
+		select(
+			Array.from(props.data.encryptedText).find(
+				(letter) => /^[A-Z]$/.test(letter) && !isRevealed(letter),
+			) ?? null,
+		)
 		const handleKey = (event: KeyboardEvent) => {
 			if (
 				event.defaultPrevented ||
@@ -154,13 +185,13 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 				event.metaKey ||
 				event.isComposing ||
 				(event.target instanceof Element &&
-					event.target.closest('input, textarea, [contenteditable], [role="dialog"]'))
+					event.target.closest('input, textarea, select, [contenteditable], [role="dialog"]'))
 			)
 				return
 			if (event.key === 'Escape' && selected()) {
-				dispatch({ type: 'SELECT_LETTER', encryptedLetter: null })
+				select(null)
 			} else if (canType() && (event.key === 'Backspace' || event.key === 'Delete')) clear()
-			else if (canType() && /^[a-z]$/i.test(event.key)) typeLetter(event.key.toUpperCase())
+			else if (editable() && /^[a-z]$/i.test(event.key)) typeLetter(event.key.toUpperCase())
 			else return
 			event.preventDefault()
 		}
@@ -221,7 +252,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 											data-cipher-letter={char}
 											data-revealed={isRevealed(char) || undefined}
 											disabled={!editable() || isRevealed(char)}
-											onClick={() => dispatch({ type: 'SELECT_LETTER', encryptedLetter: char })}
+											onClick={() => select(char)}
 										>
 											<span class="font-bold">{guesses()[char] || '_'}</span>
 											<span class="text-xs text-muted-foreground">{char}</span>
@@ -252,6 +283,9 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 			<Show when={gradePending() || hintPending()}>
 				<p role="status">{t('common.syncing')}</p>
 			</Show>
+			<p role="status" class="text-center text-sm empty:sr-only">
+				{notice()}
+			</p>
 			<div class="flex flex-wrap justify-center gap-1" dir="ltr">
 				<For each={Array.from(ALPHABET)}>
 					{(letter) => (
@@ -260,7 +294,9 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 							class="min-h-11 min-w-9 rounded-md border border-border bg-background font-semibold hover:bg-muted disabled:opacity-50 data-used:bg-muted"
 							data-used={Object.values(guesses()).includes(letter) || undefined}
 							disabled={
-								!canType() || state().revealedLetters.some((key) => guesses()[key] === letter)
+								!editable() ||
+								(selected() !== null &&
+									(!canType() || state().revealedLetters.some((key) => guesses()[key] === letter)))
 							}
 							onClick={() => typeLetter(letter)}
 						>

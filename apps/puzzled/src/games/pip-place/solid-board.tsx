@@ -87,6 +87,8 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 	const regionStarts = new Map<number, Cell>()
 	const tileButtons: Record<number, HTMLButtonElement> = {}
 	const cellButtons: Record<string, HTMLButtonElement> = {}
+	let drag: { id: number; from: Cell } | undefined
+	let suppressClick = false
 	for (const cell of cells) if (!regionStarts.has(cell.id)) regionStarts.set(cell.id, cell)
 
 	const selectedFace = () => {
@@ -107,6 +109,10 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 		const previous = board()
 		const next = pipPlaceReducer(previous, action, data)
 		if (previous === next) return
+		if (next.cue) {
+			setBoard(next)
+			return
+		}
 		setBoard(next)
 		if (action.type !== 'SELECT_TRAY' || previous.tray !== next.tray) setWrong(false)
 		triggerHaptic('light')
@@ -121,11 +127,39 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 		}
 	}
 	function touchCell({ row, col }: Cell, event: MouseEvent) {
+		if (event.detail !== 0 && suppressClick) {
+			suppressClick = false
+			return
+		}
 		const previous = board()
 		const next = dispatch({ type: 'TOUCH_CELL', cell: { row, col } })
 		if (next && next.tray.length < previous.tray.length && event.detail === 0 && playing()) {
 			tileButtons[0]?.focus()
 		}
+	}
+	function startDrag(event: PointerEvent & { currentTarget: HTMLButtonElement }, from: Cell) {
+		if (!event.isPrimary || event.button !== 0) return
+		suppressClick = false
+		if (!playing() || !selectedFace() || placedPips().has(cellKey(from))) return
+		drag = { id: event.pointerId, from }
+		event.currentTarget.setPointerCapture(event.pointerId)
+	}
+	function endDrag(event: PointerEvent) {
+		if (drag?.id !== event.pointerId) return
+		const { from } = drag
+		drag = undefined
+		const target = document
+			.elementFromPoint(event.clientX, event.clientY)
+			?.closest('[data-pip-cell]')
+		const key = target?.getAttribute('data-pip-cell')
+		if (key === cellKey(from) && cellButtons[key] === target) return
+		suppressClick = true
+		if (!key || cellButtons[key] !== target) return
+		const to = cells.find((cell) => cellKey(cell) === key)
+		if (to) dispatch({ type: 'DRAG_TILE', from, to })
+	}
+	function cancelDrag(event: PointerEvent) {
+		if (drag?.id === event.pointerId) drag = undefined
 	}
 	function move(event: KeyboardEvent, cell: Cell) {
 		const offsets: Record<string, readonly [number, number]> = {
@@ -176,14 +210,14 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 					</button>
 				</div>
 			</Show>
-			<fieldset
+			{/* biome-ignore lint/a11y/useSemanticElements: fieldset does not reliably size grid tracks in Chromium. */}
+			<div
+				role="group"
 				aria-label={t('games.pipPlace.name')}
 				dir="ltr"
 				class="grid gap-0.5 rounded-xl border border-border bg-background p-1"
 				style={{
-					'aspect-ratio': `${data.cols} / ${data.rows}`,
 					'grid-template-columns': `repeat(${data.cols}, minmax(0, 1fr))`,
-					'grid-template-rows': `repeat(${data.rows}, minmax(0, 1fr))`,
 				}}
 			>
 				<For each={cells}>
@@ -216,11 +250,16 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 									.join(', ')}
 								data-pip-cell={key}
 								class={
-									'relative grid place-items-center rounded-sm border border-border/70 aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-1 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-foreground ' +
+									'relative grid aspect-square min-w-0 select-none place-items-center rounded-sm border border-border/70 aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-1 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-foreground ' +
 									regionColors[cell.id % regionColors.length]
 								}
+								classList={{ 'touch-none': !!selectedFace() && !placedPips().has(key) }}
 								style={{ 'grid-row': String(cell.row + 1), 'grid-column': String(cell.col + 1) }}
 								onClick={(event) => touchCell(cell, event)}
+								onPointerDown={(event) => startDrag(event, cell)}
+								onPointerUp={endDrag}
+								onPointerCancel={cancelDrag}
+								onLostPointerCapture={cancelDrag}
 								onKeyDown={(event) => move(event, cell)}
 							>
 								<Show when={isStart && marker}>
@@ -258,9 +297,14 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 						/>
 					)}
 				</For>
-			</fieldset>
+			</div>
 			<Show when={playing()}>
-				<div class="flex flex-wrap justify-center gap-2" dir="ltr">
+				<div
+					class="flex flex-wrap justify-center gap-2 rounded-xl data-highlight:ring-2 data-highlight:ring-primary data-highlight:ring-offset-2"
+					data-pip-tray
+					data-highlight={board().cue === 'selectDomino' || undefined}
+					dir="ltr"
+				>
 					<Index each={board().tray}>
 						{(face, index) => (
 							<button
@@ -280,6 +324,9 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 							</button>
 						)}
 					</Index>
+				</div>
+				<div role="status" class="text-center text-sm font-semibold text-foreground">
+					<Show when={board().cue}>{(cue) => <p>{t(`games.pipPlace.${cue()}`)}</p>}</Show>
 				</div>
 				<Show when={wrong()}>
 					<p role="alert">{t('games.pipPlace.rejected')}</p>

@@ -32,8 +32,23 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 	const t = createTranslator(props.locale)
 	const [state, setState] = createSignal(createInitialState(props.data))
 	const finish = createBoardFinish(props, 'sudoku')
-	const dispatch = (action: SudokuAction) =>
-		setState((previous) => sudokuReducer(previous, action, props.data))
+	const [cue, setCue] = createSignal<'selectBlank' | 'lockedNumber' | null>(null)
+	const dispatch = (action: SudokuAction) => {
+		const current = state()
+		setCue(null)
+		if (!current.isComplete && action.type === 'INPUT_NUMBER') {
+			const selected = current.selectedCell
+			if (!selected) {
+				setCue('selectBlank')
+				return
+			}
+			if (current.userGrid[selected.row][selected.col].isGiven) {
+				setCue('lockedNumber')
+				return
+			}
+		}
+		setState(sudokuReducer(current, action, props.data))
+	}
 	const values = createMemo(() => state().userGrid.map((row) => row.map((cell) => cell.value)))
 	createEffect(() => {
 		if (state().isComplete)
@@ -45,7 +60,6 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 	onMount(() => {
 		function keydown(event: KeyboardEvent) {
 			if (
-				!state().selectedCell ||
 				state().isComplete ||
 				event.defaultPrevented ||
 				(event.target instanceof HTMLElement &&
@@ -62,7 +76,7 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 			else if (Object.hasOwn(moves, event.key))
 				action = { type: 'MOVE', direction: moves[event.key as keyof typeof moves] }
 			else if (key === 'n') action = { type: 'TOGGLE_NOTES_MODE' }
-			if (action) {
+			if (action && (state().selectedCell || action.type === 'INPUT_NUMBER')) {
 				event.preventDefault()
 				dispatch(action)
 			}
@@ -70,6 +84,14 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 		window.addEventListener('keydown', keydown)
 		onCleanup(() => window.removeEventListener('keydown', keydown))
 	})
+
+	const hasConflict = (row: number, col: number) => {
+		const cell = state().userGrid[row][col]
+		return !cell.isGiven && cell.value !== null && !isValidPlacement(values(), row, col, cell.value)
+	}
+	const duplicates = createMemo(() =>
+		state().userGrid.some((row, r) => row.some((_, c) => hasConflict(r, c))),
+	)
 
 	const cellAt = (row: number, col: number) => {
 		const cell = () => state().userGrid[row][col]
@@ -88,10 +110,7 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 			const pos = selected()
 			return pos && cell().value !== null && values()[pos.row][pos.col] === cell().value
 		}
-		const conflict = () => {
-			const v = cell().value
-			return !cell().isGiven && v !== null && !isValidPlacement(values(), row, col, v)
-		}
+		const conflict = () => hasConflict(row, col)
 		return (
 			<button
 				type="button"
@@ -110,6 +129,7 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 				data-given={cell().isGiven || undefined}
 				data-filled={cell().value !== null || undefined}
 				data-conflict={conflict() || undefined}
+				aria-invalid={conflict() || undefined}
 			>
 				<Show when={cell().value}>
 					<span class={styles.value}>{cell().value}</span>
@@ -194,7 +214,23 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 						<PencilLine size={16} aria-hidden="true" />
 						{t(state().isNotesMode ? 'games.sudoku.notesMode' : 'games.sudoku.notes')}
 					</button>
+					<button
+						type="button"
+						class={`${styles.key} ${styles.tool}`}
+						disabled={state().isComplete || !state().history.length}
+						onClick={() => {
+							if (window.confirm(t('games.sudoku.confirmReset'))) dispatch({ type: 'RESET' })
+						}}
+					>
+						{t('common.reset')}
+					</button>
 				</div>
+			</div>
+			<div role="status" class="text-sm font-semibold">
+				<Show when={cue()}>{(message) => <p>{t(`games.sudoku.${message()}`)}</p>}</Show>
+				<Show when={duplicates()}>
+					<p class="text-destructive">{t('games.sudoku.messages.conflict')}</p>
+				</Show>
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.sudoku.complete')} />
 		</div>

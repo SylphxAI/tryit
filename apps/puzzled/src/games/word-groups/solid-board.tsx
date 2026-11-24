@@ -92,7 +92,9 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 	const [solved, setSolved] = createSignal<Category[]>([])
 	const [mistakes, setMistakes] = createSignal(0)
 	const [grading, setGrading] = createSignal(false)
-	const [feedback, setFeedback] = createSignal<'correct' | 'oneAway' | 'incorrect' | 'error'>()
+	const [feedback, setFeedback] = createSignal<
+		'correct' | 'oneAway' | 'incorrect' | 'error' | 'selectionFull' | 'pickMore' | 'alreadyGuessed'
+	>()
 	const [shuffleRound, setShuffleRound] = createSignal(0)
 	const history = new Set<string>()
 	let disposed = false
@@ -116,7 +118,10 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 		const current = selected()
 		if (current.includes(word)) setSelected(current.filter((value) => value !== word))
 		else if (current.length < WORDS_PER_CATEGORY) setSelected([...current, word])
-		else return
+		else {
+			setFeedback('selectionFull')
+			return
+		}
 		setFeedback(undefined)
 		triggerHaptic('select')
 	}
@@ -126,14 +131,19 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 		setShuffleRound((round) => round + 1)
 	}
 	async function grade() {
-		if (!canSubmit()) return
+		if (!playing() || grading()) return
 		const words = selected()
+		if (words.length < WORDS_PER_CATEGORY) {
+			setFeedback('pickMore')
+			return
+		}
 		const key = JSON.stringify([...words].sort())
-		setFeedback(undefined)
 		if (history.has(key)) {
+			setFeedback('alreadyGuessed')
 			setSelected([])
 			return
 		}
+		setFeedback(undefined)
 		setGrading(true)
 		try {
 			const next = parseGrade(
@@ -253,7 +263,6 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 							type="button"
 							class={`${action} board-submit`}
 							data-ready={canSubmit() ? 'true' : undefined}
-							disabled={!canSubmit()}
 							onClick={grade}
 						>
 							{t('games.wordGroups.submit')}
@@ -286,7 +295,9 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 						: feedback() === 'error'
 							? t('common.error')
 							: feedback()
-								? t(`games.wordGroups.messages.${feedback()}`)
+								? t(`games.wordGroups.messages.${feedback()}`, {
+										count: WORDS_PER_CATEGORY - selected().length,
+									})
 								: ''}
 				</div>
 			</Show>

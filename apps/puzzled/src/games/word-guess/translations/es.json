@@ -18,6 +18,7 @@
 		"delete": "Borrar"
 	},
 	"messages": {
+		"useKeyboard": "Escribe o usa el teclado de abajo",
 		"notEnoughLetters": "Faltan letras",
 		"notInWordList": "No está en la lista de palabras",
 		"correct": "¡Excelente!",

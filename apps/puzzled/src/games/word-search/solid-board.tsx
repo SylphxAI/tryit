@@ -1,12 +1,13 @@
 /** @jsxImportSource solid-js */
 import { Check, RotateCcw } from 'lucide-solid'
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
 import { puzzleThemeLabel } from '@/games/shared/puzzle-theme-label'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseWordSearchClientPayload, type WordSearchClientData } from './parse-client'
 import zhTwThemes from './puzzle-themes.zh-TW.json'
-import { getWordFromPositions, type Position } from './types'
+import { matchSelection } from './selection'
+import type { Position } from './types'
 
 type Line = { start: Position; end: Position }
 const same = (a: Position, b: Position) => a.row === b.row && a.col === b.col
@@ -45,31 +46,33 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 	const [found, setFound] = createSignal(new Map<string, Line>())
 	const [anchor, setAnchor] = createSignal<Position>()
 	const [preview, setPreview] = createSignal<Line>()
+	const [invalid, setInvalid] = createSignal(false)
 	const highlighted = createMemo(() => [...found().values()].flatMap(lineCells))
 	const selected = createMemo(() => {
 		const drag = preview()
 		const start = anchor()
 		return drag ? lineCells(drag) : start ? [start] : []
 	})
-	let pointer: { id: number; start: Position } | undefined
+	let pointer:
+		| { id: number; owner: HTMLButtonElement; start: Position; dragged: boolean }
+		| undefined
 	let board: HTMLFieldSetElement | undefined
+	let resetTouch: number | undefined
 	const buttons: HTMLButtonElement[][] = grid.map(() => [])
 
 	function find(line: Line) {
 		if (locked()) return
-		const text = getWordFromPositions(grid, line.start, line.end)?.toUpperCase()
-		if (!text) return
-		const match = [text, Array.from(text).reverse().join('')].find(
-			(word) => words.includes(word) && !found().has(word),
-		)
-		if (!match) return
-		const next = new Map(found()).set(match, line)
+		const match = matchSelection(grid, words, found(), line.start, line.end)
+		setInvalid(match.kind === 'invalid')
+		if (match.kind !== 'new') return
+		const next = new Map(found()).set(match.word, line)
 		setFound(next)
 		if (next.size === words.length) finish.finish({ foundWords: [...next.keys()] })
 	}
 
 	function select(pos: Position) {
 		if (locked()) return
+		setInvalid(false)
 		const start = anchor()
 		if (start) {
 			setAnchor(undefined)
@@ -77,26 +80,51 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 		} else setAnchor(pos)
 	}
 
-	function position(event: PointerEvent): Position | undefined {
-		const cell = document
-			.elementFromPoint(event.clientX, event.clientY)
-			?.closest<HTMLElement>('button[data-row][data-col]')
-		if (!cell || !board?.contains(cell)) return
+	function cellAt(target: EventTarget | null): HTMLButtonElement | undefined {
+		const cell =
+			target instanceof Element
+				? target.closest<HTMLButtonElement>('button[data-row][data-col]')
+				: null
+		return cell && board?.contains(cell) ? cell : undefined
+	}
+	function cellPosition(cell: HTMLButtonElement): Position {
 		return { row: Number(cell.dataset.row), col: Number(cell.dataset.col) }
 	}
-	function release(event: PointerEvent, commit: boolean) {
-		if (!pointer || pointer.id !== event.pointerId) return
-		const { start } = pointer
+	function pointerPosition(event: PointerEvent): Position | undefined {
+		const cell = cellAt(document.elementFromPoint(event.clientX, event.clientY))
+		return cell && cellPosition(cell)
+	}
+	function clearPointer() {
+		const previous = pointer
 		pointer = undefined
+		if (previous?.owner.hasPointerCapture(previous.id))
+			previous.owner.releasePointerCapture(previous.id)
 		setPreview(undefined)
-		if (!commit) return
-		const end = position(event)
-		if (!end) return
-		if (same(start, end)) select(end)
-		else {
-			setAnchor(undefined)
-			find({ start, end })
+		return previous
+	}
+	onCleanup(clearPointer)
+
+	function release(event: PointerEvent, commit: boolean) {
+		if (pointer?.id !== event.pointerId) return
+		const { start, dragged } = pointer
+		const end = commit ? pointerPosition(event) : undefined
+		clearPointer()
+		if (!commit || locked()) return
+		if (end && !dragged && same(start, end)) {
+			select(end)
+			return
 		}
+		setAnchor(undefined)
+		if (end && !same(start, end)) find({ start, end })
+		else setInvalid(true)
+	}
+
+	function reset() {
+		if (locked()) return
+		clearPointer()
+		setFound(new Map())
+		setAnchor(undefined)
+		setInvalid(false)
 	}
 
 	return (
@@ -110,13 +138,27 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 				</output>
 				<button
 					type="button"
-					class="grid size-11 place-items-center rounded-lg border border-border"
+					class="grid size-11 touch-manipulation place-items-center rounded-lg border border-border"
 					aria-label={t('common.reset')}
 					disabled={locked()}
-					onClick={() => {
-						setFound(new Map())
-						setAnchor(undefined)
+					onPointerDown={(event) => {
+						if (event.pointerType === 'touch' && event.isPrimary) resetTouch = event.pointerId
 					}}
+					onPointerCancel={(event) => {
+						if (resetTouch === event.pointerId) resetTouch = undefined
+					}}
+					onPointerUp={(event) => {
+						// Chromium can deliver the next tap's pointerup after a drag,
+						// but suppress its click. Require a touch that began here and
+						// still ends inside the button.
+						if (event.pointerType !== 'touch' || resetTouch !== event.pointerId) return
+						resetTouch = undefined
+						if (
+							event.currentTarget.contains(document.elementFromPoint(event.clientX, event.clientY))
+						)
+							reset()
+					}}
+					onClick={reset}
 				>
 					<RotateCcw size={16} aria-hidden="true" />
 				</button>
@@ -124,7 +166,7 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 					{t('common.help')}
 				</a>
 			</div>
-			{/* Pointer capture keeps a drag coherent outside the starting cell; keyboard uses the same endpoint selection. */}
+			{/* Capture stays with the origin cell; never intercept taps on controls outside the board. */}
 			<fieldset
 				ref={board}
 				class="grid aspect-square w-full touch-none select-none gap-0.5 rounded-xl border border-border bg-surface-muted p-1"
@@ -132,16 +174,19 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 				aria-label={t('games.wordSearch.name')}
 				onPointerDown={(event) => {
 					if (locked() || pointer || !event.isPrimary || event.button !== 0) return
-					const start = position(event)
-					if (!start) return
-					pointer = { id: event.pointerId, start }
+					const owner = cellAt(event.target)
+					if (!owner) return
+					const start = cellPosition(owner)
+					pointer = { id: event.pointerId, owner, start, dragged: false }
+					setInvalid(false)
 					setPreview({ start, end: start })
-					event.currentTarget.setPointerCapture(event.pointerId)
+					owner.setPointerCapture(event.pointerId)
 				}}
 				onPointerMove={(event) => {
 					if (!pointer || pointer.id !== event.pointerId) return
-					const end = position(event)
-					if (end) setPreview({ start: pointer.start, end })
+					const end = pointerPosition(event)
+					if (!end || !same(pointer.start, end)) pointer.dragged = true
+					setPreview(end ? { start: pointer.start, end } : undefined)
 				}}
 				onPointerUp={(event) => release(event, true)}
 				onPointerCancel={(event) => release(event, false)}
@@ -172,7 +217,11 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 											if (event.detail === 0) select(pos)
 										}}
 										onKeyDown={(event) => {
-											if (event.key === 'Escape') setAnchor(undefined)
+											if (event.key === 'Escape') {
+												clearPointer()
+												setAnchor(undefined)
+												setInvalid(false)
+											}
 											const next =
 												event.key === 'ArrowUp'
 													? buttons[row - 1]?.[col]
@@ -212,6 +261,9 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 					)}
 				</For>
 			</ul>
+			<p role="status" class="min-h-5 text-center text-sm text-muted-foreground">
+				{invalid() ? t('games.wordSearch.invalidSelection') : ''}
+			</p>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.wordSearch.complete')} />
 		</div>
 	)

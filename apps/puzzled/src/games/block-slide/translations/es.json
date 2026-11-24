@@ -34,5 +34,7 @@
 	"down": "Mover abajo",
 	"left": "Mover a la izquierda",
 	"right": "Mover a la derecha",
-	"blocked": "Ese bloque no puede moverse en esa dirección."
+	"blocked": "Ese bloque no puede moverse en esa dirección.",
+	"undo": "Deshacer",
+	"emptyBoard": "Arrastra un bloque o toca una pieza para seleccionarla"
 }

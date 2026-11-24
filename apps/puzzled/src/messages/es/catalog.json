@@ -215,7 +215,7 @@
 			"tips": [
 				"Compara una propiedad cada vez, empezando por el número de figuras de cada carta.",
 				"Si dos cartas coinciden en una propiedad, la tercera también debe coincidir o el trío no vale.",
-				"Las cartas de un conjunto que ya has encontrado quedan bloqueadas, así que revisa a continuación las que no has tocado."
+				"Una carta puede formar parte de más de un conjunto válido. Prueba a reutilizar cartas de conjuntos que ya encontraste."
 			],
 			"faq": [
 				{

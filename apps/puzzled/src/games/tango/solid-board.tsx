@@ -32,6 +32,7 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 		line.map(({ isGiven }, col) => ({ row, col, isGiven })),
 	)
 	const [grid, setGrid] = createSignal(initial)
+	const [lockedClue, setLockedClue] = createSignal(false)
 	const finish = createBoardFinish(props, 'duo')
 	const locked = () => finish.state() !== 'playing'
 	const conflicts = createMemo(
@@ -40,7 +41,9 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 	const full = () => grid().every((line) => line.every((cell) => cell.value !== null))
 	function change(row: number, col: number, value: CellValue) {
 		const current = grid()[row][col]
-		if (locked() || current.isGiven || current.value === value) return
+		if (locked()) return
+		setLockedClue(current.isGiven)
+		if (current.isGiven || current.value === value) return
 		const next = grid().slice()
 		next[row] = [...next[row]]
 		next[row][col] = { ...current, value }
@@ -79,7 +82,7 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 									aria-invalid={invalid() || undefined}
 									data-given={isGiven || undefined}
 									data-invalid={invalid() || undefined}
-									disabled={isGiven}
+									aria-disabled={isGiven || undefined}
 									onClick={() =>
 										change(row, col, value() === null ? 'sun' : value() === 'sun' ? 'moon' : null)
 									}
@@ -107,7 +110,10 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 						class="min-h-11 rounded-xl border border-border px-4 disabled:opacity-50"
 						type="button"
 						disabled={grid() === initial}
-						onClick={() => setGrid(initial)}
+						onClick={() => {
+							setLockedClue(false)
+							setGrid(initial)
+						}}
 					>
 						{t('common.reset')}
 					</button>
@@ -118,6 +124,11 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 					</Show>
 				</div>
 			</Show>
+			<div role="status" class="text-sm font-semibold">
+				<Show when={lockedClue()}>
+					<p>{t('games.duo.lockedClue')}</p>
+				</Show>
+			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.duo.complete')} />
 		</div>
 	)

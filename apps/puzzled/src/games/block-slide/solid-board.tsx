@@ -5,15 +5,9 @@ import { formatTimer } from '@/games/shared/format'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
+import { slide, undoSlide } from './move-history'
 import { parseBlockSlideClientPayload } from './parse-client'
-import {
-	type Block,
-	type BlockSlidePuzzle,
-	canMove,
-	type Direction,
-	isWin,
-	moveBlock,
-} from './types'
+import { type Block, type BlockSlidePuzzle, type Direction, isWin } from './types'
 
 const arrows = { up: ArrowUp, down: ArrowDown, left: ArrowLeft, right: ArrowRight }
 const directions: Direction[] = ['up', 'left', 'down', 'right']
@@ -67,10 +61,11 @@ function Slides(
 	const { gridWidth, gridHeight, exitX, exitY, minMoves } = props.data
 	const target = props.data.blocks.find((block) => block.isTarget)
 	const ids = props.data.blocks.map((block) => block.id)
-	const [blocks, setBlocks] = createSignal(props.data.blocks)
-	const [moves, setMoves] = createSignal(0)
+	const [history, setHistory] = createSignal([props.data.blocks])
+	const blocks = () => history()[history().length - 1]
+	const moves = () => history().length - 1
 	const [selected, setSelected] = createSignal<string>()
-	const [blocked, setBlocked] = createSignal(false)
+	const [feedback, setFeedback] = createSignal<'blocked' | 'emptyBoard'>()
 	const [outcome, setOutcome] = createSignal<'won' | 'lost'>()
 	const [elapsed, setElapsed] = createSignal(0)
 	const playing = () => finish.state() === 'playing' && !outcome()
@@ -82,24 +77,27 @@ function Slides(
 		finish.finish({ moveCount }, { status, attempts: moveCount })
 	}
 
-	function move(id: string | undefined, direction: Direction, drag = false) {
+	function move(id: string | undefined, direction: Direction) {
 		if (!id || !playing()) return
-		const current = blocks()
-		if (!canMove(current, id, direction, gridWidth, gridHeight)) {
-			if (!drag) {
-				setBlocked(true)
-				triggerHaptic('error')
-			}
+		setSelected(id)
+		const next = slide(history(), id, direction, gridWidth, gridHeight)
+		if (!next) {
+			setFeedback('blocked')
+			triggerHaptic('error')
 			return
 		}
-		const next = moveBlock(current, id, direction)
-		const count = moves() + 1
-		setBlocked(false)
-		setSelected(id)
-		setBlocks(next)
-		setMoves(count)
+		setFeedback(undefined)
+		setHistory(next)
 		triggerHaptic('light')
-		if (isWin(next, exitX, exitY)) end('won', count)
+		if (isWin(blocks(), exitX, exitY)) end('won', moves())
+	}
+
+	function undo() {
+		if (!playing()) return
+		const previous = undoSlide(history())
+		if (!previous) return
+		setHistory(previous)
+		setFeedback(undefined)
 	}
 
 	onMount(() => {
@@ -132,7 +130,7 @@ function Slides(
 	})
 
 	return (
-		<div class="mx-auto flex w-full max-w-sm flex-col gap-3" data-block-slide-board>
+		<div class="mx-auto flex w-full max-w-sm flex-col gap-2" data-block-slide-board>
 			<div class="flex flex-wrap items-center justify-between gap-2 text-sm">
 				<p role="status" class="tabular-nums">
 					<strong data-move-count>{moves()}</strong> {text('moves')}
@@ -148,7 +146,16 @@ function Slides(
 			</div>
 			<fieldset dir="ltr" class="min-w-0" aria-label={text('name')}>
 				<div
-					class="relative w-full rounded-lg border-2 border-border bg-muted"
+					class="relative mx-auto w-full max-w-[22rem] rounded-lg border-2 border-border bg-muted"
+					onPointerUp={(event) => {
+						if (
+							playing() &&
+							event.isPrimary &&
+							event.button === 0 &&
+							event.target === event.currentTarget
+						)
+							setFeedback('emptyBoard')
+					}}
 					style={{
 						'aspect-ratio': `${gridWidth} / ${gridHeight}`,
 						'background-image':
@@ -168,10 +175,10 @@ function Slides(
 									selected={selected() === id}
 									disabled={!playing()}
 									onSelect={() => {
-										setBlocked(false)
+										setFeedback(undefined)
 										setSelected(selected() === id ? undefined : id)
 									}}
-									onDrag={(direction) => move(id, direction, true)}
+									onDrag={(direction) => move(id, direction)}
 								/>
 							)
 						}}
@@ -188,7 +195,9 @@ function Slides(
 				</div>
 			</fieldset>
 			<Show when={playing()}>
-				<p class="mt-6 text-center text-sm text-muted-foreground">{text('hint')}</p>
+				<p role="status" class="mt-5 text-center text-sm text-muted-foreground">
+					{text(feedback() ?? 'hint')}
+				</p>
 				<fieldset
 					dir="ltr"
 					class="flex min-w-0 justify-center gap-2"
@@ -211,23 +220,26 @@ function Slides(
 						}}
 					</For>
 				</fieldset>
-				<Show when={blocked()}>
-					<p role="status" class="text-center text-sm text-muted-foreground">
-						{text('blocked')}
-					</p>
-				</Show>
-				<div class="flex items-center justify-center gap-3">
+				<div class="flex flex-wrap items-center justify-center gap-x-2">
+					<button
+						type="button"
+						class="min-h-12 rounded-xl border border-border px-3 font-semibold disabled:opacity-50"
+						disabled={!moves()}
+						onClick={undo}
+					>
+						{text('undo')}
+					</button>
 					<button
 						ref={resetButton}
 						type="button"
-						class="min-h-12 rounded-xl border border-border px-4 font-semibold"
+						class="min-h-12 rounded-xl border border-border px-3 font-semibold"
 						onClick={props.reset}
 					>
 						{text('reset')}
 					</button>
 					<button
 						type="button"
-						class="min-h-12 rounded-xl px-4 font-semibold underline"
+						class="min-h-12 rounded-xl px-3 font-semibold underline"
 						onClick={() => end('lost', moves())}
 					>
 						{text('giveUp')}
@@ -259,6 +271,12 @@ function SlideBlock(props: {
 }) {
 	let drag: { id: number; x: number; y: number } | undefined
 	let dragged = false
+	function endDrag(event: PointerEvent & { currentTarget: HTMLButtonElement }) {
+		if (drag?.id !== event.pointerId) return
+		drag = undefined
+		if (event.currentTarget.hasPointerCapture(event.pointerId))
+			event.currentTarget.releasePointerCapture(event.pointerId)
+	}
 	return (
 		<button
 			type="button"
@@ -296,9 +314,9 @@ function SlideBlock(props: {
 					Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up',
 				)
 			}}
-			onLostPointerCapture={(event) => {
-				if (drag?.id === event.pointerId) drag = undefined
-			}}
+			onPointerUp={endDrag}
+			onPointerCancel={endDrag}
+			onLostPointerCapture={endDrag}
 			onClick={(event) => {
 				if (!dragged || event.detail === 0) props.onSelect()
 			}}

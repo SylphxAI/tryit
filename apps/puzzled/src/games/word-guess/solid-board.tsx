@@ -39,6 +39,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 	const [grading, setGrading] = createSignal(false)
 	const [checkingScope, setCheckingScope] = createSignal(false)
 	const [error, setError] = createSignal<string>()
+	const [showInputHint, setShowInputHint] = createSignal(false)
 	const [outcome, setOutcome] = createSignal<'won' | 'lost'>()
 	const finish = createBoardFinish(props, gameSlug)
 	const keys = createMemo(() => wordKeyFeedback(rows()))
@@ -69,6 +70,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 	function edit(key: string) {
 		if (inactive()) return
 		setError(undefined)
+		setShowInputHint(false)
 		triggerHaptic('keyPress')
 		if (key === 'BACKSPACE') setDraft((word) => word.slice(0, -1))
 		else if (/^[a-z]$/i.test(key))
@@ -103,6 +105,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 	}
 	async function grade() {
 		if (inactive()) return
+		setShowInputHint(false)
 		const word = draft()
 		if (word.length !== WORD_LENGTH) {
 			triggerHaptic('error')
@@ -221,7 +224,23 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 													data-grade={tile()}
 													class={`size-11 rounded-lg border-2 text-center align-middle font-display text-2xl font-bold sm:size-[3.25rem] ${tone(tile(), letter() ? 'border-muted-foreground bg-card' : 'border-border bg-card')}`}
 												>
-													{letter()}
+													<Show when={row === rows().length && !outcome()} fallback={letter()}>
+														<button
+															type="button"
+															class="grid size-full min-h-10 min-w-10 place-items-center rounded-md"
+															tabIndex={col === 0 ? 0 : -1}
+															aria-label={letter() || t('games.wordGuess.messages.useKeyboard')}
+															disabled={busy()}
+															onClick={(event) => {
+																setShowInputHint(true)
+																// Let physical Enter submit after a pointer click.
+																if (event.detail > 0) event.currentTarget.blur()
+																setError(undefined)
+															}}
+														>
+															{letter()}
+														</button>
+													</Show>
 													<Show when={tile()}>
 														{(value) => <span class="sr-only">: {rules(value())}</span>}
 													</Show>
@@ -273,6 +292,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 						</For>
 					</fieldset>
 					<div class="min-h-6 text-center text-sm">
+						<p role="status">{showInputHint() ? t('games.wordGuess.messages.useKeyboard') : ''}</p>
 						<Show when={grading()}>
 							<p role="status">{t('common.syncing')}</p>
 						</Show>

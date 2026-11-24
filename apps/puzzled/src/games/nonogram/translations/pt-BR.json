@@ -27,5 +27,7 @@
 		"easy": "Uma grade 5x5 pequena com uma imagem simples",
 		"medium": "10x10, com mais linhas e colunas para ler",
 		"hard": "15x15 com detalhes finos"
-	}
+	},
+	"undo": "Desfazer",
+	"startOver": "Começar de novo"
 }

@@ -16,5 +16,7 @@
 	"undo": "Undo",
 	"region": "Region",
 	"tile": "Tile {a}–{b}",
-	"rejected": "Not quite. Pick up a tile to keep playing."
+	"rejected": "Not quite. Pick up a tile to keep playing.",
+	"selectDomino": "Select a domino below first",
+	"pickAdjacent": "Pick an adjacent up/down/left/right square"
 }

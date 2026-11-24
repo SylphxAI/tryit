@@ -16,6 +16,9 @@
 	"mistakes": "Errores restantes",
 	"mistakesRemaining": "Quedan {remaining} de {total} errores",
 	"messages": {
+		"selectionFull": "Elige 4 fichas y pulsa Enviar",
+		"pickMore": "Elige {count} más",
+		"alreadyGuessed": "Ya probaste ese grupo",
 		"correct": "¡Correcto!",
 		"oneAway": "Casi...",
 		"incorrect": "Incorrecto",

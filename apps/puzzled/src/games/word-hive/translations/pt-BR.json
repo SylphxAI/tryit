@@ -12,9 +12,9 @@
 		"rule4": "As letras podem ser usadas mais de uma vez"
 	},
 	"messages": {
-		"tooShort": "As palavras devem ter pelo menos 4 letras",
+		"tooShort": "Palavra muito curta (mín. 4 letras)",
 		"missingCenter": "Falta a letra central",
-		"invalidLetter": "Letra inválida usada",
+		"invalidLetter": "Essa letra não está na colmeia",
 		"notInList": "Não está na lista de palavras",
 		"alreadyFound": "Já encontrada!"
 	},

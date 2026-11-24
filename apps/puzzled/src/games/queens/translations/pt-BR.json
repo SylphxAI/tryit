@@ -13,7 +13,6 @@
 	},
 	"startGame": "Começar jogo",
 	"region": "Região {index}",
-	"hasConflicts": "Algumas coroas estão em conflito",
 	"complete": "Desafio concluído!",
 	"difficulty": {
 		"easy": "Fácil",
@@ -24,5 +23,11 @@
 		"easy": "Um tabuleiro 5x5 — uma coroa por linha, coluna e região",
 		"medium": "Um tabuleiro 6x6 com mais regiões para raciocinar",
 		"hard": "Um tabuleiro 8x8 e as restrições mais apertadas"
+	},
+	"conflicts": {
+		"sameRow": "Duas coroas na mesma linha",
+		"sameColumn": "Duas coroas na mesma coluna",
+		"sameRegion": "Duas coroas na mesma região de cor",
+		"diagonalTouch": "Duas coroas se tocam na diagonal"
 	}
 }

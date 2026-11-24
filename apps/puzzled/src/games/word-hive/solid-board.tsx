@@ -9,7 +9,6 @@ import { checkHiveDraft, createInitialState, spellingBeeReducer } from './play-s
 import { readHiveGrade } from './read-grade'
 import {
 	getNextRankThreshold,
-	MIN_WORD_LENGTH,
 	RANK_THRESHOLDS,
 	type SpellingBeeRank,
 	type WordHivePlayData,
@@ -71,15 +70,21 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 		return expanded() ? sorted : sorted.slice(0, 5)
 	})
 	let disposed = false
+	let pointerButton: HTMLElement | undefined
 	const scoreLabel = (score: number) => `${t('gameResult.score')}: ${score}`
 
 	function hasLetter(letter: string) {
 		return letter === state().centerLetter || state().outerLetters.includes(letter)
 	}
 	function edit(letter: string) {
-		if (!canPlay() || (letter !== 'Backspace' && !hasLetter(letter))) return
-		setError(undefined)
+		if (!canPlay()) return
 		setLastFound(undefined)
+		if (letter !== 'Backspace' && !hasLetter(letter)) {
+			triggerHaptic('error')
+			setError('invalid_letter')
+			return
+		}
+		setError(undefined)
 		triggerHaptic('keyPress')
 		dispatch(letter === 'Backspace' ? { type: 'DELETE_LETTER' } : { type: 'ADD_LETTER', letter })
 	}
@@ -156,19 +161,22 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 		const target = event.target
 		if (
 			target instanceof HTMLElement &&
-			(target.isContentEditable || target.closest('input, textarea, select'))
+			(target.isContentEditable ||
+				target.closest('input, textarea, select, [contenteditable], [role="dialog"]'))
 		)
 			return
 		if (event.key === 'Enter' || event.key === ' ') {
-			if (target instanceof HTMLElement && target.closest('button, a, summary')) return
+			if (
+				target instanceof HTMLElement &&
+				target.closest('button, a, summary') &&
+				!(event.key === 'Enter' && target === pointerButton)
+			)
+				return
 			event.preventDefault()
 			if (event.repeat) return
 			if (event.key === ' ') shuffle()
 			else void submit()
-		} else if (
-			event.key === 'Backspace' ||
-			(/^[a-z]$/i.test(event.key) && hasLetter(event.key.toUpperCase()))
-		) {
+		} else if (event.key === 'Backspace' || /^[a-z]$/i.test(event.key)) {
 			event.preventDefault()
 			edit(event.key === 'Backspace' ? event.key : event.key.toUpperCase())
 		}
@@ -182,7 +190,19 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 	})
 
 	return (
-		<div class="mx-auto w-full max-w-sm space-y-3" data-hive-board>
+		<div
+			class="mx-auto w-full max-w-sm space-y-3"
+			data-hive-board
+			onClick={(event) => {
+				const button =
+					event.target instanceof Element &&
+					event.target.closest<HTMLButtonElement>('button[data-hive-key]')
+				if (button && event.detail > 0) pointerButton = button
+			}}
+			onFocusOut={() => {
+				pointerButton = undefined
+			}}
+		>
 			<details class="rounded-xl bg-muted px-3 text-sm">
 				<summary class="min-h-12 cursor-pointer py-3 font-semibold">
 					{t('games.wordHive.howToPlay')}
@@ -282,22 +302,27 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 			<div class="flex flex-wrap justify-center gap-2">
 				<button
 					type="button"
+					data-hive-key
 					class={ghostButton}
 					aria-disabled={!canPlay() || !state().currentWord}
 					onClick={() => edit('Backspace')}
 				>
 					{t('games.wordHive.delete')}
 				</button>
-				<button type="button" class={ghostButton} aria-disabled={!canPlay()} onClick={shuffle}>
+				<button
+					type="button"
+					data-hive-key
+					class={ghostButton}
+					aria-disabled={!canPlay()}
+					onClick={shuffle}
+				>
 					{t('games.wordHive.shuffle')}
 				</button>
 				<button
 					type="button"
 					class="min-h-12 rounded-xl bg-primary px-4 font-bold text-primary-foreground aria-disabled:opacity-50"
-					aria-disabled={!canPlay() || state().currentWord.length < MIN_WORD_LENGTH}
-					onClick={() => {
-						if (state().currentWord.length >= MIN_WORD_LENGTH) void submit()
-					}}
+					aria-disabled={!canPlay()}
+					onClick={submit}
 				>
 					{t('games.wordHive.enter')}
 				</button>
@@ -387,6 +412,7 @@ function HexLetter(props: {
 		<button
 			type="button"
 			data-letter={props.letter}
+			data-hive-key
 			aria-label={props.label}
 			aria-disabled={props.disabled}
 			onClick={() => props.onPress(props.letter)}

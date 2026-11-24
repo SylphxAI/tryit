@@ -27,5 +27,7 @@
 		"easy": "Una cuadrícula pequeña de 5x5 con una imagen sencilla",
 		"medium": "10x10, con más filas y columnas que leer",
 		"hard": "15x15 con mucho detalle"
-	}
+	},
+	"undo": "Deshacer",
+	"startOver": "Volver a empezar"
 }

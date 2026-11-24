@@ -215,7 +215,7 @@
 			"tips": [
 				"Compare one property at a time, starting with the number of shapes on each card.",
 				"If two cards match on a property, the third card must match them too or the trio fails.",
-				"Cards inside a set you have already found are locked, so scan the untouched cards next."
+				"One card can belong to more than one valid set. Try using cards from sets you’ve already found."
 			],
 			"faq": [
 				{

@@ -16,6 +16,9 @@
 	"mistakes": "Erros restantes",
 	"mistakesRemaining": "{remaining} de {total} erros restantes",
 	"messages": {
+		"selectionFull": "Selecione 4 peças e toque em Enviar",
+		"pickMore": "Escolha mais {count}",
+		"alreadyGuessed": "Você já tentou esse grupo",
 		"correct": "Certo!",
 		"oneAway": "Falta uma...",
 		"incorrect": "Errado",

@@ -12,9 +12,9 @@
 		"rule4": "字母可以重复使用"
 	},
 	"messages": {
-		"tooShort": "词语至少要有 4 个字母",
+		"tooShort": "单词太短（至少 4 个字母）",
 		"missingCenter": "缺少中间字母",
-		"invalidLetter": "使用了无效字母",
+		"invalidLetter": "蜂巢中没有这个字母",
 		"notInList": "不在词库中",
 		"alreadyFound": "已经找到！"
 	},

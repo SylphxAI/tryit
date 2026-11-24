@@ -16,6 +16,9 @@
 	"mistakes": "残りのミス",
 	"mistakesRemaining": "残りミス {remaining}/{total} 回",
 	"messages": {
+		"selectionFull": "タイルを4枚選んでから「送信」をタップしてください",
+		"pickMore": "あと {count} 枚選んでください",
+		"alreadyGuessed": "その組み合わせは試しました",
 		"correct": "正解！",
 		"oneAway": "あと1つ…",
 		"incorrect": "不正解",
