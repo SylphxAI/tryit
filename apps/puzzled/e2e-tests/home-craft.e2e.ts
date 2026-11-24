@@ -131,13 +131,17 @@ for (const viewport of [
 		const aboveDock = viewport.width === 390 ? 2 : 16
 		for (const card of (await cards.all()).slice(0, aboveDock)) {
 			const { y, height } = (await card.boundingBox())!
-			expect(y + height + 2, await card.getAttribute('data-home-game')).toBeLessThanOrEqual(dockTop)
+			expect(
+				y + height + 2,
+				(await card.getAttribute('data-home-game')) ?? undefined,
+			).toBeLessThanOrEqual(dockTop)
 		}
 		for (const card of await cards.all()) {
 			const { y, height } = (await card.locator('strong').boundingBox())!
-			expect(y < dockTop && y + height > dockTop, await card.getAttribute('data-home-game')).toBe(
-				false,
-			)
+			expect(
+				y < dockTop && y + height > dockTop,
+				(await card.getAttribute('data-home-game')) ?? undefined,
+			).toBe(false)
 		}
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 			'19 daily puzzles. Play now, no account needed.',
