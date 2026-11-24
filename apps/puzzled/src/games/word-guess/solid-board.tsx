@@ -231,8 +231,10 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 															tabIndex={col === 0 ? 0 : -1}
 															aria-label={letter() || t('games.wordGuess.messages.useKeyboard')}
 															disabled={busy()}
-															onClick={() => {
+															onClick={(event) => {
 																setShowInputHint(true)
+																// Let physical Enter submit after a pointer click.
+																if (event.detail > 0) event.currentTarget.blur()
 																setError(undefined)
 															}}
 														>
