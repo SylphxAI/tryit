@@ -216,13 +216,18 @@ test('Undo keyboard shortcut leaves text-field editing to the browser', async ({
 	const board = await openBoard(page)
 	await cell(board, 1, 1).click()
 	await page.keyboard.press('2')
-	await page.evaluate(() => {
+	// The canvas intentionally hides the landing page's other children. Put the
+	// test field in the visible play body while Sudoku's global handler is live.
+	await page.locator('[data-play-canvas] .play-body').evaluate((body) => {
 		const input = document.createElement('input')
 		input.setAttribute('aria-label', 'Undo test text field')
-		document.querySelector('main')?.prepend(input)
+		body.prepend(input)
 	})
 	const input = page.getByRole('textbox', { name: 'Undo test text field' })
+	await expect(input).toBeVisible()
 	await input.pressSequentially('hello')
+	await expect(input).toBeFocused()
+	await expect(input).toHaveValue('hello')
 	await page.keyboard.press('Control+z')
 	await expect(input).toHaveValue('')
 	await expect(cell(board, 1, 1)).toHaveAttribute('aria-label', 'Row 1, Column 1, 2')

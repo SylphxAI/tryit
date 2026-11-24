@@ -11,7 +11,7 @@
 		"rule3": "Try to solve in minimum moves"
 	},
 	"startGame": "Start Game",
-	"moves": "moves",
+	"moveCount": "{count, plural, one {# move} other {# moves}}",
 	"minMoves": "Min",
 	"reset": "Reset",
 	"giveUp": "Give Up",

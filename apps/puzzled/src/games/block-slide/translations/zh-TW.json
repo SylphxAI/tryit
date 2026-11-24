@@ -11,7 +11,7 @@
 		"rule3": "嘗試用最少步數完成"
 	},
 	"startGame": "開始遊戲",
-	"moves": "步數",
+	"moveCount": "{count} 步",
 	"minMoves": "最少",
 	"reset": "重設",
 	"giveUp": "放棄",

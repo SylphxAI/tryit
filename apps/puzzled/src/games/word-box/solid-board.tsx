@@ -179,7 +179,10 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 					type="button"
 					class="min-h-11 px-2 font-semibold disabled:opacity-50"
 					disabled={!playable()}
-					onClick={reset}
+					onClick={(event) => {
+						event.currentTarget.blur()
+						reset()
+					}}
 				>
 					<RotateCcw size={16} class="me-1 inline" aria-hidden="true" />
 					{t('common.reset')}

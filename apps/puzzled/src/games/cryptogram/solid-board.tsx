@@ -286,7 +286,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 			<p role="status" class="text-center text-sm empty:sr-only">
 				{notice()}
 			</p>
-			<div class="flex flex-wrap justify-center gap-1" dir="ltr">
+			<div class="flex flex-wrap justify-center gap-1" dir="ltr" data-cipher-keyboard>
 				<For each={Array.from(ALPHABET)}>
 					{(letter) => (
 						<button

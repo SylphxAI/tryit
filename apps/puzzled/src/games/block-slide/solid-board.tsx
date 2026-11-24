@@ -64,6 +64,7 @@ function Slides(
 	const [history, setHistory] = createSignal([props.data.blocks])
 	const blocks = () => history()[history().length - 1]
 	const moves = () => history().length - 1
+	const moveLabel = () => t('games.blockSlide.moveCount', { count: moves() })
 	const [selected, setSelected] = createSignal<string>()
 	const [feedback, setFeedback] = createSignal<'blocked' | 'emptyBoard'>()
 	const [outcome, setOutcome] = createSignal<'won' | 'lost'>()
@@ -130,10 +131,10 @@ function Slides(
 	})
 
 	return (
-		<div class="mx-auto flex w-full max-w-sm flex-col gap-2" data-block-slide-board>
-			<div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+		<div class="play-split mx-auto flex w-full max-w-sm flex-col gap-2" data-block-slide-board>
+			<div class="play-meta flex flex-wrap items-center justify-between gap-2 text-sm">
 				<p role="status" class="tabular-nums">
-					<strong data-move-count>{moves()}</strong> {text('moves')}
+					<strong data-move-count>{moveLabel()}</strong>
 					<Show when={minMoves > 0}>
 						<span class="ps-3 text-muted-foreground">
 							{text('minMoves')}: {minMoves}
@@ -141,9 +142,13 @@ function Slides(
 					</Show>
 				</p>
 			</div>
-			<fieldset dir="ltr" class="min-w-0" aria-label={text('name')}>
+			<fieldset
+				dir="ltr"
+				class="play-board mx-auto w-full min-w-0 max-w-[22rem]"
+				aria-label={text('name')}
+			>
 				<div
-					class="relative mx-auto w-full max-w-[22rem] rounded-lg border-2 border-border bg-muted"
+					class="relative mx-auto w-full rounded-lg border-2 border-border bg-muted"
 					onPointerUp={(event) => {
 						if (
 							playing() &&
@@ -191,65 +196,67 @@ function Slides(
 					</span>
 				</div>
 			</fieldset>
-			<Show when={playing()}>
-				<p role="status" class="mt-5 text-center text-sm text-muted-foreground">
-					{text(feedback() ?? 'hint')}
-				</p>
-				<fieldset
-					dir="ltr"
-					class="flex min-w-0 justify-center gap-2"
-					aria-label={text('moveControls')}
-				>
-					<For each={directions}>
-						{(direction) => {
-							const Icon = arrows[direction]
-							return (
-								<button
-									type="button"
-									class="grid size-12 place-items-center rounded-lg border border-border bg-background hover:bg-muted disabled:opacity-50"
-									aria-label={text(direction)}
-									disabled={!selected()}
-									onClick={() => move(selected(), direction)}
-								>
-									<Icon size={20} aria-hidden="true" />
-								</button>
-							)
-						}}
-					</For>
-				</fieldset>
-				<div class="flex flex-wrap items-center justify-center gap-x-2">
-					<button
-						type="button"
-						class="min-h-12 rounded-xl border border-border px-3 font-semibold disabled:opacity-50"
-						disabled={!moves()}
-						onClick={undo}
+			<div class="play-tools space-y-2">
+				<Show when={playing()}>
+					<p role="status" class="mt-5 text-center text-sm text-muted-foreground">
+						{text(feedback() ?? 'hint')}
+					</p>
+					<fieldset
+						dir="ltr"
+						class="flex min-w-0 justify-center gap-2"
+						aria-label={text('moveControls')}
 					>
-						{text('undo')}
-					</button>
-					<button
-						ref={resetButton}
-						type="button"
-						class="min-h-12 rounded-xl border border-border px-3 font-semibold"
-						onClick={props.reset}
-					>
-						{text('reset')}
-					</button>
-					<button
-						type="button"
-						class="min-h-12 rounded-xl px-3 font-semibold underline"
-						onClick={() => end('lost', moves())}
-					>
-						{text('giveUp')}
-					</button>
-				</div>
-			</Show>
-			<div classList={{ 'mt-6': !playing() }}>
+						<For each={directions}>
+							{(direction) => {
+								const Icon = arrows[direction]
+								return (
+									<button
+										type="button"
+										class="grid size-12 place-items-center rounded-lg border border-border bg-background hover:bg-muted disabled:opacity-50"
+										aria-label={text(direction)}
+										disabled={!selected()}
+										onClick={() => move(selected(), direction)}
+									>
+										<Icon size={20} aria-hidden="true" />
+									</button>
+								)
+							}}
+						</For>
+					</fieldset>
+					<div class="flex flex-wrap items-center justify-center gap-x-2">
+						<button
+							type="button"
+							class="min-h-12 rounded-xl border border-border px-3 font-semibold disabled:opacity-50"
+							disabled={!moves()}
+							onClick={undo}
+						>
+							{text('undo')}
+						</button>
+						<button
+							ref={resetButton}
+							type="button"
+							class="min-h-12 rounded-xl border border-border px-3 font-semibold"
+							onClick={props.reset}
+						>
+							{text('reset')}
+						</button>
+						<button
+							type="button"
+							class="min-h-12 rounded-xl px-3 font-semibold underline"
+							onClick={() => end('lost', moves())}
+						>
+							{text('giveUp')}
+						</button>
+					</div>
+				</Show>
+			</div>
+			<div class="play-result" classList={{ 'mt-6': !playing() }}>
 				<BoardFinish
 					finish={finish}
 					locale={props.locale}
 					message={t(outcome() === 'won' ? 'gameResult.congratulations' : 'gameResult.gameOver')}
 					shareTitle={text('name')}
-					shareText={`⏱️ ${formatTimer(elapsed())} • ${moves()} ${text('moves')}`}
+					shareText={`⏱️ ${formatTimer(elapsed())} • ${moveLabel()}`}
 				/>
 			</div>
 		</div>

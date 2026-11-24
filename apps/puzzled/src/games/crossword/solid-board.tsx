@@ -175,15 +175,16 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 	}
 
 	return (
-		<div class="mx-auto flex w-full max-w-md flex-col gap-2 md:gap-4" data-crossword-board>
-			<div class="flex flex-wrap items-center justify-between gap-x-3 text-sm">
+		<div
+			class="play-split mx-auto flex w-full max-w-md flex-col gap-2 md:gap-4"
+			data-crossword-board
+		>
+			<div class="play-meta flex flex-wrap items-center justify-between gap-x-3 text-sm">
 				<p>{acrossOnly ? t('games.crossword.acrossOnly') : t('games.crossword.name')}</p>
 			</div>
-			<p role="status" class="min-h-12 rounded-xl bg-muted p-3 text-sm font-semibold">
-				{activeClueLabel()}
-			</p>
+
 			<fieldset
-				class="mx-auto grid w-full max-w-64 grid-cols-5 gap-1 rounded-xl border border-border bg-border p-1 md:max-w-xs"
+				class="play-board mx-auto grid w-full max-w-64 grid-cols-5 gap-1 rounded-xl border border-border bg-border p-1 md:max-w-xs"
 				aria-label={t('games.crossword.name')}
 				dir="ltr"
 			>
@@ -241,67 +242,77 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 					)}
 				</For>
 			</fieldset>
-			<Show when={playing()}>
-				<div class="flex flex-col gap-1" dir="ltr">
-					<For each={keyboard}>
-						{(row) => (
-							<div class="flex justify-center gap-1">
-								<For each={row.split('')}>
-									{(key) => (
-										<button
-											type="button"
-											aria-label={key === '⌫' ? t('games.wordGuess.keyboard.delete') : key}
-											class="min-h-11 w-[9.5%] rounded-lg border border-border bg-muted font-semibold hover:bg-primary/15"
-											onClick={() => enter(key)}
-										>
-											{key}
-										</button>
-									)}
-								</For>
-							</div>
-						)}
-					</For>
-				</div>
-				<button type="button" class={playButton} onClick={check}>
-					{t('games.crossword.check')}
-				</button>
-				<Show when={feedback()}>
-					<p role="alert" class="text-sm text-destructive">
-						{t(`games.crossword.messages.${feedback()}`)}
-					</p>
-				</Show>
-			</Show>
-			<BoardFinish
-				finish={finish}
-				locale={props.locale}
-				message={t('games.crossword.complete')}
-				shareTitle={t('games.crossword.name')}
-			/>
-			<div class="grid gap-3 sm:grid-cols-2">
-				<For each={acrossOnly ? ['across' as const] : directions}>
-					{(direction) => (
-						<section class="space-y-1">
-							<h3 class="font-display font-bold">{directionName(direction)}</h3>
-							<ol class="space-y-1">
-								<For each={data.clues[direction]}>
-									{(clue) => (
-										<li>
+			<div class="play-tools flex flex-col gap-2">
+				<p role="status" class="min-h-11 rounded-xl bg-muted p-3 text-sm font-semibold">
+					{activeClueLabel()}
+				</p>
+				<Show when={playing()}>
+					<div class="flex flex-col gap-1" dir="ltr">
+						<For each={keyboard}>
+							{(row) => (
+								<div class="flex justify-center gap-1">
+									<For each={row.split('')}>
+										{(key) => (
 											<button
 												type="button"
-												disabled={!playing()}
-												aria-current={activeClue() === clue ? 'true' : undefined}
-												class="min-h-11 w-full rounded-lg px-2 text-start text-sm aria-current:bg-primary/15"
-												onClick={() => selectClue(clue, direction)}
+												aria-label={key === '⌫' ? t('games.wordGuess.keyboard.delete') : key}
+												class="min-h-11 w-[9.5%] rounded-lg border border-border bg-muted font-semibold hover:bg-primary/15"
+												onClick={() => enter(key)}
 											>
-												<strong>{clue.number}.</strong> {clue.clue}
+												{key}
 											</button>
-										</li>
-									)}
-								</For>
-							</ol>
-						</section>
-					)}
-				</For>
+										)}
+									</For>
+								</div>
+							)}
+						</For>
+					</div>
+					<button type="button" class={playButton} onClick={check}>
+						{t('games.crossword.check')}
+					</button>
+					<Show when={feedback()}>
+						<p role="alert" class="text-sm text-destructive">
+							{t(`games.crossword.messages.${feedback()}`)}
+						</p>
+					</Show>
+				</Show>
+				<BoardFinish
+					finish={finish}
+					locale={props.locale}
+					message={t('games.crossword.complete')}
+					shareTitle={t('games.crossword.name')}
+				/>
+				<details class="crossword-clues">
+					<summary class="min-h-11 cursor-pointer py-2 text-sm font-semibold">
+						{t('games.crossword.clues')}
+					</summary>
+					<div class="grid grid-cols-2 gap-3">
+						<For each={acrossOnly ? ['across' as const] : directions}>
+							{(direction) => (
+								<section class="space-y-1">
+									<h3 class="font-display font-bold">{directionName(direction)}</h3>
+									<ol class="space-y-1">
+										<For each={data.clues[direction]}>
+											{(clue) => (
+												<li>
+													<button
+														type="button"
+														disabled={!playing()}
+														aria-current={activeClue() === clue ? 'true' : undefined}
+														class="min-h-11 w-full rounded-lg px-2 text-start text-sm aria-current:bg-primary/15"
+														onClick={() => selectClue(clue, direction)}
+													>
+														<strong>{clue.number}.</strong> {clue.clue}
+													</button>
+												</li>
+											)}
+										</For>
+									</ol>
+								</section>
+							)}
+						</For>
+					</div>
+				</details>
 			</div>
 		</div>
 	)

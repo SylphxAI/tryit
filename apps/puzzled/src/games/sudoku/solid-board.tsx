@@ -154,8 +154,8 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 		)
 	}
 	return (
-		<div class="mx-auto flex w-full max-w-[26rem] flex-col gap-4">
-			<div class={styles.board}>
+		<div class="play-split sudoku-layout mx-auto flex w-full max-w-[26rem] flex-col gap-3">
+			<div class={`play-board ${styles.board}`}>
 				{/* biome-ignore lint/a11y/useSemanticElements: a Sudoku board is a named group of game controls */}
 				<div class={styles.boxes} role="group" aria-label={t('games.sudoku.name')}>
 					<For each={coords.flatMap((br) => coords.map((bc) => ({ br, bc })))}>
@@ -169,68 +169,70 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 					</For>
 				</div>
 			</div>
-			<div class={styles.pad}>
-				<div class={styles.digits}>
-					<For each={digits}>
-						{(digit) => (
-							<button
-								type="button"
-								class={styles.key}
-								disabled={state().isComplete}
-								data-notes={state().isNotesMode || undefined}
-								onClick={() => dispatch({ type: 'INPUT_NUMBER', value: digit })}
-							>
-								{digit}
-							</button>
-						)}
-					</For>
-					<button
-						type="button"
-						class={`${styles.key} ${styles.erase}`}
-						disabled={state().isComplete}
-						aria-label={t('games.sudoku.clear')}
-						onClick={() => dispatch({ type: 'CLEAR_CELL' })}
-					>
-						<Delete size={20} aria-hidden="true" />
-					</button>
+			<div class="play-tools">
+				<div class={styles.pad}>
+					<div class={styles.digits}>
+						<For each={digits}>
+							{(digit) => (
+								<button
+									type="button"
+									class={styles.key}
+									disabled={state().isComplete}
+									data-notes={state().isNotesMode || undefined}
+									onClick={() => dispatch({ type: 'INPUT_NUMBER', value: digit })}
+								>
+									{digit}
+								</button>
+							)}
+						</For>
+						<button
+							type="button"
+							class={`${styles.key} ${styles.erase}`}
+							disabled={state().isComplete}
+							aria-label={t('games.sudoku.clear')}
+							onClick={() => dispatch({ type: 'CLEAR_CELL' })}
+						>
+							<Delete size={20} aria-hidden="true" />
+						</button>
+					</div>
+					<div class={styles.tools}>
+						<button
+							type="button"
+							class={`${styles.key} ${styles.tool}`}
+							disabled={state().isComplete || !state().history.length}
+							onClick={() => dispatch({ type: 'UNDO' })}
+						>
+							<Undo2 size={16} aria-hidden="true" />
+							{t('games.sudoku.undo')}
+						</button>
+						<button
+							type="button"
+							class={`${styles.key} ${styles.tool}`}
+							disabled={state().isComplete}
+							aria-pressed={state().isNotesMode}
+							onClick={() => dispatch({ type: 'TOGGLE_NOTES_MODE' })}
+						>
+							<PencilLine size={16} aria-hidden="true" />
+							{t(state().isNotesMode ? 'games.sudoku.notesMode' : 'games.sudoku.notes')}
+						</button>
+						<button
+							type="button"
+							class={`${styles.key} ${styles.tool}`}
+							disabled={state().isComplete || !state().history.length}
+							onClick={() => {
+								if (window.confirm(t('games.sudoku.confirmReset'))) dispatch({ type: 'RESET' })
+							}}
+						>
+							{t('common.reset')}
+						</button>
+					</div>
 				</div>
-				<div class={styles.tools}>
-					<button
-						type="button"
-						class={`${styles.key} ${styles.tool}`}
-						disabled={state().isComplete || !state().history.length}
-						onClick={() => dispatch({ type: 'UNDO' })}
-					>
-						<Undo2 size={16} aria-hidden="true" />
-						{t('games.sudoku.undo')}
-					</button>
-					<button
-						type="button"
-						class={`${styles.key} ${styles.tool}`}
-						disabled={state().isComplete}
-						aria-pressed={state().isNotesMode}
-						onClick={() => dispatch({ type: 'TOGGLE_NOTES_MODE' })}
-					>
-						<PencilLine size={16} aria-hidden="true" />
-						{t(state().isNotesMode ? 'games.sudoku.notesMode' : 'games.sudoku.notes')}
-					</button>
-					<button
-						type="button"
-						class={`${styles.key} ${styles.tool}`}
-						disabled={state().isComplete || !state().history.length}
-						onClick={() => {
-							if (window.confirm(t('games.sudoku.confirmReset'))) dispatch({ type: 'RESET' })
-						}}
-					>
-						{t('common.reset')}
-					</button>
+				<div role="status" class="text-sm font-semibold">
+					<Show when={cue()}>{(message) => <p>{t(`games.sudoku.${message()}`)}</p>}</Show>
+					<Show when={duplicates()}>
+						<p class="text-destructive">{t('games.sudoku.messages.conflict')}</p>
+					</Show>
 				</div>
-			</div>
-			<div role="status" class="text-sm font-semibold">
-				<Show when={cue()}>{(message) => <p>{t(`games.sudoku.${message()}`)}</p>}</Show>
-				<Show when={duplicates()}>
-					<p class="text-destructive">{t('games.sudoku.messages.conflict')}</p>
-				</Show>
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.sudoku.complete')} />
 		</div>

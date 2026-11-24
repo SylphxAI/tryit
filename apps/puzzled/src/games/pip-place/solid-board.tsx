@@ -175,12 +175,12 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 	}
 
 	return (
-		<div class="mx-auto flex w-full max-w-sm flex-col gap-4" data-pip-place-board>
-			<div class="flex flex-wrap items-center justify-between gap-x-3 text-sm">
+		<div class="play-split mx-auto flex w-full max-w-sm flex-col gap-4" data-pip-place-board>
+			<div class="play-meta flex flex-wrap items-center justify-between gap-x-3 text-sm">
 				<p>{t('games.pipPlace.name')}</p>
 			</div>
 			<Show when={playing()}>
-				<div class="flex flex-wrap gap-2 text-sm">
+				<div class="pip-actions flex flex-wrap gap-2 text-sm">
 					<button
 						type="button"
 						class="min-h-11 rounded-lg border border-border px-3 disabled:opacity-50"
@@ -212,7 +212,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 				role="group"
 				aria-label={t('games.pipPlace.name')}
 				dir="ltr"
-				class="grid gap-0.5 rounded-xl border border-border bg-background p-1"
+				class="play-board grid gap-0.5 rounded-xl border border-border bg-background p-1"
 				style={{
 					'grid-template-columns': `repeat(${data.cols}, minmax(0, 1fr))`,
 				}}
@@ -297,7 +297,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 			</div>
 			<Show when={playing()}>
 				<div
-					class="flex flex-wrap justify-center gap-2 rounded-xl data-highlight:ring-2 data-highlight:ring-primary data-highlight:ring-offset-2"
+					class="play-tools flex flex-wrap justify-center gap-2 rounded-xl data-highlight:ring-2 data-highlight:ring-primary data-highlight:ring-offset-2"
 					data-pip-tray
 					data-highlight={board().cue === 'selectDomino' || undefined}
 					dir="ltr"
@@ -322,7 +322,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 						)}
 					</Index>
 				</div>
-				<div role="status" class="text-center text-sm font-semibold text-foreground">
+				<div role="status" class="pip-feedback text-center text-sm font-semibold text-foreground">
 					<Show when={board().cue}>{(cue) => <p>{t(`games.pipPlace.${cue()}`)}</p>}</Show>
 				</div>
 				<Show when={wrong()}>

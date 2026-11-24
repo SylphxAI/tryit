@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ConnectError } from '@connectrpc/connect'
-import { CircleHelp, Lock, Play, X } from 'lucide-solid'
+import { ArrowLeft, CircleHelp, Lock, Play, X } from 'lucide-solid'
 import {
 	createEffect,
 	createResource,
@@ -89,6 +89,7 @@ export function DailyPlay(props: {
 	const choose = !archive && props.data.difficultyLevels.length > 0 && !props.difficulty
 	const board = boards.get(slug)
 	const [starting, setStarting] = createSignal(false)
+	const [entered, setEntered] = createSignal(false)
 	const input = { gameSlug: slug, difficulty: props.difficulty, puzzleDate: props.day.puzzleDate }
 	const [mounted, setMounted] = createSignal(false)
 	const [state, { mutate, refetch }] = createResource(
@@ -109,7 +110,9 @@ export function DailyPlay(props: {
 		if (starting() || !board) return
 		setStarting(true)
 		try {
-			mutate(classifyDailyResponse(await startDaily({ ...input, puzzleDate })))
+			const next = classifyDailyResponse(await startDaily({ ...input, puzzleDate }))
+			if (next.kind === 'playable') setEntered(true)
+			mutate(next)
 		} catch (error) {
 			mutate(failed(error))
 		} finally {
@@ -284,20 +287,23 @@ export function DailyPlay(props: {
 								class="game-stage mx-auto flex min-h-[26rem] max-w-[34rem] flex-col"
 								data-game-stage="board"
 								data-game-slug={slug}
+								data-play-canvas={props.started || entered() || undefined}
 							>
 								<BoardIntro
 									data={props.data}
 									date={value().puzzleDate}
 									changeDifficulty={!archive && props.data.difficultyLevels.length > 0}
 								/>
-								<Dynamic
-									component={board}
-									puzzle={value()}
-									mode={props.day.mode}
-									locale={props.data.locale}
-									difficulty={props.difficulty}
-									onAlreadyPlayed={() => void refetch()}
-								/>
+								<div class="play-body">
+									<Dynamic
+										component={board}
+										puzzle={value()}
+										mode={props.day.mode}
+										locale={props.data.locale}
+										difficulty={props.difficulty}
+										onAlreadyPlayed={() => void refetch()}
+									/>
+								</div>
 							</div>
 						) : (
 							unavailable()
@@ -315,9 +321,19 @@ function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty:
 	let rules: HTMLDialogElement | undefined
 	const wordNotice = !props.data.locale.startsWith('en-') && englishWordPuzzles.has(props.data.slug)
 	return (
-		<header class="mb-2 text-sm">
-			<div class="flex flex-wrap items-center gap-x-4">
-				<time class="mr-auto text-muted-foreground" datetime={props.date}>
+		<header class="play-intro mb-2 text-sm">
+			<div class="play-hud flex flex-wrap items-center gap-x-3">
+				<a
+					class="play-exit hidden min-h-11 items-center gap-1 font-semibold"
+					href={props.data.catalog}
+				>
+					<ArrowLeft size={16} aria-hidden="true" />
+					{t('nav.games')}
+				</a>
+				<h1 class="play-title hidden min-w-0 flex-1 font-display text-lg font-bold">
+					{props.data.name}
+				</h1>
+				<time class="play-date mr-auto text-muted-foreground" datetime={props.date}>
 					{new Intl.DateTimeFormat(props.data.locale, {
 						dateStyle: 'medium',
 						timeZone: 'UTC',
@@ -341,17 +357,19 @@ function BoardIntro(props: { data: GamePageData; date: string; changeDifficulty:
 					{t('common.help')}
 				</button>
 			</div>
-			<p class="text-muted-foreground" data-first-action>
-				{t(`daily.firstAction.${slugToCamelCase(props.data.slug)}`)}
-			</p>
-			<Show when={wordNotice}>
-				<p
-					class="mt-1 inline-flex rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold"
-					data-english-word-puzzle
-				>
-					{t('daily.englishWordPuzzle')}
+			<div class="play-cue">
+				<p class="text-muted-foreground" data-first-action>
+					{t(`daily.firstAction.${slugToCamelCase(props.data.slug)}`)}
 				</p>
-			</Show>
+				<Show when={wordNotice}>
+					<p
+						class="mt-1 inline-flex rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold"
+						data-english-word-puzzle
+					>
+						{t('daily.englishWordPuzzle')}
+					</p>
+				</Show>
+			</div>
 			<dialog
 				ref={rules}
 				// Keep global board shortcuts from consuming keys meant for the dialog.

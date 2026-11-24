@@ -151,8 +151,8 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 		status && status !== 'empty' ? t(`games.wordGuess.rules.${status}`) : undefined
 
 	return (
-		<div class="mx-auto w-full max-w-[30rem] space-y-3" data-quad-board>
-			<div class="flex flex-wrap items-center justify-between gap-x-3 text-sm">
+		<div class="play-split mx-auto w-full max-w-[30rem] space-y-3" data-quad-board>
+			<div class="play-meta flex flex-wrap items-center justify-between gap-x-3 text-sm">
 				<p role="status" class="tabular-nums text-muted-foreground">
 					{solvedCount()}/4 · {t('gameResult.attempts')} {state().guessHistory.length}/{MAX_GUESSES}
 				</p>
@@ -170,21 +170,28 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 					{t('games.quadWords.clearGuess')}
 				</button>
 			</div>
-			<Show when={error()}>
-				<p role="alert" class="text-sm text-destructive">
-					{error() === 'length'
-						? t('games.quadWords.messages.notEnoughLetters')
-						: error() === 'notInWordList'
-							? t('games.wordGuess.messages.notInWordList')
-							: t('common.error')}{' '}
-					<Show when={error() === 'grade'}>
-						<button type="button" class="min-h-12 font-semibold underline" onClick={submit}>
-							{t('common.retry')}
-						</button>
-					</Show>
-				</p>
-			</Show>
-			<div class="grid grid-cols-2 gap-2" dir="ltr">
+			<div class="quad-status flex min-h-11 items-center gap-2">
+				<Show when={error()}>
+					<p role="alert" class="text-sm text-destructive">
+						{error() === 'length'
+							? t('games.quadWords.messages.notEnoughLetters')
+							: error() === 'notInWordList'
+								? t('games.wordGuess.messages.notInWordList')
+								: t('common.error')}{' '}
+						<Show when={error() === 'grade'}>
+							<button type="button" class="min-h-10 font-semibold underline" onClick={submit}>
+								{t('common.retry')}
+							</button>
+						</Show>
+					</p>
+				</Show>
+				<Show when={state().grading}>
+					<p role="status" class="text-sm">
+						{t('common.syncing')}
+					</p>
+				</Show>
+			</div>
+			<div class="play-board grid w-full grid-cols-2 gap-2" dir="ltr">
 				<For each={boards}>
 					{(index) => {
 						const board = () => state().boards[index]
@@ -245,7 +252,11 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 				</For>
 			</div>
 			<Show when={state().gameStatus === 'playing'}>
-				<div class="mx-auto grid max-w-md gap-1" aria-busy={state().grading} dir="ltr">
+				<div
+					class="play-tools mx-auto grid w-full max-w-md gap-1"
+					aria-busy={state().grading}
+					dir="ltr"
+				>
 					<For each={keys}>
 						{(row) => (
 							<div class="flex justify-center gap-0.5 sm:gap-1">
@@ -277,9 +288,6 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 						)}
 					</For>
 				</div>
-			</Show>
-			<Show when={state().grading}>
-				<p role="status">{t('common.syncing')}</p>
 			</Show>
 
 			<BoardFinish

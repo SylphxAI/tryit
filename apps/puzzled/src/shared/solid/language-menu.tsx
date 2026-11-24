@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ChevronDown, Languages } from 'lucide-solid'
-import { For, Show } from 'solid-js'
+import { For } from 'solid-js'
 import { LOCALE_COOKIE } from '@/lib/i18n/page-locale'
 import type { SiteShellData } from './site-shell-data'
 
@@ -19,10 +19,12 @@ export function LanguageMenu(props: { data: SiteShellData; showName?: boolean })
 				aria-label={`${props.showName ? props.data.languageName : props.data.languageShortName}, ${props.data.changeLanguage}`}
 				class="pressable flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1.5 text-xs font-semibold hover:bg-accent sm:px-3 sm:text-sm"
 			>
-				<Show when={props.showName}>
-					<Languages class="h-4 w-4 shrink-0" aria-hidden="true" />
-				</Show>
-				<span lang={props.data.language}>
+				<Languages
+					class="language-icon h-4 w-4 shrink-0"
+					classList={{ hidden: !props.showName }}
+					aria-hidden="true"
+				/>
+				<span class="language-name" lang={props.data.language}>
 					{props.showName ? props.data.languageName : props.data.languageShortName}
 				</span>
 				<ChevronDown class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

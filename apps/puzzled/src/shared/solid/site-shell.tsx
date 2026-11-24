@@ -25,7 +25,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 			>
 				{props.data.skipToMainContent}
 			</a>
-			<header class="pt-safe sticky top-0 z-header border-b border-hairline bg-background">
+			<header class="site-header pt-safe sticky top-0 z-header border-b border-hairline bg-background">
 				<div class="page-shell-wide flex h-14 items-center gap-2 md:h-16">
 					<a
 						href={props.data.home}
@@ -52,7 +52,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 							)}
 						</For>
 					</nav>
-					<div class="ml-auto flex items-center gap-2">
+					<div class="site-header-actions ml-auto flex items-center gap-2">
 						<a
 							href={props.data.plus.href}
 							class="pressable flex min-h-11 items-center gap-1 rounded-full px-1.5 text-xs font-semibold sm:gap-2 sm:px-3 sm:text-sm"
@@ -60,7 +60,9 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 							<span class="h-2 w-2 rounded-[2px] bg-accent-warm" aria-hidden="true" />
 							{props.data.plus.title}
 						</a>
-						<LanguageMenu data={props.data} />
+						<div class="site-header-language">
+							<LanguageMenu data={props.data} />
+						</div>
 						<Show
 							when={props.signedIn}
 							fallback={
@@ -84,7 +86,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 				</div>
 			</header>
 			{props.children}
-			<footer class="border-t border-hairline">
+			<footer class="site-footer border-t border-hairline">
 				<div class="page-shell-wide space-y-4 py-8 text-sm text-muted-foreground">
 					<p class="font-display text-xl text-foreground">Tryit</p>
 					<p>{props.data.footer.tagline}</p>

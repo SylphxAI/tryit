@@ -225,9 +225,9 @@ for (const scenario of [
 				},
 			])
 		const sync = page.getByText('Syncing...', { exact: true })
-		const visitStats = async () => {
-			await page.locator('header').getByRole('link', { name: 'Stats', exact: true }).click()
-			await expect(page).toHaveURL(/\/stats$/)
+		const visitGames = async () => {
+			await page.locator('#play').getByRole('link', { name: 'Games', exact: true }).click()
+			await expect(page).toHaveURL(/\/games$/)
 			await expect(board).toHaveCount(0)
 		}
 		const goBack = async () => {
@@ -249,7 +249,7 @@ for (const scenario of [
 		await expect(sync).toBeVisible()
 		expectInitialRequestOnly()
 		try {
-			await visitStats()
+			await visitGames()
 			if (scenario === 'other account') await context.addCookies([cookie('fixture-player-b')])
 			if (scenario === 'other day') puzzleDate = productDayKey(new Date(now.getTime() - 86_400_000))
 			if (scenario === 'other puzzle') puzzleId = otherPuzzleId
@@ -263,7 +263,7 @@ for (const scenario of [
 				await page.keyboard.press('Enter')
 				expectInitialRequestOnly()
 				// Resolve while unmounted as well, then read back the settled result.
-				await visitStats()
+				await visitGames()
 			}
 			release.resolve()
 			await acknowledged.promise

@@ -11,7 +11,7 @@
 		"rule3": "最少の手数でのクリアを目指しましょう"
 	},
 	"startGame": "ゲーム開始",
-	"moves": "手",
+	"moveCount": "{count}手",
 	"minMoves": "最少",
 	"reset": "リセット",
 	"giveUp": "ギブアップ",
