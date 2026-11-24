@@ -91,9 +91,6 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 				<output class="tabular-nums" aria-live="polite">
 					{path().length}/{tiles.length}
 				</output>
-				<a class="inline-flex min-h-11 items-center underline" href="#rules">
-					{t('common.help')}
-				</a>
 			</div>
 			<fieldset class="min-w-0" disabled={locked()} aria-label={t('games.numberPath.name')}>
 				<div class="overflow-hidden rounded-xl border border-border">

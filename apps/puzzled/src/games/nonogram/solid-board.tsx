@@ -144,9 +144,6 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 						? puzzleThemeLabel(theme, props.locale, zhTwThemes, t('games.nonogram.name'))
 						: `${width}×${height}`}
 				</span>
-				<a class="inline-flex min-h-11 items-center underline" href="#rules">
-					{t('common.help')}
-				</a>
 			</div>
 			<div
 				class="grid w-full overflow-hidden rounded-xl border border-border bg-surface-muted p-1"

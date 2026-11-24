@@ -203,16 +203,6 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 				pointerButton = undefined
 			}}
 		>
-			<details class="rounded-xl bg-muted px-3 text-sm">
-				<summary class="min-h-12 cursor-pointer py-3 font-semibold">
-					{t('games.wordHive.howToPlay')}
-				</summary>
-				<ul class="list-disc space-y-1 pb-3 pl-5">
-					<For each={[1, 2, 3, 4]}>
-						{(rule) => <li>{t(`games.wordHive.rules.rule${rule}`)}</li>}
-					</For>
-				</ul>
-			</details>
 			<div class="space-y-1.5 text-sm">
 				<p class="flex justify-between gap-2 tabular-nums">
 					<strong>{rankLabel(state().rank)}</strong>

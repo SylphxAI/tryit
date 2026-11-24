@@ -178,9 +178,6 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 		<div class="mx-auto flex w-full max-w-sm flex-col gap-4" data-pip-place-board>
 			<div class="flex flex-wrap items-center justify-between gap-x-3 text-sm">
 				<p>{t('games.pipPlace.name')}</p>
-				<a href="#rules" class="inline-flex min-h-12 items-center font-semibold underline">
-					{t('games.pipPlace.howToPlay')}
-				</a>
 			</div>
 			<Show when={playing()}>
 				<div class="flex flex-wrap gap-2 text-sm">

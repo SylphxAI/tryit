@@ -175,27 +175,6 @@ function Arithmo(props: DailyBoardProps) {
 
 	return (
 		<div class="mx-auto flex w-full max-w-sm flex-col gap-3" data-arithmo-board>
-			<details class="rounded-xl border border-border px-3 text-sm">
-				<summary class="min-h-12 cursor-pointer content-center font-semibold">
-					{text('howToPlay')}
-				</summary>
-				<ul class="mb-3 list-disc space-y-1 ps-5 text-muted-foreground">
-					<For each={['rule1', 'rule2', 'rule3']}>{(rule) => <li>{text(`rules.${rule}`)}</li>}</For>
-				</ul>
-				<ul class="mb-3 space-y-1">
-					<For each={['correct', 'present', 'absent'] as const}>
-						{(tile) => (
-							<li>
-								<span
-									aria-hidden="true"
-									class={`me-2 inline-block size-3 rounded-sm border ${tones[tile]}`}
-								/>
-								{feedbackText(tile)}
-							</li>
-						)}
-					</For>
-				</ul>
-			</details>
 			<ol
 				aria-label={text('name')}
 				class="grid list-none gap-1"

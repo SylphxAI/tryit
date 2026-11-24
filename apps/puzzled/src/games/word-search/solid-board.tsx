@@ -162,9 +162,6 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 				>
 					<RotateCcw size={16} aria-hidden="true" />
 				</button>
-				<a class="inline-flex min-h-11 items-center underline" href="#rules">
-					{t('common.help')}
-				</a>
 			</div>
 			{/* Capture stays with the origin cell; never intercept taps on controls outside the board. */}
 			<fieldset
