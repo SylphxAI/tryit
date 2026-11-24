@@ -14,48 +14,83 @@ const VIEWPORTS = [
 for (const [width, height] of [
 	[1280, 803],
 	[1440, 900],
+	[1920, 937],
 	[390, 844],
 ]) {
-	test(
-		'pricing exits clear the undismissed consent and navigation docks at ' + width + '×' + height,
-		async ({ page }) => {
-			await page.setViewportSize({ width, height })
-			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-			await openPricing(page)
-			await expect(page.locator('[data-consent-banner]').getByRole('button')).toHaveText([
-				'Decline',
-				'Accept',
-				'Analytics only',
-			])
-			await page.evaluate(() => document.fonts.ready)
-			for (const name of [
-				/^Family plan for up to \d+ players$/,
-				/^Not now — play 3 free puzzles of 19 daily$/,
-			]) {
-				const link = page.getByRole('link', { name })
-				const geometry = await link.evaluate((el) => {
-					const rect = el.getBoundingClientRect()
-					const dockTop = Math.min(
-						innerHeight,
-						...Array.from(document.querySelectorAll('[data-consent-banner], .site-tab-bar'))
-							.filter((dock) => dock.getClientRects().length)
-							.map((dock) => dock.getBoundingClientRect().top),
-					)
-					const hit = document.elementFromPoint(
-						rect.left + rect.width / 2,
-						rect.top + rect.height / 2,
-					)
-					return {
-						clear: rect.top >= 0 && rect.bottom <= dockTop && el.contains(hit),
-						xOverflow: document.documentElement.scrollWidth - innerWidth,
-						scrollY,
-					}
-				})
-				expect(geometry).toEqual({ clear: true, xOverflow: 0, scrollY: 0 })
-			}
-		},
-	)
+	test(`pricing exits clear the undismissed consent and navigation docks at ${width}×${height}`, async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width, height })
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		await openPricing(page)
+		await expect(page.locator('[data-consent-banner]').getByRole('button')).toHaveText([
+			'Decline',
+			'Accept',
+			'Analytics only',
+		])
+		await page.evaluate(() => document.fonts.ready)
+		if (width === 390) await expect(page.locator('.site-tab-bar')).toBeVisible()
+		for (const name of [
+			/^Family plan for up to \d+ players$/,
+			/^Not now — play 3 free puzzles of 19 daily$/,
+		]) {
+			const link = page.getByRole('link', { name })
+			await expect(link).toHaveCSS('text-decoration-line', 'none')
+			const geometry = await link.evaluate((el) => {
+				const rect = el.getBoundingClientRect()
+				const dockTop = Math.min(
+					innerHeight,
+					...Array.from(document.querySelectorAll('[data-consent-banner], .site-tab-bar'))
+						.filter((dock) => dock.getClientRects().length)
+						.map((dock) => dock.getBoundingClientRect().top),
+				)
+				const hit = [0.2, 0.5, 0.8].every((x) =>
+					[0.15, 0.5, 0.85].every((y) =>
+						el.contains(
+							document.elementFromPoint(rect.left + rect.width * x, rect.top + rect.height * y),
+						),
+					),
+				)
+				return {
+					clear: rect.top >= 0 && rect.bottom <= dockTop && hit,
+					height: rect.height,
+					xOverflow: document.documentElement.scrollWidth - innerWidth,
+					scrollY,
+				}
+			})
+			expect(geometry).toMatchObject({ clear: true, xOverflow: 0, scrollY: 0 })
+			expect(geometry.height).toBeGreaterThanOrEqual(44)
+		}
+	})
 }
+
+test('pricing exits paint keyboard focus but no mouse focus ring', async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 803 })
+	await openPricing(page)
+	const family = page.getByRole('link', { name: 'Family plan for up to 4 players', exact: true })
+	const freePlay = page.getByRole('link', {
+		name: 'Not now — play 3 free puzzles of 19 daily',
+		exact: true,
+	})
+
+	// Let Chromium focus the clicked anchor but keep this frame in place for inspection.
+	await family.evaluate((el) =>
+		el.addEventListener('click', (event) => event.preventDefault(), { once: true }),
+	)
+	await family.click()
+	await expect(family).toBeFocused()
+	await expect(family).toHaveCSS('outline-style', 'none')
+	await expect(family).toHaveCSS('box-shadow', 'none')
+	await page.keyboard.press('Tab')
+	await expect(freePlay).toBeFocused()
+	await expect(freePlay).toHaveCSS('outline-style', 'solid')
+	await expect(freePlay).toHaveCSS('outline-width', '2px')
+	await page.keyboard.press('Shift+Tab')
+	await expect(family).toBeFocused()
+	await expect(family).toHaveCSS('outline-style', 'solid')
+	await page.keyboard.press('Enter')
+	await expect(page).toHaveURL(/#family$/)
+})
 
 async function openPricing(page: Page) {
 	await page.goto('/pricing', { waitUntil: 'domcontentloaded' })
@@ -222,7 +257,7 @@ for (const viewport of VIEWPORTS) {
 			})
 		})
 
-		test('keeps free play as one text link and puts the Free card after it', async ({ page }) => {
+		test('keeps free play as one link and puts the Free card after it', async ({ page }) => {
 			await openPricing(page)
 			const offer = page.locator('#plus')
 			test.skip((await offer.getByRole('radio').count()) === 0, 'sales are closed')

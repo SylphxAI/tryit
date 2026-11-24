@@ -135,10 +135,10 @@ function PricingBody({ data }: { data: PricingData }) {
 
 	const planLinks = (
 		<div class={styles.planLinks}>
-			<a href="#family" class={textLinkClass}>
+			<a href="#family" class={styles.planLink}>
 				{t('familyLink', { count: familyMax })}
 			</a>
-			<a href={href(`/games/${freeSlug}`)} class={textLinkClass}>
+			<a href={href(`/games/${freeSlug}`)} class={styles.planLink}>
 				{t('notNowPlayFree')}
 			</a>
 		</div>
