@@ -133,23 +133,27 @@
 	[data-play-canvas] .play-hud > button svg { display: none; }
 }
 
-/* Reserve the controls' intrinsic stack before sizing square/tall surfaces. */
-[data-play-canvas] .sudoku-layout .play-board {
-	max-inline-size: min(100%, clamp(14rem, calc(100cqh - 12.5rem), 26rem));
+/* Size Path and Sudoku from the viewport on the first paint. Chromium can
+   resolve 100cqh from the flex scrollport before its block size settles and
+   paint a board at the clamp floor. Budget space for the HUD, cue, and
+   optional consent dock independently of when consent mounts. The scrollport
+   still uses the actual chrome height so larger text can scroll safely. */
+[data-play-canvas] {
+	--square-play-budget: calc(100dvh - var(--mobile-tab-clearance, 0px) - env(safe-area-inset-top, 0px) - 12rem);
 }
+
+[data-play-canvas] .sudoku-layout .play-board {
+	max-inline-size: min(100%, clamp(14rem, calc(var(--square-play-budget) - 12.5rem), 26rem));
+}
+
+/* Reserve the controls' intrinsic stack before sizing square/tall surfaces. */
 [data-play-canvas] [data-nonogram-board] .play-board {
 	max-inline-size: min(100%, clamp(14rem, calc(100cqh - 10rem), 30rem));
 	margin-inline: auto;
 }
 [data-play-canvas] [data-number-path-board] .play-board {
-	max-inline-size: min(100%, clamp(14rem, calc(100cqh - 8rem), 30rem));
+	max-inline-size: min(100%, clamp(14rem, calc(var(--square-play-budget) - 8rem), 30rem));
 	margin-inline: auto;
-}
-/* A normal portrait phone has room for the full-width Path board. Do not
-   derive its side from a settling flex container's height: Chromium can
-   resolve that height at the 14rem floor on the first hydrated paint. */
-@media (width <= 430px) and (height >= 800px) {
-	[data-play-canvas] [data-number-path-board] .play-board { max-inline-size: 30rem; }
 }
 
 [data-play-canvas] [data-block-slide-board] .play-board {
@@ -177,6 +181,9 @@
 		grid-area: 1 / 1;
 		margin-inline: auto;
 		max-inline-size: min(100%, max(15rem, calc(100cqh - 2rem)));
+	}
+	[data-play-canvas] :is([data-number-path-board], .sudoku-layout) .play-board {
+		max-inline-size: min(100%, max(15rem, calc(var(--square-play-budget) - 2rem)));
 	}
 	[data-play-canvas] [data-block-slide-board] .play-board {
 		width: min(100%, 28rem, max(13rem, calc((100cqh - 3rem) * .8)));

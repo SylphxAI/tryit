@@ -63,12 +63,44 @@ async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
 	await page.route('**/puzzled.v1.PuzzleService/ShareResult', (route) =>
 		route.fulfill({ json: { shareId: fixtureShareId } }),
 	)
-	await page.goto('/games/' + slug + '?' + (isPath ? '' : 'difficulty=easy&') + 'start=1#play')
+	// Exercise a real late dock, rather than having to reproduce a race between
+	// Chromium's first board layout and the consent response on a busy runner.
+	const consent = Promise.withResolvers<void>()
+	await page.route('**/api/consent-context', async (route) => {
+		await consent.promise
+		await route.continue()
+	})
 	const board = page.locator('[data-play-canvas] .play-board')
-	await expect(board).toBeVisible()
-	await expect(page.locator('[data-consent-banner]')).toBeVisible()
+	const dock = page.locator('[data-consent-banner]')
+	let firstWidth: number
+	try {
+		await page.goto(`/games/${slug}?${isPath ? '' : 'difficulty=easy&'}start=1#play`)
+		await expect(board).toBeVisible()
+		await expect(dock).toBeHidden()
+		firstWidth = await board.evaluate((el) => el.getBoundingClientRect().width)
+	} finally {
+		consent.resolve()
+	}
+	await expect(dock).toBeVisible()
 	await page.evaluate(() => document.fonts.ready)
-	return { board, next }
+	// Start the interaction only after the dock has reserved its actual row
+	// and the resulting layout has had a paint opportunity. This does not
+	// suppress a first-paint sizing regression: firstWidth was sampled above.
+	await expect
+		.poll(() =>
+			dock.evaluate((el) => {
+				const reserved = document.documentElement.style.getPropertyValue('--consent-bar-height')
+				return Number.parseFloat(reserved) === el.getBoundingClientRect().height
+			}),
+		)
+		.toBe(true)
+	await page.evaluate(
+		() =>
+			new Promise<void>((painted) => {
+				requestAnimationFrame(() => requestAnimationFrame(() => painted()))
+			}),
+	)
+	return { board, next, firstWidth }
 }
 
 async function canvasGeometry(page: Page) {
@@ -111,9 +143,14 @@ for (const viewport of [
 					}
 					await page.emulateMedia({ reducedMotion: 'reduce' })
 					await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
-					const { board, next } = await playFixture(page, slug)
+					const { board, next, firstWidth } = await playFixture(page, slug)
 					const elapsed = page.waitForRequest((request) => request.url().endsWith('/SubmitGuess'))
 					const before = await canvasGeometry(page)
+					// Both boards fit the width on this phone and the board column on
+					// these desktops, including at first render with the dock held back.
+					const width = mobile ? 358 : 546
+					expect(Math.abs(firstWidth - width)).toBeLessThanOrEqual(1)
+					expect(Math.abs(before.board.width - firstWidth)).toBeLessThanOrEqual(1)
 					expect(before.scroll).toEqual([0, 0, 0, 0, 0, 0])
 					if (slug === 'number-path') {
 						await page.screenshot({ path: info.outputPath('path-before.png') })
