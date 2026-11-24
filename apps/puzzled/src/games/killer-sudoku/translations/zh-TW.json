@@ -24,5 +24,12 @@
 		"easy": "已填 20 格，助你起步",
 		"medium": "已填 10 格 — 靠籠內總和推理",
 		"hard": "沒有提示數字，全靠籠內總和"
+	},
+	"startOver": "重新開始",
+	"messages": {
+		"wrongSum": "這組格子的數字總和必須為 {sum}。",
+		"selectBlank": "請先點選空白格",
+		"lockedClue": "提示數字無法修改",
+		"notesNeedBlank": "請先清除數字，再加入筆記。"
 	}
 }

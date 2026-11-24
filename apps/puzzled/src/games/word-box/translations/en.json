@@ -23,5 +23,7 @@
 	"sameSide": "Choose a letter from a different side.",
 	"wrongStart": "Start with the last letter of the previous word.",
 	"tooShort": "Use at least three letters.",
-	"rejected": "That chain wasn’t accepted. Edit it and try again."
+	"rejected": "That chain wasn’t accepted. Edit it and try again.",
+	"notInWordList": "Not in word list",
+	"dictionaryUnavailable": "Word list couldn’t load. Try again."
 }

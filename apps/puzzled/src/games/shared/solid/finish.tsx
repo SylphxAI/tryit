@@ -28,7 +28,7 @@ export type DailyBoardProps = {
 export function createBoardFinish(
 	props: DailyBoardProps,
 	gameSlug: string,
-	options?: { onRejected: () => void },
+	options?: { onRejected: (error: string) => void },
 ) {
 	const mountedAt = Date.now()
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
@@ -62,7 +62,7 @@ export function createBoardFinish(
 					// The authority rejected the submission without saving it. Editable games may
 					// issue a new intent after correction; ambiguous outcomes keep their old key.
 					intent = undefined
-					options.onRejected()
+					options.onRejected(result.error)
 					setState('playing')
 				} else setState('failed')
 			}

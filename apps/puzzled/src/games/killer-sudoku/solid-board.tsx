@@ -1,13 +1,18 @@
 /** @jsxImportSource solid-js */
-import { Delete, HelpCircle, PencilLine, RotateCcw } from 'lucide-solid'
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { Delete, HelpCircle, PencilLine, RotateCcw, Undo2 } from 'lucide-solid'
+import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import styles from '@/games/sudoku/components/sudoku-craft.module.css'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseKillerSudokuClientPayload } from './parse-client'
 import cageStyles from './solid-cages.module.css'
 import { createInitialState, type KillerSudokuAction, killerSudokuReducer } from './state'
-import { getCellConflicts, type KillerSudokuPuzzleData } from './types'
+import {
+	getCellConflicts,
+	isCageSumValid,
+	type KillerSudokuGameState,
+	type KillerSudokuPuzzleData,
+} from './types'
 
 const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const coords = [0, 1, 2]
@@ -39,6 +44,11 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const initial = createInitialState(props.data)
 	const [state, setState] = createSignal(initial)
+	const [history, setHistory] = createSignal<KillerSudokuGameState[]>([])
+	const [feedback, setFeedback] = createSignal<'selectBlank' | 'lockedClue' | 'notesNeedBlank'>()
+	const wrongCage = createMemo(() =>
+		props.data.cages.find((cage) => isCageSumValid(state().cells, cage) === false),
+	)
 	const finish = createBoardFinish(props, 'killer-sudoku')
 	const playing = () => state().gameStatus === 'playing'
 	const refs: HTMLButtonElement[][] = Array.from({ length: 9 }, () => [])
@@ -48,7 +58,18 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 
 	function dispatch(action: KillerSudokuAction) {
 		if (!playing()) return
-		const next = killerSudokuReducer(state(), action, props.data)
+		const previous = state()
+		if (action.type === 'SET_VALUE') {
+			const selected = previous.selectedCell
+			if (!selected) return setFeedback('selectBlank')
+			const [row, col] = selected
+			const cell = previous.cells[row][col]
+			if (cell.isGiven) return setFeedback('lockedClue')
+			if (previous.notesMode && cell.value !== null) return setFeedback('notesNeedBlank')
+		}
+		setFeedback(undefined)
+		const next = killerSudokuReducer(previous, action, props.data)
+		if (next.cells !== previous.cells) setHistory((stack) => [...stack, previous])
 		setState(next)
 		if (next.gameStatus === 'won') {
 			finish.finish({
@@ -58,17 +79,33 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 		}
 	}
 
+	function undo() {
+		if (!playing()) return
+		const previous = history().at(-1)
+		if (!previous) return
+		setHistory((stack) => stack.slice(0, -1))
+		setFeedback(undefined)
+		setState(previous)
+	}
+
 	function keydown(event: KeyboardEvent) {
 		if (
 			!playing() ||
 			event.defaultPrevented ||
-			event.ctrlKey ||
+			event.isComposing ||
 			event.altKey ||
-			event.metaKey ||
 			(event.target instanceof HTMLElement &&
-				(event.target.isContentEditable || event.target.matches('textarea,input,select,a')))
+				(event.target.isContentEditable ||
+					event.target.closest('textarea,input,select,a,dialog,[role="dialog"]')))
 		)
 			return
+		if (event.ctrlKey || event.metaKey) {
+			if (event.key.toLowerCase() === 'z' && !event.shiftKey && history().length) {
+				event.preventDefault()
+				undo()
+			}
+			return
+		}
 		const pos = state().selectedCell
 		if (pos && Object.hasOwn(moves, event.key)) {
 			const [dr, dc] = moves[event.key as keyof typeof moves]
@@ -77,7 +114,7 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 			refs[row + dr]?.[col + dc]?.focus()
 			return
 		}
-		if (/^[1-9]$/.test(event.key) && pos) {
+		if (/^[1-9]$/.test(event.key)) {
 			event.preventDefault()
 			dispatch({ type: 'SET_VALUE', value: Number(event.key) })
 		} else if (['Delete', 'Backspace', '0'].includes(event.key) && pos) {
@@ -88,6 +125,11 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 			dispatch({ type: 'TOGGLE_NOTES_MODE' })
 		}
 	}
+
+	onMount(() => {
+		window.addEventListener('keydown', keydown)
+		onCleanup(() => window.removeEventListener('keydown', keydown))
+	})
 
 	const cellAt = (row: number, col: number) => {
 		const cell = () => state().cells[row][col]
@@ -162,7 +204,7 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 		)
 	}
 	return (
-		<div class="mx-auto flex w-full max-w-[26rem] flex-col gap-4" onKeyDown={keydown}>
+		<div class="mx-auto flex w-full max-w-[26rem] flex-col gap-4" data-killer-sudoku-board>
 			<div class={styles.board}>
 				{/* biome-ignore lint/a11y/useSemanticElements: the visual grid is a named group of game controls */}
 				<div class={styles.boxes} role="group" aria-label={t('games.killerSudoku.name')}>
@@ -175,6 +217,16 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 					</For>
 				</div>
 			</div>
+			<p role="status" class="min-h-5 text-center text-sm">
+				{feedback() ? t(`games.killerSudoku.messages.${feedback()}`) : ''}
+				<Show when={wrongCage()} keyed>
+					{(cage) => (
+						<span class="block text-destructive">
+							{t('games.killerSudoku.messages.wrongSum', { sum: cage.sum })}
+						</span>
+					)}
+				</Show>
+			</p>
 			<div class={styles.pad}>
 				<div class={styles.digits}>
 					<For each={digits}>
@@ -203,6 +255,15 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 				<div class={styles.tools}>
 					<button
 						type="button"
+						class={[styles.key, styles.tool].join(' ')}
+						disabled={!playing() || !history().length}
+						onClick={undo}
+					>
+						<Undo2 size={16} aria-hidden="true" />
+						{t('games.sudoku.undo')}
+					</button>
+					<button
+						type="button"
 						class={`${styles.key} ${styles.tool}`}
 						aria-pressed={state().notesMode}
 						disabled={!playing()}
@@ -218,7 +279,7 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 						onClick={() => dispatch({ type: 'RESET' })}
 					>
 						<RotateCcw size={16} aria-hidden="true" />
-						{t('common.reset')}
+						{t('games.killerSudoku.startOver')}
 					</button>
 				</div>
 				<a

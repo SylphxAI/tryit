@@ -18,7 +18,8 @@
 	"complete": "Puzzle Complete!",
 	"messages": {
 		"correct": "Correct!",
-		"incorrect": "Try again"
+		"incorrect": "Try again",
+		"incomplete": "Fill every square before checking."
 	},
 	"check": "Check"
 }

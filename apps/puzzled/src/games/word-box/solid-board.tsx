@@ -1,10 +1,11 @@
 /** @jsxImportSource solid-js */
 import { Delete, RotateCcw } from 'lucide-solid'
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { playButton } from '@/features/catalog/solid/game-landing'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
+import { isFrameWord } from './dictionary'
 import { parseWordBoxClientPayload } from './parse-client'
 import {
 	allLettersUsed,
@@ -47,8 +48,19 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 	const [words, setWords] = createSignal<string[]>([])
 	const [current, setCurrent] = createSignal('')
 	const [error, setError] = createSignal<
-		'invalidLetter' | 'sameSide' | 'wrongStart' | 'tooShort' | 'rejected'
+		| 'invalidLetter'
+		| 'sameSide'
+		| 'wrongStart'
+		| 'tooShort'
+		| 'notInWordList'
+		| 'dictionaryUnavailable'
+		| 'rejected'
 	>()
+	const [checking, setChecking] = createSignal(false)
+	let disposed = false
+	onCleanup(() => {
+		disposed = true
+	})
 	const finish = createBoardFinish(props, slug, {
 		onRejected() {
 			const chain = words()
@@ -59,7 +71,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 	})
 	const used = createMemo(() => getUsedLetters(words()))
 	const required = () => words().at(-1)?.slice(-1)
-	const playable = () => finish.state() === 'playing'
+	const playable = () => finish.state() === 'playing' && !checking()
 	const total = sides.reduce((count, side) => count + box[side.key].length, 0)
 
 	function invalid(reason: NonNullable<ReturnType<typeof error>>) {
@@ -81,10 +93,22 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 		setCurrent((value) => value.slice(0, -1))
 		setError(undefined)
 	}
-	function addWord() {
+	async function addWord() {
 		if (!playable()) return
 		const word = current()
 		if (word.length < 3) return invalid('tooShort')
+		setChecking(true)
+		setError(undefined)
+		try {
+			const valid = await isFrameWord(word)
+			if (disposed) return
+			if (!valid) return invalid('notInWordList')
+		} catch {
+			if (!disposed) invalid('dictionaryUnavailable')
+			return
+		} finally {
+			if (!disposed) setChecking(false)
+		}
 		const next = [...words(), word]
 		setWords(next)
 		setCurrent('')
@@ -115,12 +139,33 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 			event.isComposing
 		)
 			return
+		const target = event.target
+		if (
+			target instanceof HTMLElement &&
+			(target.isContentEditable ||
+				target.closest(
+					'input:not(#frame-current), textarea, select, [role="textbox"], dialog, [role="dialog"]',
+				))
+		)
+			return
 		if (/^[a-z]$/i.test(event.key)) add(event.key.toUpperCase())
 		else if (event.key === 'Backspace' || event.key === 'Delete') backspace()
-		else if (event.key === 'Enter' && !(event.target instanceof HTMLButtonElement)) addWord()
-		else return
+		else if (
+			event.key === 'Enter' &&
+			!(
+				target instanceof HTMLElement &&
+				target.closest('button:not([data-box-letter]), a, summary, [role="button"]')
+			)
+		) {
+			if (!event.repeat) void addWord()
+		} else return
 		event.preventDefault()
 	}
+
+	onMount(() => {
+		window.addEventListener('keydown', keyDown)
+		onCleanup(() => window.removeEventListener('keydown', keyDown))
+	})
 
 	return (
 		<section
@@ -140,7 +185,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 					{t('common.reset')}
 				</button>
 			</div>
-			<fieldset class="space-y-3" onKeyDown={keyDown}>
+			<fieldset class="space-y-3" aria-busy={checking()}>
 				<legend class="sr-only">{copy('input')}</legend>
 				<div
 					class="mx-auto grid w-full max-w-64 grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-1"
@@ -175,7 +220,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 					class="flex flex-wrap items-center justify-center gap-2"
 					onSubmit={(event) => {
 						event.preventDefault()
-						addWord()
+						void addWord()
 					}}
 				>
 					<label class="sr-only" for="frame-current">
@@ -201,7 +246,11 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 					>
 						<Delete size={18} aria-hidden="true" />
 					</button>
-					<button type="submit" class={playButton} disabled={!playable() || current().length < 3}>
+					<button
+						type="submit"
+						class={`${playButton} disabled:cursor-not-allowed disabled:opacity-50`}
+						disabled={!playable() || current().length < 3}
+					>
 						{copy('enter')}
 					</button>
 				</form>

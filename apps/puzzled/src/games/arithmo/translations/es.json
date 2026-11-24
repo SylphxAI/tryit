@@ -17,7 +17,8 @@
 	},
 	"messages": {
 		"notComplete": "Faltan caracteres",
-		"invalid": "Ecuación no válida"
+		"invalid": "Ecuación no válida",
+		"entryOrder": "La ecuación se rellena de izquierda a derecha."
 	},
 	"feedback": {
 		"correct": "Carácter correcto en su posición",

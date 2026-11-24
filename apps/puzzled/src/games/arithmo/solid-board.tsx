@@ -48,6 +48,7 @@ function Arithmo(props: DailyBoardProps) {
 	const [keyboard, setKeyboard] = createSignal<Record<string, CharStatus>>({})
 	const [draft, setDraft] = createSignal('')
 	const [grading, setGrading] = createSignal(false)
+	const [tileHelp, setTileHelp] = createSignal(false)
 	const [error, setError] = createSignal<'notComplete' | 'invalid' | 'grade'>()
 	const [outcome, setOutcome] = createSignal<'won' | 'lost'>()
 	const inactive = () => grading() || Boolean(outcome())
@@ -58,6 +59,7 @@ function Arithmo(props: DailyBoardProps) {
 
 	function edit(key: string) {
 		if (inactive()) return
+		setTileHelp(false)
 		setError(undefined)
 		if (key === 'Backspace') setDraft((guess) => guess.slice(0, -1))
 		else if (VALID_CHARS.includes(key)) setDraft((guess) => (guess + key).slice(0, EQUATION_LENGTH))
@@ -65,6 +67,7 @@ function Arithmo(props: DailyBoardProps) {
 
 	async function grade() {
 		if (inactive()) return
+		setTileHelp(false)
 		const guess = draft()
 		if (!isValidEquation(guess)) {
 			setError(guess.length < EQUATION_LENGTH ? 'notComplete' : 'invalid')
@@ -129,10 +132,14 @@ function Arithmo(props: DailyBoardProps) {
 		)
 			return
 		if (event.key === 'Enter') {
-			if (target instanceof HTMLElement && target.closest('button, a, summary, [role="button"]'))
+			if (
+				target instanceof HTMLElement &&
+				target.closest('button, a, summary, [role="button"]') &&
+				!target.closest('[data-arithmo-keypad]')
+			)
 				return
 			event.preventDefault()
-			void grade()
+			if (!event.repeat) void grade()
 		} else if (event.key === 'Backspace' || VALID_CHARS.includes(event.key)) {
 			event.preventDefault()
 			edit(event.key)
@@ -189,7 +196,15 @@ function Arithmo(props: DailyBoardProps) {
 					</For>
 				</ul>
 			</details>
-			<ol aria-label={text('name')} class="grid list-none gap-1" dir="ltr" data-arithmo-grid>
+			<ol
+				aria-label={text('name')}
+				class="grid list-none gap-1"
+				dir="ltr"
+				data-arithmo-grid
+				onPointerUp={() => {
+					if (!inactive()) setTileHelp(true)
+				}}
+			>
 				<For each={rows}>
 					{(row) => {
 						const current = () => row === graded().length && !outcome()
@@ -219,6 +234,11 @@ function Arithmo(props: DailyBoardProps) {
 					}}
 				</For>
 			</ol>
+			<Show when={tileHelp()}>
+				<p role="status" class="text-sm">
+					{text('messages.entryOrder')}
+				</p>
+			</Show>
 			<Show when={grading()}>
 				<p role="status" class="text-sm">
 					{t('common.syncing')}
@@ -236,7 +256,7 @@ function Arithmo(props: DailyBoardProps) {
 					</p>
 				)}
 			</Show>
-			<div class="grid gap-1" dir="ltr">
+			<div data-arithmo-keypad class="grid gap-1" dir="ltr">
 				<For each={keys}>
 					{(row, index) => (
 						<div

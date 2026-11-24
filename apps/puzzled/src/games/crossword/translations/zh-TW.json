@@ -18,7 +18,8 @@
 	"complete": "謎題完成！",
 	"messages": {
 		"correct": "正確！",
-		"incorrect": "再試一次"
+		"incorrect": "再試一次",
+		"incomplete": "請填滿所有格子再檢查。"
 	},
 	"check": "檢查"
 }

@@ -18,7 +18,8 @@
 	"complete": "パズルクリア！",
 	"messages": {
 		"correct": "正解！",
-		"incorrect": "もう一度挑戦"
+		"incorrect": "もう一度挑戦",
+		"incomplete": "すべてのマスを埋めてから確認してください。"
 	},
 	"check": "答え合わせ"
 }

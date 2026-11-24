@@ -324,7 +324,38 @@ fn crossword(
         },
     );
     match result {
-        crossword_grid::GameResult::Invalid { error } => SubmissionVerdict::invalid(error),
+        crossword_grid::GameResult::Invalid { error } => {
+            const SIZE: usize = crossword_grid::CROSSWORD_GRID_SIZE;
+            // Only annotate a fully filled, correctly shaped check. Return positions, never answers.
+            if env.status == SubmissionStatus::Won
+                && sub.final_grid.len() == SIZE
+                && sub.final_grid.iter().all(|row| row.len() == SIZE)
+            {
+                let mut wrong = 0u32;
+                for (r, row) in solution_grid.iter().take(SIZE).enumerate() {
+                    for (c, expected) in row.iter().take(SIZE).enumerate() {
+                        if expected.is_empty() {
+                            continue;
+                        }
+                        let Some(letter) = sub.final_grid[r][c].as_deref() else {
+                            return SubmissionVerdict::invalid(error);
+                        };
+                        if letter.len() != 1 || !letter.as_bytes()[0].is_ascii_alphabetic() {
+                            return SubmissionVerdict::invalid(error);
+                        }
+                        if !crossword_grid::validate_guess(&solution_grid, r, c, letter) {
+                            wrong |= 1 << (r * SIZE + c);
+                        }
+                    }
+                }
+                if wrong != 0 {
+                    return SubmissionVerdict::invalid(format!(
+                        "crossword_incorrect_cells:{wrong}"
+                    ));
+                }
+            }
+            SubmissionVerdict::invalid(error)
+        }
         crossword_grid::GameResult::Valid { status, score } => SubmissionVerdict::valid(
             match status {
                 crossword_grid::SubmissionStatus::Won => SubmissionStatus::Won,
@@ -855,6 +886,9 @@ fn quad_words(
     };
     let mut solved = [false; 4];
     for guess in history {
+        if let Err(error) = super::grading::quad_words::validate_word(guess) {
+            return SubmissionVerdict::invalid(error);
+        }
         for (i, target) in targets.iter().enumerate() {
             if !solved[i] && quad_words::guess_solves_target(guess, target) {
                 solved[i] = true;
@@ -1587,6 +1621,25 @@ mod tests {
     }
 
     #[test]
+    fn crossword_wrong_check_identifies_cells_without_answers() {
+        let solution = crossword_solution();
+        let mut wrong = solution["grid"].clone();
+        wrong[0][1] = json!("Z");
+        wrong[4][4] = json!("Z");
+        let v = validate_submission(
+            "crossword",
+            &json!({}),
+            &solution,
+            &env(json!({"finalGrid": wrong})),
+        );
+        assert!(!v.valid);
+        assert_eq!(
+            v.error.as_deref(),
+            Some("crossword_incorrect_cells:16777218")
+        );
+    }
+
+    #[test]
     fn crossword_still_rejects_a_false_win() {
         let v = validate_submission(
             "crossword",
@@ -1650,11 +1703,21 @@ mod tests {
     }
 
     #[test]
+    fn quad_words_replay_refuses_a_nonword_even_when_all_targets_are_solved() {
+        let solution = json!({ "words": ["NAVAL", "ROCKY", "PUNCH", "LAUGH"] });
+        let history = env(json!({"guessHistory": ["ZZZZZ", "NAVAL", "ROCKY", "PUNCH", "LAUGH"]}));
+        let v = validate_submission("quad-words", &json!({}), &solution, &history);
+        assert_eq!(v.error.as_deref(), Some("Not in word list"));
+        let legal = env(json!({"guessHistory": ["AAHED", "NAVAL", "ROCKY", "PUNCH", "LAUGH"]}));
+        assert!(validate_submission("quad-words", &json!({}), &solution, &legal).valid);
+    }
+
+    #[test]
     fn quad_words_rejects_false_solved_claim() {
-        let solution = json!({ "words": ["ABCD", "EFGH", "IJKL", "MNOP"] });
+        let solution = json!({ "words": ["NAVAL", "ROCKY", "PUNCH", "LAUGH"] });
         // guesses that never solve any board; client claims 4 solved
         let data = env(
-            json!({ "guessHistory": ["AAAA", "BBBB"], "solvedBoards": [true, true, true, true] }),
+            json!({ "guessHistory": ["CRANE", "STALE"], "solvedBoards": [true, true, true, true] }),
         );
         let v = validate_submission("quad-words", &json!({}), &solution, &data);
         assert!(!v.valid);
@@ -1736,13 +1799,13 @@ mod tests {
 
     #[test]
     fn quad_words_accepts_an_honest_loss() {
-        let solution = json!({ "words": ["ABCD", "EFGH", "IJKL", "MNOP"] });
+        let solution = json!({ "words": ["NAVAL", "ROCKY", "PUNCH", "LAUGH"] });
         let v = validate_submission(
             "quad-words",
             &json!({}),
             &solution,
             &lost_env(
-                json!({ "guessHistory": ["ZZZZ"], "solvedBoards": [false, false, false, false] }),
+                json!({ "guessHistory": ["CRANE"], "solvedBoards": [false, false, false, false] }),
             ),
         );
         assert!(v.valid, "{v:?}");

@@ -23,5 +23,7 @@
 	"sameSide": "Escolha uma letra de outro lado.",
 	"wrongStart": "Comece com a última letra da palavra anterior.",
 	"tooShort": "Use pelo menos três letras.",
-	"rejected": "A cadeia não foi aceita. Edite e tente novamente."
+	"rejected": "A cadeia não foi aceita. Edite e tente novamente.",
+	"notInWordList": "Não está na lista de palavras",
+	"dictionaryUnavailable": "Não foi possível carregar a lista de palavras. Tente novamente."
 }

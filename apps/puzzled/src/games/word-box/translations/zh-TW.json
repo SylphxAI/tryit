@@ -23,5 +23,7 @@
 	"sameSide": "請選擇另一邊的字母。",
 	"wrongStart": "請用上一個單字的最後一個字母開頭。",
 	"tooShort": "請至少使用三個字母。",
-	"rejected": "這組接龍未通過。請修改後再試。"
+	"rejected": "這組接龍未通過。請修改後再試。",
+	"notInWordList": "不在詞庫中",
+	"dictionaryUnavailable": "無法載入詞庫，請再試一次。"
 }

@@ -17,7 +17,8 @@
 	},
 	"messages": {
 		"notComplete": "Caracteres insuficientes",
-		"invalid": "Equação inválida"
+		"invalid": "Equação inválida",
+		"entryOrder": "A equação é preenchida da esquerda para a direita."
 	},
 	"feedback": {
 		"correct": "Caractere certo na posição certa",

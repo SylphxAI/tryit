@@ -24,5 +24,12 @@
 		"easy": "20 given digits to get you started",
 		"medium": "10 given digits — the cage sums do the work",
 		"hard": "No given digits, cage sums only"
+	},
+	"startOver": "Start over",
+	"messages": {
+		"wrongSum": "This cage must add up to {sum}.",
+		"selectBlank": "Tap a blank square first",
+		"lockedClue": "Locked clue",
+		"notesNeedBlank": "Clear the digit before adding notes."
 	}
 }

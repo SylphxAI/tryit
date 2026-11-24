@@ -24,5 +24,12 @@
 		"easy": "已填 20 格，助你起步",
 		"medium": "已填 10 格 — 靠笼内总和推理",
 		"hard": "没有提示数字，全靠笼内总和"
+	},
+	"startOver": "重新开始",
+	"messages": {
+		"wrongSum": "这组方格的数字之和必须为 {sum}。",
+		"selectBlank": "请先点击空白格",
+		"lockedClue": "提示数字不可修改",
+		"notesNeedBlank": "请先清除数字，再添加笔记。"
 	}
 }
