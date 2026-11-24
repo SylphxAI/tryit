@@ -52,7 +52,7 @@ async function context(country?: string, gpc?: string) {
 }
 
 function snapshot() {
-	const headers = checkoutSignalHeaders('pricing_card')
+	const headers: Partial<Record<string, string>> = checkoutSignalHeaders('pricing_card')
 	const encoded = headers['x-puzzled-signal-attribution']
 	return {
 		consent: headers['x-puzzled-signal-consent'],
