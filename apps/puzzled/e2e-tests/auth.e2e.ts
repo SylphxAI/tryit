@@ -78,18 +78,6 @@ test('legacy aliases preserve safe same-origin destinations and are not cacheabl
 	)
 })
 
-test('sitemap advertises the archive, not auth or private routes', async ({ request }) => {
-	const response = await request.get('/sitemap.xml')
-	expect(response.status()).toBe(200)
-	expect(response.headers()['cache-control']).toBe('public, max-age=3600')
-	expect(response.headers()['content-type']).toBe('application/xml; charset=utf-8')
-	const xml = await response.text()
-	expect(xml).toMatch(/<loc>https?:\/\/[^<]+\/archive<\/loc>/)
-	expect(xml).not.toMatch(
-		/<loc>[^<]+\/(?:sign-in|login|signup|register|admin|settings|profile|stats)(?:[</])/,
-	)
-})
-
 test('OTP is inline; keeps input on refusal, resends after cooldown and permits changing email', async ({
 	page,
 }) => {

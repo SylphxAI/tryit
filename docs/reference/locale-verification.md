@@ -17,7 +17,7 @@ and a visitor:
 | `apps/puzzled/src/lib/i18n/*.test.ts` (unit) | the message files are wired: every locale resolves to the en-US leaf structure, overlays carry only deltas, full locales carry no English copy |
 | `apps/puzzled/scripts/locale-verify.ts` (`bun run verify:locale`) | the **served** pages in every locale: no raw key, `lang` equals the locale |
 
-`verify:locale` reads `/sitemap.xml` (one entry per locale per public route),
+`verify:locale` follows the per-locale sitemaps listed in `/sitemap.xml`,
 then checks each listed page. Authenticated settings are not in this anonymous
 sweep: their redirect to sign-in does not serve settings content.
 

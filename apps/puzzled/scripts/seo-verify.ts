@@ -13,7 +13,7 @@
  *      `lib/seo/routes.ts` (route handlers and the operator console) for every
  *      locale, leaves every user-facing route crawlable, and points at the
  *      sitemap.
- *   2. `/sitemap.xml` lists exactly one URL per locale for the expected public
+ *   2. `/sitemap.xml` indexes one sitemap per locale. Together they list the expected public
  *      path set, keeps the default locale un-prefixed, has no trailing-slash
  *      roots, publishes no `lastmod`, and carries a reciprocal `xhtml:link`
  *      cluster per entry.
@@ -38,6 +38,7 @@ import {
 	PUBLIC_ROUTES,
 	robotsDisallowPaths,
 } from '@/lib/seo/routes'
+import { readSitemap } from './sitemap-documents'
 
 const args = process.argv.slice(2)
 const baseFlag = args.indexOf('--base')
@@ -171,10 +172,6 @@ function jsonLdNodes(html: string): Record<string, unknown>[] {
 	return nodes
 }
 
-function sitemapLocs(xml: string): string[] {
-	return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => decodeEntities(match[1]))
-}
-
 /** `loc` -> language -> target URL, decoded from one sitemap document. */
 function sitemapClusters(xml: string): Map<string, Record<string, string>> {
 	const entries = new Map<string, Record<string, string>>()
@@ -270,18 +267,20 @@ async function main(): Promise<void> {
 	})
 
 	// ── sitemap.xml ─────────────────────────────────────────────────────────
-	const sitemap = await request('/sitemap.xml')
-	assert(sitemap.status === 200, `GET /sitemap.xml answered ${sitemap.status}`)
-	const sitemapXml = await sitemap.text()
-	await check('sitemap is cacheable for one hour', async () => {
-		const cacheControl = sitemap.headers.get('cache-control')
-		assert(cacheControl === 'public, max-age=3600', `unexpected Cache-Control: ${cacheControl}`)
-		return cacheControl
+	const { index, children, locs, origin } = await readSitemap(request)
+	const documents = [index, ...children]
+	await check('sitemap documents are cacheable XML for one hour', async () => {
+		for (const { path, headers } of documents) {
+			const cacheControl = headers.get('cache-control')
+			assert(
+				cacheControl === 'public, max-age=3600',
+				`${path}: unexpected Cache-Control ${cacheControl}`,
+			)
+			assert(headers.get('content-type') === 'application/xml; charset=utf-8', `${path}: not XML`)
+		}
+		return `${documents.length} cacheable XML documents`
 	})
-	const locs = sitemapLocs(sitemapXml)
-	const clusters = sitemapClusters(sitemapXml)
-	assert(locs.length > 0, 'sitemap is empty')
-	const origin = new URL(locs[0]).origin
+	const clusters = new Map(children.flatMap(({ xml }) => [...sitemapClusters(xml)]))
 	const locSet = new Set(locs)
 
 	await check('sitemap lists exactly the expected public path set', async () => {
@@ -325,8 +324,8 @@ async function main(): Promise<void> {
 			`private routes listed: ${privatePaths.slice(0, 5).join(', ')}`,
 		)
 		for (const loc of locs) {
-			assert(loc.startsWith(origin), `${loc} is off-origin`)
 			const parsed = new URL(loc)
+			assert(parsed.origin === origin, `${loc} is off-origin`)
 			assert(
 				parsed.pathname === '/' || !parsed.pathname.endsWith('/'),
 				`${loc} has a trailing slash`,
@@ -346,7 +345,10 @@ async function main(): Promise<void> {
 	})
 
 	await check('sitemap omits lastmod instead of faking freshness', async () => {
-		assert(!sitemapXml.includes('<lastmod>'), 'sitemap publishes lastmod')
+		assert(
+			documents.every(({ xml }) => !xml.includes('<lastmod>')),
+			'sitemap publishes lastmod',
+		)
 		return 'no <lastmod> element'
 	})
 

@@ -6,8 +6,8 @@
  * the locale the URL names.
  *
  * The catalogue guards read the message files; this reads what is actually
- * served. It fetches `/sitemap.xml` (one entry per locale per public route)
- * and checks each page. Authenticated settings and browser-only interactions
+ * served. It follows the per-locale sitemaps in `/sitemap.xml` and checks
+ * each listed page. Authenticated settings and browser-only interactions
  * are outside this anonymous server-rendered sweep:
  *
  *   1. `lang` - `<html lang>` equals the locale prefix's tag;
@@ -25,6 +25,7 @@
 
 import { localeOfPath, rawKeyLeaks } from '../src/lib/i18n/locale-verify'
 import { englishShareOf, readServedPage } from '../src/lib/i18n/served-page'
+import { readSitemap } from './sitemap-documents'
 
 export type Options = {
 	base: string
@@ -98,13 +99,14 @@ async function fetchPage(
 }
 
 export async function verifyLocales(options: Options): Promise<Reading[]> {
-	const sitemap = await fetchPage(new URL('/sitemap.xml', options.base), options.timeoutMs)
-	if (sitemap.status !== 200) throw new Error(`/sitemap.xml answered ${sitemap.status}`)
-	const paths = [...sitemap.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
-		(match) => new URL(match[1] as string).pathname,
+	const { locs } = await readSitemap((path) =>
+		fetch(new URL(path, options.base), {
+			headers: { accept: 'application/xml', 'user-agent': 'puzzled-locale-verify' },
+			redirect: 'manual',
+			signal: AbortSignal.timeout(options.timeoutMs),
+		}),
 	)
-	if (paths.length === 0) throw new Error('/sitemap.xml contains no page URLs')
-	const wanted = [...new Set(paths)].sort()
+	const wanted = locs.map((loc) => new URL(loc).pathname).sort()
 	const selected =
 		options.only.length === 0
 			? wanted

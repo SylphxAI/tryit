@@ -1,5 +1,6 @@
 import { locales } from '@/lib/i18n/config'
 import { inboundModulePublicRoutes } from '@/lib/module-routes'
+import { localeSitemapPath } from '@/lib/seo/sitemap-paths'
 
 const inboundPublicRoutes = new Set(inboundModulePublicRoutes(locales))
 
@@ -12,6 +13,7 @@ const STATIC_DOCUMENT_PATHS = new Set([
 	'/llms.txt',
 	'/d110b31973ac28e2d59232b8a4e47cf2.txt',
 	'/sitemap.xml',
+	...locales.map(localeSitemapPath),
 	'/manifest.webmanifest',
 	'/offline.html',
 ])
