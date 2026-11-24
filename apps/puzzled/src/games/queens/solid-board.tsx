@@ -4,7 +4,13 @@ import { createMemo, createSignal, For, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseQueensClientPayload } from './parse-client'
-import { getConflicts, isSolved, type QueensPuzzleData, REGION_COLORS } from './types'
+import {
+	conflictReasons,
+	getConflicts,
+	isSolved,
+	type QueensPuzzleData,
+	REGION_COLORS,
+} from './types'
 
 export default function CrownsBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -37,9 +43,13 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 	const placed = createMemo(() => cells.filter(({ row, col }) => grid()[row][col]))
 	const conflicts = createMemo(() => {
 		const current = grid()
-		return new Set(
-			placed().filter(({ row, col }) => getConflicts(current, regions, row, col).length),
+		return new Map(
+			placed().map((cell) => [cell, getConflicts(current, regions, cell.row, cell.col)]),
 		)
+	})
+	const reasons = createMemo(() => {
+		const activeReasons = new Set([...conflicts().values()].flatMap((set) => [...set]))
+		return conflictReasons.filter((reason) => activeReasons.has(reason))
 	})
 	function change(row: number, col: number, place: boolean) {
 		if (locked() || grid()[row][col] === place) return
@@ -85,7 +95,7 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 						{(cell, index) => {
 							const { row, col, region } = cell
 							const pressed = () => grid()[row][col]
-							const conflict = () => conflicts().has(cell)
+							const conflict = () => !!conflicts().get(cell)?.size
 							return (
 								<button
 									ref={(button) => {
@@ -138,11 +148,9 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 						{t('common.reset')}
 					</button>
 				</Show>
-				<Show when={conflicts().size > 0}>
-					<p role="status" class="text-sm font-semibold text-destructive">
-						{t('games.crowns.hasConflicts')}
-					</p>
-				</Show>
+			</div>
+			<div role="status" class="text-sm font-semibold text-destructive">
+				<For each={reasons()}>{(reason) => <p>{t(`games.crowns.conflicts.${reason}`)}</p>}</For>
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.crowns.complete')} />
 		</div>

@@ -59,67 +59,27 @@ export const REGION_COLORS = [
 	'bg-[#cfe39a]',
 ]
 
-/**
- * Check if placing a queen at (row, col) creates any conflicts
- */
+export const conflictReasons = ['sameRow', 'sameColumn', 'sameRegion', 'diagonalTouch'] as const
+export type ConflictReason = (typeof conflictReasons)[number]
+
+/** Check which rules a queen at (row, col) would break. */
 export function getConflicts(
 	grid: boolean[][],
 	regions: number[][],
 	row: number,
 	col: number,
-): { row: number; col: number }[] {
-	const conflicts: { row: number; col: number }[] = []
-	const size = grid.length
-
-	// Check same row
-	for (let c = 0; c < size; c++) {
-		if (c !== col && grid[row][c]) {
-			conflicts.push({ row, col: c })
+): Set<ConflictReason> {
+	const reasons = new Set<ConflictReason>()
+	for (let r = 0; r < grid.length; r++) {
+		for (let c = 0; c < grid.length; c++) {
+			if (!grid[r][c] || (r === row && c === col)) continue
+			if (r === row) reasons.add('sameRow')
+			if (c === col) reasons.add('sameColumn')
+			if (regions[r][c] === regions[row][col]) reasons.add('sameRegion')
+			if (Math.abs(r - row) === 1 && Math.abs(c - col) === 1) reasons.add('diagonalTouch')
 		}
 	}
-
-	// Check same column
-	for (let r = 0; r < size; r++) {
-		if (r !== row && grid[r][col]) {
-			conflicts.push({ row: r, col })
-		}
-	}
-
-	// Check adjacent cells (including diagonals)
-	const directions = [
-		[-1, -1],
-		[-1, 0],
-		[-1, 1],
-		[0, -1],
-		[0, 1],
-		[1, -1],
-		[1, 0],
-		[1, 1],
-	]
-	for (const [dr, dc] of directions) {
-		const r = row + dr
-		const c = col + dc
-		if (r >= 0 && r < size && c >= 0 && c < size && grid[r][c]) {
-			// Avoid duplicates
-			if (!conflicts.some((cf) => cf.row === r && cf.col === c)) {
-				conflicts.push({ row: r, col: c })
-			}
-		}
-	}
-
-	// Check same region
-	const myRegion = regions[row][col]
-	for (let r = 0; r < size; r++) {
-		for (let c = 0; c < size; c++) {
-			if ((r !== row || c !== col) && grid[r][c] && regions[r][c] === myRegion) {
-				if (!conflicts.some((cf) => cf.row === r && cf.col === c)) {
-					conflicts.push({ row: r, col: c })
-				}
-			}
-		}
-	}
-
-	return conflicts
+	return reasons
 }
 
 /**
@@ -142,7 +102,7 @@ export function isSolved(grid: boolean[][], regions: number[][], size: number): 
 		for (let c = 0; c < size; c++) {
 			if (grid[r][c]) {
 				const conflicts = getConflicts(grid, regions, r, c)
-				if (conflicts.length > 0) return false
+				if (conflicts.size > 0) return false
 			}
 		}
 	}

@@ -13,7 +13,6 @@
 	},
 	"startGame": "開始遊戲",
 	"region": "區域 {index}",
-	"hasConflicts": "有皇冠互相衝突",
 	"complete": "謎題完成！",
 	"difficulty": {
 		"easy": "簡單",
@@ -24,5 +23,11 @@
 		"easy": "5×5 盤面，輕鬆上手",
 		"medium": "6×6 盤面，區域更多",
 		"hard": "8×8 盤面，推理要求最高"
+	},
+	"conflicts": {
+		"sameRow": "同一列有兩個皇冠",
+		"sameColumn": "同一欄有兩個皇冠",
+		"sameRegion": "同一顏色區域有兩個皇冠",
+		"diagonalTouch": "兩個皇冠斜角相鄰"
 	}
 }

@@ -17,5 +17,6 @@
 		"blank": "Blank"
 	},
 	"hasConflicts": "Some cells violate the rules",
-	"complete": "Puzzle Complete!"
+	"complete": "Puzzle Complete!",
+	"lockedClue": "Locked clue."
 }

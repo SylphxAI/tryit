@@ -17,5 +17,6 @@
 		"blank": "Vacía"
 	},
 	"hasConflicts": "Algunas casillas incumplen las reglas",
-	"complete": "¡Puzle completado!"
+	"complete": "¡Puzle completado!",
+	"lockedClue": "Pista fija."
 }

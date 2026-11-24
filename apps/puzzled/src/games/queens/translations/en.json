@@ -13,7 +13,6 @@
 	},
 	"startGame": "Start Game",
 	"region": "Region {index}",
-	"hasConflicts": "Some crowns are in conflict",
 	"complete": "Puzzle Complete!",
 	"difficulty": {
 		"easy": "Easy",
@@ -24,5 +23,11 @@
 		"easy": "A 5x5 board — one crown per row, column and region",
 		"medium": "A 6x6 board with more regions to reason about",
 		"hard": "An 8x8 board and the tightest constraints"
+	},
+	"conflicts": {
+		"sameRow": "Two crowns share a row",
+		"sameColumn": "Two crowns share a column",
+		"sameRegion": "Two crowns share a color region",
+		"diagonalTouch": "Two crowns touch diagonally"
 	}
 }

@@ -13,7 +13,6 @@
 	},
 	"startGame": "Empezar partida",
 	"region": "Región {index}",
-	"hasConflicts": "Algunas coronas están en conflicto",
 	"complete": "¡Puzle completado!",
 	"difficulty": {
 		"easy": "Fácil",
@@ -24,5 +23,11 @@
 		"easy": "Un tablero de 5x5: una corona por fila, columna y región",
 		"medium": "Un tablero de 6x6 con más regiones que razonar",
 		"hard": "Un tablero de 8x8 y las restricciones más estrictas"
+	},
+	"conflicts": {
+		"sameRow": "Hay dos coronas en la misma fila",
+		"sameColumn": "Hay dos coronas en la misma columna",
+		"sameRegion": "Hay dos coronas en la misma región de color",
+		"diagonalTouch": "Hay dos coronas que se tocan en diagonal"
 	}
 }

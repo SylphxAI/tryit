@@ -16,5 +16,7 @@
 	"undo": "撤销",
 	"region": "区域",
 	"tile": "骨牌 {a}–{b}",
-	"rejected": "还没完成。拿起一块骨牌继续吧。"
+	"rejected": "还没完成。拿起一块骨牌继续吧。",
+	"selectDomino": "请先在下方选择一张骨牌",
+	"pickAdjacent": "请选择上下左右相邻的一格"
 }
