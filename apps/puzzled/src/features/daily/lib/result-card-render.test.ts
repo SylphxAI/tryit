@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { type GameColorTheme, getGameColors } from '@/games/theme-colors'
-import { buildResultCard, type ResultCardInput, type ResultCardStrings } from './result-card'
+import {
+	buildResultCard,
+	type ResultCardInput,
+	type ResultCardStrings,
+	resultCardTextAlternative,
+} from './result-card'
 import {
 	paintResultCard,
 	RESULT_CARD_SIZE,
@@ -160,7 +165,7 @@ describe('resultCardPalette', () => {
 })
 
 describe('paintResultCard', () => {
-	test('draws the module, the day, the status, the chips and the deep link', () => {
+	test('draws the module, the day, the status, the chips and the brand footer', () => {
 		const rec = recordingContext()
 		paintResultCard(rec.ctx, buildResultCard(baseInput()), STRINGS)
 		const painted = rec.texts.join('\n')
@@ -170,7 +175,30 @@ describe('paintResultCard', () => {
 		expect(painted).toContain('3 of 6')
 		expect(painted).toContain('4')
 		expect(painted).toContain('One to five minutes')
-		expect(painted).toContain('tryit.fun/games/word-guess?mode=archive&date=2026-09-21')
+		expect(rec.texts.at(-1)).toBe('tryit.fun')
+		expect(painted).not.toContain('/games/')
+		expect(painted).not.toContain('utm_source')
+	})
+
+	test('keeps the complete attributed URL in the caption, not in the image', () => {
+		const cases = [
+			[
+				baseInput(),
+				'https://tryit.fun/games/word-guess?mode=archive&date=2026-09-21&utm_source=share',
+			],
+			[
+				baseInput({ origin: 'http://localhost:4300', shareId: 'abc' }),
+				'http://localhost:4300/r/abc?utm_source=share',
+			],
+		] as const
+		for (const [input, url] of cases) {
+			const model = buildResultCard(input)
+			const rec = recordingContext()
+			paintResultCard(rec.ctx, model, STRINGS)
+			expect(rec.texts.at(-1)).toBe('tryit.fun')
+			expect(rec.texts.join(' ')).not.toContain(url)
+			expect(resultCardTextAlternative(model, STRINGS)).toContain(url)
+		}
 	})
 
 	test('never paints solution or answer content, even when it rides the input', () => {
@@ -247,7 +275,8 @@ describe('paintResultCard', () => {
 		paintResultCard(rec.ctx, model, STRINGS)
 		const painted = rec.texts.join('\n')
 		expect(painted).toContain('Five')
-		expect(painted).toContain('tryit.fun/games/word-guess')
+		expect(rec.texts.at(-1)).toBe('tryit.fun')
+		expect(painted).not.toContain('/games/')
 		expect(painted).not.toContain('undefined')
 		expect(painted).not.toContain('NaN')
 	})

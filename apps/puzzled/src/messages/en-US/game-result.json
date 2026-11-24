@@ -24,5 +24,10 @@
 	"playersToday": "{count} players today",
 	"playNext": "Play next: {game}",
 	"backToHome": "Back to Home",
-	"missedCategories": "You missed:"
+	"missedCategories": "You missed:",
+	"solvedTitle": "{game} Complete",
+	"finishedTitle": "{game}: Results",
+	"shareResult": "Share Result",
+	"savePng": "Save PNG",
+	"saveFailed": "Could not save the image. Try again."
 }

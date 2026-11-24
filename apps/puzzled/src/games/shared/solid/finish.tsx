@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { isFieldSet } from '@bufbuild/protobuf'
-import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { Check, Minus } from 'lucide-solid'
+import { createSignal, onCleanup, Show } from 'solid-js'
 import type { DailySnapshot } from '@/features/daily/lib/daily-fallback'
 import { ResultActions } from '@/features/daily/solid/result-actions'
 import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
@@ -82,6 +83,7 @@ export function createBoardFinish(
 				mode: props.mode ?? 'daily',
 				status: intent.status,
 				puzzleDate: intent.puzzleDate,
+				difficulty: intent.difficulty,
 				attempts: intent.attempts,
 				score: score(),
 				timeSpentMs: intent.timeSpentMs,
@@ -109,20 +111,6 @@ export function createBoardFinish(
 	}
 }
 
-function FinishedPanel(props: import('solid-js').ParentProps) {
-	let card!: HTMLDivElement
-	onMount(() => {
-		// Reveal the new result above the dock without taking focus or moving
-		// the page if the result is already fully visible.
-		card.scrollIntoView({ block: 'nearest', behavior: 'instant' })
-	})
-	return (
-		<div ref={card} class="tactile-card scroll-mb-2 space-y-2 p-4">
-			{props.children}
-		</div>
-	)
-}
-
 export function BoardFinish(props: {
 	finish: ReturnType<typeof createBoardFinish>
 	locale: Locale
@@ -143,10 +131,12 @@ export function BoardFinish(props: {
 	return (
 		<>
 			<Show when={props.finish.state() === 'pending'}>
-				<p role="status">{t('common.syncing')}</p>
+				<p class="completion-card" role="status">
+					{t('common.syncing')}
+				</p>
 			</Show>
 			<Show when={props.finish.state() === 'failed'}>
-				<p role="alert">
+				<p class="completion-card" role="alert">
 					{t('common.error')}{' '}
 					<button
 						type="button"
@@ -159,10 +149,15 @@ export function BoardFinish(props: {
 			</Show>
 			<Show when={props.finish.result()}>
 				{(result) => (
-					<FinishedPanel>
-						<h2 class="font-display text-xl" role="status">
-							{props.message}
-						</h2>
+					<div class="completion-card" data-board-finished>
+						<div class="completion-heading" data-outcome={result().status}>
+							<span class="completion-mark" aria-hidden="true">
+								{result().status === 'won' ? <Check size={17} /> : <Minus size={17} />}
+							</span>
+							<h2 class="font-display" role="status">
+								{props.message}
+							</h2>
+						</div>
 						<ResultActions
 							facts={result()}
 							locale={props.locale}
@@ -172,7 +167,7 @@ export function BoardFinish(props: {
 						<Show when={featuredFinish()}>
 							<FinishPassLink locale={props.locale} />
 						</Show>
-					</FinishedPanel>
+					</div>
 				)}
 			</Show>
 		</>

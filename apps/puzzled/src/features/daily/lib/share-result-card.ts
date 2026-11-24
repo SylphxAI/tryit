@@ -234,3 +234,16 @@ export async function shareRitualResultCard(
 		deps,
 	)
 }
+
+/** Save always downloads the same PNG, without a share sheet or clipboard side effect. */
+export async function saveRitualResultCard(
+	model: ResultCardModel,
+	strings: ResultCardStrings,
+): Promise<boolean> {
+	try {
+		const blob = await resultCardBlob(model, strings)
+		return !!blob && downloadBlob(blob, resultCardFileName(model), document, {})
+	} catch {
+		return false
+	}
+}

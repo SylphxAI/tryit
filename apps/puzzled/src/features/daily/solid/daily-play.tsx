@@ -185,7 +185,7 @@ export function DailyPlay(props: {
 				<Match when={snapshot('completed')}>
 					{(result) => (
 						<div
-							class="tactile-card mx-auto max-w-xl space-y-2 p-5 text-center"
+							class="completion-card mx-auto max-w-xl space-y-2 text-center"
 							data-game-stage="completed"
 						>
 							<h2 class="font-display text-2xl">{t('daily.alreadyCompleted')}</h2>
@@ -210,6 +210,7 @@ export function DailyPlay(props: {
 									status: result().session.status,
 									puzzleDate: result().puzzleDate,
 									attempts: result().session.attempts,
+									difficulty: result().session.difficulty,
 									score: result().session.score,
 								}}
 								locale={props.data.locale}

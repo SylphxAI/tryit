@@ -103,6 +103,7 @@
 
 [data-play-canvas] .play-body {
 	container-type: size;
+	position: relative;
 	display: flex;
 	flex: 1;
 	min-height: 0;
@@ -144,6 +145,13 @@
 	max-inline-size: min(100%, clamp(14rem, calc(100cqh - 8rem), 30rem));
 	margin-inline: auto;
 }
+/* A normal portrait phone has room for the full-width Path board. Do not
+   derive its side from a settling flex container's height: Chromium can
+   resolve that height at the 14rem floor on the first hydrated paint. */
+@media (width <= 430px) and (height >= 800px) {
+	[data-play-canvas] [data-number-path-board] .play-board { max-inline-size: 30rem; }
+}
+
 [data-play-canvas] [data-block-slide-board] .play-board {
 	max-inline-size: min(100%, clamp(12rem, calc((100cqh - 12.75rem) * .8), 22rem));
 	margin-inline: auto;
@@ -174,17 +182,17 @@
 		width: min(100%, 28rem, max(13rem, calc((100cqh - 3rem) * .8)));
 	}
 	[data-play-canvas] .play-split {
-		grid-template-areas: "board meta" "board tools" "board status" "result result";
-		grid-template-rows: auto auto auto auto;
+		grid-template-areas: "board ." "board meta" "board tools" "board status" "board .";
+		grid-template-rows: 1fr auto auto auto 1fr;
+		position: relative;
+		min-block-size: 100%;
 		row-gap: 0;
 	}
 	[data-play-canvas] .play-split > * { margin-block: 0; }
-	[data-play-canvas] .play-split > :not(.play-board, .play-meta, .play-tools, .quad-status, .pip-actions, .pip-feedback) { grid-area: result; }
 	[data-play-canvas] .play-split .play-board { grid-area: board; }
 	[data-play-canvas] .play-split .play-meta { grid-area: meta; align-self: end; }
 	[data-play-canvas] .play-split .play-tools { grid-area: tools; }
 	[data-play-canvas] .play-split :is(.quad-status, .pip-feedback) { grid-area: status; align-self: start; }
-	[data-play-canvas] [data-block-slide-board] .play-result { grid-area: result; }
 	[data-play-canvas] [data-pip-place-board] .pip-actions { grid-area: meta; justify-self: end; align-self: end; }
 	[data-play-canvas] [data-pip-place-board] .play-meta { display: none; }
 	[data-play-canvas] [data-block-slide-board] .play-board { max-inline-size: none; }
@@ -217,4 +225,88 @@
 	[data-play-canvas] [data-cryptogram-board] { gap: .5rem; }
 	[data-play-canvas] [data-cryptogram-board] [data-cipher-letter] { height: 2.5rem; min-width: 1.75rem; }
 	[data-play-canvas] [data-cipher-keyboard] button { min-width: 1.875rem; min-height: 2.5rem; }
+}
+
+
+/* A finish never becomes a track in the puzzle grid. On a split canvas the
+   board and play rail align in a stable frame; the result takes only the rail.
+   On compact canvases the bottom of the play scrollport is above the consent
+   dock, and board alignment is independent of controls that unmount on solve. */
+[data-play-canvas] .play-body > * { margin-block: 0; }
+
+[data-play-canvas] .play-result { display: contents; }
+
+[data-play-canvas] .completion-card {
+	position: absolute;
+	z-index: 5;
+	inset-inline: max(.25rem, calc((100% - 28rem) / 2));
+	inset-block-end: .625rem;
+	max-block-size: min(13rem, 40cqh);
+	overflow: auto;
+	overscroll-behavior: contain;
+}
+
+[data-play-canvas] .play-body:has([data-board-finished]) :is(.play-tools, .pip-actions, .quad-status, .pip-feedback) {
+	visibility: hidden;
+}
+
+[data-play-canvas] .play-tools .completion-card { visibility: visible; }
+
+@media (width >= 1024px) {
+	[data-play-canvas] .play-split > .play-meta,
+	[data-play-canvas] .play-split > .play-tools,
+	[data-play-canvas] .play-split > :is(.quad-status, .pip-feedback) { margin-block: 0; }
+
+	[data-play-canvas] .play-split .completion-card {
+		/* Absolute grid placement uses only the right column without sizing it. */
+		grid-area: 1 / 2 / -1 / 3;
+		inset-inline: 0;
+		inset-block: 0;
+		margin-block: auto;
+		block-size: max-content;
+		max-block-size: calc(100% - 1rem);
+	}
+
+	/* Mini Grid keeps finish markup inside its tools, not directly in the grid.
+	   Use the same column boundary for that nested card. */
+	[data-play-canvas] .play-split .play-tools .completion-card {
+		inset-inline-start: calc((100% - 3rem) * 1.27 / 2.27 + 3rem);
+	}
+
+	/* Center the progress and tools as one stack within a definite play frame.
+	   Zero minimums keep the spanning board from sizing either spacer track. */
+	[data-play-canvas] [data-number-path-board] {
+		block-size: 100%;
+		grid-template-areas: "board ." "board meta" "board tools" "board .";
+		grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr);
+	}
+
+	[data-play-canvas] [data-number-path-board] .play-meta {
+		min-height: 3.25rem;
+		padding: .625rem 1rem;
+		border: 1px solid var(--color-hairline);
+		border-radius: .875rem;
+		background: var(--color-card);
+		box-shadow: 0 3px 12px rgba(20, 20, 19, .05);
+	}
+	[data-play-canvas] [data-number-path-board] .play-meta output {
+		padding: .25rem .625rem;
+		border-radius: 999px;
+		background: var(--color-surface-muted);
+		font-weight: 700;
+	}
+	[data-play-canvas] [data-number-path-board]:has(.completion-card) > .play-meta { visibility: hidden; }
+}
+
+/* Use flow as the reachable fallback when large text, zoom or landscape leaves
+   no room for an anchored card. Normal portrait and desktop need no scroll. */
+@container (height < 26rem) {
+	[data-play-canvas] .completion-card {
+		position: static;
+		max-block-size: none;
+		margin-block: .5rem 0;
+	}
+	@media (width >= 1024px) {
+		[data-play-canvas] .play-split > .completion-card { grid-area: tools; }
+	}
 }
