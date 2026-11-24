@@ -11,5 +11,6 @@
 		"rule3": "Drag from first to last letter to select"
 	},
 	"startGame": "Start Game",
-	"complete": "All Words Found!"
+	"complete": "All Words Found!",
+	"invalidSelection": "That selection doesn’t match a word on the list."
 }

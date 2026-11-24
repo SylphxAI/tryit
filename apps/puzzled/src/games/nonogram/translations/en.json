@@ -27,5 +27,7 @@
 		"easy": "A small 5x5 grid with a simple picture",
 		"medium": "10x10, more rows and columns to read",
 		"hard": "15x15 with fine detail"
-	}
+	},
+	"undo": "Undo",
+	"startOver": "Start over"
 }

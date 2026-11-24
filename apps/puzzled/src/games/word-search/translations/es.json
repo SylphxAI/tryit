@@ -11,5 +11,6 @@
 		"rule3": "Arrastra de la primera a la última letra para seleccionar"
 	},
 	"startGame": "Empezar partida",
-	"complete": "¡Todas las palabras encontradas!"
+	"complete": "¡Todas las palabras encontradas!",
+	"invalidSelection": "Esa selección no coincide con ninguna palabra de la lista."
 }
