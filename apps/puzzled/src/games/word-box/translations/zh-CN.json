@@ -13,6 +13,7 @@
 	"startGame": "开始游戏",
 	"complete": "谜题完成！",
 	"progress": "已用 {used}/{total} 个字母",
+	"confirmReset": "确定重新开始？",
 	"input": "当前单词",
 	"backspace": "删除最后一个字母",
 	"enter": "添加单词",

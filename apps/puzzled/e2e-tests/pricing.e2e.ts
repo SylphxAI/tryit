@@ -11,6 +11,52 @@ const VIEWPORTS = [
 	{ name: 'small-375x667', width: 375, height: 667 },
 ]
 
+for (const [width, height] of [
+	[1280, 803],
+	[1440, 900],
+	[390, 844],
+]) {
+	test(
+		'pricing exits clear the undismissed consent and navigation docks at ' + width + '×' + height,
+		async ({ page }) => {
+			await page.setViewportSize({ width, height })
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			await openPricing(page)
+			await expect(page.locator('[data-consent-banner]').getByRole('button')).toHaveText([
+				'Decline',
+				'Accept',
+				'Analytics only',
+			])
+			await page.evaluate(() => document.fonts.ready)
+			for (const name of [
+				/^Family plan for up to \d+ players$/,
+				/^Not now — play 3 free puzzles of 19 daily$/,
+			]) {
+				const link = page.getByRole('link', { name })
+				const geometry = await link.evaluate((el) => {
+					const rect = el.getBoundingClientRect()
+					const dockTop = Math.min(
+						innerHeight,
+						...Array.from(document.querySelectorAll('[data-consent-banner], .site-tab-bar'))
+							.filter((dock) => dock.getClientRects().length)
+							.map((dock) => dock.getBoundingClientRect().top),
+					)
+					const hit = document.elementFromPoint(
+						rect.left + rect.width / 2,
+						rect.top + rect.height / 2,
+					)
+					return {
+						clear: rect.top >= 0 && rect.bottom <= dockTop && el.contains(hit),
+						xOverflow: document.documentElement.scrollWidth - innerWidth,
+						scrollY,
+					}
+				})
+				expect(geometry).toEqual({ clear: true, xOverflow: 0, scrollY: 0 })
+			}
+		},
+	)
+}
+
 async function openPricing(page: Page) {
 	await page.goto('/pricing', { waitUntil: 'domcontentloaded' })
 	await settle(page)

@@ -57,6 +57,8 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 		| 'rejected'
 	>()
 	const [checking, setChecking] = createSignal(false)
+	const [confirmReset, setConfirmReset] = createSignal(false)
+	let draft: HTMLInputElement | undefined
 	let disposed = false
 	onCleanup(() => {
 		disposed = true
@@ -86,6 +88,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 		if (!hasValidSideTransitions(box, next)) return invalid('sameSide')
 		setCurrent(next)
 		setError(undefined)
+		if (confirmReset()) draft?.focus({ preventScroll: true })
 		triggerHaptic('light')
 	}
 	function backspace() {
@@ -125,9 +128,15 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 	}
 	function reset() {
 		if (!playable()) return
+		if ((words().length || current()) && !confirmReset()) {
+			setConfirmReset(true)
+			return
+		}
+		setConfirmReset(false)
 		setCurrent('')
 		setWords([])
 		setError(undefined)
+		draft?.focus({ preventScroll: true })
 	}
 	function keyDown(event: KeyboardEvent) {
 		if (
@@ -180,12 +189,22 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 					class="min-h-11 px-2 font-semibold disabled:opacity-50"
 					disabled={!playable()}
 					onClick={(event) => {
-						event.currentTarget.blur()
+						event.currentTarget.focus({ preventScroll: true })
 						reset()
+					}}
+					onBlur={() => setConfirmReset(false)}
+					onKeyDown={(event) => {
+						if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault()
+						if (event.key === 'Escape' && confirmReset()) {
+							event.preventDefault()
+							setConfirmReset(false)
+						}
 					}}
 				>
 					<RotateCcw size={16} class="me-1 inline" aria-hidden="true" />
-					{t('common.reset')}
+					<span aria-live="polite">
+						{confirmReset() ? copy('confirmReset') : t('common.reset')}
+					</span>
 				</button>
 			</div>
 			<fieldset class="space-y-3" aria-busy={checking()}>
@@ -231,6 +250,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 					</label>
 					<input
 						id="frame-current"
+						ref={draft}
 						class="h-12 min-w-0 basis-40 rounded-lg border border-border bg-background px-3 text-center font-display text-xl font-bold tracking-wider"
 						dir="ltr"
 						value={current()}

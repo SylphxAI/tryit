@@ -133,8 +133,8 @@ function PricingBody({ data }: { data: PricingData }) {
 		)
 	}
 
-	const individualFooter = (
-		<div class="mt-1 flex flex-col items-center">
+	const planLinks = (
+		<div class={styles.planLinks}>
 			<a href="#family" class={textLinkClass}>
 				{t('familyLink', { count: familyMax })}
 			</a>
@@ -177,7 +177,7 @@ function PricingBody({ data }: { data: PricingData }) {
 									{t('manage')}
 								</a>
 							</div>
-							{individualFooter}
+							{planLinks}
 						</div>
 					) : (
 						<PlusOffer
@@ -198,7 +198,7 @@ function PricingBody({ data }: { data: PricingData }) {
 							locale={locale}
 							signedIn={signedIn}
 							subscribed={false}
-							footerSlot={individualFooter}
+							afterCheckout={planLinks}
 						/>
 					)}
 					{familyYear || familyMonth ? (

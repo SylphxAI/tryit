@@ -13,6 +13,7 @@
 	"startGame": "Start Game",
 	"complete": "Puzzle Complete!",
 	"progress": "{used}/{total} letters used",
+	"confirmReset": "Confirm reset?",
 	"input": "Current word",
 	"backspace": "Remove last letter",
 	"enter": "Add word",
