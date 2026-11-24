@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { languageTrigger, settle } from './a11y-support'
+import { DESKTOP, languageTrigger, MOBILE, settle } from './a11y-support'
 
 for (const viewport of [
 	{ width: 1440, height: 757 },
@@ -228,3 +228,36 @@ test('Japanese shell localizes the skip link and corporate footer', async ({ pag
 	await expect(page.locator('footer small')).toContainText('会社登録番号：16438428')
 	await expect(page.locator('footer small')).not.toContainText('Registered in England and Wales')
 })
+
+for (const viewport of [
+	{ width: 1280, height: 800 },
+	DESKTOP,
+	{ width: 1920, height: 1080 },
+	MOBILE,
+]) {
+	test(`Taiwan home CTA and guest note clear the initial dock at ${viewport.width}x${viewport.height}`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport)
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		await page.goto('/zh-TW')
+		const action = page.locator('[data-day-primary-action]')
+		const note = page.getByText('不必註冊、不必信用卡，幾分鐘玩完。', { exact: true })
+		const dock = page.locator('[data-consent-banner]')
+		await expect(action).toBeVisible()
+		await expect(action).toHaveText(/遊玩今日的/u)
+		await expect(note).toBeVisible()
+		await expect(dock).toBeVisible()
+		await settle(page)
+		await page.evaluate(() => document.fonts.ready.then(() => undefined))
+
+		const top = (await dock.boundingBox())!.y
+		for (const target of [action, note]) {
+			const { y, height } = (await target.boundingBox())!
+			expect(y).toBeGreaterThanOrEqual(0)
+			// Include the action's pressed-key edge (3px of box shadow).
+			expect(y + height + 3).toBeLessThanOrEqual(top)
+		}
+		expect(await page.evaluate(() => window.scrollY)).toBe(0)
+	})
+}

@@ -1,9 +1,11 @@
 /** @jsxImportSource solid-js */
 import { Check, RotateCcw } from 'lucide-solid'
 import { createMemo, createSignal, For, Show } from 'solid-js'
+import { puzzleThemeLabel } from '@/games/shared/puzzle-theme-label'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseWordSearchClientPayload, type WordSearchClientData } from './parse-client'
+import zhTwThemes from './puzzle-themes.zh-TW.json'
 import { getWordFromPositions, type Position } from './types'
 
 type Line = { start: Position; end: Position }
@@ -100,7 +102,9 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 	return (
 		<div class="mx-auto w-full max-w-sm space-y-3">
 			<div class="flex items-center justify-between gap-2 text-sm">
-				<span class="font-semibold">{theme || t('games.wordSearch.name')}</span>
+				<span class="font-semibold">
+					{puzzleThemeLabel(theme, props.locale, zhTwThemes, t('games.wordSearch.name'))}
+				</span>
 				<output class="tabular-nums" aria-live="polite">
 					{found().size}/{words.length}
 				</output>
