@@ -157,10 +157,6 @@
 }
 
 @media (width >= 1024px) {
-	[data-play-canvas]:has(.play-split) .play-cue {
-		text-align: start;
-		padding-inline-start: calc((100% - 3rem) * .56 + 3rem);
-	}
 	[data-play-canvas] .play-split {
 		display: grid;
 		grid-template-columns: minmax(0, 1.27fr) minmax(0, 1fr);

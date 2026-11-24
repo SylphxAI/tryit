@@ -106,7 +106,7 @@ const splitGames = [
 const layouts = [
 	[1280, 803],
 	[1440, 900],
-	[1920, 1080],
+	[1920, 937],
 	[390, 844],
 ]
 
@@ -193,6 +193,25 @@ for (const [width, height] of layouts) {
 						const board = (await page.locator('.play-board').boundingBox())!
 						const tools = (await page.locator('.play-tools').boundingBox())!
 						expect(board.x + board.width).toBeLessThan(tools.x)
+					}
+					if (width >= 1024 && splitGames.includes(slug)) {
+						const instruction = await page.locator(cue).evaluate((el) => {
+							const range = document.createRange()
+							range.selectNodeContents(el)
+							const lines = new Set(Array.from(range.getClientRects(), (rect) => rect.top))
+							return { width: el.getBoundingClientRect().width, lines: lines.size }
+						})
+						expect(instruction.width).toBeGreaterThanOrEqual(220)
+						expect(instruction.lines).toBeGreaterThan(0)
+						expect(instruction.lines).toBeLessThanOrEqual(2)
+					}
+					if (width >= 1024 && slug === 'killer-sudoku') {
+						const dockTop = (await dock.boundingBox())!.y
+						const buttons = await page
+							.locator('.play-tools button')
+							.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().bottom))
+						expect(buttons).toHaveLength(13)
+						expect(dockTop - Math.max(...buttons)).toBeGreaterThanOrEqual(18)
 					}
 					if (slug === 'nonogram') {
 						await checkHelp(page, locale === 'en-US' ? 'How to play' : '玩法')
