@@ -14,5 +14,7 @@
 	"complete": "パスが完成しました！",
 	"undo": "元に戻す",
 	"cellClue": "ヒント {number}",
-	"cellStep": "{number} 手目"
+	"cellStep": "{number} 手目",
+	"startAtOne": "1 から始めてください",
+	"nextSquare": "{number} の隣のマスをタップするか、そこまでドラッグしてください"
 }

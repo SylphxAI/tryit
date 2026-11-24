@@ -14,5 +14,7 @@
 	"complete": "路徑完成！",
 	"undo": "復原",
 	"cellClue": "提示 {number}",
-	"cellStep": "第 {number} 步"
+	"cellStep": "第 {number} 步",
+	"startAtOne": "請先由 1 開始",
+	"nextSquare": "請點按或拖到隔籬一格"
 }

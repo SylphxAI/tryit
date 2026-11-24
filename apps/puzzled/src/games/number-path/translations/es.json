@@ -14,5 +14,7 @@
 	"complete": "¡Camino completado!",
 	"undo": "Deshacer",
 	"cellClue": "Pista {number}",
-	"cellStep": "Paso {number}"
+	"cellStep": "Paso {number}",
+	"startAtOne": "Empieza en el 1",
+	"nextSquare": "Toca o arrastra hasta una casilla junto al {number}"
 }

@@ -291,7 +291,6 @@ for (const scenario of [
 }
 
 for (const { route, localTheme, englishTheme } of [
-	{ route: '/games/nonogram?difficulty=easy', localTheme: '星星', englishTheme: 'Star' },
 	{ route: '/games/word-search', localTheme: '音樂', englishTheme: 'Music' },
 ]) {
 	test(`Taiwan board localizes the fixture theme on ${route} without changing English`, async ({

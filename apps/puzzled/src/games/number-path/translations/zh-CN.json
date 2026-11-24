@@ -14,5 +14,7 @@
 	"complete": "路径完成！",
 	"undo": "撤销",
 	"cellClue": "提示 {number}",
-	"cellStep": "第 {number} 步"
+	"cellStep": "第 {number} 步",
+	"startAtOne": "请先从 1 开始",
+	"nextSquare": "请点击或拖动到相邻格子"
 }
