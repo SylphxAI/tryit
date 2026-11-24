@@ -215,7 +215,7 @@
 			"tips": [
 				"Compare one property at a time, starting with the number of shapes on each card.",
 				"If two cards match on a property, the third card must match them too or the trio fails.",
-				"Cards inside a set you have already found are locked, so scan the untouched cards next."
+				"同一张牌可以组成多组有效的组合。试试把已经配对过的牌用在其他组合里。"
 			],
 			"faq": [
 				{

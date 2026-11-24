@@ -18,5 +18,7 @@
 	"cipherLetter": "{cipher}：{guess}",
 	"blank": "空欄",
 	"wrong": "まだ解けていません。間違っている文字があります。",
+	"selectFirst": "先に上の暗号文字をタップしてください",
+	"letterMoved": "{letter} を {from} から {to} に移しました",
 	"clear": "文字を消す"
 }

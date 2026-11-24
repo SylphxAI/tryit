@@ -12,9 +12,9 @@
 		"rule4": "同じ文字は何度でも使えます"
 	},
 	"messages": {
-		"tooShort": "単語は4文字以上にしてください",
+		"tooShort": "短すぎます（4文字以上）",
 		"missingCenter": "中央の文字が含まれていません",
-		"invalidLetter": "使えない文字が含まれています",
+		"invalidLetter": "その文字はハイブにありません",
 		"notInList": "単語リストにありません",
 		"alreadyFound": "すでに見つけた単語です！"
 	},
