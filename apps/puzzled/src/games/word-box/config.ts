@@ -28,7 +28,7 @@ export const wordBoxConfig: GameConfig<
 	display: {
 		taglineKey: 'games.wordBox.tagline',
 		highlightKey: 'games.wordBox.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'cyan',
 	},
 	generationStrategy: 'seed',

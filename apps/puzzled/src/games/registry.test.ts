@@ -107,7 +107,7 @@ describe('getGameMetadata', () => {
 			display: {
 				taglineKey: expect.any(String),
 				highlightKey: expect.any(String),
-				duration: expect.any(String),
+				durationMinutes: expect.any(Number),
 				theme: expect.any(String),
 			},
 			supportsDifficulty: expect.any(Boolean),

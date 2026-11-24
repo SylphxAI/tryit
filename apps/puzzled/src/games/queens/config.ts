@@ -51,7 +51,7 @@ export const queensConfig: GameConfig<
 	display: {
 		taglineKey: 'games.queens.tagline',
 		highlightKey: 'games.queens.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'violet',
 	},
 	generationStrategy: 'seed',

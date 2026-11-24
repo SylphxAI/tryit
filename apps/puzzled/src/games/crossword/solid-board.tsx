@@ -130,10 +130,13 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 		`${clue.number} ${directionName(direction)}: ${clue.clue}`
 
 	return (
-		<div class="mx-auto flex w-full max-w-md flex-col gap-4" data-crossword-board>
+		<div class="mx-auto flex w-full max-w-md flex-col gap-2 md:gap-4" data-crossword-board>
 			<div class="flex flex-wrap items-center justify-between gap-x-3 text-sm">
 				<p>{acrossOnly ? t('games.crossword.acrossOnly') : t('games.crossword.name')}</p>
-				<a href="#rules" class="inline-flex min-h-12 items-center font-semibold underline">
+				<a
+					href="#rules"
+					class="inline-flex min-h-11 items-center font-semibold underline md:min-h-12"
+				>
 					{t('games.crossword.howToPlay')}
 				</a>
 			</div>
@@ -143,7 +146,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 				</Show>
 			</p>
 			<fieldset
-				class="mx-auto grid w-full max-w-xs grid-cols-5 gap-1 rounded-xl border border-border bg-border p-1"
+				class="mx-auto grid w-full max-w-64 grid-cols-5 gap-1 rounded-xl border border-border bg-border p-1 md:max-w-xs"
 				aria-label={t('games.crossword.name')}
 				dir="ltr"
 			>

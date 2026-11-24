@@ -1,4 +1,5 @@
 {
+	"name": "图卡配对",
 	"tagline": "12 张卡 • 找出组合",
 	"highlight": "找组合",
 	"description": "找出 3 张一组、特征相符的卡",

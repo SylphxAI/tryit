@@ -1,4 +1,6 @@
 {
+	"estimatedPlayTime": "~{minutes, number} min",
+	"skipToMainContent": "Skip to main content",
 	"appName": "Tryit",
 	"loading": "Loading...",
 	"error": "Something went wrong",

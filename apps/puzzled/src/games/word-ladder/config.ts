@@ -33,7 +33,7 @@ export const wordLadderConfig: GameConfig<
 	display: {
 		taglineKey: 'games.wordLadder.tagline',
 		highlightKey: 'games.wordLadder.highlight',
-		duration: '~3 min',
+		durationMinutes: 3,
 		theme: 'orange',
 	},
 	generationStrategy: 'seed',

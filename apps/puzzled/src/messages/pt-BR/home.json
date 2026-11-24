@@ -11,7 +11,8 @@
 	"hero": {
 		"guestTitle": "3 de 19 desafios grátis por dia",
 		"streakChip": "Sequência de {days} dias",
-		"playersToday": "{count} jogadores concluíram hoje",
+		"playersToday": "{count, plural, =1 {# jogador concluiu hoje} other {# jogadores concluíram hoje}}",
+		"dailyInvitation": "Os desafios de hoje chegaram! Jogue três de graça, sem cadastro.",
 		"progressRingLabel": "{done} de {total} desafios concluídos hoje",
 		"progressUnverified": "Não conseguimos carregar seu progresso salvo agora. Você ainda pode jogar — conferimos sua conclusão quando você enviar.",
 		"ogEyebrow": "19 desafios diários",

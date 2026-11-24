@@ -1,5 +1,5 @@
 {
-	"name": "Path",
+	"name": "Caminho Numérico",
 	"tagline": "Passe de 1 a n • Sem cruzar",
 	"highlight": "Caminho numerado",
 	"description": "Trace um caminho por todas as células, de 1 até n",

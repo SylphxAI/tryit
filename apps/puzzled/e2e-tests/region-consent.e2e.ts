@@ -49,18 +49,34 @@ for (const viewport of [
 			)
 			expect((await page.request.get('/manifest.webmanifest')).status()).toBe(200)
 			const metric = await banner(page).evaluate((el) => {
-				const [decline, accept] = [...el.querySelectorAll('button')]
-				const height = el.getBoundingClientRect().height
+				const buttons = [...el.querySelectorAll('button')]
+				const nav = document.querySelector('nav.fixed')?.getBoundingClientRect()
+				const bar = el.getBoundingClientRect()
+				const boxes = buttons.map((button) => button.getBoundingClientRect())
 				return {
-					height,
-					decline: decline.getBoundingClientRect().height,
-					accept: accept.getBoundingClientRect().height,
-					equal: decline.className === accept.className,
+					height: bar.height,
+					bottom: bar.bottom,
+					viewportBottom: window.innerHeight,
+					navTop: nav?.height ? nav.top : null,
+					choices: buttons.map((button) => button.textContent?.trim()),
+					buttonHeight: Math.min(...boxes.map((box) => box.height)),
+					buttonWidthDifference:
+						Math.max(...boxes.map((box) => box.width)) - Math.min(...boxes.map((box) => box.width)),
+					rowSpread:
+						Math.max(...boxes.map((box) => box.top)) - Math.min(...boxes.map((box) => box.top)),
+					equalStyle: new Set(buttons.map((button) => button.className)).size === 1,
 				}
 			})
-			expect(metric.height).toBeLessThanOrEqual(viewport.width < 768 ? 105 : 63)
-			expect(metric.equal).toBe(true)
-			expect(Math.min(metric.decline, metric.accept)).toBeGreaterThanOrEqual(44)
+			const mobile = viewport.width < 768
+			expect(metric.height).toBeLessThanOrEqual(mobile ? 100 : 63)
+			if (mobile) expect(metric.navTop).not.toBeNull()
+			else expect(metric.navTop).toBeNull()
+			expect(metric.bottom).toBeCloseTo(metric.navTop ?? metric.viewportBottom, 0)
+			expect(metric.choices).toEqual(['Decline', 'Accept', 'Analytics only'])
+			expect(metric.equalStyle).toBe(true)
+			expect(metric.buttonHeight).toBeGreaterThanOrEqual(44)
+			expect(metric.buttonWidthDifference).toBeLessThan(1)
+			expect(metric.rowSpread).toBeLessThan(1)
 			for (const target of [
 				page.locator('[data-day-primary-action]'),
 				page.getByRole('button', { name: 'Cookie settings', exact: true }),
@@ -87,6 +103,7 @@ for (const viewport of [
 				`consent ${viewport.width}x${viewport.height}: ${JSON.stringify(metric)} CTA/footer overlap=0 directHit=true`,
 			)
 			await banner(page).getByRole('button', { name: 'Accept', exact: true }).click()
+			expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('granted')
 			await expect.poll(() => requests.length).toBe(1)
 			await expect(banner(page)).toBeHidden()
 			const data = await commands(page)
@@ -204,6 +221,7 @@ test('mobile opt-in bar fits every supported locale and Decline does not load Go
 	await page.goto('/')
 	await banner(page).getByRole('button', { name: 'Decline', exact: true }).click()
 	await expect(banner(page)).toBeHidden()
+	expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('denied')
 	await page.reload()
 	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
 	await expect(banner(page)).toBeHidden()

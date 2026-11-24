@@ -11,7 +11,8 @@
 	"hero": {
 		"guestTitle": "Any 3 of 19 puzzles free every day",
 		"streakChip": "{days}-day streak",
-		"playersToday": "{count} players finished today",
+		"playersToday": "{count, plural, one {# player finished today} other {# players finished today}}",
+		"dailyInvitation": "Today’s puzzles are ready. Play any three free, no signup needed.",
 		"progressRingLabel": "{done} of {total} puzzles finished today",
 		"progressUnverified": "We could not load your saved progress just now. You can still play — we check your finish when you submit.",
 		"ogEyebrow": "19 daily puzzles",

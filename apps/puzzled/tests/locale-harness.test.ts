@@ -18,8 +18,13 @@ async function runFixture(overrides: Record<string, string | Response> = {}, onl
 			}
 			if (path === '/sitemap.xml') {
 				return new Response(
-					`<urlset>${locales.map((locale) => `<url><loc>https://tryit.fun${locale === defaultLocale ? '/' : `/${locale}`}</loc></url>`).join('')}</urlset>`,
+					`<sitemapindex>${locales.map((locale) => `<sitemap><loc>https://tryit.fun/sitemap.${locale}.xml</loc></sitemap>`).join('')}</sitemapindex>`,
 				)
+			}
+			const sitemapLocale = locales.find((locale) => path === `/sitemap.${locale}.xml`)
+			if (sitemapLocale) {
+				const prefix = sitemapLocale === defaultLocale ? '' : `/${sitemapLocale}`
+				return new Response(`<urlset><url><loc>https://tryit.fun${prefix}</loc></url></urlset>`)
 			}
 			const locale = locales.find((candidate) => path.split('/')[1] === candidate) ?? defaultLocale
 			return new Response(
@@ -44,6 +49,9 @@ describe('served locale harness', () => {
 	test('checks public sitemap locales; British copy is English', async () => {
 		const { readings, requests } = await runFixture()
 		expect(readings).toHaveLength(locales.length)
+		expect(requests.filter((path) => path.startsWith('/sitemap.')).sort()).toEqual(
+			['/sitemap.xml', ...locales.map((locale) => `/sitemap.${locale}.xml`)].sort(),
+		)
 		expect(readings.flatMap((reading) => reading.failures)).toEqual([])
 		expect(requests).not.toContain('/settings')
 	})
@@ -101,10 +109,19 @@ describe('served locale harness', () => {
 	})
 
 	test('empty sitemap and empty selection never pass', async () => {
-		await expect(runFixture({ '/sitemap.xml': '<urlset/>' })).rejects.toThrow(
-			'contains no page URLs',
+		await expect(runFixture({ '/sitemap.xml': '<sitemapindex/>' })).rejects.toThrow(
+			'must list exactly one same-origin child per locale',
+		)
+		await expect(runFixture({ '/sitemap.es.xml': '<urlset/>' })).rejects.toThrow(
+			'/sitemap.es.xml contains no page URLs',
 		)
 		await expect(runFixture({}, ['/not-a-route'])).rejects.toThrow('no pages match')
+	})
+
+	test('a failed child fails verification instead of silently dropping its URLs', async () => {
+		await expect(
+			runFixture({ '/sitemap.es.xml': new Response(null, { status: 503 }) }),
+		).rejects.toThrow('/sitemap.es.xml answered 503')
 	})
 
 	test('CLI rejects missing values and invalid timeouts', () => {

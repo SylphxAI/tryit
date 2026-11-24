@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
+import { CONSENT_KEY } from '../src/lib/storage-keys'
 import { settle } from './a11y-support'
 
 /** Pricing choices, benefits and guest return paths stay available at every size. */
@@ -533,4 +534,125 @@ test.describe('Post-payment verified-email handoff and auth brand panel contrast
 			}
 		})
 	}
+})
+
+// Independent display expectations for the five published plans on the open-store fixture.
+const CHECKOUT_PLANS = [
+	{ id: 'individual_once', offer: 'plus', interval: 'once' },
+	{ id: 'individual_monthly', offer: 'plus', interval: 'month' },
+	{ id: 'individual_yearly', offer: 'plus', interval: 'year' },
+	{ id: 'family_monthly', offer: 'family', interval: 'month' },
+	{ id: 'family_yearly', offer: 'family', interval: 'year' },
+] as const
+const CHECKOUT_PRICES = {
+	eur: ['€2.99', '€4.99', '€36.99', '€7.99', '€58.99'],
+	usd: ['$2.99', '$4.99', '$39.99', '$7.99', '$64.99'],
+	jpy: ['¥479', '¥799', '¥6,399', '¥1,279', '¥10,389'],
+	twd: ['NT$99', 'NT$169', 'NT$1,319', 'NT$269', 'NT$2,149'],
+}
+
+for (const mobile of [false, true]) {
+	test.describe(mobile ? 'Mobile checkout' : 'Desktop checkout', () => {
+		test.use({
+			viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+			isMobile: mobile,
+			hasTouch: mobile,
+		})
+
+		for (const [currency, prices] of Object.entries(CHECKOUT_PRICES)) {
+			test(`all five plans send the selected ${currency.toUpperCase()} and only the pass requires a waiver`, async ({
+				page,
+				context,
+				baseURL,
+			}) => {
+				if (!baseURL) throw new Error('Pricing requires a browser base URL')
+				await context.addCookies([{ name: 'puzzled_currency', value: currency, url: baseURL }])
+				await page.addInitScript((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
+				await page.route('**/v1/guest/session', (route) =>
+					route.fulfill({ json: { issued: true } }),
+				)
+				const checkoutRequests: unknown[] = []
+				// Intercept every checkout: verify the actual client payload without creating sessions.
+				await page.route('**/puzzled.v1.BillingService/CreateCheckout', (route) => {
+					checkoutRequests.push(route.request().postDataJSON())
+					return route.fulfill({ status: 503, json: { code: 'unavailable' } })
+				})
+				const { promise: held, resolve: release } = Promise.withResolvers<void>()
+				await page.route('**/_build/assets/entry-client-*.js', async (route) => {
+					await held
+					await route.continue()
+				})
+
+				const plus = page.locator('#plus')
+				const waiver = plus.getByRole('checkbox')
+				const passCta = plus.getByRole('button', { name: 'Continue to payment', exact: true })
+				const hydrated = page.waitForResponse('**/api/consent-context')
+				try {
+					await page.goto('/pricing?plan=individual_once', { waitUntil: 'domcontentloaded' })
+					await expect(page.getByLabel('Currency', { exact: true })).toHaveValue(currency)
+					await expect(waiver).not.toBeChecked()
+					await expect(passCta).toBeDisabled()
+					await waiver.check()
+					await expect(waiver).toBeChecked()
+					await expect(passCta).toBeDisabled() // native input changed, client still held
+				} finally {
+					release()
+				}
+				await hydrated
+				await expect(passCta).toBeEnabled() // early consent must not need a second tick
+
+				for (const [index, plan] of CHECKOUT_PLANS.entries()) {
+					const offer = page.locator(`#${plan.offer}`)
+					const radio = offer.locator(`input[type="radio"][value="${plan.interval}"]`)
+					await expect(radio.locator('..').getByText(prices[index], { exact: true })).toBeVisible()
+					await radio.check()
+					const cta = offer.getByRole('button', { name: 'Continue to payment', exact: true })
+					if (plan.interval !== 'once') await expect(offer.getByRole('checkbox')).toHaveCount(0)
+					await expect(cta).toBeEnabled()
+					await cta.click()
+					await expect(offer.getByRole('alert')).toHaveText(
+						'Checkout could not start. Please try again.',
+					)
+					expect(checkoutRequests).toHaveLength(index + 1)
+					expect(checkoutRequests[index]).toEqual({
+						planId: plan.id,
+						locale: 'en-US',
+						currency,
+						...(plan.interval === 'once' ? { immediateSupplyConsent: true } : {}),
+					})
+				}
+
+				await plus.locator('input[value="once"]').check()
+				await expect(waiver).not.toBeChecked() // changing the offer resets the waiver
+				await expect(passCta).toBeDisabled()
+				await waiver.check()
+				await expect(passCta).toBeEnabled()
+				await waiver.uncheck()
+				await expect(passCta).toBeDisabled()
+				expect(checkoutRequests).toHaveLength(CHECKOUT_PLANS.length)
+			})
+		}
+	})
+}
+
+test('zh-TW pricing starts in TWD despite geo and preserves the currency switcher override', async ({
+	page,
+	context,
+}) => {
+	await page.setExtraHTTPHeaders({ 'cf-ipcountry': 'DE' })
+	const ready = page.waitForResponse('**/api/consent-context')
+	await page.goto('/zh-TW/pricing')
+	await ready
+	const select = page.getByLabel('幣別', { exact: true })
+	const pass = page.locator('#plus input[value="once"]').locator('..')
+	await expect(select).toHaveValue('twd')
+	await expect(pass.getByText('NT$99', { exact: true })).toBeVisible()
+	const reloaded = page.waitForEvent('domcontentloaded')
+	await select.selectOption('jpy')
+	await reloaded
+	await expect(select).toHaveValue('jpy')
+	await expect(pass).toContainText('¥479')
+	expect(
+		(await context.cookies()).find((cookie) => cookie.name === 'puzzled_currency')?.value,
+	).toBe('jpy')
 })

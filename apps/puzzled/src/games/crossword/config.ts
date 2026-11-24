@@ -31,7 +31,7 @@ export const crosswordConfig: GameConfig<
 	display: {
 		taglineKey: 'games.crossword.tagline',
 		highlightKey: 'games.crossword.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'blue',
 	},
 	// Crossword uses LLM for daily puzzle generation (clever clues)

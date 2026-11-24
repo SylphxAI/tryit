@@ -1,5 +1,5 @@
 {
-	"name": "Cage Sudoku",
+	"name": "Sudoku de Somas",
 	"tagline": "Sudoku • Somas de gaiolas",
 	"highlight": "Desafio de somas",
 	"description": "Sudoku com restrições de soma por gaiola",

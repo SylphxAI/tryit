@@ -11,7 +11,8 @@
 	"hero": {
 		"guestTitle": "19 款謎題，每日任揀 3 款免費",
 		"streakChip": "連續 {days} 日",
-		"playersToday": "今日已有 {count} 位玩家完成",
+		"playersToday": "今日已有 {count, number} 位玩家完成",
+		"dailyInvitation": "今日嘅謎題準備好喇！免費任揀 3 款玩，唔使註冊。",
 		"progressRingLabel": "今日已完成 {done} / {total} 題",
 		"progressUnverified": "暫時讀取唔到你嘅進度。你仍然可以玩，提交時我哋會核對你嘅完成紀錄。",
 		"ogEyebrow": "每日 19 款謎題",
@@ -84,7 +85,7 @@
 		"titleDone": "今日嘅{game}已完成",
 		"bodyGuest": "文字、邏輯同數字謎題，每款幾分鐘玩得完。今日任揀三款，毋須註冊即刻開始，大家玩同一套題目。",
 		"bodyMember": "你的連續紀錄、統計和今日陣容，一按即到。",
-		"playToday": "玩今日的{game}",
+		"playToday": "玩今日嘅「{game}」",
 		"playAgain": "再玩一次",
 		"browseAll": "瀏覽所有遊戲",
 		"finishersToday": "今日已有 {count} 人完成",

@@ -107,6 +107,13 @@ describe('Tryit Plus presentation', () => {
 		expect(yearlySavingPercent(499, 6000)).toBe(null)
 	})
 
+	test('Taiwan prices distinguish NT$ from US$ and keep localized number formatting', () => {
+		expect(formatPrice(9900, 'twd', 'zh-TW')).toBe('NT$99')
+		expect(formatPrice(-131900, 'twd', 'zh-TW')).toBe('-NT$1,319')
+		expect(formatMonthlyEquivalentPrice(131900, 'twd', 'zh-TW')).toBe('NT$110')
+		expect(formatPrice(299, 'usd', 'zh-TW')).toBe('US$2.99')
+	})
+
 	test('a one-time pass keeps its interval and access term', () => {
 		const plans = create(ListPlansResponseSchema, {
 			plans: [

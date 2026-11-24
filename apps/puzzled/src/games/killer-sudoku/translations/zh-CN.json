@@ -1,4 +1,5 @@
 {
+	"name": "杀手数独",
 	"tagline": "数独 • 笼内总和",
 	"highlight": "总和谜题",
 	"description": "加入笼内总和限制的数独",

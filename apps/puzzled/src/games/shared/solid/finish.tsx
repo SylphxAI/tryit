@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { isFieldSet } from '@bufbuild/protobuf'
-import { createSignal, onCleanup, Show } from 'solid-js'
+import { createSignal, onCleanup, onMount, Show } from 'solid-js'
 import type { DailySnapshot } from '@/features/daily/lib/daily-fallback'
 import { ResultActions } from '@/features/daily/solid/result-actions'
 import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
@@ -109,6 +109,20 @@ export function createBoardFinish(
 	}
 }
 
+function FinishedPanel(props: import('solid-js').ParentProps) {
+	let card!: HTMLDivElement
+	onMount(() => {
+		// Reveal the new result above the dock without taking focus or moving
+		// the page if the result is already fully visible.
+		card.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+	})
+	return (
+		<div ref={card} class="tactile-card scroll-mb-2 space-y-2 p-4">
+			{props.children}
+		</div>
+	)
+}
+
 export function BoardFinish(props: {
 	finish: ReturnType<typeof createBoardFinish>
 	locale: Locale
@@ -145,7 +159,7 @@ export function BoardFinish(props: {
 			</Show>
 			<Show when={props.finish.result()}>
 				{(result) => (
-					<div class="tactile-card space-y-2 p-4">
+					<FinishedPanel>
 						<h2 class="font-display text-xl" role="status">
 							{props.message}
 						</h2>
@@ -158,7 +172,7 @@ export function BoardFinish(props: {
 						<Show when={featuredFinish()}>
 							<FinishPassLink locale={props.locale} />
 						</Show>
-					</div>
+					</FinishedPanel>
 				)}
 			</Show>
 		</>

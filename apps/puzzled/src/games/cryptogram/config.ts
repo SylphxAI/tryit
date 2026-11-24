@@ -29,7 +29,7 @@ export const cryptogramConfig: GameConfig<
 	display: {
 		taglineKey: 'games.cryptogram.tagline',
 		highlightKey: 'games.cryptogram.highlight',
-		duration: '~5 min',
+		durationMinutes: 5,
 		theme: 'violet',
 	},
 	generationStrategy: 'seed',

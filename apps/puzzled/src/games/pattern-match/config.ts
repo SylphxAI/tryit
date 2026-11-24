@@ -58,7 +58,7 @@ export const patternMatchConfig: GameConfig<
 	display: {
 		taglineKey: 'games.patternMatch.tagline',
 		highlightKey: 'games.patternMatch.highlight',
-		duration: '~4 min',
+		durationMinutes: 4,
 		theme: 'sky',
 	},
 

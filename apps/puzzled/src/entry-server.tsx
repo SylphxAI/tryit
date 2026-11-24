@@ -16,7 +16,10 @@ export default createHandler(
 					<html lang={request ? pageLocale(new URL(request.url).pathname) : defaultLocale}>
 						<head>
 							<meta charset="utf-8" />
-							<meta name="viewport" content="width=device-width, initial-scale=1" />
+							<meta
+								name="viewport"
+								content="width=device-width, initial-scale=1, viewport-fit=cover"
+							/>
 							<link rel="manifest" href="/manifest.webmanifest" />
 							<script
 								nonce={typeof nonce === 'string' ? nonce : undefined}

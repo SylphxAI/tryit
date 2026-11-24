@@ -1,0 +1,3 @@
+import { localeSitemap } from '@/server/sitemap-response'
+
+export const GET = localeSitemap('zh-CN')

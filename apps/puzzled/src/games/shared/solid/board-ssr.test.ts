@@ -31,6 +31,8 @@ beforeAll(async () => {
 		build: {
 			ssr: fileURLToPath(new URL('./board-ssr.fixture.tsx', import.meta.url)),
 			write: false,
+			// This fixture is evaluated as a data URL, so it cannot resolve relative chunks.
+			rolldownOptions: { output: { codeSplitting: false } },
 		},
 	})
 	if (Array.isArray(result) || !('output' in result)) throw new Error('Expected one SSR build')

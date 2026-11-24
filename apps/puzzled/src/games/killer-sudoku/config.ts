@@ -54,7 +54,7 @@ export const killerSudokuConfig: GameConfig<
 	display: {
 		taglineKey: 'games.killerSudoku.tagline',
 		highlightKey: 'games.killerSudoku.highlight',
-		duration: '~10 min',
+		durationMinutes: 10,
 		theme: 'rose',
 	},
 	generationStrategy: 'seed',

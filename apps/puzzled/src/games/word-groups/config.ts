@@ -68,7 +68,7 @@ export const wordGroupsConfig: GameConfig<
 	display: {
 		taglineKey: 'games.wordGroups.tagline',
 		highlightKey: 'games.wordGroups.highlight',
-		duration: '~3 min',
+		durationMinutes: 3,
 		theme: 'violet',
 	},
 

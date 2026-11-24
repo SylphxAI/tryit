@@ -23,7 +23,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 				rel="external"
 				class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
 			>
-				Skip to main content
+				{props.data.skipToMainContent}
 			</a>
 			<header class="pt-safe sticky top-0 z-header border-b border-hairline bg-background">
 				<div class="page-shell-wide flex h-14 items-center gap-2 md:h-16">
@@ -111,10 +111,10 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 			</footer>
 			<ConsentBanner copy={props.data.consent} />
 			<nav
-				class="fixed inset-x-0 bottom-0 z-bottom-nav border-t border-hairline bg-background pb-safe md:hidden"
+				class="site-tab-bar fixed inset-x-0 bottom-0 border-t border-hairline bg-background pb-safe md:hidden"
 				aria-label={props.data.mainNav}
 			>
-				<div class="mx-auto grid h-[58px] max-w-lg grid-cols-5">
+				<div class="mx-auto grid h-bottom-nav-height max-w-lg grid-cols-5">
 					<For each={props.data.tabs}>
 						{(tab) => (
 							<a

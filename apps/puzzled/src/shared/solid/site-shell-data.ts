@@ -32,6 +32,7 @@ export function siteShellData(locale: Locale, path: string, t: Translate, now: D
 	return {
 		home: localizedPath(locale),
 		mainNav: t('nav.main'),
+		skipToMainContent: t('common.skipToMainContent'),
 		consent: consentCopy(locale, t),
 		tabs: tabs.map((tab) => ({
 			...tab,

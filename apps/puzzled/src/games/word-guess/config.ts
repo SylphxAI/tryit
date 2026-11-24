@@ -81,7 +81,7 @@ export const wordGuessConfig: GameConfig<
 	display: {
 		taglineKey: 'games.wordGuess.tagline',
 		highlightKey: 'games.wordGuess.highlight',
-		duration: '~2 min',
+		durationMinutes: 2,
 		theme: 'emerald',
 	},
 

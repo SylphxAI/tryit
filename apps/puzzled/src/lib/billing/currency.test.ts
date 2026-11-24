@@ -54,6 +54,15 @@ describe('display currency', () => {
 		expect(chooseCurrency({ ...base, cookie: null, available: ['eur'] })).toBe('eur')
 	})
 
+	test('zh-TW prefers a published TWD price before geolocation, but after an explicit choice', () => {
+		const input = { country: 'DE', locale: 'zh-TW', available: ['usd', 'eur', 'twd'] }
+		expect(chooseCurrency({ ...input, cookie: null })).toBe('twd')
+		expect(chooseCurrency({ ...input, cookie: 'JPY' })).toBe('twd')
+		expect(chooseCurrency({ ...input, cookie: 'USD' })).toBe('usd')
+		expect(chooseCurrency({ ...input, available: ['usd', 'eur'], cookie: null })).toBe('eur')
+		expect(chooseCurrency({ ...input, locale: 'zh-HK', cookie: null })).toBe('eur')
+	})
+
 	test('malformed codes are rejected', () => {
 		expect(normalizeCurrency('GBP')).toBe('gbp')
 		expect(normalizeCurrency('gb;x')).toBeNull()

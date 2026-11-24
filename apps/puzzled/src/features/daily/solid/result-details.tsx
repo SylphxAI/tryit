@@ -55,7 +55,7 @@ export function ResultDetails(props: {
 		<>
 			<button
 				type="button"
-				class="ml-4 min-h-11 font-semibold underline"
+				class="min-h-11 min-w-11 rounded-lg border border-hairline px-3 text-sm font-semibold hover:bg-accent"
 				onClick={() => dialog.showModal()}
 			>
 				{t('gameResult.seeResult')}
@@ -63,7 +63,7 @@ export function ResultDetails(props: {
 			<dialog
 				ref={dialog}
 				aria-labelledby={title}
-				class="fixed inset-0 m-auto max-h-[85vh] w-[calc(100%-2rem)] max-w-sm overflow-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-lg backdrop:bg-black/50"
+				class="fixed inset-0 m-auto max-h-[min(85dvh,calc(100dvh-var(--spacing-safe-top)-var(--spacing-safe-bottom)-2rem))] w-[calc(100%-2rem)] max-w-sm overflow-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-lg backdrop:bg-black/50"
 			>
 				<form method="dialog" class="flex justify-end">
 					<button type="submit" class="min-h-11 font-semibold underline">

@@ -24,7 +24,7 @@ export function buildCatalogPage(locale: Locale, origin: string, now: Date) {
 	}).map((entry) => ({
 		slug: entry.slug,
 		theme: entry.theme,
-		duration: entry.duration,
+		duration: t('common.estimatedPlayTime', { minutes: entry.durationMinutes }),
 		category: entry.category,
 		categoryLabel: t(`catalog.category.${entry.category}`),
 		freeToday: entry.freeToday,

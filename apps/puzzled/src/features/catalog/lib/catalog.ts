@@ -30,7 +30,7 @@ export type CatalogEntry = {
 	/** next-intl key for the registry highlight, e.g. `games.wordGuess.highlight`. */
 	highlightKey: string
 	/** Estimated play time from registry display meta. */
-	duration: string
+	durationMinutes: number
 	/** Registry colour theme; each tile renders in its own module colour. */
 	theme: GameColorTheme
 	/** Registry category, used by the catalog filter and related modules. */
@@ -59,7 +59,7 @@ export function buildCatalogEntries(input: {
 			canonicalTitle: playerTitle(module.slug),
 			taglineKey: `games.${translationSlug}.tagline`,
 			highlightKey: module.display.highlightKey,
-			duration: module.display.duration,
+			durationMinutes: module.display.durationMinutes,
 			theme: module.display.theme,
 			category: module.category,
 			freeToday: module.slug === freeSlug,

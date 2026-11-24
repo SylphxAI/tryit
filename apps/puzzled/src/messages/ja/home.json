@@ -11,7 +11,8 @@
 	"hero": {
 		"guestTitle": "19種から毎日好きな3つが無料",
 		"streakChip": "{days}日連続",
-		"playersToday": "今日は{count}人がクリア",
+		"playersToday": "今日は{count, number}人がクリア",
+		"dailyInvitation": "今日のパズルが登場！ 登録なしで、好きな3つを無料で遊べます。",
 		"progressRingLabel": "今日は{total}問中{done}問をクリア",
 		"progressUnverified": "保存した進捗を読み込めませんでした。そのまま遊べます。クリアの確認は送信時に行います。",
 		"ogEyebrow": "毎日19種のパズル",
@@ -84,7 +85,7 @@
 		"titleDone": "今日の{game}は完了です",
 		"bodyGuest": "言葉・ロジック・数字のパズルは、どれも数分で遊べます。今日の3つは登録なしですぐに始められて、みんな同じ問題に挑戦します。",
 		"bodyMember": "連続記録、統計、今日のラインナップへ、ワンタップでアクセスできます。",
-		"playToday": "今日の{game}を遊ぶ",
+		"playToday": "今日の「{game}」を遊ぶ",
 		"playAgain": "今日のパズルをもう一度遊ぶ",
 		"browseAll": "すべてのゲームを見る",
 		"finishersToday": "今日はこれまでに{count}人がクリア",

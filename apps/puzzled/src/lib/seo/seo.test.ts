@@ -20,10 +20,10 @@ import {
 	robotsDisallowPaths,
 	stripLocalePrefix,
 } from '@/lib/seo/routes'
-import { buildSitemap } from '@/lib/seo/sitemap'
+import { buildLocaleSitemap } from '@/lib/seo/sitemap'
 import { hreflangLanguages, localizedPath } from '@/lib/seo/urls'
 import { GET as robotsResponse } from '@/server/robots-response'
-import { GET as sitemapResponse } from '@/server/sitemap-response'
+import { localeSitemap, GET as sitemapResponse } from '@/server/sitemap-response'
 
 // Deterministic origin for the documents and metadata under test. Held only
 // for this file: the relay and canonical resolvers read these values live, so
@@ -171,7 +171,9 @@ describe('route truth table', () => {
 	})
 
 	test('makes the shared archive calendar indexable in every locale', () => {
-		const urls = new Set(buildSitemap(BASE).map((entry) => entry.url))
+		const urls = new Set(
+			locales.flatMap((locale) => buildLocaleSitemap(BASE, locale)).map((entry) => entry.url),
+		)
 		for (const locale of locales) {
 			const path = locale === defaultLocale ? '/archive' : `/${locale}/archive`
 			expect(isPrivateRoutePath(path)).toBe(false)
@@ -189,7 +191,7 @@ describe('route truth table', () => {
 })
 
 describe('sitemap', () => {
-	const entries = buildSitemap(BASE)
+	const entries = locales.flatMap((locale) => buildLocaleSitemap(BASE, locale))
 	const gameCount = getGameSlugs().length
 	const localizedPublicCount = PUBLIC_ROUTES.filter((route) => !route.englishOnly).length
 	const englishOnlyCount = PUBLIC_ROUTES.filter((route) => route.englishOnly).length
@@ -252,21 +254,46 @@ describe('sitemap', () => {
 			for (const target of Object.values(cluster)) {
 				if (typeof target !== 'string') throw new Error(`${entry.url} has a non-string alternate`)
 				expect(localeAgnosticPath(target)).toBe(path)
+				expect(entries.find((other) => other.url === target)?.alternates?.languages).toEqual(
+					cluster,
+				)
 			}
 		}
 	})
 
-	test('serves cacheable XML without inventing lastmod', async () => {
+	test('indexes one root-level sitemap per locale, not individual pages', async () => {
 		const response = sitemapResponse()
 		expect(response.status).toBe(200)
 		expect(response.headers.get('Content-Type')).toBe('application/xml; charset=utf-8')
 		expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600')
 		const xml = await response.text()
+		expect(xml).toContain('<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
 		expect(xml).not.toContain('<lastmod>')
-		expect(xml.match(/<loc>/g)).toHaveLength(expectedUrls)
-		expect(xml).toContain('<loc>https://tryit.fun/archive</loc>')
-		expect(xml).toContain('<loc>https://tryit.fun/zh-HK/archive</loc>')
-		expect(xml).toContain('hreflang="x-default" href="https://tryit.fun/archive"')
+		expect([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])).toEqual(
+			locales.map((locale) => `https://tryit.fun/sitemap.${locale}.xml`),
+		)
+	})
+
+	test('serves one locale per urlset with canonicals and no fabricated lastmod', async () => {
+		const pagePaths = [
+			...PUBLIC_ROUTES.map(({ path }) => path),
+			...getGameSlugs().map((slug) => `/games/${slug}`),
+		]
+		for (const locale of locales) {
+			const response = localeSitemap(locale)()
+			expect(response.status).toBe(200)
+			expect(response.headers.get('Content-Type')).toBe('application/xml; charset=utf-8')
+			expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600')
+			const xml = await response.text()
+			expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"')
+			expect(xml).not.toContain('<lastmod>')
+			const expected = pagePaths
+				.filter((path) => locale === 'en-US' || !isEnglishOnlyRoute(path))
+				.map((path) => BASE + (locale === 'en-US' ? '' : `/${locale}`) + (path === '/' ? '' : path))
+			expect([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])).toEqual(expected)
+			expect(xml).toContain('hreflang="x-default" href="https://tryit.fun/archive"')
+			expect(xml).toContain('hreflang="zh-HK" href="https://tryit.fun/zh-HK/archive"')
+		}
 	})
 })
 

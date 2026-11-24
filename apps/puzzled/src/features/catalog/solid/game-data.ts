@@ -102,7 +102,7 @@ export function buildGamePage(locale: Locale, slug: string, origin: string, now:
 		catalog,
 		canonicalPath,
 		theme: metadata.display.theme,
-		duration: metadata.display.duration,
+		duration: t('common.estimatedPlayTime', { minutes: metadata.display.durationMinutes }),
 		highlight: readMessage(t, `${gameKey}.highlight`, ''),
 		difficultyLevels: metadata.supportsDifficulty
 			? (metadata.difficultyLevels ?? []).map(({ level }) => ({
