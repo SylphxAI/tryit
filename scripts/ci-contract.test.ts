@@ -24,7 +24,7 @@ type Job = {
 type Workflow = { on?: Record<string, unknown> | string[] | string; jobs: Record<string, Job> }
 const workflow = (name: string) => Bun.YAML.parse(read(`.github/workflows/${name}.yml`)) as Workflow
 const reusable = new Set([
-	'SylphxAI/.github/.github/workflows/red-main.yml@b0de035b9ce18fb44ce35b6da24be487e6d739d9',
+	'SylphxAI/.github/.github/workflows/red-main.yml@25ee18a1893955a28481d1c0035464c610775a26',
 	'SylphxAI/.github/.github/workflows/rust-check.yml@13890e5cc13e308f376748fd23f626b637a47771',
 	'./.github/workflows/verify.yml',
 ])
