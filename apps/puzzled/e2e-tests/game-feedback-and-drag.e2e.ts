@@ -85,8 +85,8 @@ test('Path highlights clue 1, explains blocked moves, then advances by taps and 
 	await mouseDrag(page, cell(5, 4), cell(6, 4))
 	await expect(progress).toHaveText('3/36')
 	await board.getByRole('button', { name: 'Start over', exact: true }).click()
-	await mouseDrag(page, first, cell(6, 4))
-	await expect(progress).toHaveText('3/36')
+	await expect(progress).toHaveText('0/36')
+	await expect(startHighlight).toBeVisible()
 })
 
 const paintCell = (board: Locator, row: number, col: number) =>
@@ -196,10 +196,18 @@ test('Sudoku explains missing selection, locked clues and duplicates', async ({ 
 	await board.getByRole('button', { name: /^Row 1, Column 1,/ }).click()
 	await page.keyboard.press('1')
 	await expect(board.getByText('That number is locked')).toBeVisible()
-	await board.getByRole('button', { name: /^Row 1, Column 4,/ }).click()
+	await board.getByRole('button', { name: /^Row 1, Column 4(?:,|$)/ }).click()
 	await page.keyboard.press('3')
 	await expect(board.getByText('Duplicate number in row, column, or box')).toBeVisible()
-	await expect(board.locator('button[data-conflict]').first()).toBeVisible()
+	const conflict = board.locator('button[data-conflict]').first()
+	await expect(conflict).toBeVisible()
+	const startOver = board.getByRole('button', { name: 'Start over', exact: true })
+	page.once('dialog', (dialog) => dialog.dismiss())
+	await startOver.click()
+	await expect(conflict).toBeVisible()
+	page.once('dialog', (dialog) => dialog.accept())
+	await startOver.click()
+	await expect(conflict).toHaveCount(0)
 })
 
 test('Ladder focuses the input from the rung and prioritizes the length hint', async ({ page }) => {

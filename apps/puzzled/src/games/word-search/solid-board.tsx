@@ -57,6 +57,7 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 		| { id: number; owner: HTMLButtonElement; start: Position; dragged: boolean }
 		| undefined
 	let board: HTMLFieldSetElement | undefined
+	let resetTouch: number | undefined
 	const buttons: HTMLButtonElement[][] = grid.map(() => [])
 
 	function find(line: Line) {
@@ -140,14 +141,19 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 					class="grid size-11 touch-manipulation place-items-center rounded-lg border border-border"
 					aria-label={t('common.reset')}
 					disabled={locked()}
+					onPointerDown={(event) => {
+						if (event.pointerType === 'touch' && event.isPrimary) resetTouch = event.pointerId
+					}}
+					onPointerCancel={(event) => {
+						if (resetTouch === event.pointerId) resetTouch = undefined
+					}}
 					onPointerUp={(event) => {
-						// After a touch drag Chromium can deliver the next tap's pointerup
-						// but suppress its click. Only activate a touch that started on
-						// this button (implicit capture) and still ends inside it.
+						// Chromium can deliver the next tap's pointerup after a drag,
+						// but suppress its click. Require a touch that began here and
+						// still ends inside the button.
+						if (event.pointerType !== 'touch' || resetTouch !== event.pointerId) return
+						resetTouch = undefined
 						if (
-							event.pointerType === 'touch' &&
-							event.isPrimary &&
-							event.currentTarget.hasPointerCapture(event.pointerId) &&
 							event.currentTarget.contains(document.elementFromPoint(event.clientX, event.clientY))
 						)
 							reset()
