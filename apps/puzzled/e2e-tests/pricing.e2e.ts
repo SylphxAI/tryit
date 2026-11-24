@@ -567,7 +567,7 @@ for (const mobile of [false, true]) {
 			}) => {
 				if (!baseURL) throw new Error('Pricing requires a browser base URL')
 				await context.addCookies([{ name: 'puzzled_currency', value: currency, url: baseURL }])
-				await page.addInitScript((key) => localStorage.setItem(key, 'declined'), CONSENT_KEY)
+				await page.addInitScript((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
 				await page.route('**/v1/guest/session', (route) =>
 					route.fulfill({ json: { issued: true } }),
 				)

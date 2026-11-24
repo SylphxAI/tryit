@@ -49,19 +49,22 @@ for (const viewport of [
 			)
 			expect((await page.request.get('/manifest.webmanifest')).status()).toBe(200)
 			const metric = await banner(page).evaluate((el) => {
-				const [decline, accept] = el.querySelectorAll('button')
+				const buttons = [...el.querySelectorAll('button')]
 				const nav = document.querySelector('nav.fixed')?.getBoundingClientRect()
 				const bar = el.getBoundingClientRect()
-				const d = decline.getBoundingClientRect()
-				const a = accept.getBoundingClientRect()
+				const boxes = buttons.map((button) => button.getBoundingClientRect())
 				return {
 					height: bar.height,
 					bottom: bar.bottom,
 					viewportBottom: window.innerHeight,
 					navTop: nav?.height ? nav.top : null,
-					buttonHeight: Math.min(d.height, a.height),
-					buttonWidthDifference: Math.abs(d.width - a.width),
-					equalStyle: decline.className === accept.className,
+					choices: buttons.map((button) => button.textContent?.trim()),
+					buttonHeight: Math.min(...boxes.map((box) => box.height)),
+					buttonWidthDifference:
+						Math.max(...boxes.map((box) => box.width)) - Math.min(...boxes.map((box) => box.width)),
+					rowSpread:
+						Math.max(...boxes.map((box) => box.top)) - Math.min(...boxes.map((box) => box.top)),
+					equalStyle: new Set(buttons.map((button) => button.className)).size === 1,
 				}
 			})
 			const mobile = viewport.width < 768
@@ -69,9 +72,11 @@ for (const viewport of [
 			if (mobile) expect(metric.navTop).not.toBeNull()
 			else expect(metric.navTop).toBeNull()
 			expect(metric.bottom).toBeCloseTo(metric.navTop ?? metric.viewportBottom, 0)
+			expect(metric.choices).toEqual(['Decline', 'Accept', 'Analytics only'])
 			expect(metric.equalStyle).toBe(true)
 			expect(metric.buttonHeight).toBeGreaterThanOrEqual(44)
 			expect(metric.buttonWidthDifference).toBeLessThan(1)
+			expect(metric.rowSpread).toBeLessThan(1)
 			for (const target of [
 				page.locator('[data-day-primary-action]'),
 				page.getByRole('button', { name: 'Cookie settings', exact: true }),
