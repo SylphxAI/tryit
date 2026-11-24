@@ -3,7 +3,7 @@ import { DAILY_PLAY_DRAFT_PREFIX } from '@/lib/storage-keys'
 
 const MAX_DRAFT_CHARS = 512 * 1024
 
-type Draft = { puzzle: string; elapsedMs: number; fields: Record<string, unknown> }
+type Draft = { elapsedMs: number; fields: Record<string, unknown> }
 
 // These are player-owned presentation values, not credentials or server facts.
 // Some board reducers use Sets for notes and Maps for marked cells/keys.
@@ -23,12 +23,14 @@ function decode(value: unknown): unknown {
 
 /** A tab-local draft of the admitted daily board. Never used to open a board or accept a finish. */
 export function createPlayDraft(
-	identity: { day: string; game: string; difficulty?: string; puzzleId: string } | undefined,
+	identity:
+		| { day: string; game: string; difficulty?: string; puzzleId: string; owner: string }
+		| undefined,
 	canWrite: Accessor<boolean>,
 ) {
 	const key =
 		identity &&
-		`${DAILY_PLAY_DRAFT_PREFIX}${identity.day}:${identity.game}:${identity.difficulty ?? 'default'}`
+		`${DAILY_PLAY_DRAFT_PREFIX}${identity.day}:${identity.game}:${identity.difficulty ?? 'default'}:${identity.puzzleId}:${identity.owner}`
 	const fields = new Map<string, Accessor<unknown>>()
 	let stored: Draft | undefined
 	let changed = false
@@ -44,15 +46,17 @@ export function createPlayDraft(
 			if (raw && raw.length <= MAX_DRAFT_CHARS) {
 				const draft = JSON.parse(raw, (_, value) => decode(value)) as Partial<Draft> | null
 				if (
-					draft?.puzzle === identity?.puzzleId &&
-					typeof draft.elapsedMs === 'number' &&
+					typeof draft?.elapsedMs === 'number' &&
 					Number.isSafeInteger(draft.elapsedMs) &&
 					draft.elapsedMs >= 0 &&
 					draft.fields &&
 					typeof draft.fields === 'object' &&
 					!Array.isArray(draft.fields)
 				) {
-					stored = { puzzle: draft.puzzle, fields: draft.fields, elapsedMs: draft.elapsedMs }
+					stored = {
+						fields: draft.fields,
+						elapsedMs: draft.elapsedMs,
+					}
 					elapsedBefore = stored.elapsedMs
 				}
 			}
@@ -66,7 +70,6 @@ export function createPlayDraft(
 		try {
 			const raw = JSON.stringify(
 				{
-					puzzle: identity?.puzzleId,
 					elapsedMs: elapsedMs(),
 					fields: Object.fromEntries([...fields].map(([name, get]) => [name, get()])),
 				},

@@ -20,6 +20,7 @@ export type DailyBoardProps = {
 	locale: Locale
 	mode?: 'daily' | 'archive'
 	difficulty?: PuzzleDifficulty
+	draftScope?: string
 	onAlreadyPlayed: () => void
 }
 
@@ -31,12 +32,13 @@ export function createBoardFinish(
 ) {
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
 	const draft = createPlayDraft(
-		props.mode !== 'archive' && props.puzzle.puzzleId
+		props.mode !== 'archive' && props.puzzle.puzzleId && props.draftScope
 			? {
 					day: props.puzzle.puzzleDate,
 					game: gameSlug,
 					difficulty: props.difficulty,
 					puzzleId: props.puzzle.puzzleId,
+					owner: props.draftScope,
 				}
 			: undefined,
 		() => state() === 'playing',

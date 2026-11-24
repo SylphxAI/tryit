@@ -468,7 +468,12 @@ for (const [width, height] of [
 		}
 		let starts = 0
 		let finished = false
-		await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+		await page.route('**/v1/guest/session', (route) =>
+			route.fulfill({
+				json: { issued: true },
+				headers: { 'Set-Cookie': '__Host-puzzled_guest=reload-fixture; HttpOnly; Secure; Path=/' },
+			}),
+		)
 		await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
 			route.fulfill({
 				json: starts
@@ -522,7 +527,7 @@ for (const [width, height] of [
 		await expect
 			.poll(() =>
 				page.evaluate(() =>
-					Object.keys(sessionStorage).some((key) => key.startsWith('puzzled:play-draft:v1:')),
+					Object.keys(sessionStorage).some((key) => key.startsWith('puzzled:play-draft:v2:')),
 				),
 			)
 			.toBe(true)
@@ -567,7 +572,9 @@ for (const [width, height] of [
 		expect(finished).toBe(true)
 		await expect(banner).toBeVisible()
 		expect(google).toEqual([])
-		expect(await context.cookies()).toEqual([])
+		expect((await context.cookies()).map(({ name, httpOnly }) => ({ name, httpOnly }))).toEqual([
+			{ name: '__Host-puzzled_guest', httpOnly: true },
+		])
 		const storage = await page.evaluate(async () => ({
 			local: Object.keys(localStorage).sort(),
 			session: Object.keys(sessionStorage),
@@ -575,13 +582,21 @@ for (const [width, height] of [
 		}))
 		expect(storage).toEqual({
 			local: [`puzzled:picks:${daily.puzzleDate}`, 'puzzled:pwa:first-finish-day'],
-			session: [],
+			session: ['puzzled:play-draft-tab'],
 			idb: [],
 		})
 	})
 }
 
-test('Path also restores a move, but not onto a different served puzzle', async ({ page }) => {
+test('Path restores only the same viewer and served puzzle', async ({ page, context, baseURL }) => {
+	if (!baseURL) throw new Error('Path requires the fixture server URL')
+	const account = (value: string) => ({
+		name: 'puzzled_session',
+		value,
+		url: baseURL,
+		httpOnly: true,
+	})
+	await context.addCookies([account('path-fixture-a')])
 	const daily = playable('number-path')
 	await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
 		route.fulfill({ json: daily }),
@@ -591,6 +606,12 @@ test('Path also restores a move, but not onto a different served puzzle', async 
 	const clue = path.getByRole('button', { name: /, Clue 1$/ }).first()
 	await clue.click()
 	await expect(clue).toHaveAttribute('aria-pressed', 'true')
+	await page.reload()
+	await expect(clue).toHaveAttribute('aria-pressed', 'true')
+	await context.addCookies([account('path-fixture-b')])
+	await page.reload()
+	await expect(clue).toHaveAttribute('aria-pressed', 'false')
+	await context.addCookies([account('path-fixture-a')])
 	await page.reload()
 	await expect(clue).toHaveAttribute('aria-pressed', 'true')
 	daily.puzzleId = 'f5477d51-a783-48bc-98e0-c37620319042'

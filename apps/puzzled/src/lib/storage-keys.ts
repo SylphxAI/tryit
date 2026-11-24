@@ -40,7 +40,8 @@ export const PWA_PROMPT_DISMISSED_KEY = 'puzzled:pwa:prompt-dismissed'
 export const DAILY_PICKS_KEY_PREFIX = 'puzzled:picks:'
 
 /** Same-tab in-progress daily board state; strictly necessary for reload recovery. */
-export const DAILY_PLAY_DRAFT_PREFIX = 'puzzled:play-draft:v1:'
+export const DAILY_PLAY_DRAFT_PREFIX = 'puzzled:play-draft:v2:'
+export const DAILY_PLAY_DRAFT_TAB_KEY = 'puzzled:play-draft-tab'
 
 /**
  * Same-tab, one-shot record of a pressed "Play" for one game
