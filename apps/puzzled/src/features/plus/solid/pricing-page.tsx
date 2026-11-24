@@ -135,9 +135,11 @@ function PricingBody({ data }: { data: PricingData }) {
 
 	const planLinks = (
 		<div class={styles.planLinks}>
-			<a href="#family" class={styles.planLink}>
-				{t('familyLink', { count: familyMax })}
-			</a>
+			{familyYear || familyMonth ? (
+				<a href="#family" class={cn(styles.planLink, styles.familyJump)}>
+					{t('familyLink', { count: familyMax })}
+				</a>
+			) : null}
 			<a href={href(`/games/${freeSlug}`)} class={styles.planLink}>
 				{t('notNowPlayFree')}
 			</a>
@@ -153,20 +155,26 @@ function PricingBody({ data }: { data: PricingData }) {
 					</output>
 				) : null}
 				<div class={styles.intro}>
-					<p class={styles.eyebrow}>{tPlus('name')}</p>
-					<CurrencySwitcher locale={locale} currencies={currencies} current={currency} />
+					<div class={styles.currencyRow}>
+						<CurrencySwitcher locale={locale} currencies={currencies} current={currency} />
+						{locale === 'ja' ? (
+							<a
+								href={href('/tokushoho')}
+								class="inline-flex min-h-11 items-center text-xs underline underline-offset-2"
+							>
+								特定商取引法に基づく表記
+							</a>
+						) : null}
+					</div>
 					<h1
 						class={cn(
 							styles.title,
-							'mt-1 font-display text-[1.75rem] leading-tight text-balance',
+							'mt-1 font-display text-2xl leading-tight text-balance',
 							'lg:mt-1.5 lg:text-4xl',
 						)}
 					>
 						{t('title')}
 					</h1>
-					<p class="mt-1.5 text-[15px] text-muted-foreground lg:mt-1.5 lg:text-base">
-						{t('offerLead', { count: gameCount })}
-					</p>
 				</div>
 				<div class={styles.tray}>
 					{plusMember ? (
@@ -186,6 +194,7 @@ function PricingBody({ data }: { data: PricingData }) {
 							subtitle={t('individualBody')}
 							accentDot
 							emphasized
+							pricingPage
 							features={includes(false)}
 							radioName="plus-interval"
 							returnAnchor="plus"
@@ -205,6 +214,7 @@ function PricingBody({ data }: { data: PricingData }) {
 						<PlusOffer
 							id="family"
 							title={t('family')}
+							pricingPage
 							subtitle={t('familyBody', { count: familyMax })}
 							features={includes(true)}
 							radioName="family-interval"
@@ -236,12 +246,14 @@ function PricingBody({ data }: { data: PricingData }) {
 					</div>
 					<p class="shrink-0 font-display text-3xl tnum">{formatPrice(0, currency, locale)}</p>
 				</div>
-				<p class="mt-6 max-w-3xl text-xs leading-relaxed text-muted-foreground">
-					{t('legal')}{' '}
-					<a href={href('/terms#subscriptions')} class="underline">
-						{t('manage')}
-					</a>
-				</p>
+				<p class="mt-6 max-w-3xl text-xs leading-relaxed text-muted-foreground">{t('legal')}</p>
+				<a
+					href={href('/terms#subscriptions')}
+					class="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-foreground hover:text-accent-warm-foreground"
+				>
+					{t('manage')}
+					<span aria-hidden="true">→</span>
+				</a>
 			</MarketingSection>
 		</main>
 	)

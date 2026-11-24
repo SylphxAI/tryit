@@ -119,10 +119,6 @@
 				"keys": ["daily.backToHome", "gameResult.backToHome"]
 			},
 			{
-				"value": "Back to all games",
-				"keys": ["archive.backToGames", "daily.backToGames"]
-			},
-			{
 				"value": "Best",
 				"keys": ["settings.playerCard.stats.maxStreak", "stats.best"]
 			},
@@ -1259,10 +1255,6 @@
 			{
 				"value": "Back to Home",
 				"keys": ["daily.backToHome", "gameResult.backToHome"]
-			},
-			{
-				"value": "Back to all games",
-				"keys": ["archive.backToGames", "daily.backToGames"]
 			},
 			{
 				"value": "Best",
@@ -5952,10 +5944,6 @@
 				"keys": ["catalog.metaTitle", "catalog.suiteTitle", "catalog.title", "footer.allGames"]
 			},
 			{
-				"value": "すべてのゲームに戻る",
-				"keys": ["archive.backToGames", "daily.backToGames"]
-			},
-			{
 				"value": "すべてのゲームを見る",
 				"keys": [
 					"catalog.gamePage.relatedAll",
@@ -7728,10 +7716,6 @@
 				]
 			},
 			{
-				"value": "Jugar ahora",
-				"keys": ["auth.brandPanel.playFree", "streak.playNow"]
-			},
-			{
 				"value": "Jugar {game} (3 de 19 gratis al día)",
 				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
 			},
@@ -8263,10 +8247,6 @@
 					"settings.playerCard.stats.wins",
 					"stats.calendar.tableWon"
 				]
-			},
-			{
-				"value": "Volver a todos los juegos",
-				"keys": ["archive.backToGames", "daily.backToGames"]
 			},
 			{
 				"value": "Volver al inicio",
@@ -8871,10 +8851,6 @@
 					"footer.playHeading",
 					"home.lineup.play"
 				]
-			},
-			{
-				"value": "Jogar agora",
-				"keys": ["auth.brandPanel.playFree", "streak.playNow"]
 			},
 			{
 				"value": "Jogar o desafio de hoje",
@@ -9499,10 +9475,6 @@
 			{
 				"value": "Voltar ao início",
 				"keys": ["daily.backToHome", "gameResult.backToHome"]
-			},
-			{
-				"value": "Voltar para todos os jogos",
-				"keys": ["archive.backToGames", "daily.backToGames"]
 			},
 			{
 				"value": "dias",

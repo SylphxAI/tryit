@@ -29,7 +29,9 @@ test('sign-in uses neutral copy and support and discovery state the shared UTC r
 	request,
 }) => {
 	await page.goto('/sign-in')
-	await expect(page.getByText('New puzzles every day', { exact: true }).first()).toBeVisible()
+	await expect(
+		page.getByRole('complementary').getByRole('heading', { name: 'Keep your progress with you' }),
+	).toBeVisible()
 	expect(await page.content()).not.toMatch(regionalClock)
 	await page.goto('/support')
 	const resetAnswer = page.locator('#faq details').filter({ hasText: '16:00 UTC' })

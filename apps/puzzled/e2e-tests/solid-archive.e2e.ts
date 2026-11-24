@@ -1,4 +1,6 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import { settle, WCAG_TAGS } from './a11y-support'
 
 // Run against the Solid production build with the open-plan puzzle fixture as API_INTERNAL_URL.
 test('archive calendar and category link to the chosen past day without starting a game', async ({
@@ -19,8 +21,13 @@ test('archive calendar and category link to the chosen past day without starting
 	await expect(page.getByRole('heading', { name: 'Your puzzle archive' })).toBeVisible()
 	const dates = page.getByRole('group', { name: 'Pick a day' }).getByRole('button')
 	const games = page.locator('[data-archive-almanac] a')
+	await expect(page.getByRole('link', { name: 'Back to all games' })).toHaveCount(0)
+	await expect(page.getByText(/^Yesterday, .+ is a good place to start/)).toBeVisible()
 	await expect(dates).toHaveCount(30)
 	await expect(games).toHaveCount(19)
+	await expect(games.locator('svg.lucide-lock-keyhole[aria-hidden="true"]')).toHaveCount(19)
+	await expect(page.getByText('Plus to play', { exact: true })).toHaveCount(0)
+	await expect(games.first()).toHaveAccessibleDescription('Requires Tryit Plus')
 	const original = await page.locator('#archive-day-title time').getAttribute('datetime')
 	await dates.nth(1).click()
 	await expect(dates.nth(1)).toHaveAttribute('aria-pressed', 'true')
@@ -72,6 +79,8 @@ for (const viewport of [
 		const dock = await page.locator('[data-consent-banner]').boundingBox()
 		expect(box!.y + box!.height).toBeLessThanOrEqual(Math.min(calendar!.y, dock!.y))
 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width)
+		await settle(page)
+		expect((await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations).toEqual([])
 		await cta.click()
 		await expect(page).toHaveURL(
 			(url) =>

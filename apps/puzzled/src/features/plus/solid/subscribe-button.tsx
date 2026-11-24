@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { ExternalLink } from 'lucide-solid'
+import { ArrowRight, ExternalLink } from 'lucide-solid'
 import { createSignal, createUniqueId, onMount, Show } from 'solid-js'
 import { hasAnalyticsConsent } from '@/features/analytics/lib/consent'
 import { trackGa4KeyEvent } from '@/features/analytics/lib/ga4-key-events'
@@ -29,6 +29,8 @@ type Props = {
 	checkoutTrigger?: string
 	/** Compact vertical rhythm for above-the-fold unlock panels (keeps Reg 36/37 intact). */
 	compact?: boolean
+	/** Separate statutory withdrawal from the price and renewal terms on pricing. */
+	pricingPage?: boolean
 }
 
 /**
@@ -46,7 +48,7 @@ export function SubscribeButton(props: Props) {
 	const [error, setError] = createSignal<string | null>(null)
 	const [consent, setConsent] = createSignal(false)
 	const requiresWaiver = isOneTimePassPlan(props.planId as PlanId)
-	const waiverLabelId = createUniqueId()
+	const termsId = createUniqueId()
 	let waiverInput: HTMLInputElement | undefined
 	// The native checkbox is usable before hydration; its early change event
 	// is not replayed. Seed client state from the actual choice, not from SSR.
@@ -77,10 +79,10 @@ export function SubscribeButton(props: Props) {
 						class="mt-0.5 h-5 w-5 shrink-0 accent-primary"
 						onChange={(event) => setConsent(event.currentTarget.checked)}
 					/>
-					<span id={waiverLabelId}>{t('immediateSupplyConsent')}</span>
+					<span id={termsId}>{t('immediateSupplyConsent')}</span>
 				</label>
 			) : null}
-			{props.locale === 'ja' && (
+			{props.locale === 'ja' && !props.pricingPage && (
 				<a
 					href={localizedPath(props.locale, '/tokushoho')}
 					class={
@@ -92,33 +94,23 @@ export function SubscribeButton(props: Props) {
 					特定商取引法に基づく表記
 				</a>
 			)}
-			{props.renewalNote ? (
+			{(props.renewalNote || (!requiresWaiver && !props.pricingPage)) && (
 				<p
 					class={
 						props.compact
 							? 'mb-2 text-xs leading-snug text-muted-foreground'
-							: 'mb-2.5 text-sm text-muted-foreground'
+							: 'mb-2.5 text-sm leading-snug text-muted-foreground'
 					}
 				>
 					{props.renewalNote}
-					{!requiresWaiver ? ` ${t('recurringSupplyTerms')}` : ''}
+					{!requiresWaiver && !props.pricingPage ? ` ${t('recurringSupplyTerms')}` : ''}
 				</p>
-			) : !requiresWaiver ? (
-				<p
-					class={
-						props.compact
-							? 'mb-2 text-xs leading-snug text-muted-foreground'
-							: 'mb-2.5 text-sm text-muted-foreground'
-					}
-				>
-					{t('recurringSupplyTerms')}
-				</p>
-			) : null}
+			)}
 			<button
 				type="button"
 				data-checkout-trigger={checkoutTrigger()}
 				class={buttonClass}
-				aria-describedby={requiresWaiver ? waiverLabelId : undefined}
+				aria-describedby={requiresWaiver || props.pricingPage ? termsId : undefined}
 				disabled={busy() || (requiresWaiver && !consent())}
 				onClick={async () => {
 					if (busy() || (requiresWaiver && !consent())) return
@@ -176,13 +168,22 @@ export function SubscribeButton(props: Props) {
 				}}
 			>
 				{busy() ? t('subscribing') : props.label}
-				<ExternalLink class="h-4 w-4" aria-hidden="true" />
+				{props.pricingPage ? (
+					<ArrowRight class="h-4 w-4 shrink-0" aria-hidden="true" />
+				) : (
+					<ExternalLink class="h-4 w-4" aria-hidden="true" />
+				)}
 			</button>
 			<Show when={error()}>
 				<p role="alert" class="mt-2 text-sm text-destructive">
 					{error()}
 				</p>
 			</Show>
+			{props.pricingPage && !requiresWaiver ? (
+				<p id={termsId} class="mt-2 text-xs leading-relaxed text-muted-foreground">
+					{t('recurringSupplyTerms')}
+				</p>
+			) : null}
 		</div>
 	)
 }

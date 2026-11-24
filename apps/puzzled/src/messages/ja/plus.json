@@ -47,6 +47,7 @@
 		"planChoice": "プランを選ぶ",
 		"monthlyEquivalent": "月あたり{price}",
 		"continueToPayment": "お支払いへ進む",
+		"startPlus": "Tryit Plusを始める",
 		"renewsYearly": "解約するまで、毎年{price}で自動更新されます。設定からいつでも解約できます。",
 		"renewsMonthly": "解約するまで、毎月{price}で自動更新されます。設定からいつでも解約できます。",
 		"familyLink": "最大{count}人のファミリープラン",

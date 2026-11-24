@@ -47,6 +47,7 @@
 		"planChoice": "Escolha um plano",
 		"monthlyEquivalent": "{price} por mês",
 		"continueToPayment": "Continuar para o pagamento",
+		"startPlus": "Começar com o Tryit Plus",
 		"renewsYearly": "Renova todo ano por {price} até você cancelar. Cancele quando quiser em Configurações.",
 		"renewsMonthly": "Renova todo mês por {price} até você cancelar. Cancele quando quiser em Configurações.",
 		"familyLink": "Plano família para até {count} jogadores",

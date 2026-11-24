@@ -47,6 +47,7 @@
 		"planChoice": "选择方案",
 		"monthlyEquivalent": "每月 {price}",
 		"continueToPayment": "继续付款",
+		"startPlus": "开始使用 Tryit Plus",
 		"renewsYearly": "每年以 {price} 自动续期，直到你取消。可随时在“设置”中取消。",
 		"renewsMonthly": "每月以 {price} 自动续期，直到你取消。可随时在“设置”中取消。",
 		"familyLink": "最多 {count} 人的家庭方案",

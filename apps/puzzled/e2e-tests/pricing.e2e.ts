@@ -1,6 +1,7 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, type Locator, type Page, test } from '@playwright/test'
 import { CONSENT_KEY } from '../src/lib/storage-keys'
-import { settle } from './a11y-support'
+import { settle, WCAG_TAGS } from './a11y-support'
 
 /** Pricing choices, benefits and guest return paths stay available at every size. */
 const VIEWPORTS = [
@@ -30,8 +31,11 @@ for (const [width, height] of [
 		])
 		await page.evaluate(() => document.fonts.ready)
 		if (width === 390) await expect(page.locator('.site-tab-bar')).toBeVisible()
+		const family = page.getByRole('link', { name: /^Family plan for up to \d+ players$/ })
+		if (width === 390) await expect(family).toBeVisible()
+		else await expect(family).toHaveCount(0)
 		for (const name of [
-			/^Family plan for up to \d+ players$/,
+			...(width === 390 ? [/^Family plan for up to \d+ players$/] : []),
 			/^Not now — play 3 free puzzles of 19 daily$/,
 		]) {
 			const link = page.getByRole('link', { name })
@@ -65,7 +69,7 @@ for (const [width, height] of [
 }
 
 test('pricing exits paint keyboard focus but no mouse focus ring', async ({ page }) => {
-	await page.setViewportSize({ width: 1280, height: 803 })
+	await page.setViewportSize({ width: 390, height: 844 })
 	await openPricing(page)
 	const family = page.getByRole('link', { name: 'Family plan for up to 4 players', exact: true })
 	const freePlay = page.getByRole('link', {
@@ -139,7 +143,7 @@ for (const viewport of VIEWPORTS) {
 				if (viewport.width === 1440 || viewport.width === 390) {
 					// Before dismissing the cookie banner or scrolling, the flagship CTA
 					// must be 100% unobstructed and never overlap the cookie banner.
-					const plusCta = page.locator('#plus').getByRole('button', { name: 'Continue to payment' })
+					const plusCta = page.locator('#plus').getByRole('button', { name: 'Start Tryit Plus' })
 					await expect(plusCta).toBeEnabled()
 					const unobstructed = await plusCta.evaluate((el) => {
 						const r = el.getBoundingClientRect()
@@ -165,7 +169,7 @@ for (const viewport of VIEWPORTS) {
 					expect(unobstructed.overlapsBanner).toBe(false)
 					expect(unobstructed.hitAllCorners).toBe(true)
 					if (viewport.width === 1440) {
-						// Flagship Continue to payment sits cleanly inside the initial laptop & desktop fold.
+						// Flagship checkout sits cleanly inside the initial laptop & desktop fold.
 						const bottom = await plusCta.evaluate((el) => el.getBoundingClientRect().bottom)
 						expect(bottom).toBeLessThanOrEqual(viewport.height)
 					}
@@ -181,7 +185,9 @@ for (const viewport of VIEWPORTS) {
 					).toBeVisible()
 					// Recurring subscriptions (Yearly default) never render the Reg 37 14-day waiver checkbox.
 					await expect(offer.getByRole('checkbox')).toHaveCount(0)
-					const cta = offer.getByRole('button', { name: 'Continue to payment' })
+					const cta = offer.getByRole('button', {
+						name: id === 'plus' ? 'Start Tryit Plus' : 'Continue to payment',
+					})
 					await expect(cta).toBeEnabled()
 					await cta.evaluate((el) => el.scrollIntoView({ block: 'center' }))
 					await expect(cta).toBeInViewport({ ratio: 1 })
@@ -246,7 +252,7 @@ for (const viewport of VIEWPORTS) {
 
 			// Cold guests and signed-in non-members get compliant Reg 36 terms + enabled payment CTA on recurring plans.
 			await expect(offer.getByRole('checkbox')).toHaveCount(0)
-			const payment = offer.getByRole('button', { name: 'Continue to payment' })
+			const payment = offer.getByRole('button', { name: 'Start Tryit Plus' })
 			await payment.scrollIntoViewIfNeeded()
 			await expect(payment).toBeInViewport({ ratio: 1 })
 			await expect(payment).toBeEnabled()
@@ -266,9 +272,9 @@ for (const viewport of VIEWPORTS) {
 			await expect(freePlay).toHaveCount(1)
 			await freePlay.evaluate((el) => el.scrollIntoView({ block: 'center' }))
 			await expect(freePlay).toBeInViewport({ ratio: 1 })
-			await expect(
-				page.getByRole('link', { name: /^Family plan for up to \d+ players$/ }),
-			).toBeVisible()
+			const family = page.getByRole('link', { name: /^Family plan for up to \d+ players$/ })
+			if (viewport.width < 1024) await expect(family).toBeVisible()
+			else await expect(family).toHaveCount(0)
 			// The only other free-play control would be a duplicate button.
 			await expect(page.getByRole('link', { name: /^Play today's free puzzle/ })).toHaveCount(0)
 
@@ -343,7 +349,7 @@ for (const viewport of VIEWPORTS) {
 			const offer = page.locator('#plus')
 			test.skip((await offer.getByRole('radio').count()) === 0, 'sales are closed')
 			await expect(offer.getByRole('checkbox')).toHaveCount(0)
-			await offer.getByRole('button', { name: 'Continue to payment' }).click()
+			await offer.getByRole('button', { name: 'Start Tryit Plus' }).click()
 
 			await page.waitForURL(/\/settings\/subscription\?checkout=success&s=cs_e2e_guest_1/)
 			await settle(page)
@@ -608,7 +614,7 @@ test.describe('Post-payment verified-email handoff and auth brand panel contrast
 					return { textCount: textNodes.length, textMin, checkCount: checks.length, checkMin }
 				})
 
-				expect(report.textCount).toBeGreaterThanOrEqual(8)
+				expect(report.textCount).toBe(6)
 				expect(report.textMin).toBeGreaterThanOrEqual(7)
 				expect(report.checkCount).toBe(3)
 				expect(report.checkMin).toBeGreaterThanOrEqual(4.5)
@@ -687,7 +693,11 @@ for (const mobile of [false, true]) {
 					const radio = offer.locator(`input[type="radio"][value="${plan.interval}"]`)
 					await expect(radio.locator('..').getByText(prices[index], { exact: true })).toBeVisible()
 					await radio.check()
-					const cta = offer.getByRole('button', { name: 'Continue to payment', exact: true })
+					const name =
+						plan.offer === 'plus' && plan.interval !== 'once'
+							? 'Start Tryit Plus'
+							: 'Continue to payment'
+					const cta = offer.getByRole('button', { name, exact: true })
 					if (plan.interval !== 'once') await expect(offer.getByRole('checkbox')).toHaveCount(0)
 					await expect(cta).toBeEnabled()
 					await cta.click()
@@ -737,3 +747,58 @@ test('zh-TW pricing starts in TWD despite geo and preserves the currency switche
 		(await context.cookies()).find((cookie) => cookie.name === 'puzzled_currency')?.value,
 	).toBe('jpy')
 })
+
+for (const [locale, path, label] of [
+	['en-US', '/pricing', 'Start Tryit Plus'],
+	['ja', '/ja/pricing', 'Tryit Plusを始める'],
+	['es', '/es/pricing', 'Empezar con Tryit Plus'],
+	['pt-BR', '/pt-BR/pricing', 'Começar com o Tryit Plus'],
+]) {
+	test(`${locale} flagship offer clears both docks at 390×844`, async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 })
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		await page.goto(path)
+		await expect(page.locator('html')).toHaveAttribute('lang', locale)
+		await expect(page.locator('[data-consent-banner]')).toBeVisible()
+		await expect(page.locator('.site-tab-bar')).toBeVisible()
+		await settle(page)
+		const button = page.locator('#plus').getByRole('button', { name: label, exact: true })
+		await expect(button).toBeEnabled()
+		await expect(button.locator('svg')).toHaveClass(/lucide-arrow-right/)
+		const termsId = await button.getAttribute('aria-describedby')
+		expect(termsId).toBeTruthy()
+		const finePrint = page.locator(`[id="${termsId}"]`)
+		await expect(finePrint).toBeVisible()
+		await expect(finePrint).toContainText(locale === 'ja' ? '14日' : '14')
+		const geometry = await button.evaluate((el) => {
+			const bounds = el.getBoundingClientRect()
+			const dockTop = Math.min(
+				...Array.from(
+					document.querySelectorAll('[data-consent-banner], .site-tab-bar'),
+					(dock) => dock.getBoundingClientRect().top,
+				),
+			)
+			const card = el.closest('#plus')?.firstElementChild
+			const benefits = card?.querySelector('ul')
+			return {
+				dockTop,
+				cardBottom: card?.getBoundingClientRect().bottom ?? Infinity,
+				benefitsBottom: benefits?.getBoundingClientRect().bottom ?? Infinity,
+				buttonTop: bounds.top,
+				buttonBottom: bounds.bottom,
+				finePrintTop:
+					document
+						.getElementById(el.getAttribute('aria-describedby') ?? '')
+						?.getBoundingClientRect().top ?? -1,
+				overflow: document.documentElement.scrollWidth - innerWidth,
+				scroll: scrollY,
+			}
+		})
+		expect(geometry.cardBottom).toBeLessThanOrEqual(geometry.dockTop)
+		expect(geometry.benefitsBottom).toBeLessThan(geometry.buttonTop)
+		expect(geometry.finePrintTop).toBeGreaterThan(geometry.buttonBottom)
+		expect(geometry.overflow).toBe(0)
+		expect(geometry.scroll).toBe(0)
+		expect((await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations).toEqual([])
+	})
+}

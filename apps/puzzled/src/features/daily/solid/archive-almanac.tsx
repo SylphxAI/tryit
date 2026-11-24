@@ -152,6 +152,11 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 						{props.labels.dayCount.replace('{count}', formats().count.format(visible().length))}
 					</p>
 				</div>
+				{props.locked ? (
+					<p id="archive-locked-description" class="sr-only">
+						{props.labels.locked}
+					</p>
+				) : null}
 				<ul class="mt-3 grid grid-cols-2 gap-2.5 sm:mt-4 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4">
 					<For each={visible()}>
 						{(game) => {
@@ -160,6 +165,7 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 								<li class="min-w-0">
 									<a
 										href={localizedPath(props.locale, archivePlayPath(game.slug, selected()))}
+										aria-describedby={props.locked ? 'archive-locked-description' : undefined}
 										class="editorial-surface editorial-interactive flex h-full min-h-17 items-center gap-2 rounded-xl border border-hairline bg-card p-2 shadow-md hover:border-muted-foreground/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-safe:transition-[transform,box-shadow,border-color] motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.99] sm:gap-3 sm:p-2.5"
 									>
 										<span
@@ -183,15 +189,19 @@ export function ArchiveAlmanac(props: ArchiveAlmanacProps) {
 											<span class="block text-sm leading-tight font-bold [overflow-wrap:anywhere]">
 												{game.name}
 											</span>
-											<span class="mt-1 flex items-center gap-1 text-xs leading-tight text-muted-foreground [overflow-wrap:anywhere]">
-												{props.locked ? (
-													<LockKeyhole class="h-3 w-3 shrink-0" aria-hidden="true" />
-												) : (
-													<Play class="h-3 w-3 shrink-0" aria-hidden="true" />
-												)}
-												{props.locked ? props.labels.locked : props.labels.play}
-											</span>
+											{!props.locked ? (
+												<span class="mt-1 flex items-center gap-1 text-xs leading-tight text-muted-foreground">
+													<Play class="size-3 shrink-0" aria-hidden="true" />
+													{props.labels.play}
+												</span>
+											) : null}
 										</span>
+										{props.locked ? (
+											<LockKeyhole
+												class="size-3.5 shrink-0 text-muted-foreground"
+												aria-hidden="true"
+											/>
+										) : null}
 									</a>
 								</li>
 							)
