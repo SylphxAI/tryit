@@ -29,7 +29,9 @@ describe('announcement editor request', () => {
 	})
 
 	test('the editor no longer offers premium-only or show-once', async () => {
-		const source = await Bun.file(new URL('../solid/admin-controls.tsx', import.meta.url)).text()
+		const source = await Bun.file(
+			new URL('../solid/admin-announcements.tsx', import.meta.url),
+		).text()
 		for (const gone of ['targetPremiumOnly', 'targetAllUsers', 'showOnce', 'premiumOnly']) {
 			expect(source).not.toContain(gone)
 		}
