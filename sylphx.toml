@@ -79,9 +79,10 @@ connect = { services = ["api"] }
 name = "api"
 instance_type = "nano"
 port = 8080
-# Complete public API namespace routes to Rust; no dual backend remains.
+# Public API and signed Compute callbacks route to Rust.
 path_prefixes = [
   "/v1/guest/session",
+  "/internal/compute",
   "/puzzled.v1.FunnelService",
   "/puzzled.v1.AdminService",
   "/puzzled.v1.BillingService",
