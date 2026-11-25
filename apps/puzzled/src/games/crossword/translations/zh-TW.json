@@ -1,5 +1,8 @@
 {
 	"clues": "提示",
+	"previousClue": "上一則提示",
+	"nextClue": "下一則提示",
+	"switchDirection": "切換方向",
 	"name": "迷你填字",
 	"tagline": "5×5 方格 • 快速解謎",
 	"highlight": "5×5 謎題",

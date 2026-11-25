@@ -1,10 +1,16 @@
-import type { CrosswordDirection, CrosswordPuzzleClientData, CrosswordState } from './types'
-import { GRID_SIZE, isClueFilled, isGridFilled, resolveDirection } from './types'
+import type {
+	CrosswordClue,
+	CrosswordDirection,
+	CrosswordPuzzleClientData,
+	CrosswordState,
+} from './types'
+import { GRID_SIZE, hasDownClues, isClueFilled, isGridFilled, resolveDirection } from './types'
 
 // Actions for the reducer
 export type CrosswordAction =
 	| { type: 'SELECT_CELL'; row: number; col: number; direction?: CrosswordDirection }
 	| { type: 'TOGGLE_DIRECTION' }
+	| { type: 'STEP_CLUE'; delta: 1 | -1 }
 	| { type: 'SET_DIRECTION'; direction: CrosswordDirection }
 	| { type: 'INPUT_LETTER'; letter: string }
 	| { type: 'DELETE_LETTER' }
@@ -13,6 +19,25 @@ export type CrosswordAction =
 	| { type: 'CHECK_PROGRESS'; puzzleData: CrosswordPuzzleClientData }
 	| { type: 'MARK_COMPLETE' }
 	| { type: 'RESET' }
+
+export function inClue(
+	clue: CrosswordClue,
+	row: number,
+	col: number,
+	direction: CrosswordDirection,
+) {
+	return direction === 'across'
+		? row === clue.row && col >= clue.col && col < clue.col + clue.length
+		: col === clue.col && row >= clue.row && row < clue.row + clue.length
+}
+
+export function findActiveClue(state: CrosswordState, clues: CrosswordPuzzleClientData['clues']) {
+	const { selectedCell, direction } = state
+	if (!selectedCell) return undefined
+	return clues[direction].find((clue) =>
+		inClue(clue, selectedCell.row, selectedCell.col, direction),
+	)
+}
 
 export function createInitialState(puzzleData: CrosswordPuzzleClientData): CrosswordState {
 	// Create empty user grid matching puzzle structure
@@ -63,13 +88,7 @@ export function crosswordReducer(
 
 			// If clicking same cell, toggle direction
 			if (!action.direction && state.selectedCell?.row === row && state.selectedCell?.col === col) {
-				return {
-					...state,
-					direction: resolveDirection(
-						state.direction === 'across' ? 'down' : 'across',
-						puzzleData.clues,
-					),
-				}
+				return crosswordReducer(state, { type: 'TOGGLE_DIRECTION' }, puzzleData)
 			}
 
 			return {
@@ -81,13 +100,41 @@ export function crosswordReducer(
 		}
 
 		case 'TOGGLE_DIRECTION': {
-			return {
-				...state,
-				direction: resolveDirection(
-					state.direction === 'across' ? 'down' : 'across',
-					puzzleData.clues,
-				),
+			if (!hasDownClues(puzzleData.clues)) return state
+			return { ...state, direction: state.direction === 'across' ? 'down' : 'across' }
+		}
+
+		case 'STEP_CLUE': {
+			const { clues } = puzzleData
+			const ordered = clues.across.map<{ clue: CrosswordClue; direction: CrosswordDirection }>(
+				(clue) => ({ clue, direction: 'across' }),
+			)
+			if (hasDownClues(clues)) {
+				for (const clue of clues.down) ordered.push({ clue, direction: 'down' })
 			}
+			const count = ordered.length
+			if (count <= 1) return state
+
+			const active = findActiveClue(state, clues)
+			const index = ordered.findIndex(
+				({ clue, direction }) => clue === active && direction === state.direction,
+			)
+			const target =
+				index < 0 ? (action.delta === 1 ? 0 : count - 1) : (index + action.delta + count) % count
+			const { clue, direction } = ordered[target]
+			let selectedCell = { row: clue.row, col: clue.col }
+			if (puzzleData.grid[clue.row]?.[clue.col] == null) return state
+			for (let offset = 0; offset < clue.length; offset++) {
+				const row = clue.row + (direction === 'down' ? offset : 0)
+				const col = clue.col + (direction === 'across' ? offset : 0)
+				const letter = state.userGrid[row]?.[col]
+				if (letter == null) break
+				if (letter.trim() === '') {
+					selectedCell = { row, col }
+					break
+				}
+			}
+			return { ...state, selectedCell, direction }
 		}
 
 		case 'SET_DIRECTION': {

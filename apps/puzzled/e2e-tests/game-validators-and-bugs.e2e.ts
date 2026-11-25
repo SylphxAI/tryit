@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, test } from '@playwright/test'
 import frameFixtures from '../../../crates/puzzled-core/tests/fixtures/generate/word-box.json'
 import { productDayKey } from '../src/lib/product-day'
@@ -289,6 +290,118 @@ test('Crossword types immediately, switches clues live, and marks only rejected 
 	await expect(second).not.toHaveCSS('box-shadow', 'none')
 	await expect(board.locator('[aria-invalid="true"]')).toHaveCount(1)
 	await expect(board.getByText('✓', { exact: true })).toHaveCount(0)
+})
+
+const navigationGrid = [
+	['', '', null, null, null],
+	['', null, null, null, null],
+	...Array.from({ length: 3 }, () => [null, null, null, null, null]),
+]
+const navigationAcross = { number: 1, row: 0, col: 0, length: 2, clue: 'First row' }
+const navigationDown = {
+	number: 1,
+	row: 0,
+	col: 0,
+	length: 2,
+	clue: 'A deliberately long clue that wraps without pushing either of the navigation buttons out of the clue bar',
+}
+
+for (const viewport of [
+	{ width: 390, height: 844 },
+	{ width: 1440, height: 900 },
+]) {
+	const touch = viewport.width === 390
+	test.describe(`Mini Grid clue bar at ${viewport.width}×${viewport.height}`, () => {
+		test.use({ viewport, hasTouch: touch, colorScheme: touch ? 'dark' : 'light' })
+
+		test('wraps, resumes on the next empty cell, and leaves native Tab navigation intact', async ({
+			page,
+		}) => {
+			await play(page, 'crossword', {
+				grid: navigationGrid,
+				clues: { across: [navigationAcross], down: [navigationDown] },
+			})
+			const board = page.locator('[data-crossword-board]')
+			const bar = board.locator('[data-crossword-clue-bar]')
+			const status = bar.getByRole('status')
+			const previous = bar.getByRole('button', { name: 'Previous clue' })
+			const next = bar.getByRole('button', { name: 'Next clue' })
+			const toggle = bar.getByRole('button', { name: /Switch direction$/ })
+			const first = board.locator('[data-crossword-cell="0,0"]')
+			const third = board.locator('[data-crossword-cell="1,0"]')
+			await expect(status).toHaveText('1 Across: First row')
+			await first.focus()
+			await page.keyboard.press('a')
+			await expect(first).toHaveAccessibleName(/, A$/)
+			if (touch) await previous.tap()
+			else await previous.click()
+			await expect(status).toHaveText(`1 Down: ${navigationDown.clue}`)
+			await expect(third).toBeFocused()
+			await expect(third).toHaveAttribute('aria-pressed', 'true')
+			for (const button of [previous, next]) {
+				const box = await button.boundingBox()
+				expect(box?.width).toBeGreaterThanOrEqual(44)
+				expect(box?.height).toBeGreaterThanOrEqual(44)
+			}
+			for (const element of [bar, page.locator('html')]) {
+				expect(await element.evaluate((el) => el.scrollWidth - el.clientWidth)).toBe(0)
+			}
+			const scan = await new AxeBuilder({ page })
+				.include('[data-crossword-clue-bar]')
+				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'])
+				.analyze()
+			expect(scan.violations).toEqual([])
+
+			if (touch) await next.tap()
+			else await next.click()
+			await expect(status).toHaveText('1 Across: First row')
+			const second = board.locator('[data-crossword-cell="0,1"]')
+			await expect(second).toBeFocused()
+			await page.keyboard.press('ArrowLeft')
+			await expect(first).toBeFocused()
+			if (touch) await toggle.tap()
+			else await toggle.click()
+			await expect(status).toContainText('1 Down:')
+			await expect(first).toBeFocused()
+			await page.keyboard.press('ArrowRight')
+			await expect(second).toBeFocused()
+			await expect(status).toHaveText('1 Across: First row')
+			await page.keyboard.press('Tab')
+			await expect(previous).toBeFocused()
+			await page.keyboard.press('Enter')
+			await expect(status).toContainText('1 Down:')
+			await expect(previous).toBeFocused()
+			await page.keyboard.press('Shift+Tab')
+			await expect(third).toBeFocused()
+			for (const control of [previous, toggle, next]) {
+				await page.keyboard.press('Tab')
+				await expect(control).toBeFocused()
+			}
+			await page.keyboard.press('Space')
+			await expect(status).toHaveText('1 Across: First row')
+			await expect(next).toBeFocused()
+			await page.keyboard.press('Tab')
+			await expect(board.getByRole('button', { name: 'Q', exact: true })).toBeFocused()
+			for (let i = 0; i < 27; i++) await page.keyboard.press('Tab')
+			await expect(board.getByRole('button', { name: 'Check', exact: true })).toBeFocused()
+			await page.keyboard.press('Tab')
+			await expect(board.locator('summary')).toBeFocused()
+		})
+	})
+}
+
+test('Mini Grid keeps the clue visible and disables navigation on a single-clue archive grid', async ({
+	page,
+}) => {
+	await play(page, 'crossword', {
+		grid: navigationGrid,
+		clues: { across: [navigationAcross], down: [] },
+	})
+	const bar = page.locator('[data-crossword-clue-bar]')
+	await expect(bar.getByRole('status')).toHaveText('1 Across: First row')
+	await expect(bar.getByRole('button', { name: 'Previous clue' })).toBeDisabled()
+	await expect(bar.getByRole('button', { name: 'Next clue' })).toBeDisabled()
+	await expect(bar.getByRole('button', { name: /Switch direction/ })).toHaveCount(0)
 })
 
 test('Killer Sudoku flags a wrong total, protects digits in Notes, and can undo a reset', async ({

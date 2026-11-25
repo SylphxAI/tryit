@@ -1,5 +1,8 @@
 {
 	"clues": "ヒント",
+	"previousClue": "前のヒント",
+	"nextClue": "次のヒント",
+	"switchDirection": "タテ・ヨコを切り替え",
 	"name": "ミニクロス",
 	"tagline": "5×5マス • サクッと解ける",
 	"highlight": "5×5パズル",
