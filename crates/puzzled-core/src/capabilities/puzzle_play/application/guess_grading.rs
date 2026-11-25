@@ -54,6 +54,10 @@ fn grade_word_guess(solution: &Value, guess: &Value) -> Result<Value, String> {
         .and_then(Value::as_str)
         .ok_or("missing guess word")?
         .trim();
+    // A stored Five answer may predate the current dictionary. It must remain solvable.
+    if !answer.eq_ignore_ascii_case(word) {
+        super::grading::quad_words::validate_word(word)?;
+    }
     let statuses = evaluate_guess(word, answer).ok_or("guess must be a five-letter word")?;
     let tiles: Vec<&str> = statuses
         .iter()
@@ -127,6 +131,17 @@ mod tests {
             json!(["present", "present", "correct", "absent", "absent"])
         );
         assert!(grade_guess("word-guess", &solution, &json!({"word": "abc"})).is_err());
+    }
+
+    #[test]
+    fn five_accepts_stored_answers_outside_the_new_bank() {
+        let stored = json!({"word": "FECAL"});
+        let graded = grade_guess("word-guess", &stored, &json!({"word": "fecal"})).unwrap();
+        assert_eq!(graded["tiles"], json!(vec!["correct"; 5]));
+        assert_eq!(
+            grade_guess("word-guess", &stored, &json!({"word": "ZZZZZ"})),
+            Err("Not in word list".into())
+        );
     }
 
     #[test]

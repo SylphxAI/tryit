@@ -15,7 +15,7 @@ describe('playerTitle', () => {
 		expect(playerTitle('queens')).toBe('Crowns')
 		expect(playerTitle('tango')).toBe('Duo')
 		expect(playerTitle('word-guess')).toBe('Five')
-		expect(playerTitle('word-groups')).toBe('Threads')
+		expect(playerTitle('word-groups')).toBe('Quartet')
 		expect(playerTitle('quad-words')).toBe('Quad')
 		expect(playerTitle('word-hive')).toBe('Hive')
 		expect(playerTitle('word-box')).toBe('Frame')

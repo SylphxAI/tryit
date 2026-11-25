@@ -118,8 +118,8 @@ const ACHIEVEMENT_LIST: Achievement[] = [
 	// Connections specific
 	{
 		id: 'connections-perfect',
-		name: 'Perfect Threads',
-		description: 'Solve Threads with no mistakes',
+		name: 'Perfect Quartet',
+		description: 'Solve Quartet with no mistakes',
 		icon: 'mdi:puzzle',
 		tier: 'gold',
 		category: 'special',

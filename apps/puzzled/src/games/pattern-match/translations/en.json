@@ -1,36 +1,36 @@
 {
 	"name": "Match",
-	"tagline": "12 cards • Find sets",
-	"highlight": "Set finder",
-	"description": "Find sets of 3 cards with matching patterns",
+	"tagline": "12 cards • Find trios",
+	"highlight": "Trio finder",
+	"description": "Find card trios with all-matching or all-different features.",
 	"howToPlay": "How to Play",
 	"rules": {
 		"title": "How to Play",
-		"rule1": "Find sets of 3 cards where each property is all same OR all different",
+		"rule1": "Find three cards. For each feature, the three cards must be all the same or all different.",
 		"rule2": "Each card has 4 properties: shape, color, fill, and count",
-		"rule3": "Select 3 cards that form a valid set"
+		"rule3": "Select three cards that form a valid trio."
 	},
 	"startGame": "Start Game",
-	"setsFound": "sets found",
+	"setsFound": "trios found",
 	"clear": "Clear",
 	"giveUp": "Give Up",
-	"hint": "Select 3 cards to check if they form a valid set",
-	"complete": "All sets found!",
+	"hint": "Select three cards to check if they form a valid trio.",
+	"complete": "All trios found!",
 	"card": {
 		"label": "{count}, {color}, {shape}, {fill}",
-		"diamond": "diamond",
-		"oval": "oval",
-		"squiggle": "squiggle",
-		"red": "red",
-		"green": "green",
-		"purple": "purple",
+		"circle": "circle",
+		"triangle": "triangle",
+		"hexagon": "hexagon",
+		"coral": "coral",
+		"teal": "teal",
+		"indigo": "indigo",
 		"solid": "solid",
-		"striped": "striped",
-		"empty": "empty"
+		"dotted": "dotted",
+		"outline": "outline"
 	},
 	"messages": {
-		"correct": "Valid set!",
-		"notASet": "Not a valid set",
-		"alreadyFound": "Set already found"
+		"correct": "Valid trio!",
+		"notASet": "Not a valid trio",
+		"alreadyFound": "Trio already found"
 	}
 }

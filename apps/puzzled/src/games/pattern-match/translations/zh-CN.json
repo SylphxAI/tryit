@@ -18,15 +18,15 @@
 	"complete": "全部组合找到！",
 	"card": {
 		"label": "{count} 个{color}{shape}，{fill}",
-		"diamond": "菱形",
-		"oval": "椭圆",
-		"squiggle": "波浪形",
-		"red": "红色",
-		"green": "绿色",
-		"purple": "紫色",
+		"circle": "圆形",
+		"triangle": "三角形",
+		"hexagon": "六边形",
+		"coral": "珊瑚色",
+		"teal": "蓝绿色",
+		"indigo": "靛蓝色",
 		"solid": "实心",
-		"striped": "条纹",
-		"empty": "空心"
+		"dotted": "圆点",
+		"outline": "仅轮廓"
 	},
 	"messages": {
 		"correct": "有效组合！",

@@ -1,9 +1,5 @@
-//! Daily generator for `cryptogram`: a port with byte parity of the TS
-//! generator (`apps/puzzled/src/games/cryptogram/generator.ts` + `types.ts`),
-//! checked against `tests/fixtures/generate/cryptogram.json`.
-//!
-//! The quote is `QUOTES[|seed| % len]`; the cipher is the alphabet shuffled
-//! with the frozen LCG seeded by the same seed.
+//! Cipher pairs a sourced public-domain excerpt with the alphabet shuffled
+//! by the frozen LCG. Stored puzzles retain their original wire shape.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -14,68 +10,24 @@ use crate::puzzle_play::random::{seeded_random, shuffle_array};
 const MAX_HINTS: u32 = 3;
 const ALPHABET: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-/// `(text, author, category)`, in the TS order.
-const QUOTES: &[(&str, &str, &str)] = &[
-    ("The only way to do great work is to love what you do.", "Steve Jobs", "Inspiration"),
-    ("In the middle of difficulty lies opportunity.", "Albert Einstein", "Inspiration"),
-    ("Be the change you wish to see in the world.", "Mahatma Gandhi", "Inspiration"),
-    ("The future belongs to those who believe in the beauty of their dreams.", "Eleanor Roosevelt", "Inspiration"),
-    ("Success is not final, failure is not fatal: it is the courage to continue that counts.", "Winston Churchill", "Inspiration"),
-    ("The only true wisdom is in knowing you know nothing.", "Socrates", "Wisdom"),
-    ("Knowledge speaks, but wisdom listens.", "Jimi Hendrix", "Wisdom"),
-    ("The unexamined life is not worth living.", "Socrates", "Wisdom"),
-    ("We are what we repeatedly do. Excellence is not an act but a habit.", "Aristotle", "Wisdom"),
-    ("To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.", "Ralph Waldo Emerson", "Wisdom"),
-    ("Imagination is more important than knowledge.", "Albert Einstein", "Science"),
-    ("The good thing about science is that it is true whether or not you believe in it.", "Neil deGrasse Tyson", "Science"),
-    ("Nothing in life is to be feared, it is only to be understood.", "Marie Curie", "Science"),
-    ("The important thing is not to stop questioning.", "Albert Einstein", "Science"),
-    ("Science is a way of thinking much more than it is a body of knowledge.", "Carl Sagan", "Science"),
-    ("It is never too late to be what you might have been.", "George Eliot", "Literature"),
-    ("The only thing we have to fear is fear itself.", "Franklin D. Roosevelt", "Literature"),
-    ("To be or not to be, that is the question.", "William Shakespeare", "Literature"),
-    ("All that glitters is not gold.", "William Shakespeare", "Literature"),
-    ("It was the best of times, it was the worst of times.", "Charles Dickens", "Literature"),
-    ("Life is what happens when you are busy making other plans.", "John Lennon", "Life"),
-    ("In three words I can sum up everything I have learned about life: it goes on.", "Robert Frost", "Life"),
-    ("The purpose of our lives is to be happy.", "Dalai Lama", "Life"),
-    ("Life is really simple, but we insist on making it complicated.", "Confucius", "Life"),
-    ("Get busy living or get busy dying.", "Stephen King", "Life"),
-    ("The secret of getting ahead is getting started.", "Mark Twain", "Success"),
-    ("I have not failed. I have just found ten thousand ways that will not work.", "Thomas Edison", "Success"),
-    ("It does not matter how slowly you go as long as you do not stop.", "Confucius", "Success"),
-    ("The best time to plant a tree was twenty years ago. The second best time is now.", "Chinese Proverb", "Success"),
-    ("Do what you can, with what you have, where you are.", "Theodore Roosevelt", "Success"),
-    ("Creativity is intelligence having fun.", "Albert Einstein", "Creativity"),
-    ("The chief enemy of creativity is good sense.", "Pablo Picasso", "Creativity"),
-    ("Every child is an artist. The problem is how to remain an artist once we grow up.", "Pablo Picasso", "Creativity"),
-    ("You can not use up creativity. The more you use, the more you have.", "Maya Angelou", "Creativity"),
-    ("Creativity takes courage.", "Henri Matisse", "Creativity"),
-    ("I think, therefore I am.", "Rene Descartes", "Philosophy"),
-    ("The only thing I know is that I know nothing.", "Socrates", "Philosophy"),
-    ("Man is condemned to be free.", "Jean-Paul Sartre", "Philosophy"),
-    ("Happiness is not something ready made. It comes from your own actions.", "Dalai Lama", "Philosophy"),
-    ("He who has a why to live can bear almost any how.", "Friedrich Nietzsche", "Philosophy"),
-    ("Courage is not the absence of fear, but rather the judgment that something else is more important than fear.", "Ambrose Redmoon", "Courage"),
-    ("You gain strength, courage and confidence by every experience in which you really stop to look fear in the face.", "Eleanor Roosevelt", "Courage"),
-    ("Fortune favors the bold.", "Virgil", "Courage"),
-    ("Life shrinks or expands in proportion to one's courage.", "Anais Nin", "Courage"),
-    ("Have the courage to follow your heart and intuition.", "Steve Jobs", "Courage"),
-    ("I am so clever that sometimes I do not understand a single word of what I am saying.", "Oscar Wilde", "Humor"),
-    ("The only mystery in life is why the kamikaze pilots wore helmets.", "Al McGuire", "Humor"),
-    ("I refuse to join any club that would have me as a member.", "Groucho Marx", "Humor"),
-    ("Behind every great man is a woman rolling her eyes.", "Jim Carrey", "Humor"),
-    ("A day without sunshine is like, you know, night.", "Steve Martin", "Humor"),
-];
+// Fields: excerpt, author, work/edition, publication year, category, Gutenberg ID.
+const QUOTES: &str = include_str!("data/cryptogram_quotes.tsv");
+const QUOTE_COUNT: usize = 50;
+
+fn quote(row: &str) -> Option<(&str, &str, &str)> {
+    let [text, author, _, year, category, _]: [&str; 6] =
+        row.split('\t').collect::<Vec<_>>().try_into().ok()?;
+    (year.parse::<u16>().ok()? < 1929).then_some((text, author, category))
+}
 
 /// `(puzzle_data, solution)` for a seed, or why none could be made.
 pub fn generate(seed: i64, _difficulty: Option<&str>) -> Result<(Value, Value), String> {
-    let len = i64::try_from(QUOTES.len()).map_err(|e| e.to_string())?;
-    let index = usize::try_from(seed.abs() % len).map_err(|e| e.to_string())?;
+    let index = (seed.unsigned_abs() % QUOTE_COUNT as u64) as usize;
     let (text, author, category) = QUOTES
-        .get(index)
-        .copied()
-        .ok_or_else(|| "cryptogram: index out of range".to_string())?;
+        .lines()
+        .nth(index)
+        .and_then(quote)
+        .ok_or_else(|| "cryptogram: invalid quote record".to_string())?;
 
     let letters: Vec<char> = ALPHABET.chars().collect();
     let shuffled = shuffle_array(&letters, &mut seeded_random(seed));
@@ -126,4 +78,65 @@ pub fn solution_submission(solution: &Value) -> Value {
         "guesses": solution.get("reverseCipher").cloned().unwrap_or_else(|| json!({})),
         "hintsUsed": 0,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verified_editions_and_playable_cipher_for_every_quote() {
+        // Checked against the transcriptions of these eight editions, not just
+        // an author/date written next to a new quote.
+        let editions = [
+            ("98", "Charles Dickens", "A Tale of Two Cities", "1859"),
+            ("174", "Oscar Wilde", "The Picture of Dorian Gray", "1891"),
+            ("205", "Henry David Thoreau", "Walden", "1854"),
+            ("514", "Louisa May Alcott", "Little Women", "1869"),
+            (
+                "844",
+                "Oscar Wilde",
+                "The Importance of Being Earnest",
+                "1899",
+            ),
+            ("1342", "Jane Austen", "Pride and Prejudice", "1813"),
+            ("1524", "William Shakespeare", "Hamlet", "1604"),
+            (
+                "59",
+                "Rene Descartes",
+                "Discourse on the Method, John Veitch translation",
+                "1850",
+            ),
+        ];
+        assert_eq!(QUOTES.lines().count(), QUOTE_COUNT);
+        let mut texts = BTreeSet::new();
+        for (index, row) in QUOTES.lines().enumerate() {
+            let fields: Vec<_> = row.split('\t').collect();
+            let (text, author, category) = quote(row).expect("dated quote");
+            assert!(editions.contains(&(fields[5], author, fields[2], fields[3])));
+            assert!(texts.insert(text.to_ascii_uppercase()));
+            assert!((20..=150).contains(&text.len()));
+            assert!(text
+                .bytes()
+                .all(|b| b.is_ascii_alphabetic() || b" ,.;:!?'-".contains(&b)));
+            let seed = index as i64;
+            let (data, sol) = generate(seed, None).expect("playable quote");
+            assert_eq!(generate(seed, None).unwrap(), (data.clone(), sol.clone()));
+            assert_eq!(data["author"], author);
+            assert_eq!(data["category"], category);
+            assert!(data["uniqueLetters"].as_u64().unwrap() > u64::from(MAX_HINTS));
+            let decoded: String = data["encryptedText"]
+                .as_str()
+                .unwrap()
+                .chars()
+                .map(|ch| {
+                    sol["reverseCipher"][ch.to_string()]
+                        .as_str()
+                        .map_or(ch, |s| s.chars().next().unwrap())
+                })
+                .collect();
+            assert_eq!(decoded, text.to_ascii_uppercase());
+            assert!(data.get("originalText").is_none());
+        }
+    }
 }

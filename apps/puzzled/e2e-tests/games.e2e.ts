@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { gamePath } from '../src/lib/game-slug'
 
 /**
  * Game E2E Tests
@@ -41,7 +42,7 @@ test.describe('Game Pages', () => {
 		for (const game of GAMES.slice(0, 5)) {
 			// Test first 5 games for speed
 			test(`${game.name} should load game page`, async ({ page }) => {
-				await page.goto(`/${LOCALE}/games/${game.slug}`)
+				await page.goto(`/${LOCALE}${gamePath(game.slug)}`)
 
 				// Wait for main content
 				await page.waitForSelector('main', { timeout: 15000 })
@@ -182,7 +183,7 @@ test.describe('Game Pages', () => {
 
 	test.describe('Word Groups Game (Connections-style)', () => {
 		test('should load game with word grid', async ({ page }) => {
-			await page.goto(`/${LOCALE}/games/word-groups`)
+			await page.goto(`/${LOCALE}/games/quartet`)
 			await page.waitForSelector('main', { timeout: 15000 })
 
 			// Start game if needed
@@ -199,7 +200,7 @@ test.describe('Game Pages', () => {
 		})
 
 		test('should allow selecting words', async ({ page }) => {
-			await page.goto(`/${LOCALE}/games/word-groups`)
+			await page.goto(`/${LOCALE}/games/quartet`)
 			await page.waitForSelector('main', { timeout: 15000 })
 
 			// Start game

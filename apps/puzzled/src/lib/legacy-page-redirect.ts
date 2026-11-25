@@ -4,8 +4,11 @@ import { localeFromPathname } from '@/lib/i18n/page-locale'
 import { localizedPath } from '@/lib/seo/urls'
 
 // These are historical public URLs, not aliases for gameplay or API slugs.
-const LEGACY_PAGES = new Map<string, `/games/${GameSlug}` | '/vs'>([
-	['/games/threads', '/games/word-groups'],
+const LEGACY_PAGES = new Map<string, `/games/${GameSlug}` | '/games/quartet' | '/vs'>([
+	['/games/threads', '/games/quartet'],
+	['/games/word-groups', '/games/quartet'],
+	['/games/tango', '/games/duo'],
+	['/games/queens', '/games/crowns'],
 	['/games/paint', '/games/nonogram'],
 	['/games/rungs', '/games/word-ladder'],
 	['/games/hunt', '/games/word-search'],

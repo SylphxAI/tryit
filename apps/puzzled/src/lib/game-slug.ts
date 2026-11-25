@@ -11,7 +11,7 @@ const ALIASES: Record<string, string> = {
 /** CATALOG player titles — never LinkedIn/NYT product marks. */
 export const PLAYER_TITLE: Record<string, string> = {
 	'word-guess': 'Five',
-	'word-groups': 'Threads',
+	'word-groups': 'Quartet',
 	'word-hive': 'Hive',
 	crossword: 'Mini Grid',
 	sudoku: 'Sudoku',
@@ -47,4 +47,13 @@ export function playerTitle(slug: string): string {
  */
 export function slugToCamelCase(slug: string): string {
 	return slug.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase())
+}
+
+/** Public URLs may change without renaming a registry, database or RPC key. */
+export function gamePath(gameSlug: string): string {
+	return `/games/${gameSlug === 'word-groups' ? 'quartet' : gameSlug}`
+}
+
+export function gameSlugFromPage(segment: string): string {
+	return segment === 'quartet' ? 'word-groups' : segment
 }

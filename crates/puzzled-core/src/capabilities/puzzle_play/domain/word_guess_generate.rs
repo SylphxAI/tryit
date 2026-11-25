@@ -1,6 +1,5 @@
-//! Deterministic word-guess (Wordle) generator (free-floor fallback).
+//! Deterministic Five generator (free-floor fallback).
 //!
-//! Mirrors `apps/puzzled/src/games/word-guess/config.ts#getWordFromSeed`.
 //! Client payload is `{wordLength, maxAttempts}`; the solution word never
 //! leaves the server (`client_safe_puzzle_data` strips a leaked `word`).
 
@@ -19,7 +18,7 @@ static SOLUTION_WORDS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
         .collect()
 });
 
-/// Curated daily-solution list (same order as the TypeScript `SOLUTION_WORDS`).
+/// Common-word bank: the independently maintained Quad targets checked against the CC0 Frame lexicon.
 #[must_use]
 pub fn solution_word_count() -> usize {
     SOLUTION_WORDS.len()
@@ -57,44 +56,47 @@ mod tests {
     use crate::capabilities::puzzle_play::crossword_generate::client_safe_puzzle_data;
 
     #[test]
-    fn list_matches_typescript_bank() {
-        assert_eq!(solution_word_count(), 2315);
-        assert_eq!(SOLUTION_WORDS[0], "aback");
-        assert_eq!(SOLUTION_WORDS[1], "abase");
-        assert_eq!(SOLUTION_WORDS[2], "abate");
-        assert_eq!(SOLUTION_WORDS[3], "abbey");
-        assert_eq!(SOLUTION_WORDS[4], "abbot");
-        assert_eq!(SOLUTION_WORDS[solution_word_count() - 3], "zebra");
-        assert_eq!(SOLUTION_WORDS[solution_word_count() - 2], "zesty");
-        assert_eq!(SOLUTION_WORDS[solution_word_count() - 1], "zonal");
+    fn solution_bank_is_unique_and_playable() {
+        use std::collections::HashSet;
+
+        let allowed: HashSet<_> = include_str!("../application/grading/quad_words_allowed.txt")
+            .lines()
+            .collect();
+        assert!(solution_word_count() >= 600);
+        let mut unique = HashSet::new();
+        for &word in SOLUTION_WORDS.iter() {
+            assert_eq!(word.len(), WORD_LENGTH, "{word}");
+            assert!(word.bytes().all(|byte| byte.is_ascii_lowercase()), "{word}");
+            assert!(unique.insert(word), "duplicate solution: {word}");
+            assert!(allowed.contains(word), "unplayable solution: {word}");
+        }
     }
 
     #[test]
     fn seed_is_deterministic() {
-        let (a, sa) = generate_word_guess_puzzle(956);
-        let (b, sb) = generate_word_guess_puzzle(956);
-        assert_eq!(a, b);
-        assert_eq!(sa, sb);
-        assert_eq!(sa["word"], "HASTE");
-        assert_eq!(generate_word_guess_puzzle(0).1["word"], "ABACK");
-        assert_eq!(generate_word_guess_puzzle(1).1["word"], "ABASE");
-        assert_eq!(generate_word_guess_puzzle(5).1["word"], "ABHOR");
-        assert_eq!(generate_word_guess_puzzle(980).1["word"], "HIPPO");
+        let first = generate_word_guess_puzzle(0);
+        assert_eq!(first.1["word"], "ABASE");
+        assert_eq!(generate_word_guess_puzzle(1).1["word"], "ABIDE");
+        assert_eq!(generate_word_guess_puzzle(-1).1["word"], "ABIDE");
+        assert_eq!(
+            first,
+            generate_word_guess_puzzle(solution_word_count() as i64)
+        );
     }
 
     #[test]
     fn client_payload_has_no_solution_word() {
-        let (pd, sol) = generate_word_guess_puzzle(956);
+        let (pd, sol) = generate_word_guess_puzzle(0);
         assert_eq!(pd["wordLength"], WORD_LENGTH as u64);
         assert_eq!(pd["maxAttempts"], MAX_GUESSES);
         assert!(pd.get("word").is_none());
         assert!(pd.get("solution").is_none());
         let dumped = pd.to_string();
         assert!(
-            !dumped.to_ascii_lowercase().contains("haste"),
+            !dumped.to_ascii_lowercase().contains("abase"),
             "solution must not appear in client puzzle_data: {dumped}"
         );
-        assert_eq!(sol["word"], "HASTE");
+        assert_eq!(sol["word"], "ABASE");
     }
 
     #[test]

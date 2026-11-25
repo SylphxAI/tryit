@@ -60,7 +60,7 @@ is the player-facing names.
 | --- | --- | --- |
 | word-guess | Five | Five-letter guess, limited tries, colour feedback |
 | quad-words | Quad | One guess paints four hidden words |
-| word-groups | Threads | Sixteen words, four hidden groups |
+| word-groups | Quartet | Sixteen words, four hidden groups |
 | word-hive | Hive | Seven letters, centre letter required |
 | word-box | Frame | Letters on a square's edges |
 | crossword | Mini Grid | 5x5 word-square crossword; across and down clues from `rust-crossword-v2` (older boards play across-only) |

@@ -1,7 +1,10 @@
 import { type APIRequestContext, expect, test } from '@playwright/test'
 
 const pages = [
-	['/games/threads', '/games/word-groups'],
+	['/games/threads', '/games/quartet'],
+	['/games/word-groups', '/games/quartet'],
+	['/games/tango', '/games/duo'],
+	['/games/queens', '/games/crowns'],
 	['/games/paint', '/games/nonogram'],
 	['/games/rungs', '/games/word-ladder'],
 	['/games/hunt', '/games/word-search'],
@@ -54,7 +57,7 @@ test('both alias families resolve to working pages in all supported locales', as
 		await expectRedirect(
 			request,
 			`${prefix}/games/threads/${query}`,
-			`${canonical}/games/word-groups${query}`,
+			`${canonical}/games/quartet${query}`,
 		)
 		await expectRedirect(request, `${prefix}/games/spellbee/`, `${canonical}/games/word-hive`)
 		await expectRedirect(request, `${prefix}/games/mini/`, `${canonical}/games/crossword`)

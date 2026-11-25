@@ -17,7 +17,7 @@ import {
  */
 const CANONICAL_TITLES: Record<string, string> = {
 	'word-guess': 'Five',
-	'word-groups': 'Threads',
+	'word-groups': 'Quartet',
 	'word-hive': 'Hive',
 	crossword: 'Mini Grid',
 	sudoku: 'Sudoku',

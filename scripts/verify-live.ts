@@ -25,6 +25,7 @@
 
 import type { IncomingHttpHeaders } from 'node:http'
 import { createServer } from 'node:http'
+import { gamePath } from '../apps/puzzled/src/lib/game-slug'
 
 // ---------------------------------------------------------------------------
 // Constants (contracts this harness asserts against)
@@ -1235,7 +1236,7 @@ async function checkWebDocument(
 			'daily-ritual-cta',
 			discovery.featuredSlug ? (featuredGameHrefs.length > 0 ? 'pass' : 'fail') : 'unknown',
 			discovery.featuredSlug
-				? `featured slug=${discovery.featuredSlug}; hrefs to /games/${discovery.featuredSlug}: ${featuredGameHrefs.length}; all /games/ hrefs: ${gamesHrefs.length}`
+				? `featured slug=${discovery.featuredSlug}; hrefs to ${gamePath(discovery.featuredSlug)}: ${featuredGameHrefs.length}; all /games/ hrefs: ${gamesHrefs.length}`
 				: 'free slug unknown; CTA cannot be evaluated',
 		),
 	]
@@ -1284,12 +1285,13 @@ type ShareResult = {
  */
 function pathIsModulePath(pathname: string, slug: string): boolean {
 	const segments = pathname.split('/').filter(Boolean)
-	if (segments.length === 2) return segments[0] === 'games' && segments[1] === slug
+	const pageSlug = gamePath(slug).split('/').at(-1)
+	if (segments.length === 2) return segments[0] === 'games' && segments[1] === pageSlug
 	if (segments.length === 3) {
 		return (
 			/^[a-z]{2}(?:-[A-Za-z]{2,4})?$/.test(segments[0]) &&
 			segments[1] === 'games' &&
-			segments[2] === slug
+			segments[2] === pageSlug
 		)
 	}
 	return false
@@ -1318,7 +1320,7 @@ async function checkShareDeepLink(
 	productDayKeySource: string,
 	terminalPlan: TerminalPlan | null,
 ): Promise<ShareResult> {
-	const path = `/games/${slug}?date=${productDayKeyValue}`
+	const path = `${gamePath(slug)}?date=${productDayKeyValue}`
 	const url = `${options.base}${path}`
 	const first = await httpRequest(url, {
 		headers: { accept: 'text/html,application/xhtml+xml' },
@@ -1663,13 +1665,13 @@ async function checkMarksScan(
 	}
 	let gameHtml: string | null = null
 	if (discovery.featuredSlug) {
-		const game = await httpRequest(`${options.base}/games/${discovery.featuredSlug}`, {
+		const game = await httpRequest(`${options.base}${gamePath(discovery.featuredSlug)}`, {
 			headers: { accept: 'text/html,application/xhtml+xml' },
 			timeoutMs: options.timeoutMs,
 		})
 		gameHtml = game.bodyText || null
 		targets.push({
-			url: `${options.base}/games/${discovery.featuredSlug}`,
+			url: `${options.base}${gamePath(discovery.featuredSlug)}`,
 			label: `games/${discovery.featuredSlug}`,
 			html: gameHtml,
 			httpStatus: game.httpStatus,
@@ -2249,7 +2251,7 @@ function htmlStub(body: string, status = 200): StubResponse {
 }
 
 function defaultStubHomeHtml(origin: string, freeSlug: string): string {
-	return `<!doctype html><html><head><title>Puzzled</title><link rel="canonical" href="${origin}/"/><link rel="manifest" href="/manifest.webmanifest"/></head><body><a href="/games/${freeSlug}">Play today</a></body></html>`
+	return `<!doctype html><html><head><title>Puzzled</title><link rel="canonical" href="${origin}/"/><link rel="manifest" href="/manifest.webmanifest"/></head><body><a href="${gamePath(freeSlug)}">Play today</a></body></html>`
 }
 
 /** Stateful loopback stub: writes must use the bootstrapped browser session. */

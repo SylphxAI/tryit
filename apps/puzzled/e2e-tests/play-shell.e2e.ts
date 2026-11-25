@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
+import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
 import { capture } from './google-tag-support'
 
@@ -74,7 +75,7 @@ async function openBoard(page: Page, slug: string, locale = 'en-US') {
 	)
 	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 	const query = hasLevels.has(slug) ? 'difficulty=medium&start=1' : 'start=1'
-	await page.goto(`/${locale}/games/${slug}?${query}#play`)
+	await page.goto(`/${locale}${gamePath(slug)}?${query}#play`)
 	await expect(page.locator(stage), slug).toBeVisible()
 }
 
@@ -277,7 +278,7 @@ for (const admitted of [true, false]) {
 				await route.continue().catch(() => undefined) // leaving the first document cancels its scripts
 			})
 			try {
-				await page.goto(`/games/${slug}`, { waitUntil: 'commit' })
+				await page.goto(`${gamePath(slug)}`, { waitUntil: 'commit' })
 				await requested.promise
 				const play = page.getByRole('link', { name: "Play today's puzzle", exact: true }).first()
 				await expect(play).toBeVisible()
@@ -373,7 +374,7 @@ for (const [width, height] of [
 				return { stage: await play.boundingBox(), dock: await dock.boundingBox() }
 			}
 			try {
-				await page.goto(`/games/${slug}?start=1${fresh ? '' : '&difficulty=medium'}#play`)
+				await page.goto(`${gamePath(slug)}?start=1${fresh ? '' : '&difficulty=medium'}#play`)
 				await snapshot.requested
 				await expect(loading).toBeVisible()
 				await expect(dock).toBeVisible()

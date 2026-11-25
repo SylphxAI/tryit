@@ -4,6 +4,7 @@ import { getAllGameMetadata } from '@/games/registry'
 import { GetDailyResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { mapDailyStatus, mapTodaysPuzzle } from '@/lib/api/domain/daily'
 import { getTodaysFreeGame } from '@/lib/free-rotation'
+import { gamePath } from '@/lib/game-slug'
 import { productDayKey } from '@/lib/product-day'
 import { getPuzzleNumber } from './puzzle-utils'
 import { buildResultCard } from './result-card'
@@ -65,7 +66,7 @@ describe('daily puzzle identity', () => {
 				todayKey: dayKey,
 			})
 			expect(card.dayKey).toBe(dayKey)
-			expect(card.deepLink).toBe(`https://tryit.fun/games/${gameSlug}?utm_source=share`)
+			expect(card.deepLink).toBe(`https://tryit.fun${gamePath(gameSlug)}?utm_source=share`)
 			expect(
 				formatRitualShareText({
 					origin: 'https://tryit.fun',

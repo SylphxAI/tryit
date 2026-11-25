@@ -20,7 +20,7 @@ pub const AVATAR_ICONS: &[&str] = &[
 ];
 
 /// Dual-oracle residual: category color names (word groups).
-pub const CATEGORY_COLORS: &[&str] = &["rose", "teal", "amber", "fuchsia"];
+pub const CATEGORY_COLORS: &[&str] = &["rose", "teal", "indigo", "ochre"];
 
 /// Dual-oracle residual: share square glyphs.
 pub const SHARE_CORRECT: &str = "🟪";
@@ -52,8 +52,8 @@ pub fn share_square_for_result(result: &str) -> Option<&'static str> {
         "wrong" => Some(SHARE_WRONG),
         "rose" => Some(SHARE_ROSE),
         "teal" => Some(SHARE_TEAL),
-        "amber" => Some(SHARE_AMBER),
-        "fuchsia" => Some(SHARE_FUCHSIA),
+        "amber" | "ochre" => Some(SHARE_AMBER),
+        "fuchsia" | "indigo" => Some(SHARE_FUCHSIA),
         _ => None,
     }
 }
@@ -69,7 +69,8 @@ mod tests {
         assert_eq!(avatar_icon_at(10), "mdi:trophy");
         assert_eq!(CATEGORY_COLORS.len(), 4);
         assert_eq!(category_color_at(0), Some("rose"));
-        assert_eq!(category_color_at(3), Some("fuchsia"));
+        assert_eq!(category_color_at(2), Some("indigo"));
+        assert_eq!(category_color_at(3), Some("ochre"));
         assert_eq!(category_color_at(4), None);
         assert_eq!(share_square_for_result("correct"), Some("🟪"));
         assert_eq!(share_square_for_result("partial"), Some("🟧"));

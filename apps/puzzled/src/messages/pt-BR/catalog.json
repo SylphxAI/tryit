@@ -100,11 +100,11 @@
 			],
 			"faq": [
 				{
-					"question": "Quantos erros o Threads permite?",
+					"question": "Quantos erros o Quartet permite?",
 					"answer": "Quatro. Cada grupo de quatro rejeitado custa um erro, e a rodada termina quando eles acabam."
 				},
 				{
-					"question": "O que significa “falta uma” no Threads?",
+					"question": "O que significa “falta uma” no Quartet?",
 					"answer": "Três das quatro palavras escolhidas pertencem a um grupo de verdade e uma não, então troque uma única palavra."
 				}
 			]
@@ -215,16 +215,16 @@
 			"tips": [
 				"Compare uma propriedade por vez, começando pelo número de formas em cada carta.",
 				"Se duas cartas combinam em uma propriedade, a terceira também precisa combinar, ou o trio não vale.",
-				"Uma carta pode fazer parte de mais de um conjunto válido. Tente reutilizar cartas de conjuntos que você já encontrou."
+				"Uma carta pode fazer parte de mais de um trio válido. Tente reutilizar cartas de trios que você já encontrou."
 			],
 			"faq": [
 				{
-					"question": "O que faz três cartas formarem um conjunto no Match?",
+					"question": "O que faz três cartas formarem um trio no Match?",
 					"answer": "Nas quatro propriedades — forma, cor, preenchimento e quantidade —, as três cartas precisam ser todas iguais ou todas diferentes."
 				},
 				{
 					"question": "Quanto tempo leva um tabuleiro do Match?",
-					"answer": "A estimativa é de cerca de quatro minutos, e o tabuleiro tem doze cartas com vários conjuntos escondidos entre elas."
+					"answer": "A estimativa é de cerca de quatro minutos, e o tabuleiro tem doze cartas com vários trios escondidos entre elas."
 				}
 			]
 		},

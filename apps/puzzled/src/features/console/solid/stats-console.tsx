@@ -12,6 +12,7 @@ import {
 	Trophy,
 } from 'lucide-solid'
 import { For } from 'solid-js'
+import { gamePath } from '@/lib/game-slug'
 import { localizedPath } from '@/lib/seo/urls'
 import { GameIcon } from '@/shared/solid/game-icon'
 import { ConsoleCard, ConsoleHeader, ConsoleStat, HonestNotice } from './console-chrome'
@@ -213,7 +214,7 @@ export function StatsConsole({ data }: { data: StatsPageData }) {
 											return (
 												<li>
 													<a
-														href={link(`/games/${module.slug}`)}
+														href={link(gamePath(module.slug))}
 														class="flex min-h-12 items-center gap-3 bg-card px-3.5 text-[15px] transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
 													>
 														<GameIcon slug={module.slug} size={20} aria-hidden="true" />

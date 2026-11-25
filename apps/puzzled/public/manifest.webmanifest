@@ -81,10 +81,10 @@
 			]
 		},
 		{
-			"name": "Threads",
-			"short_name": "Threads",
+			"name": "Quartet",
+			"short_name": "Quartet",
 			"description": "Group today's words into hidden categories",
-			"url": "/games/word-groups",
+			"url": "/games/quartet",
 			"icons": [
 				{
 					"src": "/icons/icon-96.png",

@@ -2,12 +2,13 @@ import { FAMILY_SEATS, listPrice } from '@/features/marketing/components/catalog
 import { COMPARISON_HUB, COMPARISONS } from '@/features/marketing/components/comparison-specs'
 import { getAllGameMetadata } from '@/games/registry'
 import { CONTACT_EMAIL } from '@/lib/config/app'
+import { gamePath } from '@/lib/game-slug'
 
 // Keep discovery in step with the same registry that supplies the game catalogue,
 // and with the price catalogue that checkout charges.
 const allGames = getAllGameMetadata()
 const games = allGames
-	.map((game) => `- [${game.name}](https://tryit.fun/games/${game.slug}): ${game.description}.`)
+	.map((game) => `- [${game.name}](https://tryit.fun${gamePath(game.slug)}): ${game.description}.`)
 	.join('\n')
 const total = allGames.length
 const comparisons = [

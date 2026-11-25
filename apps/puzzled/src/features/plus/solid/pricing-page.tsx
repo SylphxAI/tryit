@@ -1,10 +1,12 @@
 /** @jsxImportSource solid-js */
+
 import { Check, Play } from 'lucide-solid'
 import { For } from 'solid-js'
 import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
 import { MarketingHero } from '@/features/marketing/solid/marketing-hero'
 import { MarketingSection } from '@/features/marketing/solid/marketing-section'
 import { formatPrice } from '@/lib/billing/plus'
+import { gamePath } from '@/lib/game-slug'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { cn } from '@/lib/utils'
@@ -88,7 +90,7 @@ function PricingBody({ data }: { data: PricingData }) {
 					lead={t('lead', { count: gameCount })}
 					actions={
 						<a
-							href={href(`/games/${freeSlug}`)}
+							href={href(gamePath(freeSlug))}
 							class="pressable inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card px-5 font-semibold transition-colors hover:bg-muted"
 						>
 							<Play class="h-4 w-4" aria-hidden="true" />
@@ -141,7 +143,7 @@ function PricingBody({ data }: { data: PricingData }) {
 					{t('familyLink', { count: familyMax })}
 				</a>
 			) : null}
-			<a href={href(`/games/${freeSlug}`)} class={styles.planLink}>
+			<a href={href(gamePath(freeSlug))} class={styles.planLink}>
 				{t('notNowPlayFree')}
 			</a>
 		</div>

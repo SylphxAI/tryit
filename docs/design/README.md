@@ -78,7 +78,7 @@ glyph in ink, and a deep form of the hue for small text on paper.
 | --- | --- | --- | --- |
 | emerald | `#a8d5b5` | `#1d6b3d` | Five |
 | cyan | `#a6d8dd` | `#0e5f68` | Sudoku, Hunt, Frame |
-| violet | `#c6b9f2` | `#4b37a6` | Crowns, Cipher, Threads |
+| violet | `#c6b9f2` | `#4b37a6` | Crowns, Cipher, Quartet |
 | amber | `#f5d36b` | `#6e4a00` | Hive, Duo, Quad |
 | pink | `#f3b8d0` | `#9a2a5c` | Paint |
 | rose | `#f0aba3` | `#9b2f24` | Cage Sudoku |

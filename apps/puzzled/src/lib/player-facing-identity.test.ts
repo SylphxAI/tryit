@@ -50,6 +50,12 @@
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { getGameSlugs } from '@/games/registry'
+import { isValidWord } from '@/games/word-guess/words'
+import { gamePath, playerTitle } from './game-slug'
+import { locales } from './i18n/config'
+import { createTranslator } from './i18n/translate'
+import { legacyPageRedirect } from './legacy-page-redirect'
 
 const APP_ROOT = join(import.meta.dir, '..', '..')
 
@@ -439,5 +445,91 @@ describe('mark matching', () => {
 		expect(findMarks('Play The Mini')).toEqual(['The Mini / Midi (NYT product titles)'])
 		expect(findMarks('NYT Mini crossword')).toEqual(['The Mini / Midi (NYT product titles)'])
 		expect(findMarks('The Midi')).toEqual(['The Mini / Midi (NYT product titles)'])
+	})
+})
+
+describe('launch IP hygiene', () => {
+	test('Japanese game copy uses generic puzzle names', () => {
+		const files = [
+			...collectFiles(join(APP_ROOT, 'src/messages/ja'), (file) => file.endsWith('.json')),
+			...collectFiles(join(APP_ROOT, 'src/games'), (file) =>
+				file.endsWith('/translations/ja.json'),
+			),
+		]
+		for (const file of files)
+			expect(readFileSync(file, 'utf8'), file).not.toMatch(/数独|お絵かきロジック/)
+		const ja = createTranslator('ja')
+		expect(
+			['sudoku', 'killerSudoku', 'nonogram'].map((slug) => ja('games.' + slug + '.name')),
+		).toEqual(['ナンプレ', 'ケージナンプレ', 'ノノグラム'])
+	})
+
+	test('Match and Hunt use their own copy in every locale', () => {
+		for (const locale of locales) {
+			const t = createTranslator(locale)
+			const cards = t.raw('games.patternMatch.card')
+			expect(Object.keys(cards as object).sort()).toEqual([
+				'circle',
+				'coral',
+				'dotted',
+				'hexagon',
+				'indigo',
+				'label',
+				'outline',
+				'solid',
+				'teal',
+				'triangle',
+			])
+			expect(JSON.stringify(t.raw('games.patternMatch')), locale).not.toMatch(
+				/\bsets?\b|セット|\bconjuntos?\b/i,
+			)
+			expect(JSON.stringify(t.raw('catalog.game.pattern-match')), locale).not.toMatch(
+				/\bsets?\b|セット|\bconjuntos?\b/i,
+			)
+			expect(JSON.stringify(t.raw('games.wordSearch')), locale).not.toMatch(/\bword hunt\b/i)
+		}
+		expect(createTranslator('en-US')('games.patternMatch.messages.correct')).toBe('Valid trio!')
+	})
+
+	test('only Quartet is published; quizzes still use the same 19 game IDs', () => {
+		expect(getGameSlugs()).toHaveLength(19)
+		expect(getGameSlugs()).toContain('word-groups')
+		expect(getGameSlugs()).not.toContain('quartet')
+		expect(playerTitle('word-groups')).toBe('Quartet')
+		expect(gamePath('word-groups')).toBe('/games/quartet')
+		for (const [old, current] of [
+			['threads', 'quartet'],
+			['word-groups', 'quartet'],
+			['tango', 'duo'],
+			['queens', 'crowns'],
+		]) {
+			const response = legacyPageRedirect(
+				new Request('https://tryit.fun/ja/games/' + old + '?date=2026-09-21'),
+			)
+			expect(response?.status).toBe(301)
+			expect(response?.headers.get('location')).toBe('/ja/games/' + current + '?date=2026-09-21')
+		}
+	})
+
+	test('Five and Quad derive all allowed guesses and solutions from Frame', () => {
+		const dir = join(APP_ROOT, '../../crates/puzzled-core/src/capabilities/puzzle_play')
+		const frame = readFileSync(join(dir, 'generate/data/word_box_words.txt'), 'utf8')
+		const allowed = readFileSync(join(dir, 'application/grading/quad_words_allowed.txt'), 'utf8')
+		const solutions = readFileSync(join(dir, 'domain/data/word_guess_solutions.txt'), 'utf8')
+		const source = readFileSync(join(APP_ROOT, 'src/games/word-guess/words.ts'), 'utf8')
+		const frameSubset = [
+			...new Set(
+				frame
+					.split('\n')
+					.filter((word) => /^[A-Z]{5}$/.test(word))
+					.map((word) => word.toLowerCase()),
+			),
+		].sort()
+		expect(allowed.trimEnd().split('\n')).toEqual(frameSubset)
+		const solutionWords = solutions.trimEnd().split('\n')
+		expect(new Set(solutionWords).size).toBe(solutionWords.length)
+		for (const word of solutionWords) expect(isValidWord(word), word).toBe(true)
+		for (const file of [source, allowed, solutions])
+			expect(file).not.toMatch(/gist\.github|dracos|cfreshman/i)
 	})
 })

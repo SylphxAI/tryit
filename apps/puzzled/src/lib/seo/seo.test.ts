@@ -8,6 +8,7 @@
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { getGameSlugs } from '@/games/registry'
+import { gamePath } from '@/lib/game-slug'
 import { defaultLocale, locales } from '@/lib/i18n/config'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import {
@@ -277,7 +278,7 @@ describe('sitemap', () => {
 	test('serves one locale per urlset with canonicals and no fabricated lastmod', async () => {
 		const pagePaths = [
 			...PUBLIC_ROUTES.map(({ path }) => path),
-			...getGameSlugs().map((slug) => `/games/${slug}`),
+			...getGameSlugs().map((slug) => gamePath(slug)),
 		]
 		for (const locale of locales) {
 			const response = localeSitemap(locale)()

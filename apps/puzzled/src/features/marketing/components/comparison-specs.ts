@@ -262,7 +262,7 @@ export const COMPARISON_SPECS = {
 			{
 				question: 'Can I play Wordle, Connections or Spelling Bee on Tryit?',
 				answer:
-					'No. Those games belong to The New York Times. Tryit has its own daily games in similar styles: Five (guess the 5-letter word), Threads (find 4 groups of 4), Hive (words from 7 letters) and Mini Grid (a 5×5 crossword).',
+					'No. Those games belong to The New York Times. Tryit has its own daily games in similar styles: Five (guess the 5-letter word), Quartet (find 4 groups of 4), Hive (words from 7 letters) and Mini Grid (a 5×5 crossword).',
 			},
 			{
 				question: 'How much does Tryit cost compared with NYT Games?',
@@ -580,7 +580,7 @@ export const COMPARISON_SPECS = {
 			{
 				question: 'Can I play Queens, Tango or Zip on Tryit?',
 				answer:
-					'No. Those games belong to LinkedIn. Tryit has its own daily games in similar styles: Crowns, Duo, Path, Sudoku, Rungs (a word ladder), Threads (4 groups of 4) and Hunt (a word search).',
+					'No. Those games belong to LinkedIn. Tryit has its own daily games in similar styles: Crowns, Duo, Path, Sudoku, Rungs (a word ladder), Quartet (4 groups of 4) and Hunt (a word search).',
 			},
 			{
 				question: 'Do I need a LinkedIn account to play Tryit?',
@@ -1097,7 +1097,7 @@ export const COMPARISON_SPECS = {
 		verdictTitle: 'The short answer',
 		verdict: [
 			'Choose Wordle for the original daily 5-letter word puzzle that millions of friends share every morning, plus Wordle Bot and the NYT archive with a Games subscription.',
-			`Choose Tryit for ${TOTAL_GAMES} daily puzzle formats in one clean web suite — including Five, Quad, Threads and Hive — with any 3 free every day and a one-time pass with no renewal.`,
+			`Choose Tryit for ${TOTAL_GAMES} daily puzzle formats in one clean web suite — including Five, Quad, Quartet and Hive — with any 3 free every day and a one-time pass with no renewal.`,
 			'Most Wordle fans play both: solve Wordle first, then pick three Tryit puzzles for the rest of your coffee.',
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('wordle')}` },
@@ -1132,7 +1132,7 @@ export const COMPARISON_SPECS = {
 			{
 				feature: 'Word-game variety',
 				them: 'One 5-letter word puzzle; other word formats live separately in NYT Games',
-				us: `${countIn('word')} daily word games (Five, Quad, Threads, Hive, Mini Grid, Rungs, Frame, Cipher and Hunt) plus logic, number and spatial puzzles`,
+				us: `${countIn('word')} daily word games (Five, Quad, Quartet, Hive, Mini Grid, Rungs, Frame, Cipher and Hunt) plus logic, number and spatial puzzles`,
 			},
 			{
 				feature: 'Try everything, no commitment',
@@ -1224,7 +1224,7 @@ export const COMPARISON_SPECS = {
 			},
 			{
 				question: 'Can I play more than one word game a day on Tryit?',
-				answer: `Yes. Tryit includes ${countIn('word')} daily word games — Five, Quad, Threads, Hive, Mini Grid, Rungs, Frame, Cipher and Hunt — and you can pick any 3 games free every day, or open all ${TOTAL_GAMES} games with Tryit Plus or the 3-Day Pass.`,
+				answer: `Yes. Tryit includes ${countIn('word')} daily word games — Five, Quad, Quartet, Hive, Mini Grid, Rungs, Frame, Cipher and Hunt — and you can pick any 3 games free every day, or open all ${TOTAL_GAMES} games with Tryit Plus or the 3-Day Pass.`,
 			},
 			{
 				question: 'How does Tryit pricing compare with Wordle and NYT Games?',

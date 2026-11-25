@@ -9,6 +9,7 @@ import pipGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/pip
 import wordBoxGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-box.json'
 import fiveGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-guess.json'
 import ladderGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/word-ladder.json'
+import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
 
 const boardStage = '[data-game-stage="board"]'
@@ -88,13 +89,13 @@ async function mount(
 				throw new Error(`Unexpected puzzle RPC: ${request.url()}`)
 		}
 	})
-	const path =
+	const level =
 		gameSlug === 'killer-sudoku'
-			? `${gameSlug}?difficulty=medium&start=1`
+			? 'medium'
 			: ['nonogram', 'crowns', 'block-slide'].includes(gameSlug)
-				? `${gameSlug}?difficulty=easy&start=1`
-				: `${gameSlug}?start=1`
-	await page.goto(`/games/${path}#play`)
+				? 'easy'
+				: null
+	await page.goto(`${gamePath(gameSlug)}?${level ? `difficulty=${level}&` : ''}start=1#play`)
 	const start = page.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' })
 	await expect(start).toBeVisible()
 	expect([guests, starts, submits.length]).toEqual([0, 0, 0])
@@ -192,7 +193,7 @@ test('Match finds overlapping sets, ignores duplicates, and offers sharing only 
 }) => {
 	await page.setViewportSize({ width: 360, height: 750 })
 	const { board, submits } = await mount(page, 'pattern-match', match.puzzleData, true)
-	const first = board.getByRole('button', { name: '1, green, squiggle, striped' })
+	const first = board.getByRole('button', { name: '1, teal, hexagon, dotted' })
 	await expect(first).toBeVisible()
 	const size = await first.boundingBox()
 	expect(size?.width).toBeGreaterThanOrEqual(48)
@@ -203,14 +204,14 @@ test('Match finds overlapping sets, ignores duplicates, and offers sharing only 
 	await board.getByRole('button', { name: 'Clear' }).click()
 	await expect(first).toHaveAttribute('aria-pressed', 'false')
 	for (const id of [0, 1, 2]) await matchCard(board, id).click()
-	await expect(board.getByText('Not a valid set')).toBeVisible()
+	await expect(board.getByText('Not a valid trio')).toBeVisible()
 	await expect(board.getByText('Mistakes: 1/4')).toBeVisible()
 
 	const groups = match.solution.validSets
 	for (const id of groups[0]) await matchCard(board, id).click()
-	await expect(board.getByText('1/6 sets found')).toBeVisible()
+	await expect(board.getByText('1/6 trios found')).toBeVisible()
 	for (const id of [...groups[0]].reverse()) await matchCard(board, id).click()
-	await expect(board.getByText('Set already found')).toBeVisible()
+	await expect(board.getByText('Trio already found')).toBeVisible()
 	await expect(board.getByText('Mistakes: 1/4')).toBeVisible()
 	expect(submits).toHaveLength(0)
 	for (const group of groups.slice(1)) {
@@ -228,7 +229,7 @@ test('Match finds overlapping sets, ignores duplicates, and offers sharing only 
 		mistakes: 1,
 	})
 	await retry.click()
-	await expect(board.getByText('All sets found!')).toBeVisible()
+	await expect(board.getByText('All trios found!')).toBeVisible()
 	await expect(board.getByRole('button', { name: 'Share' })).toBeVisible()
 	expect(submits).toEqual([submits[0], submits[0]])
 })
@@ -246,7 +247,7 @@ test('Match stops at the server mistake limit and records a loss', async ({ page
 	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ foundSets: [], mistakes: 4 })
 })
 
-test('Match give-up records the sets found so far, not a win', async ({ page }) => {
+test('Match give-up records the trios found so far, not a win', async ({ page }) => {
 	const { board, submits } = await mount(page, 'pattern-match', match.puzzleData)
 	for (const id of match.solution.validSets[0]) await matchCard(board, id).click()
 	await board.getByRole('button', { name: 'Give Up' }).click()
@@ -500,7 +501,7 @@ test('Groups retries a failed grade, ignores repeat sets, and reveals a loss onl
 	await expect(categories).toHaveCount(0)
 	await expect(board.locator('button[aria-pressed]')).toHaveCount(16)
 	await expect(remaining(4)).toBeVisible()
-	await expect(submit).toBeDisabled()
+	await expect(submit).not.toHaveAttribute('data-ready', 'true')
 	await word('APPLE').focus()
 	await page.keyboard.press('Space')
 	await expect(word('APPLE')).toHaveAttribute('aria-pressed', 'true')
@@ -1259,3 +1260,79 @@ test('Hive checks its center letter and records only a verified pangram finish',
 	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'won', attempts: 1 })
 	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ foundWords: ['CASTLED'] })
 })
+
+function ratio(foreground: string, background: string) {
+	const luminance = (value: string) => {
+		const [r, g, b] = (value.match(/[0-9.]+/g) ?? []).slice(0, 3).map((channel) => {
+			const s = Number(channel) / 255
+			return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+		})
+		return r * 0.2126 + g * 0.7152 + b * 0.0722
+	}
+	const a = luminance(foreground)
+	const b = luminance(background)
+	return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
+for (const theme of ['light', 'dark'] as const) {
+	test('Match uses distinct accessible shapes and fills in ' + theme, async ({ page }, info) => {
+		await page.emulateMedia({ colorScheme: theme })
+		await page.setViewportSize({ width: 375, height: 812 })
+		const { board } = await mount(page, 'pattern-match', match.puzzleData)
+		const cards = board.locator('[data-match-card]')
+		const rendered = await cards.evaluateAll((buttons) =>
+			buttons.map((button) => {
+				const svg = button.querySelector('svg') as SVGSVGElement
+				const shape = svg.querySelector(':scope > path') as SVGPathElement
+				return {
+					path: shape.getAttribute('d'),
+					fill: (shape.getAttribute('fill') ?? '').replace(/^url.*/, 'pattern'),
+					color: getComputedStyle(svg).color,
+					background: getComputedStyle(button).backgroundColor,
+				}
+			}),
+		)
+		expect(new Set(rendered.map((card) => card.path)).size).toBe(3)
+		expect(new Set(rendered.map((card) => card.color)).size).toBe(3)
+		expect(new Set(rendered.map((card) => card.fill))).toEqual(
+			new Set(['pattern', 'currentColor', 'none']),
+		)
+		await expect(cards.filter({ has: page.locator('pattern circle') }).first()).toBeVisible()
+		for (const { color, background } of rendered)
+			expect(ratio(color, background)).toBeGreaterThanOrEqual(3)
+		await board.screenshot({ path: info.outputPath('match-' + theme + '.png') })
+	})
+
+	test('Quartet paints all four category bands in ' + theme, async ({ page }, info) => {
+		await page.emulateMedia({ colorScheme: theme })
+		await page.setViewportSize({ width: 375, height: 812 })
+		let index = 0
+		const { board } = await mountGroups(page, () => ({
+			correct: true,
+			oneAway: false,
+			category: groupCategories[index++],
+		}))
+		await expect(page).toHaveURL(/\/games\/quartet/)
+		for (const category of groupCategories) {
+			for (const name of category.words)
+				await board.getByRole('button', { name, exact: true }).click()
+			await board.getByRole('button', { name: 'Submit', exact: true }).click()
+			await expect(board.getByRole('heading', { name: category.name, exact: true })).toBeVisible()
+		}
+		const bands = await board.locator('[data-group-category]').evaluateAll((rows) =>
+			rows.map((row) => {
+				const { color, backgroundColor } = getComputedStyle(row)
+				return { color, backgroundColor }
+			}),
+		)
+		expect(bands.map((row) => row.backgroundColor)).toEqual([
+			'rgb(239, 160, 187)',
+			'rgb(114, 211, 196)',
+			'rgb(169, 164, 238)',
+			'rgb(216, 173, 97)',
+		])
+		for (const { color, backgroundColor } of bands)
+			expect(ratio(color, backgroundColor)).toBeGreaterThanOrEqual(4.5)
+		await board.screenshot({ path: info.outputPath('quartet-' + theme + '.png') })
+	})
+}

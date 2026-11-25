@@ -18,7 +18,6 @@ import {
 } from './guess-run'
 import { readFiveRunScope } from './run-scope'
 import { KEYBOARD_ROWS, MAX_GUESSES, WORD_LENGTH } from './types'
-import { isValidWord } from './words'
 
 const tones: Record<Feedback, string> = {
 	correct: 'border-correct bg-correct text-[#1a1712]',
@@ -83,7 +82,11 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		setRows(next)
 		setPendingWord(undefined)
 		setDraft(run.failedWord ?? '')
-		setError(run.failedWord ? t('common.error') : undefined)
+		setError(
+			run.failedWord
+				? t(run.notInWordList ? 'games.wordGuess.messages.notInWordList' : 'common.error')
+				: undefined,
+		)
 		const status = next.at(-1)?.tiles.every((tile) => tile === 'correct')
 			? 'won'
 			: next.length === MAX_GUESSES
@@ -113,11 +116,6 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		if (word.length !== WORD_LENGTH) {
 			triggerHaptic('error')
 			setError(t('games.wordGuess.messages.notEnoughLetters'))
-			return
-		}
-		if (!isValidWord(word)) {
-			triggerHaptic('error')
-			setError(t('games.wordGuess.messages.notInWordList'))
 			return
 		}
 		setError(undefined)

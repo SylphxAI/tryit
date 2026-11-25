@@ -1,6 +1,8 @@
 /** @jsxImportSource solid-js */
+
 import { Info, Play, Trophy } from 'lucide-solid'
 import { For, Show } from 'solid-js'
+import { gamePath } from '@/lib/game-slug'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { cn } from '@/lib/utils'
@@ -149,7 +151,7 @@ function BoardEntries(props: { data: LeaderboardData; entries: BoardEntry[] }) {
 							{t('empty.body', { module: moduleName })}
 						</p>
 						<a
-							href={localizedPath(locale, `/games/${moduleSlug}`)}
+							href={localizedPath(locale, gamePath(moduleSlug))}
 							class="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 						>
 							<Play class="h-4 w-4" aria-hidden="true" />
