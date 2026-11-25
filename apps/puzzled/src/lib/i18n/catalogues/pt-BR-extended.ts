@@ -1,6 +1,5 @@
 import ptBRAdmin from '@/messages/pt-BR/admin.json'
 import ptBRAuth from '@/messages/pt-BR/auth.json'
-import ptBRLeaderboard from '@/messages/pt-BR/leaderboard.json'
 import ptBRLegal from '@/messages/pt-BR/legal.json'
 import ptBRReauth from '@/messages/pt-BR/reauth.json'
 import ptBRSettings from '@/messages/pt-BR/settings.json'
@@ -14,6 +13,5 @@ export const messages = {
 	settings: ptBRSettings,
 	stats: ptBRStats,
 	support: ptBRSupport,
-	leaderboard: ptBRLeaderboard,
 	reauth: ptBRReauth,
 }

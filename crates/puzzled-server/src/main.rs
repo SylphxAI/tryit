@@ -1,4 +1,4 @@
-//! puzzled-server binary — S1 health probes + leaderboard read slice.
+//! puzzled-server binary.
 
 use std::time::Duration;
 
@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         None => {
-            tracing::info!("no database URL configured — running S0 stub leaderboard");
+            tracing::info!("no database URL configured — running without a database");
             None
         }
     };
@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!(
         port,
-        slice, "puzzled-server listening on :{port} (/healthz, /readyz, /api/v1/stats/leaderboard)"
+        slice, "puzzled-server listening on :{port} (/healthz, /readyz)"
     );
 
     axum::serve(listener, app)

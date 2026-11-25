@@ -1,27 +1,21 @@
 //! Native Connect StatsService — technology-stack-profile (buffa + connectrpc).
-//! GetLeaderboard densifies via product_db when pool present; honest empty residual otherwise.
 
 use std::sync::Arc;
 
-use buffa::EnumValue;
 use chrono::Utc;
 use connectrpc::{
     ConnectError, ErrorCode, RequestContext, Response, ServiceRequest, ServiceResult,
 };
 
 use super::state::AppState;
-use crate::capabilities::leaderboard::adapters::leaderboard_db::{
-    fetch_score_leaderboard, LeaderboardPeriod as DbPeriod, LeaderboardQuery,
-    LeaderboardType as DbType,
-};
 use crate::capabilities::stats::adapters::sessions_stats_db::{
     today_overview, today_percentile, user_history_on_connection, user_stats_on_connection,
 };
 use crate::proto::puzzled::v1::{
     GetHistoryRequest, GetHistoryResponse, GetLeaderboardRequest, GetLeaderboardResponse,
     GetTodayOverviewRequest, GetTodayOverviewResponse, GetTodayPercentileRequest,
-    GetTodayPercentileResponse, GetUserStatsRequest, GetUserStatsResponse, LeaderboardEntry,
-    LeaderboardPeriod, LeaderboardType, SessionEntry, StatsService, UserGameStats,
+    GetTodayPercentileResponse, GetUserStatsRequest, GetUserStatsResponse, SessionEntry,
+    StatsService, UserGameStats,
 };
 use puzzled_core::puzzle_play::daily_time::product_day_key_string;
 use puzzled_core::puzzle_play::game_slugs::is_valid_game_slug;
@@ -49,111 +43,18 @@ impl StatsConnectService {
     }
 }
 
-fn map_type(value: EnumValue<LeaderboardType>) -> DbType {
-    match value.as_known() {
-        Some(LeaderboardType::Streak) => DbType::Streak,
-        Some(LeaderboardType::Score) | Some(LeaderboardType::Unspecified) | None => DbType::Score,
-    }
-}
-
-fn map_period(value: EnumValue<LeaderboardPeriod>) -> DbPeriod {
-    match value.as_known() {
-        Some(LeaderboardPeriod::Today) => DbPeriod::Today,
-        Some(LeaderboardPeriod::Week) => DbPeriod::Week,
-        Some(LeaderboardPeriod::All) | Some(LeaderboardPeriod::Unspecified) | None => DbPeriod::All,
-    }
-}
-
-fn clamp_limit(limit: i32) -> i32 {
-    if (1..=100).contains(&limit) {
-        limit
-    } else if limit <= 0 {
-        10
-    } else {
-        100
-    }
-}
-
-fn to_proto_entry(
-    entry: puzzled_core::leaderboard::enrich::LeaderboardEntry,
-    viewer_id: Option<&str>,
-) -> LeaderboardEntry {
-    LeaderboardEntry {
-        rank: entry.rank,
-        // Wire compatibility: this field now identifies only this response entry.
-        // Never derive it from a player id, including by hashing.
-        user_id: uuid::Uuid::now_v7().to_string(),
-        user_name: entry.user_name,
-        // Avatar URLs can contain stable account identifiers. Public rows use initials.
-        user_image: None,
-        is_viewer: viewer_id.is_some_and(|id| id == entry.user_id.to_string()),
-        value: entry.value,
-        ..Default::default()
-    }
-}
-
-// Viewer markers are private response data; public intermediaries must not store them.
-fn leaderboard_response(entries: Vec<LeaderboardEntry>) -> ServiceResult<GetLeaderboardResponse> {
-    Ok(Response::new(GetLeaderboardResponse {
-        entries,
-        ..Default::default()
-    })
-    .with_header("cache-control", "private, no-store, max-age=0")
-    .with_header("cdn-cache-control", "no-store"))
-}
-
 #[allow(refining_impl_trait_internal, refining_impl_trait_reachable)]
 impl StatsService for StatsConnectService {
+    // Keep the RPC in the descriptor for existing clients, without reading player data.
     async fn get_leaderboard(
         &self,
-        ctx: RequestContext,
-        request: ServiceRequest<'_, GetLeaderboardRequest>,
+        _ctx: RequestContext,
+        _request: ServiceRequest<'_, GetLeaderboardRequest>,
     ) -> ServiceResult<GetLeaderboardResponse> {
-        let req = request.to_owned_message();
-        let game_slug = req.game_slug.trim();
-        if game_slug.is_empty() {
-            return Err(ConnectError::new(
-                ErrorCode::InvalidArgument,
-                "game_slug_required",
-            ));
-        }
-
-        let query = LeaderboardQuery {
-            game_slug: game_slug.to_string(),
-            leaderboard_type: map_type(req.r#type),
-            period: map_period(req.period),
-            limit: clamp_limit(req.limit),
-        };
-
-        if let Some(pool) = &self.state.pool {
-            match fetch_score_leaderboard(pool, &query).await {
-                Ok(entries) => {
-                    let access = crate::bootstrap::identity::admitted_request_identities(
-                        &ctx,
-                        self.state.pool.as_ref(),
-                        false,
-                    )
-                    .await?;
-                    let viewer_id = access.primary().map(|identity| identity.user_id.as_str());
-                    let entries = entries
-                        .into_iter()
-                        .map(|entry| to_proto_entry(entry, viewer_id))
-                        .collect();
-                    access.commit().await?;
-                    return leaderboard_response(entries);
-                }
-                Err(error) => {
-                    tracing::warn!(
-                        %error,
-                        game_slug = %query.game_slug,
-                        "connect GetLeaderboard product_db failed"
-                    );
-                }
-            }
-        }
-
-        // No pool or read failure: honest residual empty board (do not invent scores).
-        leaderboard_response(Vec::new())
+        Err(ConnectError::new(
+            ErrorCode::Unimplemented,
+            "leaderboard_retired",
+        ))
     }
 
     async fn get_today_percentile(
@@ -361,38 +262,4 @@ impl StatsService for StatsConnectService {
 
 pub fn stats_connect_service(state: AppState) -> Arc<StatsConnectService> {
     Arc::new(StatsConnectService::new(state))
-}
-
-#[cfg(test)]
-mod public_disclosure_tests {
-    use super::*;
-
-    #[test]
-    fn public_entries_do_not_disclose_or_reuse_player_identifiers() {
-        let id = uuid::Uuid::from_u128(1);
-        let row = puzzled_core::leaderboard::enrich::LeaderboardEntry {
-            rank: 2,
-            user_id: id,
-            user_name: Some("Player".into()),
-            user_image: Some(format!("https://avatars.invalid/{id}")),
-            value: 700,
-        };
-        let a = to_proto_entry(row.clone(), Some(&id.to_string()));
-        let b = to_proto_entry(row, None);
-        assert_ne!(a.user_id, id.to_string());
-        assert_ne!(a.user_id, b.user_id);
-        assert!(a.user_image.is_none());
-        assert!(a.is_viewer);
-        assert!(!b.is_viewer);
-        assert_eq!(
-            (a.rank, a.value, a.user_name.as_deref()),
-            (2, 700, Some("Player"))
-        );
-        let response = leaderboard_response(vec![a]).unwrap();
-        assert_eq!(
-            response.headers["cache-control"],
-            "private, no-store, max-age=0"
-        );
-        assert_eq!(response.headers["cdn-cache-control"], "no-store");
-    }
 }

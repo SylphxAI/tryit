@@ -20,7 +20,6 @@ pub use capabilities::billing_access;
 pub use capabilities::gamification;
 pub use capabilities::identity_policy;
 pub use capabilities::jobs_policy;
-pub use capabilities::leaderboard;
 pub use capabilities::presentation_policy;
 pub use capabilities::privacy;
 pub use capabilities::product_policy;
