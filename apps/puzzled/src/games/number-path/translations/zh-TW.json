@@ -16,5 +16,6 @@
 	"cellClue": "提示 {number}",
 	"cellStep": "第 {number} 步",
 	"startAtOne": "請先從 1 開始",
-	"nextSquare": "請點按或拖拉到相鄰格子"
+	"nextSquare": "請點按或拖拉到相鄰格子",
+	"wrongClue": "這格是 {clue}，接下來是第 {expected} 步。"
 }
