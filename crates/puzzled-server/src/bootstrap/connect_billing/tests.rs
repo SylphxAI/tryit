@@ -3,14 +3,14 @@ use connectrpc::ConnectError;
 use super::family::{family_handle, new_invite_code, resolve_family_handle};
 
 #[test]
-fn invite_codes_are_ten_unambiguous_characters() {
-    let code = new_invite_code();
+fn invite_codes_are_ten_unambiguous_characters() -> Result<(), ConnectError> {
+    let code = new_invite_code()?;
     assert_eq!(code.len(), 10);
     assert!(code
-        .chars()
-        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()));
-    assert!(!code.contains(['O', '0', 'I', '1']));
-    assert_ne!(code, new_invite_code());
+        .bytes()
+        .all(|b| b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789".contains(&b)));
+    assert!(code != new_invite_code()?);
+    Ok(())
 }
 
 #[test]

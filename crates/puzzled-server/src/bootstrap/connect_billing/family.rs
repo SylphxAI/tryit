@@ -114,7 +114,7 @@ pub(super) async fn reset_family_invite(
             "family_plan_inactive",
         ));
     }
-    let code = new_invite_code();
+    let code = new_invite_code()?;
     billing_db::set_family_invite_code(pool, &identity.user_id, &code)
         .await
         .map_err(internal("family_unavailable"))?;
@@ -134,7 +134,7 @@ pub(super) async fn family_view(
         .await
         .map_err(internal("family_unavailable"))?;
     if viewer_is_owner && invite_code.is_none() {
-        let code = new_invite_code();
+        let code = new_invite_code()?;
         billing_db::set_family_invite_code(pool, owner, &code)
             .await
             .map_err(internal("family_unavailable"))?;
@@ -242,13 +242,15 @@ pub(super) fn resolve_family_handle<'a>(
     Ok(None)
 }
 
-/// A fresh family invite code: 10 characters, no look-alike letters.
-pub(super) fn new_invite_code() -> String {
-    const ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    uuid::Uuid::new_v4()
-        .as_bytes()
-        .iter()
-        .take(10)
-        .map(|b| ALPHABET[usize::from(*b) % ALPHABET.len()] as char)
-        .collect()
+/// A fresh 10-character bearer code with no look-alike characters.
+pub(super) fn new_invite_code() -> Result<String, ConnectError> {
+    const ALPHABET: &[u8; 32] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let mut bytes = [0_u8; 10];
+    getrandom::fill(&mut bytes)
+        .map_err(|error| internal("family_unavailable")(error.to_string()))?;
+    // Each of the 32 symbols has exactly eight byte values: five random bits.
+    Ok(bytes
+        .into_iter()
+        .map(|b| ALPHABET[usize::from(b) % ALPHABET.len()] as char)
+        .collect())
 }
