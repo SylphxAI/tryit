@@ -27,42 +27,109 @@ pub enum TickError {
 }
 
 impl TickError {
+    fn reason(self) -> &'static str {
+        match self {
+            Self::Missing => "tick_receipt_missing",
+            Self::Invalid => "tick_receipt_invalid",
+            Self::Unavailable => "tick_receipt_unavailable",
+        }
+    }
+
     fn response(self) -> (StatusCode, Json<serde_json::Value>) {
-        let (status, error) = match self {
-            Self::Missing => (StatusCode::UNAUTHORIZED, "tick_receipt_missing"),
-            Self::Invalid => (StatusCode::UNAUTHORIZED, "tick_receipt_invalid"),
-            Self::Unavailable => (StatusCode::SERVICE_UNAVAILABLE, "tick_receipt_unavailable"),
+        let status = match self {
+            Self::Missing | Self::Invalid => StatusCode::UNAUTHORIZED,
+            Self::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
         };
-        (status, Json(json!({"error": error})))
+        (status, Json(json!({"error": self.reason()})))
     }
 }
 
-/// Extract the bearer and exact public URL, then delegate admission to the SDK.
-/// The edge preserves Host; forwarded-host is only a fallback for old routes.
+/// Verify the receipt against the exact callback URL; log only safe fields on rejection.
 pub async fn admit_tick(jwks_url: &str, headers: &HeaderMap, path: &str) -> Result<(), TickError> {
     let token = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
         .map(str::trim)
-        .filter(|t| !t.is_empty())
-        .ok_or(TickError::Missing)?;
+        .filter(|t| !t.is_empty());
+    verify_tick(jwks_url, headers, path, token)
+        .await
+        .map_err(|(reject, verify_error)| {
+            // Do not echo a receipt copied into another diagnostic field.
+            let safe = |value: &str| !token.is_some_and(|token| value.contains(token));
+            let path = path.split('?').next().unwrap_or("-");
+            tracing::warn!(
+                reason = reject.reason(),
+                verify_error,
+                host = log_authority(headers.get(header::HOST))
+                    .filter(|s| safe(s))
+                    .unwrap_or("-"),
+                forwarded_host = log_authority(headers.get("x-forwarded-host"))
+                    .filter(|s| safe(s))
+                    .unwrap_or("-"),
+                forwarded_proto = headers
+                    .get("x-forwarded-proto")
+                    .and_then(|v| v.to_str().ok())
+                    .filter(|s| matches!(*s, "http" | "https") && safe(s))
+                    .unwrap_or("-"),
+                path = if safe(path) { path } else { "-" },
+                "compute tick rejected"
+            );
+            reject
+        })
+}
+
+// Diagnostic projection only: reject arbitrary text, userinfo and overlong values.
+fn log_authority(value: Option<&axum::http::HeaderValue>) -> Option<&str> {
+    value.and_then(|v| v.to_str().ok()).filter(|s| {
+        !s.is_empty()
+            && s.len() <= 255
+            && s.bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b".:-[]_".contains(&b))
+    })
+}
+
+async fn verify_tick(
+    jwks_url: &str,
+    headers: &HeaderMap,
+    path: &str,
+    token: Option<&str>,
+) -> Result<(), (TickError, &'static str)> {
+    let token = token.ok_or((TickError::Missing, "not_checked"))?;
+    // The edge preserves Host; forwarded-host is only a fallback for old routes.
     let host = headers
         .get(header::HOST)
         .or_else(|| headers.get("x-forwarded-host"))
         .and_then(|v| v.to_str().ok())
         .map(str::trim)
         .filter(|h| !h.is_empty())
-        .ok_or(TickError::Invalid)?;
+        .ok_or((TickError::Invalid, "not_checked"))?;
     // The published SDK owns signature, issuer, audience, expiry and key
     // handling. Only the transport knows the original public request URL.
     Verifier::with_jwks_url(Expect::callback(format!("https://{host}{path}")), jwks_url)
         .verify(token)
         .await
         .map(|_| ())
-        .map_err(|error| match error {
-            VerifyError::Keys(_) => TickError::Unavailable,
-            _ => TickError::Invalid,
+        .map_err(|error| {
+            // Keep only the variant: SDK payloads can contain untrusted claims
+            // or dependency error details.
+            let kind = match error {
+                VerifyError::Malformed(_) => "malformed",
+                VerifyError::Algorithm(_) => "algorithm",
+                VerifyError::UnknownKey(_) => "unknown_key",
+                VerifyError::Signature => "signature",
+                VerifyError::Expired => "expired",
+                VerifyError::Issuer(_) => "issuer",
+                VerifyError::Audience => "audience",
+                VerifyError::Keys(_) => "keys",
+                VerifyError::Replayed => "replayed",
+            };
+            let reason = if matches!(error, VerifyError::Keys(_)) {
+                TickError::Unavailable
+            } else {
+                TickError::Invalid
+            };
+            (reason, kind)
         })
 }
 
