@@ -65,6 +65,52 @@ test('both alias families resolve to working pages in all supported locales', as
 	}
 })
 
+test('an old leaderboard URL redirects once to personal stats in all eight locales', async ({
+	request,
+}) => {
+	for (const [prefix, target] of [
+		['', '/stats'],
+		['/en-US', '/stats'],
+		['/en-GB', '/en-GB/stats'],
+		['/zh-HK', '/zh-HK/stats'],
+		['/zh-CN', '/zh-CN/stats'],
+		['/zh-TW', '/zh-TW/stats'],
+		['/ja', '/ja/stats'],
+		['/es', '/es/stats'],
+		['/pt-BR', '/pt-BR/stats'],
+	]) {
+		await expectRedirect(request, prefix + '/leaderboard', target)
+	}
+})
+
+test('an in-app visit to the retired leaderboard stays in the same document and opens localized stats', async ({
+	page,
+}) => {
+	const errors: string[] = []
+	page.on('pageerror', (error) => errors.push(error.message))
+	await page.goto('/zh-HK/games')
+	// No real page should link to the board anymore. Exercise the live router with a synthetic link.
+	await page.evaluate(() => {
+		document.documentElement.dataset.legacyNavigation = 'same-document'
+		const link = document.createElement('a')
+		link.href = '/zh-HK/leaderboard'
+		link.textContent = 'Legacy board link'
+		document.body.prepend(link)
+	})
+	await page.getByRole('link', { name: 'Legacy board link' }).click()
+	await expect(page).toHaveURL('/zh-HK/stats')
+	await expect(page.locator('html')).toHaveAttribute('data-legacy-navigation', 'same-document')
+	await expect(page.getByRole('main').locator('h1')).toBeVisible()
+	expect(errors).toEqual([])
+})
+
+test('personal stats does not link to the retired leaderboard', async ({ page }) => {
+	const response = await page.goto('/stats')
+	expect(response?.status()).toBe(200)
+	await expect(page.getByRole('main').locator('h1')).toBeVisible()
+	await expect(page.locator('a[href*="leaderboard"]')).toHaveCount(0)
+})
+
 const retiredPages = [
 	['/blog', '/'],
 	['/blog/archive/old-post', '/'],

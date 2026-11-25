@@ -22,7 +22,7 @@
  *   4. Every page's hreflang cluster equals the sitemap cluster of its own path
  *      (so alternates are reciprocal by construction) and `x-default` points at
  *      the default-locale URL.
- *   5. Private surfaces (settings/profile/stats/leaderboard/auth/transactional/
+ *   5. Private surfaces (settings/profile/stats/auth/transactional/
  *      admin/challenge) either redirect, 404, or carry `robots: noindex`.
  *   6. Unknown paths and unknown game slugs answer 404 with a branded body.
  *   7. JSON-LD parses, states real facts, and the SearchAction target resolves.

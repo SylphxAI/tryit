@@ -99,25 +99,6 @@ Bun.serve({
 			if (!authenticated || privateReadsUnavailable) return unavailable()
 			return Response.json({ salesOpen: true, entitled: true })
 		}
-		if (path === '/puzzled.v1.StatsService/GetLeaderboard') {
-			const body = await request.json()
-			if (body.limit !== 10) return unavailable()
-			if (body.gameSlug === 'crossword') return unavailable()
-			if (body.gameSlug === 'sudoku' && body.period === 'LEADERBOARD_PERIOD_WEEK') {
-				return Response.json({ entries: [] })
-			}
-			return Response.json({
-				entries: [
-					{
-						rank: 1,
-						userId: 'opaque-only',
-						userName: 'Fixture player',
-						value: 321,
-						isViewer: authenticated,
-					},
-				],
-			})
-		}
 		return Response.json({ code: 'not_found' }, { status: 404 })
 	},
 })

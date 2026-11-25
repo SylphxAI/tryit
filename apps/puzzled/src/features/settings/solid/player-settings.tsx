@@ -8,7 +8,7 @@ import { localizedPath } from '@/lib/seo/urls'
 import { CookieSettings } from '@/shared/solid/consent-banner'
 import { consentCopy } from '@/shared/solid/site-shell-data'
 import { settingsPath } from './sections'
-import { accountPortal, PortalLink, SettingsLink, SettingsTitle } from './settings-controls'
+import { accountPortal, PortalLink, SettingsTitle } from './settings-controls'
 import type { MemberSettingsData } from './settings-data'
 import { settingsIcons } from './settings-shell'
 
@@ -75,7 +75,6 @@ export function SettingsOverview(props: Props) {
 
 export function ProfileSettings(props: Props) {
 	const t = props.t
-	const link = (path: string) => localizedPath(props.data.locale, path)
 	return (
 		<>
 			<SettingsTitle t={t} section="profile" />
@@ -103,20 +102,6 @@ export function ProfileSettings(props: Props) {
 				<p class="mt-3 text-xs leading-relaxed text-muted-foreground">
 					{t('settings.profile.identityNote')}
 				</p>
-			</ConsoleCard>
-			<ConsoleCard
-				title={t('settings.profile.visibilityTitle')}
-				description={t('settings.profile.visibilityDescription')}
-			>
-				<SettingsLink href={link('/settings/privacy')}>
-					{t('settings.profile.visibilityCta')}
-				</SettingsLink>
-			</ConsoleCard>
-			<ConsoleCard
-				title={t('settings.profile.boardsTitle')}
-				description={t('settings.profile.boardsDescription')}
-			>
-				<SettingsLink href={link('/leaderboard')}>{t('settings.profile.boardsCta')}</SettingsLink>
 			</ConsoleCard>
 		</>
 	)
@@ -156,19 +141,6 @@ export function PrivacySettings(props: Props) {
 						{t('settings.privacy.centreNote')}
 					</p>
 				</Show>
-			</ConsoleCard>
-			<ConsoleCard
-				title={t('settings.privacy.boardsTitle')}
-				description={t('settings.privacy.boardsDescription')}
-				actions={
-					<SettingsLink href={localizedPath(props.data.locale, '/leaderboard')}>
-						{t('settings.privacy.boardsCta')}
-					</SettingsLink>
-				}
-			>
-				<p class="text-sm leading-relaxed text-muted-foreground">
-					{t('settings.privacy.boardsBody')}
-				</p>
 			</ConsoleCard>
 		</>
 	)

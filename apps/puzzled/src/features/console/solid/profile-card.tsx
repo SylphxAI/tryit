@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { BadgeCheck, BarChart3, Flame, Trophy, UserCircle } from 'lucide-solid'
+import { BadgeCheck, BarChart3, Flame, UserCircle } from 'lucide-solid'
 import { For } from 'solid-js'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -25,7 +25,6 @@ export function ProfileCard(props: { data: NonNullable<Awaited<ReturnType<typeof
 
 	const links = [
 		{ href: '/stats', icon: BarChart3, label: t('playerCard.recordLink') },
-		{ href: '/leaderboard', icon: Trophy, label: t('playerCard.boardLink') },
 		{ href: '/settings/account', icon: UserCircle, label: t('playerCard.settingsLink') },
 		{ href: '/settings/privacy', icon: BadgeCheck, label: t('playerCard.privacyLink') },
 	]

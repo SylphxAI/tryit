@@ -67,9 +67,7 @@ test.describe('Tab order through the shell', () => {
 			'the shell header is reachable by keyboard',
 		).toBe(true)
 		expect(
-			stops.some(
-				(stop) => stop.tag === 'a' && /home|games|stats|leaderboard|profile/i.test(stop.name),
-			),
+			stops.some((stop) => stop.tag === 'a' && /home|games|stats|profile/i.test(stop.name)),
 			'the primary navigation is reachable by keyboard',
 		).toBe(true)
 	})

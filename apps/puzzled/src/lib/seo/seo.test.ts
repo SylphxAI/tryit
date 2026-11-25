@@ -88,7 +88,6 @@ describe('route truth table', () => {
 			'/settings',
 			'/profile',
 			'/stats',
-			'/leaderboard',
 			'/sign-in',
 			'/login',
 			'/signup',
@@ -119,7 +118,6 @@ describe('route truth table', () => {
 			'/settings',
 			'/profile',
 			'/stats',
-			'/leaderboard',
 			'/sign-in',
 			'/login',
 			'/signup',
@@ -145,7 +143,7 @@ describe('route truth table', () => {
 	test('crawl blocks are limited to surfaces that must not be crawled', () => {
 		expect([...CRAWL_BLOCKED_ROUTE_PREFIXES]).toEqual(['/api', '/admin'])
 		// User-facing destinations stay crawlable; `noindex` controls the index.
-		for (const prefix of ['/settings', '/profile', '/stats', '/leaderboard', '/login', '/signup']) {
+		for (const prefix of ['/settings', '/profile', '/stats', '/login', '/signup']) {
 			expect(robotsDisallowPaths()).not.toContain(prefix)
 		}
 	})

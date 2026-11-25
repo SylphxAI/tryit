@@ -100,7 +100,7 @@ export const CRAWL_BLOCKED_ROUTE_PREFIXES = ['/api', '/admin'] as const
  * crawler and hides the `noindex` that is supposed to control it, so the URL
  * can still be indexed from an inbound link with no content behind it. The
  * directive — not the block — is what keeps them out of the index, and
- * `/stats`, `/leaderboard` and `/sign-in` are real navigation destinations whose
+ * `/stats` and `/sign-in` are real navigation destinations whose
  * links have to resolve for visitors.
  */
 export const NOINDEX_ROUTE_PREFIXES = [
@@ -108,7 +108,6 @@ export const NOINDEX_ROUTE_PREFIXES = [
 	'/settings',
 	'/profile',
 	'/stats',
-	'/leaderboard',
 	'/sign-in',
 	...SIGN_IN_ALIASES,
 	'/reset-password',

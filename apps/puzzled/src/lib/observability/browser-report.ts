@@ -26,7 +26,6 @@ const routes = [
 	'/forgot-password',
 	'/games',
 	'/games/[slug]',
-	'/leaderboard',
 	'/sign-in',
 	'/pricing',
 	'/privacy',

@@ -116,7 +116,6 @@ const PAGES: readonly PageCase[] = [
 			},
 		],
 	},
-	{ name: 'leaderboard', path: '/leaderboard', shell: true },
 	{
 		name: 'support',
 		path: '/support',

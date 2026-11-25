@@ -284,7 +284,6 @@ export function SignInForm(props: {
 	return (
 		<div class="surface-card p-5 sm:p-7">
 			<h1 class="font-display text-2xl text-balance">{t('signInTitle')}</h1>
-			<p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">{t('signInDescription')}</p>
 			<div class="mt-5 space-y-4">
 				<Show when={step() === 'entry' && props.entry?.providers.includes('google')}>
 					<OAuthButtons

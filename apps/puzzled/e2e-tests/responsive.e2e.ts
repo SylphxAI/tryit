@@ -25,7 +25,6 @@ const PAGES = [
 	{ path: '/games', name: 'Catalog Page' },
 	{ path: '/sign-in', name: 'Sign-in Page' },
 	{ path: '/stats', name: 'Stats Page' },
-	{ path: '/leaderboard', name: 'Leaderboard Page' },
 	{ path: '/support', name: 'Support Page' },
 	{ path: '/privacy', name: 'Privacy Page' },
 	{ path: '/terms', name: 'Terms Page' },

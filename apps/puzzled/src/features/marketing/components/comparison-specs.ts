@@ -490,9 +490,9 @@ export const COMPARISON_SPECS = {
 				us: 'tryit.fun in any browser on phone, tablet or desktop: puzzles only, no feed',
 			},
 			{
-				feature: 'Leaderboards',
+				feature: 'Results and sharing',
 				them: 'Rank against your connections, plus top companies and schools',
-				us: 'A daily leaderboard, and a spoiler-free result card you can send to anyone',
+				us: 'Personal stats and a spoiler-free result card you can send to anyone',
 			},
 			{
 				feature: 'New puzzles',
