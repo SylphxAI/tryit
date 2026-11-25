@@ -40,7 +40,7 @@ async function showPhoneDock(page: Page) {
 	return page.locator('[data-consent-banner]')
 }
 
-test('winning Sudoku reveals Share and See your result above the phone dock before any scroll or tap', async ({
+test('winning Sudoku reveals Copy challenge and See your result above the phone dock before any scroll or tap', async ({
 	page,
 }) => {
 	const banner = await showPhoneDock(page)
@@ -75,7 +75,7 @@ test('winning Sudoku reveals Share and See your result above the phone dock befo
 	const board = page.getByRole('group', { name: 'Sudoku', exact: true })
 	await board.getByRole('button', { name: 'Row 9, Column 9', exact: true }).tap()
 	await page.getByRole('button', { name: String(solution[8][8]), exact: true }).tap()
-	const share = page.getByRole('button', { name: 'Share', exact: true })
+	const share = page.getByRole('button', { name: 'Copy challenge', exact: true })
 	const details = page.getByRole('button', { name: 'See your result', exact: true })
 	const bannerBox = (await banner.boundingBox())!
 	expect(bannerBox.height).toBeLessThan(84)

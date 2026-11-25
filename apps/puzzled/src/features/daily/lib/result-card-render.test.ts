@@ -217,7 +217,9 @@ describe('paintResultCard', () => {
 
 	test('paints pattern tiles in the theme accent, near and miss fills', () => {
 		const rec = recordingContext()
-		const model = buildResultCard(baseInput({ pattern: [['hit', 'near', 'miss']] }))
+		const model = buildResultCard(
+			baseInput({ gameSlug: 'quad-words', pattern: [['hit', 'near', 'miss']] }),
+		)
 		paintResultCard(rec.ctx, model, STRINGS)
 		const palette = resultCardPalette('emerald')
 		expect(rec.fills).toContain(palette.accent)

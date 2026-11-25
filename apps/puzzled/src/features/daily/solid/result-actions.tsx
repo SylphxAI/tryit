@@ -1,9 +1,12 @@
 /** @jsxImportSource solid-js */
-import { ChartNoAxesColumnIncreasing, Download, Flame, Share2 } from 'lucide-solid'
+import { isFieldSet } from '@bufbuild/protobuf'
+import { ChartNoAxesColumnIncreasing, Copy, Download, Flame } from 'lucide-solid'
 import { createMemo, createResource, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { getAllGameMetadata, getGameMetadata } from '@/games/registry'
+import { GetTodayPercentileResponseSchema } from '@/gen/connect/puzzled/v1/stats_pb'
 import { createGamificationServiceClient } from '@/lib/connect/gamification-client'
 import { getTodayProgress, shareResult } from '@/lib/connect/puzzle-client'
+import { getTodayPercentile } from '@/lib/connect/stats-client'
 import { freeGameForDayKey } from '@/lib/free-rotation'
 import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
@@ -11,28 +14,23 @@ import { createTranslator } from '@/lib/i18n/translate'
 import { deriveHomeExposure } from '../lib/home-exposure'
 import {
 	buildResultCard,
+	parseResultPattern,
 	type ResultCardInput,
-	type ResultCardTile,
 	resultCardStringsFrom,
 	resultCardTextAlternative,
+	resultPercentileLabel,
 } from '../lib/result-card'
 import { resultRitual } from '../lib/result-ritual'
 import { shareResultText } from '../lib/result-share'
 import { DailyNextLink } from './daily-pick-ui'
 import { PwaInstallNudge } from './pwa-install-nudge'
-import { ResultDetails } from './result-details'
+import { ResultDetails, ResultPattern } from './result-details'
 import './result.css'
 
 type Facts = Pick<
 	ResultCardInput,
 	'gameSlug' | 'mode' | 'status' | 'puzzleDate' | 'todayKey' | 'attempts' | 'score' | 'timeSpentMs'
 > & { difficulty?: string | null }
-const tile: Record<string, ResultCardTile> = {
-	'🟩': 'hit',
-	'🟨': 'near',
-	'⬛': 'miss',
-	'⬜': 'miss',
-}
 
 type Surface = 'rail' | 'dialog'
 
@@ -70,10 +68,6 @@ export function ResultActions(props: {
 	const t = createTranslator(props.locale)
 	const strings = resultCardStringsFrom((key) => String(t.raw(`share.card.${key}`)))
 	const model = createMemo(() => {
-		const rows = props.shareText
-			?.trim()
-			.split('\n')
-			.map((row) => Array.from(row.trim()))
 		return buildResultCard({
 			...props.facts,
 			origin: typeof window === 'undefined' ? '' : window.location.origin,
@@ -81,17 +75,42 @@ export function ResultActions(props: {
 			gameName: props.shareTitle ?? t(`games.${slugToCamelCase(props.facts.gameSlug)}.name`),
 			theme: getGameMetadata(props.facts.gameSlug)?.display.theme ?? 'sky',
 			shareId: shareId(),
-			pattern: rows?.every((row) => row.length && row.every((cell) => tile[cell]))
-				? rows.map((row) => row.map((cell) => tile[cell]))
-				: undefined,
+			pattern: parseResultPattern(props.shareText),
 		})
 	})
-	const ritualDay = () => {
+	const ritualDay = createMemo(() => {
 		const current = model()
 		return mounted() && current.mode === 'daily' && current.dayKey === props.facts.todayKey
 			? current.dayKey
 			: undefined
-	}
+	})
+	const won = createMemo(() => model().status === 'won')
+	const percentileGame = createMemo(() => props.facts.gameSlug)
+	const percentileInput = createMemo(() => {
+		const dayKey = ritualDay()
+		return dayKey && won() ? { dayKey, gameSlug: percentileGame() } : false
+	})
+	const [percentile] = createResource(
+		percentileInput,
+		async (input) => {
+			try {
+				const response = await getTodayPercentile(input)
+				// Protobuf getters return 0 even when the wire field was absent.
+				return isFieldSet(response, GetTodayPercentileResponseSchema.field.percentile)
+					? response.percentile
+					: null
+			} catch {
+				return null
+			}
+		},
+		{ initialValue: null },
+	)
+	const percentileLabel = () =>
+		percentileInput() && !percentile.loading
+			? resultPercentileLabel(percentile.latest ?? undefined, props.locale, (percent) =>
+					t('gameResult.todayPercentile', { percent }),
+				)
+			: null
 	const [ritual] = createResource(
 		ritualDay,
 		async (dayKey) => {
@@ -124,37 +143,32 @@ export function ResultActions(props: {
 		},
 		{ initialValue: null },
 	)
-	async function share(surface: Surface) {
+	async function copyChallenge(surface: Surface) {
 		if (pending()) return
 		setPending(true)
 		setFeedback(undefined)
-		const card = model()
-		const caption = [props.shareText, resultCardTextAlternative(card, strings)]
-			.filter(Boolean)
-			.join('\n\n')
-		if (card.mode === 'daily' && card.dayKey) {
-			void shareResult({ gameSlug: card.gameSlug, puzzleDate: card.dayKey, tap: true }).catch(
-				() => {},
-			)
-		}
 		try {
-			const result =
-				surface === 'dialog'
-					? await (await import('../lib/share-result-card')).shareRitualResultCard({
-							model: card,
-							strings,
-							text: caption,
-							title: card.gameName,
-						})
-					: { outcome: await shareResultText(caption), captionCopied: false }
-			const { outcome } = result
-			if (outcome === 'downloaded')
-				setFeedback({
-					surface,
-					message: result.captionCopied ? 'gameResult.savedAndCopied' : 'share.card.saved',
-					caption: result.captionCopied ? undefined : caption,
-				})
-			if (outcome === 'copied') setFeedback({ surface, message: 'common.copied' })
+			let card = model()
+			if (card.mode === 'daily' && card.dayKey) {
+				const tap = shareResult({
+					gameSlug: card.gameSlug,
+					puzzleDate: card.dayKey,
+					tap: true,
+				}).catch(() => undefined)
+				// Keep the first tap usable even if the prefetch hasn't returned yet.
+				// With an ID already available, don't wait before using the clipboard.
+				if (!shareId()) {
+					const id = await tap
+					if (disposed) return
+					if (id) setShareId(id)
+					card = model()
+				}
+			}
+			const caption = [props.shareText, resultCardTextAlternative(card, strings)]
+				.filter(Boolean)
+				.join('\n\n')
+			const outcome = await shareResultText(caption, { preferClipboard: true })
+			if (outcome === 'copied') setFeedback({ surface, message: 'gameResult.challengeCopied' })
 			if (outcome === 'unavailable') {
 				setFeedback({ surface, message: 'share.card.unavailable', caption })
 			}
@@ -202,8 +216,27 @@ export function ResultActions(props: {
 			)}
 		</Show>
 	)
+	const copyButton = (surface: Surface) => (
+		<button
+			type="button"
+			class="result-button result-copy"
+			aria-disabled={pending() || undefined}
+			onClick={() => void copyChallenge(surface)}
+		>
+			<Copy size={16} aria-hidden="true" />
+			{t('gameResult.copyChallenge')}
+		</button>
+	)
 	return (
 		<>
+			<ResultPattern model={model()} strings={strings} />
+			<Show when={percentileLabel()}>
+				{(label) => (
+					<p class="result-percentile" data-result-percentile>
+						{label()}
+					</p>
+				)}
+			</Show>
 			<Show when={streak.latest !== null}>
 				<p class="result-current-streak" data-result-streak>
 					<Flame size={16} aria-hidden="true" />
@@ -223,15 +256,7 @@ export function ResultActions(props: {
 				)}
 			</Show>
 			<div class="result-action-row">
-				<button
-					type="button"
-					class="result-button"
-					aria-disabled={pending() || undefined}
-					onClick={() => void share('rail')}
-				>
-					<Share2 size={16} aria-hidden="true" />
-					{t('common.share')}
-				</button>
+				{copyButton('rail')}
 				<ResultDetails
 					locale={props.locale}
 					onOpenChange={props.onDetailsOpenChange}
@@ -248,15 +273,7 @@ export function ResultActions(props: {
 					}
 				>
 					<div class="result-action-row">
-						<button
-							type="button"
-							class="result-button"
-							aria-disabled={pending() || undefined}
-							onClick={() => void share('dialog')}
-						>
-							<Share2 size={16} aria-hidden="true" />
-							{t('gameResult.shareResult')}
-						</button>
+						{copyButton('dialog')}
 						<button
 							type="button"
 							class="result-button"

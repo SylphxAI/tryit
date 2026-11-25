@@ -35,9 +35,52 @@ export type ResultCardTile = 'hit' | 'near' | 'miss'
 /** Coarse time bucket; the exact duration stays out of the shared image. */
 export type ResultCardTimeBand = 'under1m' | 'under5m' | 'over5m'
 
+/** Five's share squares use the same colours on screen and in the PNG. */
+export const FIVE_RESULT_TILE_COLORS: Readonly<Record<ResultCardTile, string>> = {
+	hit: '#8b55c5',
+	near: '#ed9a42',
+	miss: '#403d4c',
+}
+
 /** Pattern bounds, so a card can never become an answer-grid dump. */
 export const RESULT_CARD_PATTERN_MAX_ROWS = 12
 export const RESULT_CARD_PATTERN_MAX_COLS = 12
+
+const EMOJI_TILE: Readonly<Record<string, ResultCardTile>> = {
+	'🟩': 'hit',
+	'🟪': 'hit',
+	'🟨': 'near',
+	'🟧': 'near',
+	'⬛': 'miss',
+	'⬜': 'miss',
+}
+
+/** Accept only a grid of spoiler-free squares, never letters or other text. */
+export function parseResultPattern(text?: string): ResultCardTile[][] | null {
+	if (!text?.trim()) return null
+	const rows: ResultCardTile[][] = []
+	for (const line of text.trim().split('\n')) {
+		const row: ResultCardTile[] = []
+		for (const cell of line.trim()) {
+			const tile = EMOJI_TILE[cell]
+			if (!tile) return null
+			row.push(tile)
+		}
+		if (!row.length) return null
+		rows.push(row)
+	}
+	return normalizePattern(rows)
+}
+
+/** The server counts strictly worse finishes (including losses), not speed alone. */
+export function resultPercentileLabel(
+	percentile: number | undefined,
+	locale: string,
+	format: (percent: string) => string,
+): string | null {
+	if (percentile === undefined) return null
+	return format(new Intl.NumberFormat(locale, { style: 'percent' }).format(percentile / 100))
+}
 
 const TILE_VALUES: readonly string[] = ['hit', 'near', 'miss']
 
@@ -336,11 +379,18 @@ export function resultCardChips(
 	return chips
 }
 
-/**
- * Plain-text alternative to the visual card: the same non-spoiler facts in one
- * localized sentence. Powers the accessible description and the copy fallback,
- * so the meaning never depends on the image.
- */
+export function resultPatternSummary(
+	pattern: ResultCardTile[][],
+	strings: ResultCardStrings,
+): string {
+	const count = { hit: 0, near: 0, miss: 0 }
+	for (const row of pattern) {
+		for (const cell of row) count[cell] += 1
+	}
+	return fillCardTemplate(strings.patternSummary, count)
+}
+
+/** Plain-text alternative to the share card, with the same non-spoiler facts. */
 export function resultCardTextAlternative(
 	model: ResultCardModel,
 	strings: ResultCardStrings,
@@ -367,19 +417,7 @@ export function resultCardTextAlternative(
 	if (model.currentStreak != null) {
 		parts.push(fillCardTemplate(strings.streakDays, { days: model.currentStreak }))
 	}
-	if (model.pattern) {
-		let hit = 0
-		let near = 0
-		let miss = 0
-		for (const row of model.pattern) {
-			for (const cell of row) {
-				if (cell === 'hit') hit += 1
-				else if (cell === 'near') near += 1
-				else miss += 1
-			}
-		}
-		parts.push(fillCardTemplate(strings.patternSummary, { hit, near, miss }))
-	}
+	if (model.pattern) parts.push(resultPatternSummary(model.pattern, strings))
 	const day = model.dayDisplay ? fillCardTemplate(strings.altOnDay, { day: model.dayDisplay }) : ''
 	const result = model.status === 'won' ? strings.statusWon : strings.statusLost
 	const details =
