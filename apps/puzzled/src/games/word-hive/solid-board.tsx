@@ -2,7 +2,7 @@
 import { batch, createMemo, createSignal, For, Index, onCleanup, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { checkGuess } from '@/lib/connect/puzzle-client'
-import { createTranslator } from '@/lib/i18n/translate'
+import { createTranslator, type Translate } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { parseWordHiveClientPayload } from './parse-client'
 import { checkHiveDraft, createInitialState, spellingBeeReducer } from './play-state'
@@ -11,18 +11,28 @@ import {
 	getNextRankThreshold,
 	RANK_THRESHOLDS,
 	type SpellingBeeRank,
+	type SpellingBeeState,
 	type WordHivePlayData,
 } from './types'
+import './hive.css'
 
 const slug = 'word-hive'
+// Flat-top regular hexes: 80 units across the flats, with 6 units between them.
+const hexHeight = 80
+const hexWidth = (2 * hexHeight) / Math.sqrt(3)
+const pitch = hexHeight + 6
 const positions = [
-	[50, 17],
-	[79, 33],
-	[79, 67],
-	[50, 83],
-	[21, 67],
-	[21, 33],
-]
+	[0, -pitch],
+	[(pitch * Math.sqrt(3)) / 2, -pitch / 2],
+	[(pitch * Math.sqrt(3)) / 2, pitch / 2],
+	[0, pitch],
+	[(-pitch * Math.sqrt(3)) / 2, pitch / 2],
+	[(-pitch * Math.sqrt(3)) / 2, -pitch / 2],
+] as const
+// Use a single coordinate box for the key geometry, with room for the key edges.
+const combWidth = 250
+const combHeight = 264
+
 const errorKeys = {
 	too_short: 'tooShort',
 	missing_center: 'missingCenter',
@@ -30,8 +40,6 @@ const errorKeys = {
 	already_found: 'alreadyFound',
 	not_in_list: 'notInList',
 } as const
-const ghostButton =
-	'min-h-12 rounded-xl border border-border px-3 font-semibold aria-disabled:opacity-50'
 
 export default function WordHiveBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -58,21 +66,21 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 		(value) => ({ ...value, grading: false }),
 	)
 	const [error, setError] = createSignal<keyof typeof errorKeys | 'grade'>()
-	const [lastFound, setLastFound] = createSignal<{ word: string; pangram: boolean }>()
+	const [lastFound, setLastFound] = createSignal<{
+		word: string
+		pangram: boolean
+		points: number
+	}>()
 	const [result, setResult] = createSignal<{ rank: SpellingBeeRank; score: number }>()
-	const [expanded, setExpanded] = createSignal(false)
 	const dispatch = (action: Parameters<typeof spellingBeeReducer>[1]) =>
 		setState((current) => spellingBeeReducer(current, action))
 	const canPlay = () => state().gameStatus === 'playing' && !state().grading
-	const rankLabel = (rank: SpellingBeeRank) =>
-		t(`games.wordHive.ranks.${rank.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase())}`)
-	const nextRank = createMemo(() => getNextRankThreshold(state().score, state().maxScore))
-	const progress = () =>
-		state().maxScore > 0 ? Math.min(100, (100 * state().score) / state().maxScore) : 0
-	const visibleWords = createMemo(() => {
-		const sorted = [...state().foundWords].sort()
-		return expanded() ? sorted : sorted.slice(0, 5)
-	})
+	const rankLabel = (rank: SpellingBeeRank) => translateRank(t, rank)
+	const errorMessage = () => {
+		const key = error()
+		if (!key) return ''
+		return key === 'grade' ? t('common.error') : t(`games.wordHive.messages.${errorKeys[key]}`)
+	}
 	let disposed = false
 	let pointerButton: HTMLElement | undefined
 	const scoreLabel = (score: number) => `${t('gameResult.score')}: ${score}`
@@ -131,8 +139,9 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 			}
 			triggerHaptic(grade.pangram ? 'win' : 'success')
 			batch(() => {
+				const previousScore = state().score
 				const next = dispatch({ type: 'APPLY_WORD', word, grade })
-				setLastFound({ word, pangram: grade.pangram })
+				setLastFound({ word, pangram: grade.pangram, points: next.score - previousScore })
 				// File the first Master (or Perfect Hive), but keep playing to find every word.
 				if (
 					!result() &&
@@ -195,7 +204,7 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 
 	return (
 		<div
-			class="mx-auto w-full max-w-sm space-y-3"
+			class="mx-auto w-full max-w-sm space-y-2"
 			data-hive-board
 			onClick={(event) => {
 				const button =
@@ -207,75 +216,83 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 				pointerButton = undefined
 			}}
 		>
-			<div class="space-y-1.5 text-sm">
-				<p class="flex justify-between gap-2 tabular-nums">
-					<strong>{rankLabel(state().rank)}</strong>
-					<span class="text-muted-foreground">{scoreLabel(state().score)}</span>
-				</p>
-				<div
-					role="progressbar"
-					aria-label={t('gameResult.score')}
-					aria-valuenow={progress()}
-					aria-valuetext={`${scoreLabel(state().score)} · ${rankLabel(state().rank)}`}
-					class="relative h-2 overflow-hidden rounded-full bg-muted"
-				>
-					<div class="h-full bg-correct" style={{ width: `${progress()}%` }} />
-					<For each={RANK_THRESHOLDS.slice(1, -1)}>
-						{({ percentage }) => (
-							<div
-								class="absolute inset-y-0 w-px bg-foreground/30"
-								style={{ left: `${percentage}%` }}
-							/>
-						)}
-					</For>
-				</div>
-				<Show when={state().maxScore > 0 && nextRank()}>
-					{(upcoming) => (
-						<p class="text-xs text-muted-foreground">
-							{rankLabel(upcoming().rank)}: +{upcoming().pointsNeeded}
-						</p>
-					)}
-				</Show>
-			</div>
+			<RankRail state={state()} t={t} />
 			<div
-				class="min-h-12 rounded-xl border border-border bg-background px-3 py-2 text-center font-display text-2xl font-bold tracking-widest break-all"
-				aria-live="polite"
-				lang="en"
-				dir="ltr"
+				class="h-[3.25rem] rounded-xl border border-border bg-surface px-3 text-center"
 				data-hive-draft
 			>
-				<Show
-					when={state().currentWord}
-					fallback={
-						<span aria-hidden="true" class="text-muted-foreground">
-							|
-						</span>
-					}
+				<div
+					class="h-full content-center overflow-y-auto py-2 font-display text-2xl leading-8 font-bold tracking-widest wrap-anywhere"
+					aria-live="polite"
+					lang="en"
+					dir="ltr"
 				>
-					<Index each={state().currentWord.split('')}>
-						{(letter) => (
+					<Show
+						when={state().currentWord}
+						fallback={<span aria-hidden="true" class="hive-caret" />}
+					>
+						<Index each={state().currentWord.split('')}>
+							{(letter) => (
+								<span
+									classList={{
+										'text-accent-warm-foreground underline decoration-2 underline-offset-4':
+											letter() === state().centerLetter,
+									}}
+								>
+									{letter()}
+								</span>
+							)}
+						</Index>
+					</Show>
+				</div>
+			</div>
+			<div class="flex h-12 items-center justify-center gap-2 text-sm" data-hive-feedback>
+				<p role="status" class="min-w-0 text-center font-semibold">
+					<Show when={state().grading}>
+						<span class="text-muted-foreground">{t('common.syncing')}</span>
+					</Show>
+					<Show when={lastFound()}>
+						{(found) => (
 							<span
-								classList={{
-									'underline decoration-primary underline-offset-4':
-										letter() === state().centerLetter,
-								}}
+								class="wrap-anywhere"
+								classList={{ 'text-accent-warm-foreground': found().pangram }}
 							>
-								{letter()}
+								<Show when={found().pangram}>
+									<span aria-hidden="true">✦ </span>
+									{t('games.wordHive.pangram')}
+									{' · '}
+								</Show>
+								<strong lang="en">{found().word}</strong>
+								{' · '}
+								<span class="tabular-nums">+{found().points}</span>
 							</span>
 						)}
-					</Index>
+					</Show>
+				</p>
+				<p role="alert" class="min-w-0 text-center font-semibold text-destructive">
+					{errorMessage()}
+				</p>
+				<Show when={error() === 'grade'}>
+					<button
+						type="button"
+						class="min-h-12 min-w-12 shrink-0 rounded-md px-2 font-semibold underline"
+						onClick={submit}
+					>
+						{t('common.retry')}
+					</button>
 				</Show>
 			</div>
 			<fieldset
 				aria-label={t('games.wordHive.name')}
 				aria-busy={state().grading}
-				class="relative mx-auto size-[222px]"
+				class="hive-comb"
+				style={{ 'aspect-ratio': `${combWidth} / ${combHeight}` }}
 				dir="ltr"
 			>
 				<HexLetter
 					letter={state().centerLetter}
-					x={50}
-					y={50}
+					x={0}
+					y={0}
 					center
 					disabled={!canPlay()}
 					label={`${state().centerLetter} · ${t('games.wordHive.rules.rule2')}`}
@@ -293,20 +310,22 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 					)}
 				</Index>
 			</fieldset>
-			<div class="flex flex-wrap justify-center gap-2">
+			<div class="grid grid-cols-3 gap-2">
 				<button
 					type="button"
 					data-hive-key
-					class={ghostButton}
+					class="hive-action"
 					aria-disabled={!canPlay() || !state().currentWord}
-					onClick={() => edit('Backspace')}
+					onClick={() => {
+						if (state().currentWord) edit('Backspace')
+					}}
 				>
 					{t('games.wordHive.delete')}
 				</button>
 				<button
 					type="button"
 					data-hive-key
-					class={ghostButton}
+					class="hive-action"
 					aria-disabled={!canPlay()}
 					onClick={shuffle}
 				>
@@ -314,82 +333,128 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 				</button>
 				<button
 					type="button"
-					class="min-h-12 rounded-xl bg-primary px-4 font-bold text-primary-foreground aria-disabled:opacity-50"
+					class="hive-action hive-action-enter"
 					aria-disabled={!canPlay()}
 					onClick={submit}
 				>
 					{t('games.wordHive.enter')}
 				</button>
 			</div>
-			<Show when={state().grading}>
-				<p role="status">{t('common.syncing')}</p>
-			</Show>
-			<Show when={error()}>
-				{(key) => (
-					<p role="alert" class="text-sm text-destructive">
-						{key() === 'grade'
-							? t('common.error')
-							: t(`games.wordHive.messages.${errorKeys[key() as keyof typeof errorKeys]}`)}{' '}
-						<Show when={key() === 'grade'}>
-							<button type="button" class="min-h-12 font-semibold underline" onClick={submit}>
-								{t('common.retry')}
-							</button>
-						</Show>
-					</p>
-				)}
-			</Show>
-			<Show when={lastFound()}>
-				{(found) => (
-					<p role="status" class="text-center text-sm">
-						<strong lang="en">{found().word}</strong>
-						<Show when={found().pangram}>
-							{' · '}
-							{t('games.wordHive.pangram')} {t('games.wordHive.pangramBonus')}
-						</Show>
-					</p>
-				)}
-			</Show>
-			<section class="tactile-card space-y-2 p-3" aria-label={t('games.wordHive.foundWords')}>
-				<h3 class="flex justify-between gap-2 text-sm font-semibold tabular-nums">
-					<span>{t('games.wordHive.foundWords')}</span>
-					<span>
-						{state().foundWords.length}
-						{state().totalWords > 0 ? `/${state().totalWords}` : ''}
-					</span>
-				</h3>
-				<ul class="flex flex-wrap gap-2">
-					<For each={visibleWords()}>
-						{(word) => (
-							<li
-								class="max-w-full break-all rounded-lg bg-muted px-2 py-1 text-sm font-bold"
-								classList={{ '!bg-correct !text-[#1a1712]': state().foundPangrams.includes(word) }}
-							>
-								<span lang="en">{word}</span>
-								<Show when={state().foundPangrams.includes(word)}>
-									<span aria-hidden="true"> ✦</span>
-									<span class="sr-only">, {t('games.wordHive.pangram')}</span>
-								</Show>
-							</li>
-						)}
-					</For>
-				</ul>
-				<Show when={state().foundWords.length > 5}>
-					<button
-						type="button"
-						aria-expanded={expanded()}
-						class="min-h-12 text-sm font-semibold underline"
-						onClick={() => setExpanded(!expanded())}
-					>
-						{expanded() ? t('games.wordHive.showLess') : t('games.wordHive.showAll')}
-					</button>
-				</Show>
-			</section>
+			<FoundWords state={state()} t={t} />
 			<BoardFinish
 				finish={finish}
 				locale={props.locale}
 				message={`${rankLabel(result()?.rank ?? 'beginner')} · ${scoreLabel(result()?.score ?? 0)}`}
 			/>
 		</div>
+	)
+}
+
+function RankRail(props: { state: SpellingBeeState; t: Translate }) {
+	const rankLabel = (rank: SpellingBeeRank) => translateRank(props.t, rank)
+	const score = () => `${props.t('gameResult.score')}: ${props.state.score}`
+	const progress = () =>
+		props.state.maxScore > 0 ? Math.min(100, (props.state.score / props.state.maxScore) * 100) : 0
+	const nextRank = createMemo(
+		() => props.state.maxScore > 0 && getNextRankThreshold(props.state.score, props.state.maxScore),
+	)
+	const reached = () => RANK_THRESHOLDS.findIndex(({ rank }) => rank === props.state.rank)
+
+	return (
+		<div class="rounded-xl border border-border bg-surface px-3 py-2">
+			<div class="flex min-h-7 items-center justify-between gap-2">
+				<strong class="font-display text-lg leading-tight">{rankLabel(props.state.rank)}</strong>
+				<span class="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-bold tabular-nums">
+					{score()}
+				</span>
+			</div>
+			<div
+				role="progressbar"
+				aria-label={props.t('gameResult.score')}
+				aria-valuenow={progress()}
+				aria-valuetext={`${score()} · ${rankLabel(props.state.rank)}`}
+				class="relative mx-1.5 my-2 h-3"
+			>
+				<div class="absolute top-1/2 h-px w-full -translate-y-1/2 bg-muted-foreground" />
+				<div
+					class="absolute top-1/2 h-0.5 -translate-y-1/2 bg-accent-warm-foreground"
+					style={{ width: `${(reached() / (RANK_THRESHOLDS.length - 1)) * 100}%` }}
+				/>
+				<For each={RANK_THRESHOLDS}>
+					{(_, index) => (
+						<span
+							class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+							classList={{
+								'size-2 rounded-full border border-muted-foreground bg-surface':
+									index() > reached(),
+								'size-2 rotate-45 rounded-xs bg-accent-warm-foreground': index() < reached(),
+								'size-3 rotate-45 rounded-xs bg-accent-warm-foreground': index() === reached(),
+							}}
+							style={{ left: `${(index() / (RANK_THRESHOLDS.length - 1)) * 100}%` }}
+						/>
+					)}
+				</For>
+			</div>
+			<p class="min-h-4 text-xs font-semibold text-muted-foreground tabular-nums">
+				<Show when={nextRank()}>
+					{(next) =>
+						props.t('games.wordHive.nextRank', {
+							points: next().pointsNeeded,
+							rank: rankLabel(next().rank),
+						})
+					}
+				</Show>
+			</p>
+		</div>
+	)
+}
+
+function translateRank(t: Translate, rank: SpellingBeeRank) {
+	return t(
+		`games.wordHive.ranks.${rank.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase())}`,
+	)
+}
+
+function FoundWords(props: { state: SpellingBeeState; t: Translate }) {
+	const sortedWords = createMemo(() => [...props.state.foundWords].sort())
+	return (
+		<details class="group rounded-xl border border-border bg-surface">
+			<summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-3 text-sm font-semibold">
+				<span>{props.t('games.wordHive.foundWords')}</span>
+				<span class="flex items-center gap-2.5 text-muted-foreground tabular-nums">
+					<span>
+						{props.state.foundWords.length}
+						{props.state.totalWords > 0 ? `/${props.state.totalWords}` : ''}
+					</span>
+					<span
+						aria-hidden="true"
+						class="mr-0.5 mb-1 size-2 rotate-45 border-r-2 border-b-2 group-open:mt-1 group-open:mb-0 group-open:rotate-225"
+					/>
+				</span>
+			</summary>
+			<Show
+				when={sortedWords().length > 0}
+				fallback={
+					<p class="px-3 pb-3 text-sm text-muted-foreground">{props.t('games.wordHive.noWords')}</p>
+				}
+			>
+				<ul class="flex flex-wrap gap-1.5 border-t border-border p-3">
+					<For each={sortedWords()}>
+						{(word) => (
+							<li class="max-w-full rounded-md bg-muted px-2 py-1 text-sm font-semibold wrap-anywhere">
+								<Show when={props.state.foundPangrams.includes(word)}>
+									<span aria-hidden="true" class="text-accent-warm-foreground">
+										✦{' '}
+									</span>
+									<span class="sr-only">{props.t('games.wordHive.pangram')}: </span>
+								</Show>
+								<span lang="en">{word}</span>
+							</li>
+						)}
+					</For>
+				</ul>
+			</Show>
+		</details>
 	)
 }
 
@@ -403,27 +468,28 @@ function HexLetter(props: {
 	onPress: (key: string) => void
 }) {
 	return (
-		<button
-			type="button"
-			data-letter={props.letter}
-			data-hive-key
-			aria-label={props.label}
-			aria-disabled={props.disabled}
-			onClick={() => props.onPress(props.letter)}
-			class="absolute grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-xl aria-disabled:opacity-55"
-			style={{ left: `${props.x}%`, top: `${props.y}%` }}
+		<div
+			class="hive-key"
+			classList={{ 'hive-key-center': props.center }}
+			style={{
+				left: `${50 + (props.x / combWidth) * 100}%`,
+				top: `${50 + (props.y / combHeight) * 100}%`,
+				width: `${(hexWidth / combWidth) * 100}%`,
+				height: `${(hexHeight / combHeight) * 100}%`,
+			}}
 		>
-			<span
-				lang="en"
-				class="grid size-full place-items-center font-display text-2xl font-extrabold"
-				classList={{
-					'bg-primary text-primary-foreground': props.center,
-					'bg-muted': !props.center,
-				}}
-				style={{ 'clip-path': 'polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%)' }}
+			<button
+				type="button"
+				data-letter={props.letter}
+				data-hive-key
+				aria-label={props.label}
+				aria-disabled={props.disabled}
+				onClick={() => props.onPress(props.letter)}
 			>
-				{props.letter}
-			</span>
-		</button>
+				<span lang="en" class="hive-key-face">
+					{props.letter}
+				</span>
+			</button>
+		</div>
 	)
 }
