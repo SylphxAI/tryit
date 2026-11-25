@@ -1,5 +1,8 @@
 {
 	"clues": "线索",
+	"previousClue": "上一条线索",
+	"nextClue": "下一条线索",
+	"switchDirection": "切换方向",
 	"name": "迷你填字",
 	"tagline": "5×5 方格 • 快速解谜",
 	"highlight": "5×5 谜题",

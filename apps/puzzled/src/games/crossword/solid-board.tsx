@@ -1,10 +1,17 @@
 /** @jsxImportSource solid-js */
+import { ArrowDownUp, ChevronLeft, ChevronRight } from 'lucide-solid'
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { playButton } from '@/features/catalog/solid/game-landing'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
-import { type CrosswordAction, createInitialState, crosswordReducer } from './board-state'
+import {
+	type CrosswordAction,
+	createInitialState,
+	crosswordReducer,
+	findActiveClue,
+	inClue,
+} from './board-state'
 import { incorrectCells } from './check-feedback'
 import { parseCrosswordClientPayload } from './parse-client'
 import {
@@ -17,6 +24,9 @@ import {
 
 const keyboard = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM⌫']
 const directions = ['across', 'down'] as const
+const clueControl =
+	'rounded-lg enabled:hover:bg-background enabled:active:bg-primary/15 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground disabled:opacity-45'
+const clueArrow = `grid min-h-11 min-w-11 shrink-0 place-items-center bg-background ${clueControl}`
 const cellBit = (row: number, col: number) => 1 << (row * GRID_SIZE + col)
 
 export default function CrosswordBoard(props: DailyBoardProps) {
@@ -39,6 +49,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 	const t = createTranslator(props.locale)
 	const data = props.data
 	const acrossOnly = !hasDownClues(data.clues)
+	const clueCount = data.clues.across.length + data.clues.down.length
 	const [feedback, setFeedback] = createSignal<'incomplete' | 'incorrect'>()
 	const [wrongCells, setWrongCells] = createSignal(0)
 	const finish = createBoardFinish(props, 'crossword', {
@@ -77,27 +88,21 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 			return crosswordReducer(next, { type: 'CHECK_PROGRESS', puzzleData: data }, data)
 		})
 	}
-	function focusCell() {
+	function focusCell(options?: FocusOptions) {
 		const cell = state().selectedCell
-		if (cell) cells[token(cell.row, cell.col)]?.focus()
+		if (cell) cells[token(cell.row, cell.col)]?.focus(options)
 	}
-	function inClue(clue: CrosswordClue, row: number, col: number, direction: CrosswordDirection) {
-		return direction === 'across'
-			? row === clue.row && col >= clue.col && col < clue.col + clue.length
-			: col === clue.col && row >= clue.row && row < clue.row + clue.length
-	}
-	const activeClue = createMemo(() => {
-		const { direction, selectedCell } = state()
-		if (selectedCell)
-			return data.clues[direction].find((clue) =>
-				inClue(clue, selectedCell.row, selectedCell.col, direction),
-			)
-	})
+	const activeClue = createMemo(() => findActiveClue(state(), data.clues))
 	const directionName = (direction: CrosswordDirection) =>
 		t(direction === 'across' ? 'games.crossword.across' : 'games.crossword.down')
 	function selectClue(clue: CrosswordClue, direction: CrosswordDirection) {
 		dispatch({ type: 'SELECT_CELL', row: clue.row, col: clue.col, direction })
 		focusCell()
+	}
+	function stepClue(delta: 1 | -1, event: MouseEvent) {
+		dispatch({ type: 'STEP_CLUE', delta })
+		// Keep keyboard focus on the arrow so it can be pressed repeatedly or Tabbed past.
+		if (event.detail > 0) focusCell({ preventScroll: true })
 	}
 	function enter(letter: string) {
 		if (!playing()) return
@@ -243,9 +248,51 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 				</For>
 			</fieldset>
 			<div class="play-tools flex flex-col gap-2">
-				<p role="status" class="min-h-11 rounded-xl bg-muted p-3 text-sm font-semibold">
-					{activeClueLabel()}
-				</p>
+				<div class="flex items-center gap-1 rounded-xl bg-muted p-1" data-crossword-clue-bar>
+					<button
+						type="button"
+						class={clueArrow}
+						aria-label={t('games.crossword.previousClue')}
+						disabled={!playing() || clueCount <= 1}
+						onClick={(event) => stepClue(-1, event)}
+					>
+						<ChevronLeft size={20} aria-hidden="true" />
+					</button>
+					<Show
+						when={!acrossOnly}
+						fallback={
+							<span role="status" class="min-w-0 flex-1 wrap-anywhere px-2 text-sm font-semibold">
+								{activeClueLabel()}
+							</span>
+						}
+					>
+						<button
+							type="button"
+							class={`flex min-h-11 min-w-0 flex-1 items-center justify-between gap-1 px-2 text-start text-sm font-semibold ${clueControl}`}
+							disabled={!playing()}
+							onClick={() => {
+								dispatch({ type: 'TOGGLE_DIRECTION' })
+								focusCell({ preventScroll: true })
+							}}
+						>
+							<span class="min-w-0 wrap-anywhere">{activeClueLabel()}</span>
+							<ArrowDownUp size={14} class="shrink-0 text-muted-foreground" aria-hidden="true" />
+							<span class="sr-only">{t('games.crossword.switchDirection')}</span>
+						</button>
+						<span role="status" class="sr-only">
+							{activeClueLabel()}
+						</span>
+					</Show>
+					<button
+						type="button"
+						class={clueArrow}
+						aria-label={t('games.crossword.nextClue')}
+						disabled={!playing() || clueCount <= 1}
+						onClick={(event) => stepClue(1, event)}
+					>
+						<ChevronRight size={20} aria-hidden="true" />
+					</button>
+				</div>
 				<Show when={playing()}>
 					<div class="flex flex-col gap-1" dir="ltr">
 						<For each={keyboard}>

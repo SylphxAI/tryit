@@ -1,5 +1,8 @@
 {
 	"clues": "Clues",
+	"previousClue": "Previous clue",
+	"nextClue": "Next clue",
+	"switchDirection": "Switch direction",
 	"name": "Mini Grid",
 	"tagline": "5×5 grid • Quick solve",
 	"highlight": "5×5 puzzle",

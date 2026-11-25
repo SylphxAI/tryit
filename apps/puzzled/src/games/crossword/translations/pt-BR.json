@@ -1,5 +1,8 @@
 {
 	"clues": "Pistas",
+	"previousClue": "Dica anterior",
+	"nextClue": "Próxima dica",
+	"switchDirection": "Mudar de direção",
 	"name": "Mini Cruzadinha",
 	"tagline": "Grade 5×5 • Resolução rápida",
 	"highlight": "Desafio 5×5",
