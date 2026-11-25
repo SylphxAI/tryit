@@ -1,5 +1,7 @@
 /** Local only: Auth response fixture for the real SolidStart routes. No credentials, email or accounts. */
 import { readFileSync } from 'node:fs'
+import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
+import { policyAcceptancePurpose } from '../src/lib/identity/policy-consent-server'
 import { fixtureToken } from './auth-fixture-facts'
 
 export const org = 'organization-00000000-0000-4000-8000-000000000123'
@@ -181,7 +183,7 @@ Bun.serve({
 				) ||
 				body.project_id !== org ||
 				body.principal_id !== user.principal_id ||
-				body.purpose !== 'necessary' ||
+				body.purpose !== policyAcceptancePurpose(POLICY_ACCEPTANCE) ||
 				body.state !== 'granted' ||
 				body.legal_basis !== 'consent' ||
 				!Number.isInteger(timestamp) ||

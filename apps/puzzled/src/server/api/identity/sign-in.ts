@@ -12,7 +12,7 @@ import {
 } from '@/lib/identity/client-auth'
 import { emailProblem } from '@/lib/identity/form-validation'
 import { admitJsonPost } from '@/lib/identity/http'
-import { isPolicyAcceptance } from '@/lib/identity/policy-consent'
+import { isPolicyAcceptance, type PolicyAcceptance } from '@/lib/identity/policy-consent'
 import { recordPolicyAcceptance } from '@/lib/identity/policy-consent-server'
 import { resolveUser } from '@/lib/identity/request-identity'
 import { issueSession } from '@/lib/identity/session-response'
@@ -62,14 +62,20 @@ function proofFrom(body: Record<string, unknown>): PasskeyProof | null {
 	}
 }
 
-async function finish(config: AuthConfig, request: Request, ticket: string, viaEmail: boolean) {
+async function finish(
+	config: AuthConfig,
+	request: Request,
+	ticket: string,
+	acceptance: PolicyAcceptance,
+	viaEmail: boolean,
+) {
 	const { token, newAccount } = await completeSignIn(config, request, ticket)
 	const userAgent = userAgentOf(request)
 	// Continue verifies the inbox and may create an account; it doesn't accept policy fields.
 	// Bind the explicit acceptance to the actual verified session before releasing the cookie.
 	const user = await resolveUser(token, userAgent)
 	if (!user) return refusal('sign_in_unavailable', 502)
-	await recordPolicyAcceptance(user.id)
+	await recordPolicyAcceptance(user.id, acceptance)
 	const response = reply({ signedIn: true, newAccount: viaEmail && newAccount })
 	if (viaEmail && newAccount) response.headers.append('set-cookie', signUpCookieHeader('email'))
 	// In particular, do not replace or expire the existing guest or checkout claim cookie.
@@ -113,6 +119,7 @@ export async function POST(request: Request) {
 					config,
 					request,
 					await emailCodeTicket(config, userAgent, { flow, code }),
+					body.acceptance,
 					true,
 				)
 			}
@@ -125,7 +132,13 @@ export async function POST(request: Request) {
 				if (!isPolicyAcceptance(body.acceptance)) return refusal('policy_acceptance_required', 400)
 				const proof = proofFrom(body)
 				if (!proof) return refusal('invalid_proof', 400)
-				return await finish(config, request, await passkeyTicket(config, userAgent, proof), false)
+				return await finish(
+					config,
+					request,
+					await passkeyTicket(config, userAgent, proof),
+					body.acceptance,
+					false,
+				)
 			}
 			default:
 				return refusal('invalid_sign_in_step', 400)

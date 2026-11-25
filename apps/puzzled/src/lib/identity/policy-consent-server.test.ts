@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
+import { POLICY_ACCEPTANCE } from './policy-consent'
 import { recordPolicyAcceptance } from './policy-consent-server'
 
 const origin = 'https://identity.example.test'
@@ -31,7 +32,7 @@ function captureFetch(respond: () => Response) {
 test('records only the seven-field consent fact at the organization-authenticated ledger', async () => {
 	const fetcher = captureFetch(() => Response.json({ consent: {} }, { status: 201 }))
 	const before = Math.floor(Date.now() / 1000)
-	await recordPolicyAcceptance(principalId)
+	await recordPolicyAcceptance(principalId, POLICY_ACCEPTANCE)
 	const after = Math.floor(Date.now() / 1000)
 	expect(fetcher).toHaveBeenCalledTimes(1)
 	const [url, init] = fetcher.mock.calls[0]!
@@ -40,13 +41,14 @@ test('records only the seven-field consent fact at the organization-authenticate
 	expect(new Headers(init?.headers).get('authorization')).toBe(`Bearer ${credential}`)
 	expect(init?.signal).toBeInstanceOf(AbortSignal)
 	const fact = JSON.parse(String(init?.body))
+	expect(Object.keys(fact)).toHaveLength(7)
 	expect(fact).toEqual({
 		idempotency_key: expect.stringMatching(
 			/^[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
 		),
 		project_id: projectId,
 		principal_id: principalId,
-		purpose: 'necessary',
+		purpose: 'policy_acceptance:terms=2026-11-14;privacy=2026-11-14;surface=puzzled_web',
 		state: 'granted',
 		legal_basis: 'consent',
 		occurred_at_unix_seconds: expect.any(Number),
@@ -58,7 +60,9 @@ test('records only the seven-field consent fact at the organization-authenticate
 
 test('propagates ledger refusal without retrying or falling back', async () => {
 	const fetcher = captureFetch(() => Response.json({ code: 'forbidden' }, { status: 403 }))
-	await expect(recordPolicyAcceptance(principalId)).rejects.toMatchObject({ status: 403 })
+	await expect(recordPolicyAcceptance(principalId, POLICY_ACCEPTANCE)).rejects.toMatchObject({
+		status: 403,
+	})
 	expect(fetcher.mock.calls.map(([url]) => url)).toEqual([`${origin}/v1/consents`])
 })
 
@@ -67,7 +71,7 @@ test('propagates a timed out ledger write', async () => {
 	captureFetch(() => {
 		throw error
 	})
-	await expect(recordPolicyAcceptance(principalId)).rejects.toBe(error)
+	await expect(recordPolicyAcceptance(principalId, POLICY_ACCEPTANCE)).rejects.toBe(error)
 })
 
 for (const [key, error] of [
@@ -77,7 +81,7 @@ for (const [key, error] of [
 	test(`does not contact Auth without ${key}`, async () => {
 		const fetcher = captureFetch(() => Response.json({}, { status: 201 }))
 		delete process.env[key]
-		await expect(recordPolicyAcceptance(principalId)).rejects.toThrow(error)
+		await expect(recordPolicyAcceptance(principalId, POLICY_ACCEPTANCE)).rejects.toThrow(error)
 		expect(fetcher).not.toHaveBeenCalled()
 	})
 }

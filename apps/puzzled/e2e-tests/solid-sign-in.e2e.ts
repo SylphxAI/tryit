@@ -69,7 +69,7 @@ function expectConsentWriteAfterProof(
 				),
 				project_id: 'organization-00000000-0000-4000-8000-000000000123',
 				principal_id: 'fixture-user',
-				purpose: 'necessary',
+				purpose: 'policy_acceptance:terms=2026-11-14;privacy=2026-11-14;surface=puzzled_web',
 				state: 'granted',
 				legal_basis: 'consent',
 				occurred_at_unix_seconds: expect.any(Number),
@@ -386,7 +386,12 @@ test('real sign-in endpoint requires browser Origin, valid proof and current acc
 	})
 	expect(malformed.status()).toBe(400)
 	for (const proof of [emailProof, passkeyProof]) {
-		for (const acceptance of [undefined, { ...POLICY_ACCEPTANCE, terms_version: '2020-01-01' }]) {
+		for (const acceptance of [
+			undefined,
+			{ ...POLICY_ACCEPTANCE, terms_version: '2020-01-01' },
+			{ ...POLICY_ACCEPTANCE, privacy_version: '2020-01-01' },
+			{ ...POLICY_ACCEPTANCE, surface: 'unexpected_surface' },
+		]) {
 			const response = await request.post(signInURL, {
 				headers: signInHeaders,
 				data: { ...proof, acceptance },
