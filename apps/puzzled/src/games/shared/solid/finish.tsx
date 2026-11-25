@@ -1,7 +1,8 @@
 /** @jsxImportSource solid-js */
 import { isFieldSet } from '@bufbuild/protobuf'
 import { Check, Minus } from 'lucide-solid'
-import { createSignal, onCleanup, Show } from 'solid-js'
+import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { createGameBehavior } from '@/features/analytics/lib/behavioral-events'
 import type { DailySnapshot } from '@/features/daily/lib/daily-fallback'
 import { ResultActions } from '@/features/daily/solid/result-actions'
 import type { PuzzleDifficulty } from '@/games/types'
@@ -22,6 +23,8 @@ export type DailyBoardProps = {
 	mode?: 'daily' | 'archive'
 	difficulty?: PuzzleDifficulty
 	draftScope?: string
+	isGuest?: boolean
+	pickIndex?: number | null
 	onAlreadyPlayed: () => void
 }
 
@@ -32,6 +35,16 @@ export function createBoardFinish(
 	options?: { onRejected: (error: string) => void },
 ) {
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
+	const behavior = createGameBehavior(gameSlug, props.mode ?? 'daily', () => props.isGuest)
+	const abandon = () => behavior.abandon()
+	let boardMounted = false
+	onMount(() => {
+		window.addEventListener('pagehide', abandon)
+		// Child onMount callbacks can initialize board state (e.g. select a cell).
+		queueMicrotask(() => {
+			boardMounted = true
+		})
+	})
 	const draft = createPlayDraft(
 		props.mode !== 'archive' && props.puzzle.puzzleId && props.draftScope
 			? {
@@ -43,6 +56,9 @@ export function createBoardFinish(
 				}
 			: undefined,
 		() => state() === 'playing',
+		() => {
+			if (boardMounted && state() === 'playing') behavior.interact()
+		},
 	)
 	const [score, setScore] = createSignal<number>()
 	const [revealJson, setRevealJson] = createSignal<string>()
@@ -50,6 +66,8 @@ export function createBoardFinish(
 	let disposed = false
 	onCleanup(() => {
 		disposed = true
+		if (typeof window !== 'undefined') window.removeEventListener('pagehide', abandon)
+		abandon()
 	})
 	async function send() {
 		if (!intent || (state() !== 'playing' && state() !== 'failed')) return
@@ -58,6 +76,7 @@ export function createBoardFinish(
 			const result = await submitGuess(intent)
 			if (!disposed) {
 				if (result.valid && result.status === intent.status) {
+					behavior.complete(intent.status, intent.timeSpentMs, props.pickIndex ?? null)
 					draft.discard()
 					if (props.mode !== 'archive') recordFirstFinishDay(props.puzzle.puzzleDate)
 					setRevealJson(result.revealJson)
@@ -86,6 +105,7 @@ export function createBoardFinish(
 		}
 	}
 	function alreadyPlayed() {
+		behavior.alreadyPlayed()
 		draft.discard()
 		props.onAlreadyPlayed()
 	}
@@ -107,11 +127,13 @@ export function createBoardFinish(
 			} as const
 		},
 		revealJson,
+		recordProgress: behavior.interact,
 		finish(
 			submission: unknown,
 			options?: Partial<Pick<SubmitGuessInput, 'difficulty' | 'status' | 'attempts'>>,
 		) {
 			if (intent) return
+			behavior.interact()
 			intent = withIdempotencyKey({
 				gameSlug,
 				status: options?.status ?? 'won',

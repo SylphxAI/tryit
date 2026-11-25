@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { Lightbulb, RotateCcw } from 'lucide-solid'
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
+import { trackHintUsed } from '@/features/analytics/lib/behavioral-events'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { checkGuess } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -112,7 +113,12 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 			if (typeof answer?.encrypted === 'string' && typeof answer.letter === 'string') {
 				const used = state().hintsUsed
 				dispatch({ type: 'REVEAL', encryptedLetter: answer.encrypted, letter: answer.letter })
-				setHintFailed(used === state().hintsUsed)
+				const hintCount = state().hintsUsed
+				setHintFailed(used === hintCount)
+				if (hintCount > used) {
+					reportProgress()
+					trackHintUsed(slug, props.mode ?? 'daily', hintCount)
+				}
 			} else setHintFailed(true)
 		} catch {
 			if (version === hintVersion) setHintFailed(true)
@@ -124,6 +130,8 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 	const filled = createMemo(() => Object.values(guesses()).filter(Boolean).length)
 	const remaining = () => props.data.maxHints - state().hintsUsed
 	const canHint = () => editable() && !gradePending() && remaining() > 0
+	const reportProgress = () =>
+		finish.recordProgress((100 * filled()) / Math.max(1, Object.keys(guesses()).length))
 	const selected = () => state().selectedLetter
 	const isRevealed = (letter: string) => state().revealedLetters.includes(letter)
 	const canType = () => {
@@ -153,6 +161,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 		)
 		const next = dispatch({ type: 'SET_GUESS', encryptedLetter: target, guessedLetter: letter })
 		if (next === previous) return
+		reportProgress()
 		showNotice(from ? copy('letterMoved', { letter, from, to: target }) : '')
 		triggerHaptic('light')
 	}
@@ -161,6 +170,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 		if (target && canType()) {
 			showNotice()
 			dispatch({ type: 'CLEAR_GUESS', encryptedLetter: target })
+			reportProgress()
 		}
 	}
 	function reset() {
@@ -170,6 +180,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 		setHintFailed(false)
 		showNotice()
 		dispatch({ type: 'RESET' })
+		reportProgress()
 	}
 	onMount(() => {
 		select(

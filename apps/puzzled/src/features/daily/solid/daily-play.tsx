@@ -31,6 +31,7 @@ import { markStartIntent, takeStartIntent } from '../lib/start-intent'
 import { todayPlayPath } from '../lib/today-play-path'
 import { DailyPickCount } from './daily-pick-count'
 import { DailyUnlock } from './daily-unlock'
+import { readPlayGuestStatus } from './play-analytics-context'
 import { readPlayDraftScope } from './play-scope'
 import { ResultActions } from './result-actions'
 
@@ -122,6 +123,7 @@ export function DailyPlay(props: {
 		{ initialValue: props.initial, ssrLoadFrom: 'initial' },
 	)
 	onMount(() => setMounted(true))
+	const [isGuest] = createResource(mounted, () => readPlayGuestStatus().catch(() => undefined))
 	const play = async (puzzleDate: string) => {
 		if (starting() || !board) return
 		setStarting(true)
@@ -164,18 +166,19 @@ export function DailyPlay(props: {
 	createEffect(() => {
 		if (snapshot('locked')) props.onLocked()
 	})
-	const [picks] = createResource(
+	const [claimedPicks] = createResource(
 		() => mounted() && !archive && snapshot('playable')?.puzzleDate,
 		async (dayKey) => {
 			try {
 				const claimed = claimedDailyPicks(await getTodayProgress([]), dayKey)
-				return claimed?.includes(slug) ? dailyPickCount(claimed) : null
+				return claimed?.includes(slug) ? claimed : null
 			} catch {
 				return null
 			}
 		},
 		{ initialValue: null },
 	)
+	const pickIndex = () => (claimedPicks.latest?.indexOf(slug) ?? -1) + 1
 	const unavailable = () => (
 		<div class="play-entry mx-auto max-w-md space-y-2 text-center">
 			<h2 class="font-display text-xl">{t('daily.unavailableTitle')}</h2>
@@ -195,7 +198,11 @@ export function DailyPlay(props: {
 		<BoardIntro
 			data={props.data}
 			date={date()}
-			picks={snapshot('playable') ? (picks.latest ?? undefined) : undefined}
+			picks={
+				snapshot('playable') && claimedPicks.latest
+					? dailyPickCount(claimedPicks.latest)
+					: undefined
+			}
 			locked={Boolean(snapshot('locked'))}
 			changeDifficulty={!archive && props.data.difficultyLevels.length > 0}
 		/>
@@ -208,6 +215,7 @@ export function DailyPlay(props: {
 					day={props.day}
 					todayKey={props.todayKey}
 					resetAt={props.resetAt}
+					isGuest={isGuest.latest}
 				/>
 			</Match>
 			<Match when={snapshot('completed')}>
@@ -327,6 +335,8 @@ export function DailyPlay(props: {
 							locale={props.data.locale}
 							difficulty={props.difficulty}
 							draftScope={value().draftScope ?? undefined}
+							isGuest={isGuest.latest}
+							pickIndex={pickIndex()}
 							onAlreadyPlayed={() => void refetch()}
 						/>
 					)

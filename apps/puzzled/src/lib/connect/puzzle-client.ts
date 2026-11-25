@@ -2,8 +2,10 @@
  * technology-stack-profile: generated PuzzleService client (createClient + transport).
  * Primary product play path under default Connect authority.
  */
+
 import { create } from '@bufbuild/protobuf'
 import { type Client, createClient } from '@connectrpc/connect'
+import { type ShareAction, trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import { IDEMPOTENCY_KEY_HEADER } from '@/lib/idempotency-key'
 import {
 	CheckGuessRequestSchema,
@@ -163,10 +165,28 @@ export async function checkGuess(
  * share link carries as `ref`. Rejects when there is no finish to share.
  */
 export async function shareResult(
-	input: { gameSlug: string; puzzleDate?: string; tap?: boolean },
+	input: {
+		gameSlug: string
+		puzzleDate?: string
+		tap?: boolean
+		action?: ShareAction
+		hasPercentile?: boolean
+	},
 	client?: PuzzleServiceClient,
 ): Promise<string> {
 	const c = client ?? createPuzzleServiceClient()
+	if (input.tap === true) {
+		trackBehavioralEvent({
+			event: 'share_clicked',
+			game_slug: input.gameSlug,
+			action:
+				input.action ??
+				(typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+					? 'native_share'
+					: 'copy_challenge'),
+			has_percentile: input.hasPercentile ?? false,
+		})
+	}
 	const res = await c.shareResult(
 		create(ShareResultRequestSchema, {
 			gameSlug: input.gameSlug.trim(),

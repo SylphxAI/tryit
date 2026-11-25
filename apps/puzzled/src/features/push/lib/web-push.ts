@@ -1,4 +1,5 @@
 import { create } from '@bufbuild/protobuf'
+import { type PushTrigger, trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import {
 	GetWebPushConfigRequestSchema,
 	SaveWebPushSubscriptionRequestSchema,
@@ -29,9 +30,19 @@ export async function persistSubscription(sub: PushSubscription, remove = false)
 	)
 }
 
-export async function subscribeBrowser(): Promise<PushSubscription | null> {
+export async function subscribeBrowser(
+	trigger: PushTrigger = 'settings',
+): Promise<PushSubscription | null> {
 	// Ask within the user's tap, never on first paint.
-	if ((await Notification.requestPermission()) !== 'granted') return null
+	const willPrompt = Notification.permission === 'default'
+	const permission = await Notification.requestPermission()
+	if (willPrompt)
+		trackBehavioralEvent({
+			event: 'push_opted_in',
+			trigger,
+			result: permission === 'default' ? 'dismissed' : permission,
+		})
+	if (permission !== 'granted') return null
 	const client = createPreferencesServiceClient()
 	const { publicKey } = await client.getWebPushConfig(create(GetWebPushConfigRequestSchema, {}))
 	if (!publicKey) throw new Error('push_unconfigured')

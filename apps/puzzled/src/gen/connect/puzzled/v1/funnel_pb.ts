@@ -19,12 +19,13 @@ import { file_google_protobuf_cpp_features } from '@bufbuild/protobuf/wkt'
 export const file_puzzled_v1_funnel: GenFile =
 	/*@__PURE__*/
 	fileDesc(
-		'ChdwdXp6bGVkL3YxL2Z1bm5lbC5wcm90bxIKcHV6emxlZC52MSJ6ChJSZWNvcmRFdmVudFJlcXVlc3QSDQoFZXZlbnQYASABKAkSDAoEcGF0aBgCIAEoCRIRCglnYW1lX3NsdWcYAyABKAkSDgoGbWV0cmljGAQgASgJEhQKBXZhbHVlGAUgASgBQgWqAQIIARIOCgZyYXRpbmcYBiABKAkiFQoTUmVjb3JkRXZlbnRSZXNwb25zZTJfCg1GdW5uZWxTZXJ2aWNlEk4KC1JlY29yZEV2ZW50Eh4ucHV6emxlZC52MS5SZWNvcmRFdmVudFJlcXVlc3QaHy5wdXp6bGVkLnYxLlJlY29yZEV2ZW50UmVzcG9uc2VCFJIDEQgCEAEYASACKAEwAcI+AhADYghlZGl0aW9uc3DpBw',
+		'ChdwdXp6bGVkL3YxL2Z1bm5lbC5wcm90bxIKcHV6emxlZC52MSLJAwoSUmVjb3JkRXZlbnRSZXF1ZXN0Eg0KBWV2ZW50GAEgASgJEgwKBHBhdGgYAiABKAkSEQoJZ2FtZV9zbHVnGAMgASgJEg4KBm1ldHJpYxgEIAEoCRIUCgV2YWx1ZRgFIAEoAUIFqgECCAESDgoGcmF0aW5nGAYgASgJEgwKBG1vZGUYByABKAkSDgoGc3RhdHVzGAggASgJEhkKCnBpY2tfaW5kZXgYCSABKA1CBaoBAggBEhwKDXRpbWVfYnVja2V0X3MYCiABKA1CBaoBAggBEhcKCGlzX2d1ZXN0GAsgASgIQgWqAQIIARIiChNwcm9ncmVzc19wY3RfYnVja2V0GAwgASgNQgWqAQIIARIZCgpoaW50X2NvdW50GA0gASgNQgWqAQIIARIOCgZhY3Rpb24YDiABKAkSHQoOaGFzX3BlcmNlbnRpbGUYDyABKAhCBaoBAggBEg8KB3N1cmZhY2UYECABKAkSGQoKcGlja3NfdXNlZBgRIAEoDUIFqgECCAESEAoIY3VycmVuY3kYEiABKAkSEAoIcGxhdGZvcm0YEyABKAkSDwoHdHJpZ2dlchgUIAEoCRIOCgZyZXN1bHQYFSABKAkiFQoTUmVjb3JkRXZlbnRSZXNwb25zZTJfCg1GdW5uZWxTZXJ2aWNlEk4KC1JlY29yZEV2ZW50Eh4ucHV6emxlZC52MS5SZWNvcmRFdmVudFJlcXVlc3QaHy5wdXp6bGVkLnYxLlJlY29yZEV2ZW50UmVzcG9uc2VCFJIDEQgCEAEYASACKAEwAcI+AhADYghlZGl0aW9uc3DpBw',
 		[file_google_protobuf_cpp_features],
 	)
 
 /**
- * Anonymous first-party counters. Signup is server-only.
+ * Anonymous first-party counters. Signup is server-only. The event name
+ * selects which of the following fields apply.
  *
  * @generated from message puzzled.v1.RecordEventRequest
  */
@@ -58,6 +59,83 @@ export type RecordEventRequest = Message<'puzzled.v1.RecordEventRequest'> & {
 	 * @generated from field: string rating = 6;
 	 */
 	rating: string
+
+	/**
+	 * @generated from field: string mode = 7;
+	 */
+	mode: string
+
+	/**
+	 * @generated from field: string status = 8;
+	 */
+	status: string
+
+	/**
+	 * Omission means no daily pick; a provided index must be between 1 and 3.
+	 *
+	 * @generated from field: uint32 pick_index = 9 [features.field_presence = EXPLICIT];
+	 */
+	pickIndex: number
+
+	/**
+	 * @generated from field: uint32 time_bucket_s = 10 [features.field_presence = EXPLICIT];
+	 */
+	timeBucketS: number
+
+	/**
+	 * @generated from field: bool is_guest = 11 [features.field_presence = EXPLICIT];
+	 */
+	isGuest: boolean
+
+	/**
+	 * @generated from field: uint32 progress_pct_bucket = 12 [features.field_presence = EXPLICIT];
+	 */
+	progressPctBucket: number
+
+	/**
+	 * @generated from field: uint32 hint_count = 13 [features.field_presence = EXPLICIT];
+	 */
+	hintCount: number
+
+	/**
+	 * @generated from field: string action = 14;
+	 */
+	action: string
+
+	/**
+	 * @generated from field: bool has_percentile = 15 [features.field_presence = EXPLICIT];
+	 */
+	hasPercentile: boolean
+
+	/**
+	 * @generated from field: string surface = 16;
+	 */
+	surface: string
+
+	/**
+	 * @generated from field: uint32 picks_used = 17 [features.field_presence = EXPLICIT];
+	 */
+	picksUsed: number
+
+	/**
+	 * @generated from field: string currency = 18;
+	 */
+	currency: string
+
+	/**
+	 * @generated from field: string platform = 19;
+	 */
+	platform: string
+
+	/**
+	 * @generated from field: string trigger = 20;
+	 */
+	trigger: string
+
+	/**
+	 * @generated from field: string result = 21;
+	 */
+	result: string
 }
 
 /**
