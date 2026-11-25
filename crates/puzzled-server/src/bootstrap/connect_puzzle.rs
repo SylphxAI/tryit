@@ -44,7 +44,7 @@ use crate::capabilities::puzzle_play::adapters::daily_puzzles_db::fetch_puzzle_b
 use crate::capabilities::puzzle_play::adapters::game_sessions_db::{
     has_completed_session_on_connection, has_ritual_completion_on_connection,
     load_completed_session_on_connection, load_today_progress_on_connection,
-    persist_validated_session_on_connection, CompletedSession,
+    persist_validated_session_on_connection, CompletedSession, ValidatedSession,
 };
 use crate::capabilities::puzzle_play::adapters::result_shares_db::{
     load_shared_result, record_share_on_connection, set_share_streak_on_connection,
@@ -314,35 +314,37 @@ impl PuzzleConnectService {
         if let Some(connection) = access.connection() {
             match persist_validated_session_on_connection(
                 connection,
-                &uid,
-                game_slug,
-                difficulty.as_deref(),
-                mode,
-                status_label(verdict.status.unwrap_or(status)),
-                Some(i32::try_from(score).unwrap_or(i32::MAX)),
-                req.attempts,
-                req.time_spent_ms,
-                resolved_id.as_deref(),
-                Some(date),
-                ritual_day_key,
-                now.timestamp_millis(),
-                // Extract only after this exact envelope has passed validation.
-                (game_slug == "cryptogram").then(|| {
-                    envelope
-                        .data
-                        .get("hintsUsed")
-                        .and_then(|v| v.as_u64())
-                        .map(|v| v as i64)
-                        .unwrap_or(0)
-                }),
-                // This header only removes a validated finish from comparisons.
-                // It grants no write/auth authority. Recognize older harnesses too.
-                ctx.headers().contains_key("x-puzzled-verification")
-                    || ctx
-                        .headers()
-                        .get("user-agent")
-                        .and_then(|v| v.to_str().ok())
-                        .is_some_and(|v| v.starts_with("puzzled-verify-live/")),
+                ValidatedSession {
+                    user_id: &uid,
+                    game_slug,
+                    difficulty: difficulty.as_deref(),
+                    mode,
+                    status: status_label(verdict.status.unwrap_or(status)),
+                    score: Some(i32::try_from(score).unwrap_or(i32::MAX)),
+                    attempts: req.attempts,
+                    time_spent_ms: req.time_spent_ms,
+                    puzzle_id: resolved_id.as_deref(),
+                    puzzle_date: Some(date),
+                    day_key: ritual_day_key,
+                    at_ms: now.timestamp_millis(),
+                    // Extract only after this exact envelope has passed validation.
+                    hints_used: (game_slug == "cryptogram").then(|| {
+                        envelope
+                            .data
+                            .get("hintsUsed")
+                            .and_then(|v| v.as_u64())
+                            .map(|v| v as i64)
+                            .unwrap_or(0)
+                    }),
+                    // This header only removes a validated finish from comparisons.
+                    // It grants no write/auth authority. Recognize older harnesses too.
+                    comparison_excluded: ctx.headers().contains_key("x-puzzled-verification")
+                        || ctx
+                            .headers()
+                            .get("user-agent")
+                            .and_then(|v| v.to_str().ok())
+                            .is_some_and(|v| v.starts_with("puzzled-verify-live/")),
+                },
             )
             .await
             {

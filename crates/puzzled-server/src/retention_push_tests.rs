@@ -1,7 +1,7 @@
 //! Retention persistence regression tests on a throwaway migrated database.
 use crate::capabilities::preferences::adapters::{account_deletion::delete_account_data, web_push};
 use crate::capabilities::puzzle_play::adapters::game_sessions_db::{
-    adopt_guest_sessions, persist_validated_session,
+    adopt_guest_sessions, persist_validated_session, ValidatedSession,
 };
 use crate::test_support::fresh_database;
 use chrono::NaiveDate;
@@ -127,21 +127,26 @@ async fn existing_guest_claim_carries_two_days_and_today_once() {
         let date = NaiveDate::from_ymd_opt(2026, 9, day).unwrap();
         persist_validated_session(
             &pool,
-            &guest,
-            "word-guess",
-            None,
-            "daily",
-            "won",
-            Some(100),
-            1,
-            1000,
-            None,
-            Some(date),
-            Some(date),
-            date.and_hms_opt(12, 0, 0)
-                .unwrap()
-                .and_utc()
-                .timestamp_millis(),
+            ValidatedSession {
+                user_id: &guest,
+                game_slug: "word-guess",
+                difficulty: None,
+                mode: "daily",
+                status: "won",
+                score: Some(100),
+                attempts: 1,
+                time_spent_ms: 1000,
+                puzzle_id: None,
+                puzzle_date: Some(date),
+                day_key: Some(date),
+                at_ms: date
+                    .and_hms_opt(12, 0, 0)
+                    .unwrap()
+                    .and_utc()
+                    .timestamp_millis(),
+                hints_used: None,
+                comparison_excluded: false,
+            },
         )
         .await
         .unwrap();

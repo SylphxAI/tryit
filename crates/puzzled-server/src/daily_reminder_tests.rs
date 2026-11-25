@@ -13,7 +13,9 @@ use crate::capabilities::jobs::adapters::jobs_db::{
     REMINDER_CLAIM_BATCH, REMINDER_LEASE_SECONDS,
 };
 use crate::capabilities::preferences::adapters::preferences_db::is_reminder_time;
-use crate::capabilities::puzzle_play::adapters::game_sessions_db::persist_validated_session;
+use crate::capabilities::puzzle_play::adapters::game_sessions_db::{
+    persist_validated_session, ValidatedSession,
+};
 use crate::test_support::fresh_database;
 
 /// 01:00 UTC on 30 September: 09:00 in Hong Kong, 21:00 the evening before in
@@ -150,18 +152,22 @@ async fn nobody_is_reminded_after_finishing_todays_puzzle() {
     let day = NaiveDate::parse_from_str(PRODUCT_DAY, "%Y-%m-%d").unwrap();
     persist_validated_session(
         &pool,
-        &finished.to_string(),
-        "sudoku",
-        None,
-        "daily",
-        "won",
-        Some(70),
-        3,
-        61_000,
-        None,
-        Some(day),
-        Some(day),
-        0,
+        ValidatedSession {
+            user_id: &finished.to_string(),
+            game_slug: "sudoku",
+            difficulty: None,
+            mode: "daily",
+            status: "won",
+            score: Some(70),
+            attempts: 3,
+            time_spent_ms: 61_000,
+            puzzle_id: None,
+            puzzle_date: Some(day),
+            day_key: Some(day),
+            at_ms: 0,
+            hints_used: None,
+            comparison_excluded: false,
+        },
     )
     .await
     .unwrap();

@@ -535,29 +535,44 @@ pub async fn has_ritual_completion_on_connection(
     Ok(exists)
 }
 
-/// Persist a server-validated result (authoritative path from Connect submit).
+/// Inputs for storing a server-validated result.
+pub struct ValidatedSession<'a> {
+    pub user_id: &'a str,
+    pub game_slug: &'a str,
+    pub difficulty: Option<&'a str>,
+    pub mode: &'a str,
+    pub status: &'a str,
+    pub score: Option<i32>,
+    pub attempts: u32,
+    pub time_spent_ms: u64,
+    pub puzzle_id: Option<&'a str>,
+    pub puzzle_date: Option<chrono::NaiveDate>,
+    pub day_key: Option<chrono::NaiveDate>,
+    pub at_ms: i64,
+    pub hints_used: Option<i64>,
+    pub comparison_excluded: bool,
+}
+
+/// Persist a server-validated result in its own transaction.
+pub async fn persist_validated_session(
+    pool: &PgPool,
+    session: ValidatedSession<'_>,
+) -> Result<String, String> {
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+    let value = persist_validated_session_on_connection(&mut tx, session).await?;
+    tx.commit().await.map_err(|e| e.to_string())?;
+    Ok(value)
+}
+
+/// Persist a server-validated result on the caller's connection.
 ///
 /// When the finish qualifies as a ritual, also writes `day_key`, `module_class`,
 /// `is_ritual`, and `finish_kind` on the same row (sole instrumentation path).
-#[allow(clippy::too_many_arguments)]
-pub async fn persist_validated_session(
-    pool: &PgPool,
-    user_id: &str,
-    game_slug: &str,
-    difficulty: Option<&str>,
-    mode: &str,
-    status: &str,
-    score: Option<i32>,
-    attempts: u32,
-    time_spent_ms: u64,
-    puzzle_id: Option<&str>,
-    puzzle_date: Option<chrono::NaiveDate>,
-    day_key: Option<chrono::NaiveDate>,
-    at_ms: i64,
+pub async fn persist_validated_session_on_connection(
+    connection: &mut sqlx::PgConnection,
+    session: ValidatedSession<'_>,
 ) -> Result<String, String> {
-    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
-    let value = persist_validated_session_on_connection(
-        &mut tx,
+    let ValidatedSession {
         user_id,
         game_slug,
         difficulty,
@@ -570,31 +585,9 @@ pub async fn persist_validated_session(
         puzzle_date,
         day_key,
         at_ms,
-        None,
-        false,
-    )
-    .await?;
-    tx.commit().await.map_err(|e| e.to_string())?;
-    Ok(value)
-}
-
-pub async fn persist_validated_session_on_connection(
-    connection: &mut sqlx::PgConnection,
-    user_id: &str,
-    game_slug: &str,
-    difficulty: Option<&str>,
-    mode: &str,
-    status: &str,
-    score: Option<i32>,
-    attempts: u32,
-    time_spent_ms: u64,
-    puzzle_id: Option<&str>,
-    puzzle_date: Option<chrono::NaiveDate>,
-    day_key: Option<chrono::NaiveDate>,
-    at_ms: i64,
-    hints_used: Option<i64>,
-    comparison_excluded: bool,
-) -> Result<String, String> {
+        hints_used,
+        comparison_excluded,
+    } = session;
     let uid = parse_user_id(user_id)?;
     let pid = match puzzle_id {
         Some(p) => Some(uuid::Uuid::parse_str(p).map_err(|e| format!("invalid puzzle id: {e}"))?),
