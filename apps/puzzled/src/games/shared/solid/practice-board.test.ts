@@ -126,6 +126,38 @@ test.each(['word-guess', 'quad-words'])(
 	},
 )
 
+test.each([
+	[
+		'word-hive',
+		{ word: 'ACCEDE' },
+		{ valid: true, pangram: false, totalWords: 50, totalPangrams: 2 },
+	],
+	[
+		'cryptogram',
+		{ hint: true, guesses: { B: 'I' }, revealed: ['B'] },
+		{ encrypted: 'X', letter: 'E' },
+	],
+	['cryptogram', { guesses: { B: 'I', X: 'E' } }, { solved: true }],
+] as const)(
+	'%s routes grading to CheckPracticeGuess and returns the grade',
+	async (gameSlug, guess, result) => {
+		const props = { ...practiceProps, difficulty: undefined }
+		const send = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+			const req = new Request(input, init)
+			expect(req.url).toEndWith('/puzzled.v1.PuzzleService/CheckPracticeGuess')
+			expect(await req.json()).toEqual({
+				gameSlug,
+				practiceSeed: String(seed),
+				guessJson: JSON.stringify(guess),
+			})
+			return Response.json({ resultJson: JSON.stringify(result) })
+		})
+		globalThis.fetch = send as unknown as typeof fetch
+		expect(await gradeBoardGuess(props, gameSlug, guess)).toEqual(result)
+		expect(send).toHaveBeenCalledTimes(1)
+	},
+)
+
 test('Arithmo receives eight graded tiles from CheckPracticeGuess', async () => {
 	const tiles: NonNullable<ReturnType<typeof parseGrade>> = [
 		'correct',

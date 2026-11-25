@@ -15,6 +15,11 @@ export const PRACTICE_GAMES = [
 	'block-slide',
 	'pip-place',
 	'number-path',
+	'word-search',
+	'word-ladder',
+	'word-hive',
+	'word-box',
+	'cryptogram',
 ] as const
 
 export function isPracticeSupported(slug: string): slug is (typeof PRACTICE_GAMES)[number] {

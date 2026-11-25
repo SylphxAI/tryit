@@ -14,7 +14,7 @@ const track = mock(() => {})
 mock.module('@/features/analytics/lib/behavioral-events', () => ({ trackBehavioralEvent: track }))
 const { practiceImpression, practicePricingHref } = await import('./practice-impression')
 
-test('the twelve registered practice games match the Rust allowlist in order', () => {
+test('the seventeen registered practice games match the Rust allowlist in order', () => {
 	const source = readFileSync(
 		new URL(
 			'../../../../../../crates/puzzled-core/src/capabilities/puzzle_play/application/practice.rs',
@@ -24,7 +24,7 @@ test('the twelve registered practice games match the Rust allowlist in order', (
 	)
 	const allowlist = source.match(/pub const PRACTICE_GAMES:.*?= \[([\s\S]*?)\];/)?.[1] ?? ''
 	const rustPracticeGames = Array.from(allowlist.matchAll(/"([a-z-]+)"/g), ([, game]) => game)
-	expect(rustPracticeGames).toHaveLength(12)
+	expect(rustPracticeGames).toHaveLength(17)
 	expect<readonly string[]>(PRACTICE_GAMES).toEqual(rustPracticeGames)
 	expect<readonly string[]>(
 		getAllGameMetadata()
@@ -35,6 +35,7 @@ test('the twelve registered practice games match the Rust allowlist in order', (
 	expect(isPracticeSupported('duo')).toBe(true)
 	expect(isPracticeSupported('tango')).toBe(false) // The web route canonicalizes the alias.
 	expect(isPracticeSupported('crossword')).toBe(false)
+	expect(isPracticeSupported('word-groups')).toBe(false)
 })
 
 test.each(['killer-sudoku', 'block-slide', 'crowns'])(

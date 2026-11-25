@@ -8,7 +8,7 @@ use super::super::generate::{generate_seeded, served_payload, DIFFICULTIES, DIFF
 use super::guess_grading::grade_guess;
 use super::submission_validation::{validate_submission, SubmissionEnvelope, SubmissionVerdict};
 
-pub const PRACTICE_GAMES: [&str; 12] = [
+pub const PRACTICE_GAMES: [&str; 17] = [
     "sudoku",
     "word-guess",
     "quad-words",
@@ -21,6 +21,11 @@ pub const PRACTICE_GAMES: [&str; 12] = [
     "block-slide",
     "pip-place",
     "number-path",
+    "word-search",
+    "word-ladder",
+    "word-hive",
+    "word-box",
+    "cryptogram",
 ];
 
 /// Stable, versioned FNV-1a domain separation. Keep the result outside the
@@ -100,8 +105,8 @@ pub struct PracticeBoard {
 
 impl PracticeBoard {
     pub fn client_data(&self) -> Value {
-        // The shared serving policy removes the four stored quad-words answers;
-        // the recursive sanitizer strips embedded answer fields across games.
+        // Share the daily serving policy for game-specific clues and redactions,
+        // then recursively strip embedded answer fields.
         client_safe_puzzle_data(served_payload(self.game, &self.data, &self.solution))
     }
 
@@ -129,6 +134,14 @@ mod tests {
             let board = puzzle.generate().unwrap();
             let daily = generate::generate(game, date, puzzle.difficulty()).unwrap();
             assert_ne!(board.solution, daily.solution, "{game}");
+            if game == "cryptogram" {
+                // Re-encoding the same quote would also change the solution object.
+                // The finite bank can repeat, but not for this date and practice seed.
+                assert_ne!(
+                    board.solution["originalText"],
+                    daily.solution["originalText"]
+                );
+            }
             assert_eq!(
                 board.solution,
                 puzzle.generate().unwrap().solution,
