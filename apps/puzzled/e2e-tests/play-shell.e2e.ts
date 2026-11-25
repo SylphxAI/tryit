@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
-import { capture } from './google-tag-support'
+import { googleTagTest as test } from './google-tag-support'
 
 const wordGames = [
 	'word-guess',
@@ -456,10 +456,10 @@ for (const [width, height] of [
 	test(`guest Sudoku survives both reloads before consent at ${width}×${height}`, async ({
 		page,
 		context,
+		googleRequests: google,
 	}) => {
 		await page.setViewportSize({ width, height })
 		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-		const google = await capture(page)
 		await page.addInitScript(() => {
 			const shifts: number[] = []
 			new PerformanceObserver((list) => {
