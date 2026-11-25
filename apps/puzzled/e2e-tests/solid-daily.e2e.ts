@@ -355,8 +355,16 @@ test('Duo preserves fixed clues and rejects a filled grid with conflicts before 
 	await last.click()
 	await expect(last).toHaveAccessibleName('Row 2, Column 5, Sun')
 	await expect(last).toHaveAttribute('aria-invalid', 'true')
+	const conflicts = board.getByRole('status')
 	await expect(
-		board.getByRole('status').filter({ hasText: 'Some cells violate the rules' }),
+		conflicts.getByText('No more than two suns or moons in a row or column.', {
+			exact: true,
+		}),
+	).toBeVisible()
+	await expect(
+		conflicts.getByText('Each row and column must have the same number of suns and moons.', {
+			exact: true,
+		}),
 	).toBeVisible()
 	expect(submits).toHaveLength(0)
 	await last.press('Delete')
@@ -672,7 +680,21 @@ test('Cage Sudoku honors cage sums, keeps givens fixed and retries the exact acc
 		}
 	}
 	await expect(grid.getByRole('button', { name: /^Row 9, Column 9, 6,/ })).toBeEnabled()
-	await expect(grid.locator('[aria-invalid="true"]')).toHaveCount(0)
+	const wrongCages = fixture.puzzleData.cages.filter(
+		({ cells, sum }) =>
+			cells.reduce((total, [row, col]) => total + swapped(fixture.solution.grid[row][col]), 0) !==
+			sum,
+	)
+	expect(wrongCages.length).toBeGreaterThan(0)
+	const invalidCells = wrongCages.flatMap(({ cells }) => cells)
+	await expect(grid.locator('[aria-invalid="true"]')).toHaveCount(invalidCells.length)
+	for (const [row, col] of invalidCells)
+		await expect(cell(row, col)).toHaveAttribute('aria-invalid', 'true')
+	await expect(
+		board
+			.getByRole('status')
+			.getByText(`This cage must add up to ${wrongCages[0].sum}.`, { exact: true }),
+	).toBeVisible()
 	await expect(board.getByText('Puzzle Complete!')).toHaveCount(0)
 	expect(submits).toHaveLength(0)
 
@@ -733,7 +755,7 @@ test('Rungs validates steps, preserves undo and waits for the exact saved path',
 	await expect(input).toHaveAttribute('aria-invalid', 'true')
 	await expect(input).toHaveAccessibleDescription('Not a valid word')
 	await type('hot')
-	await expect(input).toHaveAccessibleDescription('Word must be the same length')
+	await expect(input).toHaveAccessibleDescription('Enter a 4-letter word')
 	await type('tomb')
 	await expect(input).toHaveAccessibleDescription('Change exactly one letter')
 	await expect(rungs).toHaveCount(1)
@@ -803,6 +825,18 @@ test('Five freezes the pending guess and uses only server tile grades', async ({
 				: { tiles: Array(5).fill('correct') }
 		},
 	})
+	const rejectedWords: string[] = []
+	await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => {
+		const body = route.request().postDataJSON()
+		const { word } = JSON.parse(body.guessJson)
+		if (word !== 'zzzzz') return route.fallback()
+		expect(body).toMatchObject({ gameSlug: 'word-guess', puzzleDate: date, puzzleId })
+		rejectedWords.push(word)
+		return route.fulfill({
+			status: 400,
+			json: { code: 'invalid_argument', message: 'Not in word list' },
+		})
+	})
 	const table = board.getByRole('table', { name: 'Five' })
 	const rows = table.getByRole('row')
 	const key = (letter: string) => board.getByRole('button', { name: letter, exact: true })
@@ -812,10 +846,15 @@ test('Five freezes the pending guess and uses only server tile grades', async ({
 	await expect(board.getByText(fixture.solution.word, { exact: true })).toHaveCount(0)
 	await enter.click()
 	await expect(board.getByRole('alert')).toHaveText('Not enough letters')
+	expect(rejectedWords).toEqual([])
+	expect(grades).toEqual([])
 	await page.keyboard.type('zzzzz')
 	await enter.click()
 	await expect(board.getByRole('alert')).toHaveText('Not in word list')
+	expect(rejectedWords).toEqual(['zzzzz'])
 	expect(grades).toEqual([])
+	await expect(rows.locator('[data-grade]')).toHaveCount(0)
+	expect(submits).toHaveLength(0)
 	for (let i = 0; i < 5; i++) await page.keyboard.press('Backspace')
 	await page.keyboard.type('crane')
 	await enter.click()
@@ -978,9 +1017,13 @@ test('Frame keeps a legal chain and accepts only a saved full box', async ({ pag
 	await board.getByRole('button', { name: 'R', exact: true }).click()
 	await expect(board.getByText('Choose a letter from a different side.')).toBeVisible()
 	await expect(field).toHaveValue('N')
-	await board.getByRole('button', { name: 'Start over' }).click()
+	await board.getByRole('button', { name: 'Start over', exact: true }).click()
+	const confirm = board.getByRole('button', { name: 'Confirm reset?', exact: true })
+	await expect(confirm).toBeFocused()
+	await expect(field).toHaveValue('N')
+	await confirm.click()
 	await expect(field).toHaveValue('')
-	await field.focus()
+	await expect(field).toBeFocused()
 	await page.keyboard.type(fixture.solution.words[0])
 	await page.keyboard.press('Enter')
 	await expect(board.getByRole('list', { name: 'Word chain' })).toHaveText(

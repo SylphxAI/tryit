@@ -15,7 +15,7 @@ test('home serves the localized daily lineup, canonical metadata and FAQ without
 		const page = await context.newPage()
 		for (const [path, lang, headline] of [
 			['/', 'en-US', /19 daily puzzles/i],
-			['/es', 'es', /19 puzzles diarios/i],
+			['/es', 'es', /19 puzles diarios/i],
 		] as const) {
 			const response = await page.goto(path)
 			expect(response?.status()).toBe(200)
@@ -60,25 +60,43 @@ test('home serves the localized daily lineup, canonical metadata and FAQ without
 	}
 })
 
-test('home mirrors the product day’s local picks and preserves localized navigation', async ({
+test('home mirrors the product day’s server picks and preserves localized navigation', async ({
 	page,
 }) => {
+	// The cap fixture is served with FIXTURE_OPEN_PLANS=1, separate from the console fixture.
+	const url = process.env.HOME_PICKS_BASE_URL
+		? new URL('/es', process.env.HOME_PICKS_BASE_URL).href
+		: '/es'
 	await page.addInitScript((day) => {
-		localStorage.setItem('puzzled:picks:2000-01-01', '["sudoku","word-search","nonogram"]')
+		// A contradictory legacy cache must not supply today's picks.
 		localStorage.setItem(`puzzled:picks:${day}`, '["sudoku","word-search"]')
 	}, productDayKey())
-	await page.goto('/es')
-	await expect(page.locator('[data-daily-picks="2"]')).toBeVisible()
+	await page.goto(url)
+	await expect(page.locator('p[data-daily-picks="0"]')).toHaveText(
+		'Hoy has usado 0 de tus 3 jugadas gratis',
+	)
+	await expect(page.locator('a[data-daily-picks]')).toHaveCount(0)
 	const countdown = page.locator('[data-home-countdown]')
 	const initial = await countdown.textContent()
 	await expect(countdown).not.toHaveText(initial ?? '')
-	await page.evaluate((day) => {
-		localStorage.setItem(`puzzled:picks:${day}`, '["sudoku","word-search","nonogram"]')
-		window.dispatchEvent(new Event('puzzled:picks-change'))
-	}, productDayKey())
-	await expect(page.locator('a[data-daily-picks="3"]')).toHaveAttribute(
+
+	// Only this fixture identity gets three current-day claims from GetTodayProgress.
+	await page.context().addCookies([
+		{
+			name: '__Host-puzzled_guest',
+			value: 'cap-fixture',
+			domain: new URL(page.url()).hostname,
+			path: '/',
+			secure: true,
+			httpOnly: true,
+		},
+	])
+	await page.reload()
+	const full = page.locator('a[data-daily-picks="3"]')
+	await expect(full).toHaveText('Hoy has usado 3 de tus 3 jugadas gratis')
+	await expect(full).toHaveAttribute(
 		'href',
-		/^\/es\/pricing\?.*entry_surface=picks_pill/,
+		'/es/pricing?utm_source=tryit&utm_medium=picks_pill&entry_surface=picks_pill',
 	)
 	await page.locator('#main-content a[href^="/es/games?category="]').first().click()
 	await expect(page).toHaveURL(/\/es\/games\?category=/)
