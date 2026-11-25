@@ -21,6 +21,6 @@ export function sessionCookieOptions(secure: boolean): SessionCookieOptions {
 export function readSessionToken(request: Request): string | undefined {
 	return readAuthSessionCookie(request, {
 		sessionCookie: SESSION_COOKIE,
-		legacyCookies: [LEGACY_SESSION_COOKIE],
+		legacyCookies: SESSION_COOKIE_NAMES.slice(1),
 	})?.value
 }

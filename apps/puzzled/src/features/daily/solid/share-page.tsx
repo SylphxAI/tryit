@@ -1,6 +1,5 @@
 /** @jsxImportSource solid-js */
 import { createAsync, useLocation, useParams } from '@solidjs/router'
-import { HttpHeader } from '@solidjs/start'
 import { Target, Trophy } from 'lucide-solid'
 import { createEffect, For, onCleanup, Show } from 'solid-js'
 import { hasExplicitAnalyticsConsent, onConsentChange } from '@/features/analytics/lib/consent'
@@ -122,18 +121,15 @@ export function SharePage() {
 		{ deferStream: true },
 	)
 	return (
-		<>
-			<HttpHeader name="Cache-Control" value="private, no-store" />
-			<Show when={page()} keyed>
-				{(data) => (
-					<>
-						<PageMeta value={data.meta} />
-						<SiteShell data={data.shell}>
-							<ShareLanding data={data} />
-						</SiteShell>
-					</>
-				)}
-			</Show>
-		</>
+		<Show when={page()} keyed>
+			{(data) => (
+				<>
+					<PageMeta value={data.meta} />
+					<SiteShell data={data.shell} signedIn={data.signedIn}>
+						<ShareLanding data={data} />
+					</SiteShell>
+				</>
+			)}
+		</Show>
 	)
 }

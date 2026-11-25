@@ -15,13 +15,19 @@ import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 
 const getCatalogPage = query(async (locale: string) => {
 	'use server'
-	const request = getRequestEvent()?.request
-	if (!request) throw new Error('Catalog requires a request')
-	return buildCatalogPage(
-		isValidLocale(locale) ? locale : defaultLocale,
-		canonicalSiteOrigin(request.headers),
-		new Date(),
-	)
+	const event = getRequestEvent()
+	if (!event) throw new Error('Catalog requires a request')
+	const { request } = event
+	event.response.headers.set('Cache-Control', 'private, no-store')
+	const { readSignedIn } = await import('@/lib/identity/signed-in')
+	return {
+		data: buildCatalogPage(
+			isValidLocale(locale) ? locale : defaultLocale,
+			canonicalSiteOrigin(request.headers),
+			new Date(),
+		),
+		signedIn: await readSignedIn(request),
+	}
 }, 'catalog-page')
 
 export const route = {
@@ -37,7 +43,14 @@ export default function GamesCatalog() {
 	})
 	return (
 		<Show when={data()}>
-			{(value) => <CatalogPage data={value()} query={search.q} category={search.category} />}
+			{(value) => (
+				<CatalogPage
+					data={value().data}
+					signedIn={value().signedIn}
+					query={search.q}
+					category={search.category}
+				/>
+			)}
 		</Show>
 	)
 }

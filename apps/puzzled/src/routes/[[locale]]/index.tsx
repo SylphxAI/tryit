@@ -1,6 +1,5 @@
 /** @jsxImportSource solid-js */
 import { createAsync, query, type RouteDefinition, useParams } from '@solidjs/router'
-import { HttpHeader } from '@solidjs/start'
 import { Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
 import { HomePage } from '@/features/marketing/solid/home-page'
@@ -9,8 +8,10 @@ import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 
 const getHome = query(async (value: string) => {
 	'use server'
-	const request = getRequestEvent()?.request
-	if (!request) throw new Error('Home requires a request')
+	const event = getRequestEvent()
+	if (!event) throw new Error('Home requires a request')
+	const { request } = event
+	event.response.headers.set('Cache-Control', 'private, no-store')
 	const { homeDocument, readHomeFacts } = await import('@/features/marketing/solid/home-data')
 	const page = homeDocument(
 		isValidLocale(value) ? value : defaultLocale,
@@ -31,11 +32,8 @@ export default function Page() {
 	// Both must appear exactly once even without script-driven stream insertion.
 	const home = createAsync(() => getHome(params.locale ?? defaultLocale), { deferStream: true })
 	return (
-		<>
-			<HttpHeader name="Cache-Control" value="private, no-store" />
-			<Show when={home()} keyed>
-				{({ page, facts }) => <HomePage page={page} facts={() => facts} />}
-			</Show>
-		</>
+		<Show when={home()} keyed>
+			{({ page, facts }) => <HomePage page={page} facts={() => facts} />}
+		</Show>
 	)
 }

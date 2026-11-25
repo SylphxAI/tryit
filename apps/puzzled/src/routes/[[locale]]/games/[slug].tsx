@@ -47,20 +47,22 @@ const getGamePage = query(
 		)
 		if (!data) return null
 		const { resolveGameDayRequest } = await import('@/features/daily/lib/day-request')
-		const { hasAccountSessionCookie } = await import('@/lib/api/request-connect')
+		const { readSignedIn } = await import('@/lib/identity/signed-in')
 		const practice = mode === 'practice' && isPracticeSupported(data.slug)
 		const day = resolveGameDayRequest({ date }, now)
 		const difficulty = data.difficultyLevels.length ? asDifficulty(level) : undefined
 		const started = start === START_PARAM_ON
 		// The passive landing can paint an authoritative board or chooser in one response.
 		// Explicit play and archive keep their existing just-in-time browser read.
-		const initialDaily =
+		const [signedIn, initialDaily] = await Promise.all([
+			readSignedIn(request),
 			!practice && day.mode === 'daily' && !started
-				? await (await import('@/features/daily/solid/daily-read')).readDailyLanding(
-						request.headers,
-						{ gameSlug: data.slug, difficulty },
-					)
-				: undefined
+				? (await import('@/features/daily/solid/daily-read')).readDailyLanding(request.headers, {
+						gameSlug: data.slug,
+						difficulty,
+					})
+				: undefined,
+		])
 		return {
 			data,
 			practice,
@@ -70,7 +72,7 @@ const getGamePage = query(
 			started,
 			resetAt: nextProductDayStart(now).getTime(),
 			initialDaily,
-			isGuest: !hasAccountSessionCookie(request.headers),
+			signedIn,
 		}
 	},
 	'game-page',
@@ -125,7 +127,7 @@ export default function GamePage() {
 						practice={page().practice}
 						daily={!page().practice && page().day.mode === 'daily'}
 						difficulty={page().difficulty}
-						isGuest={page().isGuest}
+						signedIn={page().signedIn}
 						playHref={
 							page().day.mode === 'daily'
 								? localizedPath(

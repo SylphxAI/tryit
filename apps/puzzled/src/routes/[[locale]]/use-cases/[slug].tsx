@@ -36,7 +36,7 @@ export default function Page() {
 								imageSubtitle={value.metaDescription}
 								origin={base().origin}
 							/>
-							<SiteShell data={base().shell}>
+							<SiteShell data={base().shell} signedIn={base().signedIn}>
 								<UseCaseLanding spec={value} origin={base().origin} />
 							</SiteShell>
 						</>

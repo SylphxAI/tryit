@@ -14,6 +14,7 @@ import type { CatalogPageData } from './catalog-data'
 
 export function CatalogPage(props: {
 	data: CatalogPageData
+	signedIn: boolean
 	query?: string | string[]
 	category?: string | string[]
 }) {
@@ -29,7 +30,7 @@ export function CatalogPage(props: {
 		return props.data.path + (search.size ? `?${search.toString()}` : '')
 	}
 	return (
-		<SiteShell data={props.data.shell}>
+		<SiteShell data={props.data.shell} signedIn={props.signedIn}>
 			<PageMeta value={props.data.meta} />
 			<main id="main-content" tabIndex={-1} class="flex-1">
 				<section class="relative">

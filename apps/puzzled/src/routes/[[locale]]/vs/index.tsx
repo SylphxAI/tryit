@@ -28,7 +28,7 @@ export default function Page() {
 						origin={base().origin}
 						locale={base().shell.language}
 					/>
-					<SiteShell data={base().shell}>
+					<SiteShell data={base().shell} signedIn={base().signedIn}>
 						<ComparisonHub origin={base().origin} />
 					</SiteShell>
 				</>

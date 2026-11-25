@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test'
+import { fixtureToken } from '../scripts/auth-fixture-facts'
 import { SIGNUP_COOKIE } from '../src/lib/identity/after-sign-up'
 import { OAUTH_ACCEPTANCE, OAUTH_PREFIX } from '../src/lib/identity/oauth-contract'
 import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
@@ -51,6 +52,82 @@ async function fixture(
 	)
 	return (await response.json()).calls
 }
+
+const practicePath = '/games/word-guess?mode=practice'
+const entryPages = [
+	'/',
+	'/games',
+	'/support',
+	'/vs',
+	'/vs/elevate',
+	'/r/unknown?game=sudoku',
+	practicePath,
+]
+
+async function expectEntryHeader(page: Page, path: string, signedIn: boolean) {
+	const response = await page.goto(path)
+	expect(response?.status()).toBe(200)
+	expect(response?.headers()['cache-control']).toBe('private, no-store')
+	// Read the original HTML, not a header that hydration might have repaired.
+	const headerHtml = (await response?.text())?.match(
+		/<header class="site-header[^>]*>[\s\S]*?<\/header>/,
+	)?.[0]
+	expect(headerHtml).toBeDefined()
+	if (signedIn) {
+		expect(headerHtml).toContain('aria-label="Account"')
+		expect(headerHtml).not.toContain('>Sign in<')
+	} else {
+		expect(headerHtml).toContain('>Sign in<')
+		expect(headerHtml).not.toContain('aria-label="Account"')
+	}
+	const header = page.locator('.site-header')
+	await expect(
+		header.getByRole('link', { name: signedIn ? 'Account' : 'Sign in', exact: true }),
+	).toBeVisible()
+	await expect(
+		header.getByRole('link', { name: signedIn ? 'Sign in' : 'Account', exact: true }),
+	).toHaveCount(0)
+}
+
+test('a fresh guest gets server-rendered Sign in and reaches the practice offer', async ({
+	page,
+}) => {
+	await fixture('enabled')
+	await page.route('**/puzzled.v1.PuzzleService/GetPracticePuzzle', (route) =>
+		route.fulfill({ status: 401, json: { code: 'unauthenticated', message: 'sign_in_required' } }),
+	)
+	for (const path of entryPages) await expectEntryHeader(page, path, false)
+	await expect(
+		page.locator('[data-unlock-panel="practice"] a[href="/pricing?trigger=practice_upsell"]'),
+	).toBeVisible()
+	expect((await fixture()).filter(({ path }) => path === '/v1/sessions/current')).toEqual([])
+})
+
+test('a verified session gets server-rendered Account and sends credentials on a practice deep link', async ({
+	page,
+	context,
+	baseURL,
+}) => {
+	await fixture('slow-session')
+	await context.addCookies([
+		{ name: 'puzzled_session', value: fixtureToken, url: baseURL!, httpOnly: true },
+	])
+	await page.route('**/puzzled.v1.PuzzleService/GetPracticePuzzle', async (route) => {
+		const cookie = (await route.request().allHeaders()).cookie
+		expect(cookie?.split('; ')).toContain(`puzzled_session=${fixtureToken}`)
+		await route.fulfill({
+			json: {
+				gameSlug: 'word-guess',
+				practiceSeed: '1',
+				puzzleDataJson: JSON.stringify({ wordLength: 5, maxAttempts: 6 }),
+			},
+		})
+	})
+	for (const path of entryPages) await expectEntryHeader(page, path, true)
+	await expect(page.locator('[data-practice-seed="1"]')).toBeVisible()
+	await page.setViewportSize({ width: 390, height: 844 })
+	await expect(page.locator('.site-header').getByRole('link', { name: 'Account' })).toBeVisible()
+})
 
 test('desktop sign-in explains the benefits without competing with account entry', async ({
 	page,

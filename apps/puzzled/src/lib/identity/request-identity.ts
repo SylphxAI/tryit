@@ -12,13 +12,14 @@ export function requestUserAgent(request: Request): string {
 	return request.headers.get('user-agent')?.trim() || 'puzzled-web'
 }
 
-export function requestUser(request: Request): Promise<IdentityUser | null> {
-	return resolveUser(readSessionToken(request), requestUserAgent(request))
+export function requestUser(request: Request, signal?: AbortSignal): Promise<IdentityUser | null> {
+	return resolveUser(readSessionToken(request), requestUserAgent(request), signal)
 }
 
 export async function resolveUser(
 	token: string | undefined,
 	userAgent: string,
+	signal?: AbortSignal,
 ): Promise<IdentityUser | null> {
 	if (!token) return null
 	// Auth requires the product's publishable key on every session read.
@@ -30,6 +31,7 @@ export async function resolveUser(
 			'/v1/sessions/current',
 			{
 				credential: token,
+				signal,
 				headers: { 'user-agent': userAgent, 'x-sylphx-caller-key': callerKey },
 			},
 		)

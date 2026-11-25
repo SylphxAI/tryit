@@ -23,7 +23,8 @@ function cookieParts(value: string | null) {
 	})
 }
 
-export function hasAccountSessionCookie(headers: Headers): boolean {
+// Connect also accepts the namespaced legacy Platform cookie for play progress.
+export function hasPlayAccountCookie(headers: Headers): boolean {
 	return cookieParts(headers.get('cookie')).some(
 		({ name, value }) => name !== GUEST_COOKIE && isProgressCookie(name) && !!value,
 	)
