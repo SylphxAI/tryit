@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { createAsync, query, type RouteDefinition, useParams } from '@solidjs/router'
+import { createAsync, useParams } from '@solidjs/router'
 import {
 	ArrowRight,
 	Check,
@@ -12,16 +12,13 @@ import {
 	ShieldCheck,
 } from 'lucide-solid'
 import { For, Show } from 'solid-js'
-import { getRequestEvent } from 'solid-js/web'
 import { APP_NAME, SUPPORT_EMAIL } from '@/lib/config/app'
-import { defaultLocale, isValidLocale, type Locale } from '@/lib/i18n/config'
+import { defaultLocale, type Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
-import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { localizedPath } from '@/lib/seo/urls'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
-import { siteShellData } from '@/shared/solid/site-shell-data'
 import { FAQ_KEYS } from '../support-faq-keys'
 import { MarketingCta } from './marketing-cta'
 import { MarketingHero } from './marketing-hero'
@@ -50,36 +47,7 @@ const SECONDARY_CTA =
 const INLINE_LINK =
 	'inline-flex min-h-11 items-center gap-2 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-const readSupport = query(async (localeParam: string) => {
-	'use server'
-	const request = getRequestEvent()?.request
-	if (!request) throw new Error('Support page needs a request')
-	const { canonicalSiteOrigin } = await import('@/lib/site-origin-request')
-	const locale = isValidLocale(localeParam) ? localeParam : defaultLocale
-	const t = createTranslator(locale)
-	const title = t('support.title')
-	return {
-		locale,
-		shell: siteShellData(locale, '/support', t, new Date()),
-		meta: pageMetadata({
-			locale,
-			path: '/support',
-			title,
-			description: t('support.description'),
-			imagePath: ogImagePath({
-				title,
-				subtitle: t('support.hero.lead'),
-				eyebrow: t('support.hero.eyebrow'),
-			}),
-			baseUrl: canonicalSiteOrigin(request.headers),
-		}),
-	}
-}, 'support-page')
-
-export const supportRoute: RouteDefinition = {
-	matchFilters: { locale: isValidLocale },
-	preload: ({ params }) => readSupport(params.locale ?? defaultLocale),
-}
+import { readSupport } from './support-route'
 
 export function SupportPage() {
 	const params = useParams()

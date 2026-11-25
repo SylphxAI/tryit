@@ -1,12 +1,21 @@
-import { IntlMessageFormat } from 'intl-messageformat'
 import type { Locale } from './config'
+import { messageCompiler, type Values } from './format-message'
 import { loadMessages } from './messages'
 
-type Values = Record<string, string | number | boolean | Date | null | undefined>
+const translators = new Map<Locale, Translate>()
 
-export function createTranslator(locale: Locale) {
-	const messages = loadMessages(locale)
-	const formats = new Map<string, IntlMessageFormat>()
+export function createTranslator(locale: Locale): Translate {
+	let translate = translators.get(locale)
+	if (!translate) {
+		translate = makeTranslator(locale, loadMessages(locale))
+		translators.set(locale, translate)
+	}
+	return translate
+}
+
+function makeTranslator(locale: Locale, messages: Record<string, unknown>) {
+	const compile = messageCompiler(locale)
+	const formats = new Map<string, ReturnType<typeof compile>>()
 
 	function raw(path: string): unknown {
 		let value: unknown = messages
@@ -20,14 +29,16 @@ export function createTranslator(locale: Locale) {
 	const translate = (path: string, values?: Values): string => {
 		const message = raw(path)
 		if (typeof message !== 'string') return path
+		// Only messages with possible ICU syntax need compilation.
+		if (!/[{}'<]/.test(message)) return message
 		let format = formats.get(path)
 		if (!format) {
-			format = new IntlMessageFormat(message, locale)
+			format = compile(message)
 			formats.set(path, format)
 		}
-		return String(format.format(values))
+		return format(values)
 	}
 	return Object.assign(translate, { has: (path: string) => typeof raw(path) === 'string', raw })
 }
 
-export type Translate = ReturnType<typeof createTranslator>
+export type Translate = ReturnType<typeof makeTranslator>

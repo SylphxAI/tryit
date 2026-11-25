@@ -1,5 +1,6 @@
 /** @jsxImportSource solid-js */
-import { PolicyPage, policyRoute } from '@/features/marketing/solid/policy-page'
+import { PolicyPage } from '@/features/marketing/solid/policy-page'
+import { policyRoute } from '@/features/marketing/solid/policy-route'
 
 export const route = policyRoute('terms')
 

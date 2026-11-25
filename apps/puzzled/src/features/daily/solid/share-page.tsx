@@ -1,48 +1,20 @@
 /** @jsxImportSource solid-js */
-import {
-	createAsync,
-	query,
-	type RouteDefinition,
-	redirect,
-	useLocation,
-	useParams,
-} from '@solidjs/router'
+import { createAsync, useLocation, useParams } from '@solidjs/router'
 import { HttpHeader } from '@solidjs/start'
 import { Target, Trophy } from 'lucide-solid'
 import { createEffect, For, onCleanup, Show } from 'solid-js'
-import { getRequestEvent } from 'solid-js/web'
 import { hasExplicitAnalyticsConsent, onConsentChange } from '@/features/analytics/lib/consent'
 import { sendFunnel } from '@/features/analytics/lib/funnel'
 import { rememberChallenge } from '@/features/daily/lib/challenge'
 import { resultCardChips, resultCardStringsFrom } from '@/features/daily/lib/result-card'
 import { createPuzzleServiceClient } from '@/lib/connect/puzzle-client'
-import { defaultLocale, isValidLocale } from '@/lib/i18n/config'
+import { defaultLocale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
+import { readSharePage } from './share-route'
 
-const readPage = query(async (localeParam: string, shareId: string | null, search: string) => {
-	'use server'
-	const request = getRequestEvent()?.request
-	if (!request) throw new Error('Share landing requires a request')
-	const { readShareLanding } = await import('./share-data')
-	const result = await readShareLanding(
-		isValidLocale(localeParam) ? localeParam : defaultLocale,
-		shareId,
-		search,
-		request,
-	)
-	if (result.kind === 'redirect') throw redirect(result.location, 307)
-	return result.page
-}, 'share-landing')
-
-export const shareRoute: RouteDefinition = {
-	matchFilters: { locale: isValidLocale },
-	preload: ({ params, location }) =>
-		readPage(params.locale ?? defaultLocale, params.shareId ?? null, location.search),
-}
-
-type SharePageData = Awaited<ReturnType<typeof readPage>>
+type SharePageData = Awaited<ReturnType<typeof readSharePage>>
 
 function ShareLanding(props: { data: SharePageData }) {
 	const t = createTranslator(props.data.locale)
@@ -146,7 +118,7 @@ export function SharePage() {
 	const params = useParams()
 	const location = useLocation()
 	const page = createAsync(
-		() => readPage(params.locale ?? defaultLocale, params.shareId ?? null, location.search),
+		() => readSharePage(params.locale ?? defaultLocale, params.shareId ?? null, location.search),
 		{ deferStream: true },
 	)
 	return (

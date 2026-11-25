@@ -1,8 +1,7 @@
 /** @jsxImportSource solid-js */
-import {
-	MemberSettingsRoute,
-	memberSettingsPreload,
-} from '@/features/settings/solid/member-settings-route'
+
+import { memberSettingsPreload } from '@/features/settings/solid/member-settings-preload'
+import { MemberSettingsRoute } from '@/features/settings/solid/member-settings-route'
 import { NotificationSettings } from '@/features/settings/solid/notification-settings'
 
 export const route = memberSettingsPreload('notifications')

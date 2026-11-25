@@ -3,7 +3,7 @@ import { Check, RotateCcw } from 'lucide-solid'
 import { createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
 import { puzzleThemeLabel } from '@/games/shared/puzzle-theme-label'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
-import { createTranslator } from '@/lib/i18n/translate'
+import { createTranslator, type Translate } from '@/lib/i18n/translate'
 import { parseWordSearchClientPayload, type WordSearchClientData } from './parse-client'
 import zhTwThemes from './puzzle-themes.zh-TW.json'
 import { matchSelection } from './selection'
@@ -33,14 +33,16 @@ export default function WordSearchBoard(props: DailyBoardProps) {
 	})
 	return (
 		<Show when={puzzle()} keyed fallback={<p role="alert">{t('daily.unavailableTitle')}</p>}>
-			{(data) => <Board {...props} data={data} />}
+			{(data) => <Board {...props} data={data} t={t} />}
 		</Show>
 	)
 }
 
-function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
-	const t = createTranslator(props.locale)
+function Board(props: DailyBoardProps & { data: WordSearchClientData; t: Translate }) {
+	const { t } = props
 	const { grid, words, theme } = props.data
+	const rows = grid.map((_, i) => t('common.cellRow', { index: i + 1 }))
+	const columns = grid.map((_, i) => t('common.cellColumn', { index: i + 1 }))
 	const locked = () => finish.state() !== 'playing'
 	const finish = createBoardFinish(props, 'word-search')
 	const [found, setFound] = finish.draft.signal('found', new Map<string, Line>())
@@ -207,7 +209,7 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData }) {
 										data-col={col}
 										data-found={highlighted().some((cell) => same(cell, pos)) || undefined}
 										data-selected={selected().some((cell) => same(cell, pos)) || undefined}
-										aria-label={`${letter}, ${t('common.cellRow', { index: row + 1 })}, ${t('common.cellColumn', { index: col + 1 })}`}
+										aria-label={`${letter}, ${rows[row]}, ${columns[col]}`}
 										aria-pressed={selected().some((cell) => same(cell, pos))}
 										disabled={locked()}
 										onClick={(event) => {
