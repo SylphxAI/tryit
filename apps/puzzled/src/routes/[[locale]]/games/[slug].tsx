@@ -8,7 +8,7 @@ import {
 	useParams,
 	useSearchParams,
 } from '@solidjs/router'
-import { createMemo, Show } from 'solid-js'
+import { createMemo, createSignal, Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
 import { buildGamePage } from '@/features/catalog/solid/game-data'
 import { GameLanding } from '@/features/catalog/solid/game-landing'
@@ -17,7 +17,7 @@ import { START_PARAM_ON } from '@/features/daily/lib/start-param'
 import { todayPlayPath } from '@/features/daily/lib/today-play-path'
 import { DailyPlay } from '@/features/daily/solid/daily-play'
 import { defaultLocale, isValidLocale, locales } from '@/lib/i18n/config'
-import { productDayKey } from '@/lib/product-day'
+import { nextProductDayStart, productDayKey } from '@/lib/product-day'
 import { localizedPath } from '@/lib/seo/urls'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import NotFound from '@/shared/solid/not-found'
@@ -57,6 +57,7 @@ const getGamePage = query(
 			todayKey: productDayKey(now),
 			difficulty,
 			started,
+			resetAt: nextProductDayStart(now).getTime(),
 			initialDaily,
 			isGuest: !hasAccountSessionCookie(request.headers),
 		}
@@ -85,6 +86,7 @@ export default function GamePage() {
 	const params = useParams()
 	const [search] = useSearchParams()
 	const data = createAsync(() => readGamePage(params, search), { deferStream: true })
+	const [lockedKey, setLockedKey] = createSignal<string>()
 	const playKey = createMemo(() => {
 		const page = data()
 		return (
@@ -105,6 +107,7 @@ export default function GamePage() {
 				{(page) => (
 					<GameLanding
 						data={page().data}
+						locked={page().initialDaily?.kind === 'locked' || lockedKey() === playKey()}
 						stage={page().day.mode === 'daily' && page().started}
 						daily={page().day.mode === 'daily'}
 						isGuest={page().isGuest}
@@ -123,6 +126,8 @@ export default function GamePage() {
 									data={page().data}
 									day={page().day}
 									todayKey={page().todayKey}
+									resetAt={page().resetAt}
+									onLocked={() => setLockedKey(_playKey)}
 									difficulty={page().difficulty}
 									initial={page().initialDaily}
 									started={page().started}

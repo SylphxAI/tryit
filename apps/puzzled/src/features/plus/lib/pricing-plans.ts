@@ -61,6 +61,7 @@ export function selectPricingPlans(
 	const currency = chooseCurrency({
 		cookie: parseCookie(headers.get('cookie') ?? '')[CURRENCY_COOKIE],
 		country: headers.get(COUNTRY_HEADER),
+		acceptLanguage: headers.get('accept-language'),
 		locale,
 		available: currencies,
 	})

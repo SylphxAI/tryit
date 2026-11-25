@@ -146,7 +146,7 @@ for (const viewport of [
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 			'19 daily puzzles. Play now, no account needed.',
 		)
-		await expect(page.getByText('0 / 3 free today')).toBeVisible()
+		await expect(page.getByText('0 of 3 free picks used today')).toBeVisible()
 		const images = await motifs.evaluateAll((nodes: HTMLImageElement[]) =>
 			nodes.map((image) => ({
 				slug: image.closest('a')?.dataset.homeGame,
@@ -211,7 +211,7 @@ test('Taiwan home and all 19 catalog tiles use local names and minute badges', a
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 		'每天 19 款謎題，不用註冊就能玩。',
 	)
-	await expect(page.getByText('今日免費已選 0 / 3 款')).toBeVisible()
+	await expect(page.getByText('今天 3 個免費名額已用 0 個')).toBeVisible()
 	await expect(page.getByText(/今天已有 .* 位玩家完成/)).toHaveCount(0)
 	await expect(page.getByRole('link', { name: '跳至主要內容', exact: true })).toHaveAttribute(
 		'href',

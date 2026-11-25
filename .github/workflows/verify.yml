@@ -792,7 +792,7 @@ jobs:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/pricing
         run: |
           set -euo pipefail
-          bun run test:e2e e2e-tests/solid-archive.e2e.ts e2e-tests/pricing.e2e.ts e2e-tests/comparison-currency.e2e.ts e2e-tests/seo-conversion-layout.e2e.ts e2e-tests/ga4-checkout.e2e.ts --workers=1 --retries=0 --output=test-results/pricing 2>&1 | tee "$RUNNER_TEMP/craft-pricing.log"
+          bun run test:e2e e2e-tests/solid-archive.e2e.ts e2e-tests/pricing.e2e.ts e2e-tests/comparison-currency.e2e.ts e2e-tests/daily-cap.e2e.ts e2e-tests/seo-conversion-layout.e2e.ts e2e-tests/ga4-checkout.e2e.ts --workers=1 --retries=0 --output=test-results/pricing 2>&1 | tee "$RUNNER_TEMP/craft-pricing.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-pricing.log"; then echo "a pricing test skipped"; exit 1; fi
 
       - name: Sign-in through the local Auth fixture

@@ -1964,3 +1964,11 @@ html:has(.site-shell) {
 .stage-cta:hover {
 	background-color: var(--color-cta-hover);
 }
+
+/* The longer daily-cap label gets its own row on phones. Keep the reset
+   clock beside the puzzle number rather than pushing the lineup down. */
+@media (width < 640px) {
+	.home-day-masthead { font-size: .75rem; column-gap: .375rem; }
+	.home-day-masthead > .picks-pill { order: 1; margin-inline-end: auto; }
+	.home-day-masthead > .picks-pill [data-pick-count] { white-space: normal; }
+}

@@ -253,7 +253,7 @@ for (const viewport of [
 					await expect(dialog.getByText('Tryit result card')).toHaveCount(0)
 					await expect(card).toHaveCSS('opacity', '0')
 					expect((await canvasGeometry(page)).board).toEqual(after.board)
-					await expect(dialog.getByText('1 / 3 free puzzles today')).toBeVisible()
+					await expect(dialog.getByText('1 of 3 free picks used today')).toBeVisible()
 					await expect(dialog.locator('.result-steps > span')).toHaveCount(3)
 					await expect(dialog.locator('.result-steps [data-filled]')).toHaveCount(1)
 					const playNext = dialog.getByRole('link', { name: /^Play next:/ })

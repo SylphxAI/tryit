@@ -47,7 +47,9 @@ for (const billing of ['eligible', 'entitled', 'closed', 'unavailable', 'first-p
 		await page.getByRole('button', { name: 'See your result' }).click()
 		const result = page.getByRole('dialog', { name: 'Sudoku Complete' })
 		await expect(result.getByText('1:18', { exact: true })).toBeVisible()
-		await expect(result.getByText(`${completeSet ? 3 : 1} / 3 free puzzles today`)).toBeVisible()
+		await expect(
+			result.getByText(`${completeSet ? 3 : 1} of 3 free picks used today`),
+		).toBeVisible()
 		const celebration = result.getByText('That’s today’s free set. Nicely played!')
 		const offer = result.getByRole('link', { name: 'Keep playing with Tryit Plus' })
 		if (completeSet) {

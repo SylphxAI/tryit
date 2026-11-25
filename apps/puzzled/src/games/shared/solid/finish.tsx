@@ -12,7 +12,6 @@ import type { SubmitGuessInput } from '@/lib/connect/puzzle-domain'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { withIdempotencyKey } from '@/lib/idempotency-key'
-import { recordFirstFinishDay } from '@/shared/components/pwa-install-policy'
 import { createPlayDraft } from './play-draft'
 
 export type DailyBoardProps = {
@@ -59,8 +58,6 @@ export function createBoardFinish(
 			if (!disposed) {
 				if (result.valid && result.status === intent.status) {
 					draft.discard()
-					if (props.mode !== 'archive')
-						recordFirstFinishDay(intent.puzzleDate ?? props.puzzle.puzzleDate)
 					setRevealJson(result.revealJson)
 					if (isFieldSet(result, SubmitGuessResponseSchema.field.score)) setScore(result.score)
 					setState('accepted')
@@ -174,6 +171,7 @@ export function BoardFinish(props: {
 						</div>
 						<ResultActions
 							facts={result()}
+							freshWin
 							onDetailsOpenChange={setResultOpen}
 							locale={props.locale}
 							shareTitle={props.shareTitle}

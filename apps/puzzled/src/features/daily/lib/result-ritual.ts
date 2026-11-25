@@ -1,5 +1,5 @@
 import type { GetTodayProgressResponse } from '@/gen/connect/puzzled/v1/puzzle_pb'
-import { DAILY_FREE_PICKS } from './daily-picks'
+import { claimedDailyPicks, DAILY_FREE_PICKS, dailyPickCount } from './daily-picks'
 
 /** Private result timer; the public share image still uses a coarse time band. */
 export function formatResultElapsed(milliseconds: number | null | undefined): string | null {
@@ -15,16 +15,17 @@ export function resultRitual(
 	currentGame: string,
 	lineup: readonly string[],
 ) {
-	if (progress.dayKey !== dayKey || !progress.freePicks) return null
+	const picks = claimedDailyPicks(progress, dayKey)
+	if (!picks) return null
 	const finished = new Map(progress.games.map((game) => [game.gameSlug, game.hasCompleted]))
 	// The finish already visible in the dialog was accepted before this read.
 	finished.set(currentGame, true)
-	const picks = [...new Set(progress.freePicks.gameSlugs)]
 	const picked = new Set(picks)
 	const completed = Math.min(DAILY_FREE_PICKS, picks.filter((slug) => finished.get(slug)).length)
 	const unplayed = lineup.find((slug) => !picked.has(slug) && finished.get(slug) === false)
 	const unfinishedPick = lineup.find((slug) => picked.has(slug) && finished.get(slug) === false)
 	return {
+		used: dailyPickCount(picks),
 		completed,
 		next: picks.length < DAILY_FREE_PICKS && unplayed ? unplayed : unfinishedPick,
 		resume: !(picks.length < DAILY_FREE_PICKS && unplayed),

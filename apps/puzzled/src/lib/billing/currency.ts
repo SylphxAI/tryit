@@ -3,7 +3,7 @@
  * (ListPlans); this module only chooses among the currencies it publishes.
  *
  * Order of choice: visitor selection (cookie), TWD on zh-TW when offered,
- * then edge country, locale region if country is unknown, and USD fallback.
+ * then edge country, explicit language region, page locale, and USD fallback.
  */
 
 import type { ListPlansResponse } from '@/gen/connect/puzzled/v1/billing_pb'
@@ -126,11 +126,34 @@ export function currencyOptionLabel(code: string, locale: string): string {
 }
 
 /** The default from where the visitor is: country first, then the locale region, else dollars. */
-export function defaultCurrency(country: string | null | undefined, locale: string): string {
+export function defaultCurrency(
+	country: string | null | undefined,
+	locale: string,
+	acceptLanguage?: string | null,
+): string {
 	const code = country?.trim().toUpperCase()
 	if (code && /^[A-Z]{2}$/.test(code) && code !== 'XX' && code !== 'T1') {
 		if (EUR_COUNTRIES.has(code)) return 'eur'
 		return COUNTRY_TO_CURRENCY[code] ?? 'usd'
+	}
+	// A language alone (e.g. Spanish) does not imply a market. Use only the
+	// highest-preference tag's explicit region; never guess via maximize().
+	const preferred = acceptLanguage
+		?.split(',')
+		.map((value) => {
+			const [tag, weight] = value.trim().split(';')
+			const q = weight === undefined ? 1 : Number(weight.trim().replace(/^q=/, ''))
+			return { tag, q }
+		})
+		.filter(({ q }) => q > 0 && q <= 1)
+		.sort((a, b) => b.q - a.q)[0]
+	if (preferred?.tag && preferred.tag !== '*') {
+		try {
+			const region = new Intl.Locale(preferred.tag).region
+			if (region) return EUR_COUNTRIES.has(region) ? 'eur' : (COUNTRY_TO_CURRENCY[region] ?? 'usd')
+		} catch {
+			/* A malformed header does not resolve a currency. */
+		}
 	}
 	return currencyForLocale(locale)
 }
@@ -140,13 +163,14 @@ export function chooseCurrency(input: {
 	cookie: string | null | undefined
 	country: string | null | undefined
 	locale: string
+	acceptLanguage?: string | null
 	available: readonly string[]
 }): string {
 	const { available } = input
 	const picked = normalizeCurrency(input.cookie)
 	if (picked && available.includes(picked)) return picked
 	if (input.locale.trim().toLowerCase() === 'zh-tw' && available.includes('twd')) return 'twd'
-	const fallback = defaultCurrency(input.country, input.locale)
+	const fallback = defaultCurrency(input.country, input.locale, input.acceptLanguage)
 	if (available.includes(fallback)) return fallback
 	if (available.includes('usd')) return 'usd'
 	return available[0] ?? 'usd'

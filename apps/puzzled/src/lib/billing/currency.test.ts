@@ -106,3 +106,13 @@ describe('display currency', () => {
 		)
 	})
 })
+
+test('unknown geography defaults to USD unless the preferred language tag names a market', () => {
+	const input = { cookie: null, country: 'XX', locale: 'en-US', available: ['eur', 'usd', 'cad'] }
+	expect(chooseCurrency(input)).toBe('usd')
+	expect(chooseCurrency({ ...input, locale: 'es', acceptLanguage: 'es,en;q=0.8' })).toBe('usd')
+	expect(chooseCurrency({ ...input, acceptLanguage: 'es-ES,es;q=0.8' })).toBe('eur')
+	expect(chooseCurrency({ ...input, acceptLanguage: 'es-ES;q=0.2,en-CA' })).toBe('cad')
+	expect(chooseCurrency({ ...input, acceptLanguage: 'fr-FR', country: 'BR' })).toBe('usd')
+	expect(chooseCurrency({ ...input, acceptLanguage: 'en-US', cookie: 'EUR' })).toBe('eur')
+})
