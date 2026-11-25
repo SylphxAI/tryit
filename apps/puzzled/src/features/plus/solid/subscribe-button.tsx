@@ -1,7 +1,7 @@
 /** @jsxImportSource solid-js */
 import { ArrowRight, ExternalLink } from 'lucide-solid'
 import { createSignal, createUniqueId, onMount, Show } from 'solid-js'
-import { hasAnalyticsConsent } from '@/features/analytics/lib/consent'
+import { cookieConsent, hasAnalyticsConsent } from '@/features/analytics/lib/consent'
 import { trackGa4KeyEvent } from '@/features/analytics/lib/ga4-key-events'
 import { rememberCheckoutQuote } from '@/features/analytics/lib/google-tag'
 import { isOneTimePassPlan, minorUnitsToMajor, type PlanId } from '@/lib/billing/plus'
@@ -128,7 +128,7 @@ export function SubscribeButton(props: Props) {
 						const currency = props.currency.toUpperCase()
 						const value = minorUnitsToMajor(props.amountMinor, currency)
 						const trigger = checkoutTrigger()
-						const consentAtStart = hasAnalyticsConsent()
+						const consentAtStart = cookieConsent()
 						const url = await startCheckout(
 							plan,
 							props.locale,
@@ -137,7 +137,7 @@ export function SubscribeButton(props: Props) {
 							props.callbackUrl,
 							trigger,
 						)
-						if (consentAtStart && hasAnalyticsConsent()) {
+						if (consentAtStart.analytics && hasAnalyticsConsent()) {
 							trackGa4KeyEvent('begin_checkout', {
 								plan: planTier,
 								plan_sku: plan,
@@ -147,9 +147,10 @@ export function SubscribeButton(props: Props) {
 								value,
 								currency,
 							})
-							// What the checkout return reports to Google Ads (kept only with consent).
-							rememberCheckoutQuote({ plan, value, currency })
 						}
+						// Snapshot only with consent at initiation; the quote helper rechecks it now.
+						if (consentAtStart.analytics || consentAtStart.marketing)
+							rememberCheckoutQuote({ plan, value, currency })
 						window.location.assign(url)
 					} catch (err) {
 						logger.error('plus.checkout-failed', { planId: props.planId, error: err })

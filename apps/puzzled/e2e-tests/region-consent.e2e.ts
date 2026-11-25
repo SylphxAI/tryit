@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-import { commands, id, googleTagTest as test } from './google-tag-support'
+import { adsId, commands, id, googleTagTest as test } from './google-tag-support'
 
 const key = 'puzzled:signal.consent'
 const denied = {
@@ -38,11 +38,25 @@ for (const viewport of [
 			googleRequests: requests,
 		}) => {
 			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-			await page.goto('/?email=private%40example.test&gclid=private-ad')
+			const violations: string[] = []
+			await page.exposeFunction('captureCspViolation', (uri: string) => violations.push(uri))
+			await page.addInitScript(() => {
+				document.addEventListener('securitypolicyviolation', (event) => {
+					void Reflect.get(window, 'captureCspViolation')(event.blockedURI)
+				})
+			})
+			await page.goto(
+				'/?email=private%40example.test&gclid=fixture-g&gbraid=fixture-gb&wbraid=fixture-wb',
+			)
 			await expect(banner(page)).toBeVisible()
 			await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
 			expect(requests).toHaveLength(0)
-			expect((await context.cookies()).some(({ name }) => name.startsWith('_ga'))).toBe(false)
+			expect(
+				(await context.cookies())
+					.map(({ name }) => name)
+					.filter((name) => /^(_ga|_gid|_gcl_|_gat|_gac_|__gads|__gpi)/.test(name)),
+			).toEqual([])
+			expect(await page.evaluate(() => localStorage.getItem('puzzled:signal.touch'))).toBeNull()
 			await expect(page.locator('head link[rel="manifest"]')).toHaveAttribute(
 				'href',
 				'/manifest.webmanifest',
@@ -108,6 +122,16 @@ for (const viewport of [
 			await expect(banner(page)).toBeHidden()
 			const data = await commands(page)
 			expect(data).toContainEqual(['consent', 'update', full])
+			expect(data).toContainEqual([
+				'config',
+				adsId,
+				{
+					allow_google_signals: false,
+					allow_ad_personalization_signals: false,
+					allow_enhanced_conversions: false,
+				},
+			])
+			expect(violations).toEqual([])
 			expect(data).toContainEqual([
 				'event',
 				'page_view',

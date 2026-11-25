@@ -18,6 +18,12 @@ on_red = "revert"
 [environments.production.env.GA_MEASUREMENT_ID]
 value = "G-J5P11P794N"
 
+[environments.production.env.GOOGLE_ADS_ID]
+value = "AW-18596053831"
+
+[environments.production.env.GOOGLE_ADS_PURCHASE_LABEL]
+value = "didiCKiywr8dEMeGpaNF"
+
 # Project-level schema gate (ADR-089 / DEPLOY-GUIDE). Ephemeral Job runs once
 # per push BEFORE writer services roll. Supersedes web-only release_command:
 # web runtime image has no atlas binary, so api-only crate deploys left

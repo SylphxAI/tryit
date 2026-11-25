@@ -12,18 +12,34 @@
 import { resolveEffectiveConsent, type SignalConsent } from '@sylphx/sdk/signal'
 import { CHECKOUT_QUOTE_KEY } from './consent'
 
-export type GoogleTagIds = { ga: string | null; ads: string | null }
+export type GoogleTagIds = {
+	ga: string | null
+	ads: string | null
+	adsPurchaseLabel: string | null
+}
 
-type IdSource = { GA_MEASUREMENT_ID?: string; GOOGLE_ADS_ID?: string }
+type IdSource = {
+	GA_MEASUREMENT_ID?: string
+	GOOGLE_ADS_ID?: string
+	GOOGLE_ADS_PURCHASE_LABEL?: string
+}
 
 const GA_ID = /^G-[A-Z0-9]{4,20}$/
 const ADS_ID = /^AW-\d{6,15}$/
+const ADS_LABEL = /^[A-Za-z0-9_-]{4,64}$/
+const CHECKOUT_SESSION_ID = /^[A-Za-z0-9_-]{6,128}$/
 
 /** Validated ids, or null when neither is configured (nothing loads). */
 export function googleTagIds(source: IdSource): GoogleTagIds | null {
 	const ga = source.GA_MEASUREMENT_ID?.trim() ?? ''
-	const ads = source.GOOGLE_ADS_ID?.trim() ?? ''
-	const ids = { ga: GA_ID.test(ga) ? ga : null, ads: ADS_ID.test(ads) ? ads : null }
+	const adsId = source.GOOGLE_ADS_ID?.trim() ?? ''
+	const ads = ADS_ID.test(adsId) ? adsId : null
+	const label = source.GOOGLE_ADS_PURCHASE_LABEL?.trim() ?? ''
+	const ids = {
+		ga: GA_ID.test(ga) ? ga : null,
+		ads,
+		adsPurchaseLabel: ads && ADS_LABEL.test(label) ? label : null,
+	}
 	return ids.ga || ids.ads ? ids : null
 }
 
@@ -105,14 +121,14 @@ export type GoogleTagController = {
 	/** Has the visitor granted anything a Google destination could use? */
 	hasConsent(): boolean
 	gaEvent(name: string, params: Record<string, unknown>): boolean
+	canSendAdsPurchase(): boolean
+	adsPurchase(input: { value: number; currency: string; transactionId: string }): boolean
 }
 
 /** Characters allowed in an event parameter string: nothing that can carry an address. */
 function safeText(value: string): string {
 	return value.replace(/[^A-Za-z0-9_.:-]/g, '').slice(0, 100)
 }
-
-const OPAQUE_ID = /^[A-Za-z0-9_-]{6,128}$/
 
 /** Keep only the parameters conversions need; strings are reduced to a safe charset. */
 export function cleanEventParams(params: Record<string, unknown>): Record<string, unknown> {
@@ -126,8 +142,6 @@ export function cleanEventParams(params: Record<string, unknown>): Record<string
 			typeof value === 'string'
 		)
 			out[key] = safeText(value)
-		else if (key === 'user_id' && typeof value === 'string' && OPAQUE_ID.test(value))
-			out[key] = value
 		else if (key === 'items' && Array.isArray(value)) {
 			out[key] = value.flatMap((item) => {
 				const id = (item as { item_id?: unknown } | null)?.item_id
@@ -136,6 +150,10 @@ export function cleanEventParams(params: Record<string, unknown>): Record<string
 		}
 	}
 	return out
+}
+
+function allowsAds(choice: SignalConsent): boolean {
+	return choice.ad_storage === 'granted' && choice.ad_user_data === 'granted'
 }
 
 export function createGoogleTag(input: {
@@ -186,14 +204,20 @@ export function createGoogleTag(input: {
 	}
 
 	function targets(): string[] {
-		return [gaOn && ids.ga, adsOn && ids.ads].filter((id): id is string => Boolean(id))
+		return [gaOn && ids.ga, adsOn && allowsAds(input.consent()) && ids.ads].filter(
+			(id): id is string => Boolean(id),
+		)
+	}
+
+	function canSendAdsPurchase(): boolean {
+		return loaded && adsOn && Boolean(ids.ads && ids.adsPurchaseLabel) && allowsAds(input.consent())
 	}
 
 	return {
 		sync(allowLoad = true) {
 			const choice = input.consent()
 			const wantGa = Boolean(ids.ga) && choice.analytics_storage === 'granted'
-			const wantAds = Boolean(ids.ads) && choice.ad_storage === 'granted'
+			const wantAds = Boolean(ids.ads) && allowsAds(choice)
 			if (!previous) {
 				previous = allowLoad ? choice : DENIED
 				gtag('consent', 'default', previous)
@@ -216,7 +240,7 @@ export function createGoogleTag(input: {
 				lastPath = null
 				return
 			}
-			if (choice.ad_storage === 'denied') deleteGoogleCookies(doc, win.location.hostname, true)
+			if (!allowsAds(choice)) deleteGoogleCookies(doc, win.location.hostname, true)
 			if (!loaded && !allowLoad) return
 			if (gaOn === wantGa && adsOn === wantAds) return
 			const first = wantGa ? ids.ga : ids.ads
@@ -234,6 +258,7 @@ export function createGoogleTag(input: {
 				gtag('config', ids.ads, {
 					allow_google_signals: false,
 					allow_ad_personalization_signals: false,
+					allow_enhanced_conversions: false,
 				})
 			}
 			gaOn = wantGa
@@ -260,12 +285,25 @@ export function createGoogleTag(input: {
 			const choice = input.consent()
 			return (
 				(Boolean(ids.ga) && choice.analytics_storage === 'granted') ||
-				(Boolean(ids.ads) && choice.ad_storage === 'granted')
+				(Boolean(ids.ads) && allowsAds(choice))
 			)
 		},
 		gaEvent(name, params) {
 			if (!gaOn || input.consent().analytics_storage !== 'granted') return false
 			gtag('event', name, { ...params, send_to: ids.ga })
+			return true
+		},
+		canSendAdsPurchase,
+		adsPurchase({ value, currency, transactionId }) {
+			if (!canSendAdsPurchase()) return false
+			if (!Number.isFinite(value) || value <= 0 || !/^[A-Za-z]{3}$/.test(currency)) return false
+			if (!CHECKOUT_SESSION_ID.test(transactionId)) return false
+			gtag('event', 'conversion', {
+				send_to: `${ids.ads}/${ids.adsPurchaseLabel}`,
+				value,
+				currency: currency.toUpperCase(),
+				transaction_id: transactionId,
+			})
 			return true
 		},
 		event(name, params) {
@@ -311,8 +349,10 @@ function store(): Store | null {
 /** The plan and price being checked out, kept until the return page reports it. */
 export function rememberCheckoutQuote(quote: CheckoutQuote): void {
 	if (!active?.hasConsent()) return
+	const { plan, value, currency } = quote
+	if (!/^[A-Z]{3}$/.test(currency) || !Number.isFinite(value) || value <= 0) return
 	try {
-		store()?.setItem(CHECKOUT_QUOTE_KEY, JSON.stringify(quote))
+		store()?.setItem(CHECKOUT_QUOTE_KEY, JSON.stringify({ plan, value, currency }))
 	} catch {
 		// Private mode: no quote, so no conversion value; checkout is unaffected.
 	}
@@ -339,38 +379,60 @@ function readQuote(storage: Store): CheckoutQuote | null {
 }
 
 function fireOnce(storage: Store, key: string, send: () => boolean): boolean {
-	if (storage.getItem(SENT_PREFIX + key)) return false
-	if (!send()) return false
+	const marker = SENT_PREFIX + key
 	try {
-		storage.setItem(SENT_PREFIX + key, '1')
+		if (storage.getItem(marker)) return false
+		storage.setItem(marker, '1')
+		if (send()) return true
+		storage.removeItem(marker)
 	} catch {
-		// Cannot remember; the quote is still cleared by the caller.
+		// Without a readable and writable marker, measurement must fail closed.
 	}
-	return true
+	return false
 }
 
 /** `sign_up` for a new account. The caller reads its one-shot marker, so a reload cannot repeat it. */
-export function trackSignUp(method: string, userId?: string): boolean {
-	return active?.event('sign_up', { method, ...(userId ? { user_id: userId } : {}) }) ?? false
+export function trackSignUp(method: string): boolean {
+	return active?.event('sign_up', { method }) ?? false
 }
 
 /** Report a trial at the existing destinations once, then clear its stored quote. */
-export function trackCheckoutTrialStart(input: { sessionId: string; userId?: string }): boolean {
+export function trackCheckoutTrialStart(input: { sessionId: string }): boolean {
 	const storage = store()
 	if (!active || !storage || !/^[A-Za-z0-9_]{6,200}$/.test(input.sessionId)) return false
 	const quote = readQuote(storage)
 	if (!quote) return false
 	const tag = active
-	const user = input.userId ? { user_id: input.userId } : {}
 	const sent = fireOnce(storage, `trialing:${input.sessionId}`, () =>
 		tag.event('trial_start', {
 			value: quote.value,
 			currency: quote.currency,
 			plan: quote.plan,
 			items: [{ item_id: quote.plan }],
-			...user,
 		}),
 	)
-	if (sent) storage.removeItem(CHECKOUT_QUOTE_KEY)
+	if (sent) clearCheckoutQuote()
+	return sent
+}
+
+export function clearCheckoutQuote(): void {
+	try {
+		store()?.removeItem(CHECKOUT_QUOTE_KEY)
+	} catch {
+		// Measurement must not interrupt the checkout return.
+	}
+}
+
+/** Report Ads attribution only; Money still owns the paid purchase record. */
+export function trackCheckoutPurchase({ sessionId }: { sessionId: string }): boolean {
+	const tag = active
+	const storage = store()
+	if (!tag?.canSendAdsPurchase() || !storage || !CHECKOUT_SESSION_ID.test(sessionId)) return false
+	const quote = readQuote(storage)
+	if (!quote) return false
+	const sent = fireOnce(storage, `paid:${sessionId}`, () =>
+		tag.adsPurchase({ value: quote.value, currency: quote.currency, transactionId: sessionId }),
+	)
+	if (sent) clearCheckoutQuote()
 	return sent
 }

@@ -79,7 +79,12 @@ export const KNOWN_VARS: readonly EnvVar[] = [
 	{
 		name: 'GOOGLE_ADS_ID',
 		required: false,
-		description: 'Google Ads tag id (AW-...) for conversion events, shared across Sylphx products',
+		description: 'Google Ads tag id (AW-...) for conversion events',
+	},
+	{
+		name: 'GOOGLE_ADS_PURCHASE_LABEL',
+		required: false,
+		description: 'Google Ads Website Purchase conversion label; ignored without GOOGLE_ADS_ID',
 	},
 	// Deployment / dev host facts
 	{
@@ -282,6 +287,10 @@ export const env = {
 	/** Google Ads tag id (AW-...) */
 	get GOOGLE_ADS_ID(): string | undefined {
 		return process.env.GOOGLE_ADS_ID
+	},
+	/** Google Ads Website Purchase conversion label */
+	get GOOGLE_ADS_PURCHASE_LABEL(): string | undefined {
+		return process.env.GOOGLE_ADS_PURCHASE_LABEL
 	},
 	/** AdSense ad unit id */
 	get ADS_SLOT_ID(): string | undefined {

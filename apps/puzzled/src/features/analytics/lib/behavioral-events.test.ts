@@ -97,6 +97,8 @@ function browser(consent: 'analytics_only' | 'denied') {
 		pageView: () => false,
 		hasConsent: () => true,
 		event: () => false,
+		canSendAdsPurchase: () => false,
+		adsPurchase: () => false,
 		gaEvent: (event, params) => {
 			ga.push({ event, ...params })
 			return true
