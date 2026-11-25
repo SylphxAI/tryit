@@ -16,7 +16,8 @@
 	"errors": "{count} 個錯誤",
 	"complete": "圖案完成！",
 	"messages": {
-		"incorrect": "這格不應填色"
+		"incorrect": "這格不應填色",
+		"clueMismatch": "{lines}嘅填色同數字提示唔相符。"
 	},
 	"difficulty": {
 		"easy": "簡單",

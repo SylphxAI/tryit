@@ -16,7 +16,8 @@
 	"errors": "{count} erros",
 	"complete": "Imagem completa!",
 	"messages": {
-		"incorrect": "Essa célula não deveria ser preenchida"
+		"incorrect": "Essa célula não deveria ser preenchida",
+		"clueMismatch": "{count, plural, one {{lines} não corresponde à sua dica.} other {{lines} não correspondem às suas dicas.}}"
 	},
 	"difficulty": {
 		"easy": "Fácil",

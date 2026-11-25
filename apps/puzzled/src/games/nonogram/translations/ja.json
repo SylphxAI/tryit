@@ -16,7 +16,8 @@
 	"errors": "ミス {count} 回",
 	"complete": "絵が完成しました！",
 	"messages": {
-		"incorrect": "このマスは塗らないマスです"
+		"incorrect": "このマスは塗らないマスです",
+		"clueMismatch": "{lines}の塗り方が数字のヒントと合っていません。"
 	},
 	"difficulty": {
 		"easy": "かんたん",

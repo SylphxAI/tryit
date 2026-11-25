@@ -16,7 +16,8 @@
 	"errors": "{count} errores",
 	"complete": "¡Imagen completada!",
 	"messages": {
-		"incorrect": "Esa casilla no debería estar rellena"
+		"incorrect": "Esa casilla no debería estar rellena",
+		"clueMismatch": "{count, plural, one {{lines} no coincide con su pista.} other {{lines} no coinciden con sus pistas.}}"
 	},
 	"difficulty": {
 		"easy": "Fácil",
