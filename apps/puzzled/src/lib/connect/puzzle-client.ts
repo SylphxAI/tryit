@@ -9,8 +9,10 @@ import { type ShareAction, trackBehavioralEvent } from '@/features/analytics/lib
 import { IDEMPOTENCY_KEY_HEADER } from '@/lib/idempotency-key'
 import {
 	CheckGuessRequestSchema,
+	CheckPracticeGuessRequestSchema,
 	GetDailyRequestSchema,
 	type GetDailyResponse,
+	GetPracticePuzzleRequestSchema,
 	GetPuzzleRequestSchema,
 	type GetPuzzleResponse,
 	GetSharedResultRequestSchema,
@@ -20,6 +22,7 @@ import {
 	StartDailyRequestSchema,
 	SubmitGuessRequestSchema,
 	type SubmitGuessResponse,
+	SubmitPracticeRequestSchema,
 } from '../../gen/connect/puzzled/v1/puzzle_pb'
 import {
 	encodeSubmissionJson,
@@ -158,6 +161,41 @@ export async function checkGuess(
 		}),
 	)
 	return JSON.parse(response.resultJson)
+}
+
+export type PracticePuzzleInput = {
+	gameSlug: string
+	practiceSeed: bigint
+	difficulty?: string
+}
+
+export type SubmitPracticeInput = PracticePuzzleInput &
+	Pick<SubmitGuessInput, 'status' | 'attempts' | 'timeSpentMs'> & { submissionJson: string }
+
+export function getPracticePuzzle(
+	input: PracticePuzzleInput,
+	client = createPuzzleServiceClient(),
+) {
+	return client.getPracticePuzzle(create(GetPracticePuzzleRequestSchema, input))
+}
+
+export async function checkPracticeGuess(
+	{ guess, ...input }: PracticePuzzleInput & { guess: unknown },
+	client = createPuzzleServiceClient(),
+): Promise<unknown> {
+	const { resultJson } = await client.checkPracticeGuess(
+		create(CheckPracticeGuessRequestSchema, { ...input, guessJson: JSON.stringify(guess) }),
+	)
+	return JSON.parse(resultJson)
+}
+
+export function submitPractice(input: SubmitPracticeInput, client = createPuzzleServiceClient()) {
+	return client.submitPractice(
+		create(SubmitPracticeRequestSchema, {
+			...input,
+			timeSpentMs: BigInt(Math.trunc(input.timeSpentMs)),
+		}),
+	)
 }
 
 /**

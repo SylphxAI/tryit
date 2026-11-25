@@ -6,7 +6,6 @@ import {
 	createResource,
 	createSignal,
 	For,
-	lazy,
 	Match,
 	onMount,
 	Show,
@@ -17,6 +16,7 @@ import { Dynamic } from 'solid-js/web'
 import { sendFunnel } from '@/features/analytics/lib/funnel'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
+import { gameBoards } from '@/games/shared/solid/board-registry'
 import type { PuzzleDifficulty } from '@/games/types'
 import { isPlusRequiredError } from '@/lib/billing/plus'
 import { getTodayProgress, startDaily } from '@/lib/connect/puzzle-client'
@@ -35,27 +35,6 @@ import { readPlayGuestStatus } from './play-analytics-context'
 import { readPlayDraftScope } from './play-scope'
 import { ResultActions } from './result-actions'
 
-const boards = new Map([
-	['sudoku', lazy(() => import('@/games/sudoku/solid-board'))],
-	['nonogram', lazy(() => import('@/games/nonogram/solid-board'))],
-	['word-search', lazy(() => import('@/games/word-search/solid-board'))],
-	['pattern-match', lazy(() => import('@/games/pattern-match/solid-board'))],
-	['crowns', lazy(() => import('@/games/queens/solid-board'))],
-	['duo', lazy(() => import('@/games/tango/solid-board'))],
-	['number-path', lazy(() => import('@/games/number-path/solid-board'))],
-	['word-groups', lazy(() => import('@/games/word-groups/solid-board'))],
-	['killer-sudoku', lazy(() => import('@/games/killer-sudoku/solid-board'))],
-	['word-ladder', lazy(() => import('@/games/word-ladder/solid-board'))],
-	['word-guess', lazy(() => import('@/games/word-guess/solid-board'))],
-	['cryptogram', lazy(() => import('@/games/cryptogram/solid-board'))],
-	['word-box', lazy(() => import('@/games/word-box/solid-board'))],
-	['arithmo', lazy(() => import('@/games/arithmo/solid-board'))],
-	['block-slide', lazy(() => import('@/games/block-slide/solid-board'))],
-	['crossword', lazy(() => import('@/games/crossword/solid-board'))],
-	['pip-place', lazy(() => import('@/games/pip-place/solid-board'))],
-	['quad-words', lazy(() => import('@/games/quad-words/solid-board'))],
-	['word-hive', lazy(() => import('@/games/word-hive/solid-board'))],
-])
 const englishWordPuzzles = new Set([
 	'word-guess',
 	'quad-words',
@@ -102,7 +81,7 @@ export function DailyPlay(props: {
 	const slug = props.data.slug
 	const archive = props.day.mode === 'archive'
 	const choose = !archive && props.data.difficultyLevels.length > 0 && !props.difficulty
-	const board = boards.get(slug)
+	const board = gameBoards.get(slug)
 	const explicitPlay = props.started && !choose && Boolean(board)
 	const [starting, setStarting] = createSignal(false)
 	const [resultOpen, setResultOpen] = createSignal(false)

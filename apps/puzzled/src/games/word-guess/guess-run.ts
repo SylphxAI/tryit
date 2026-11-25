@@ -1,5 +1,4 @@
 import { Code, ConnectError } from '@connectrpc/connect'
-import { checkGuess } from '@/lib/connect/puzzle-client'
 import { type Feedback, readWordFeedback } from './feedback'
 
 export type FiveRow = { word: string; tiles: Feedback[] }
@@ -45,19 +44,18 @@ export function openFiveRun(
 	return run
 }
 
-export function sendFiveGuess(run: FiveRun, puzzle: FivePuzzle, word: string): PendingGuess {
+export function sendFiveGuess(
+	run: FiveRun,
+	word: string,
+	grade: () => Promise<unknown>,
+): PendingGuess {
 	if (run.pending) return run.pending
 	const pending: PendingGuess = {
 		word,
 		// Publish the pending intent before sending; a new board only joins this promise.
 		settled: Promise.resolve().then(async () => {
 			try {
-				const response = (await checkGuess({
-					gameSlug: 'word-guess',
-					puzzleId: puzzle.puzzleId,
-					puzzleDate: puzzle.puzzleDate,
-					guess: { word },
-				})) as { tiles?: unknown } | null
+				const response = (await grade()) as { tiles?: unknown } | null
 				const tiles = readWordFeedback(response?.tiles)
 				if (!tiles) throw new Error('invalid_word_grade')
 				run.rows = [...run.rows, { word, tiles }]

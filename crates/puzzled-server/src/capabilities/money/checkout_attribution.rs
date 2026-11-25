@@ -1,10 +1,10 @@
 //! Rust transport boundary for the browser Signal SDK snapshot. No geo policy
 //! here; validate the allowed snapshots and independently respect Sec-GPC.
 use axum::http::HeaderMap;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use puzzled_core::attribution::{clean_value, click_id, Attribution};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use puzzled_core::attribution::{Attribution, clean_value, click_id};
 use reqwest::Url;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum Consent {
@@ -220,6 +220,7 @@ fn allowed_surface(value: &str) -> bool {
                 | "pricing_family_card"
                 | "game_unlock"
                 | "game_unlock_archive"
+                | "practice_upsell"
                 | "archive_banner"
                 | "result_card"
                 | "result_card_picks_exhausted"
@@ -245,7 +246,12 @@ mod tests {
 
     #[test]
     fn entry_surface_enum_drops_even_token_shaped_private_values() {
-        for value in ["pricing_card", "seo_vs-nyt-games", "stats_banner"] {
+        for value in [
+            "pricing_card",
+            "seo_vs-nyt-games",
+            "stats_banner",
+            "practice_upsell",
+        ] {
             assert!(allowed_surface(value));
         }
         for value in [

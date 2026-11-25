@@ -16,6 +16,7 @@ export const PAYWALL_CHECKOUT_TRIGGERS = new Set([
 	'pricing_family_card',
 	'game_unlock',
 	'game_unlock_archive',
+	'practice_upsell',
 	'archive_banner',
 	'result_card',
 	'result_card_picks_exhausted',

@@ -3,6 +3,7 @@ import { Delete } from 'lucide-solid'
 import { createMemo, createSignal, For, Index, onCleanup, onMount, Show } from 'solid-js'
 import { readPlayDraftScope } from '@/features/daily/solid/play-scope'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
+import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
 import { ensureGuestSession } from '@/lib/connect/transport'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
@@ -34,6 +35,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 	const config = props.puzzle.puzzleData as { wordLength?: unknown; maxAttempts?: unknown } | null
 	const playable = config?.wordLength === WORD_LENGTH && config.maxAttempts === MAX_GUESSES
 	const puzzle = { puzzleId: props.puzzle.puzzleId, puzzleDate: props.puzzle.puzzleDate }
+	const practice = props.mode === 'practice'
 	const finish = createBoardFinish(props, gameSlug)
 	const [rows, setRows] = finish.draft.signal<FiveRow[]>('rows', [])
 	const [draft, setDraft] = finish.draft.signal('draft', '')
@@ -94,7 +96,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 				: undefined
 		if (status) {
 			// Terminal acceptance/re-entry is owned by SubmitGuess/GetDaily, not this cache.
-			forgetFiveRun(scope, puzzle)
+			if (!practice) forgetFiveRun(scope, puzzle)
 			setOutcome(status)
 			finish.finish({ guesses: next.map(({ word }) => word) }, { status, attempts: next.length })
 		}
@@ -122,6 +124,15 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		triggerHaptic('submit')
 		setCheckingScope(true)
 		try {
+			const send = (run: FiveRun) =>
+				sendFiveGuess(run, word, () => gradeBoardGuess(props, gameSlug, { word }))
+			if (practice) {
+				const run: FiveRun = { rows: rows() }
+				setDraft('')
+				send(run)
+				await watchRun(run, undefined)
+				return
+			}
 			// Bootstrap before reading the HttpOnly credential scope, just as CheckGuess does.
 			await ensureGuestSession().catch(() => undefined)
 			const [scope, draftScope] = await Promise.all([
@@ -142,7 +153,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 			if (!run.pending && (previous === run || (!previous && run.rows === rows()))) {
 				// Pending input belongs only to the document-scoped request, never the draft.
 				setDraft('')
-				sendFiveGuess(run, puzzle, word)
+				send(run)
 			}
 			await watchRun(run, scope)
 		} catch {
@@ -184,7 +195,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 		if (!playable) return
 		window.addEventListener('keydown', handleKey)
 		onCleanup(() => window.removeEventListener('keydown', handleKey))
-		if (!hasFiveRuns()) return
+		if (practice || !hasFiveRuns()) return
 		setCheckingScope(true)
 		void readFiveRunScope()
 			.then(async (scope) => {

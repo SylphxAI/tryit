@@ -6,21 +6,28 @@ import { createGameBehavior } from '@/features/analytics/lib/behavioral-events'
 import type { DailySnapshot } from '@/features/daily/lib/daily-fallback'
 import { ResultActions } from '@/features/daily/solid/result-actions'
 import type { PuzzleDifficulty } from '@/games/types'
-import { SubmitGuessResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
+import {
+	SubmitGuessResponseSchema,
+	SubmitPracticeResponseSchema,
+} from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { isAlreadyPlayedError } from '@/lib/connect/already-played'
-import { submitGuess } from '@/lib/connect/puzzle-client'
-import type { SubmitGuessInput } from '@/lib/connect/puzzle-domain'
+import { submitGuess, submitPractice } from '@/lib/connect/puzzle-client'
+import { encodeSubmissionJson, type SubmitGuessInput } from '@/lib/connect/puzzle-domain'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { withIdempotencyKey } from '@/lib/idempotency-key'
 import { recordFirstFinishDay } from '@/shared/components/pwa-install-policy'
-import { createPlayDraft } from './play-draft'
+import { practicePuzzleInput } from './grade-board-guess'
+import { createPlayDraft, createTransientDraft } from './play-draft'
+import { PracticeFinishActions } from './practice-finish-actions'
 
 export type DailyBoardProps = {
 	puzzle: Extract<DailySnapshot, { kind: 'playable' }>
 	locale: Locale
 	todayKey?: string
-	mode?: 'daily' | 'archive'
+	mode?: 'daily' | 'archive' | 'practice'
+	practiceSeed?: bigint
+	onNewPractice?: () => void
 	difficulty?: PuzzleDifficulty
 	draftScope?: string
 	isGuest?: boolean
@@ -35,7 +42,9 @@ export function createBoardFinish(
 	options?: { onRejected: (error: string) => void },
 ) {
 	const [state, setState] = createSignal<'playing' | 'pending' | 'failed' | 'accepted'>('playing')
-	const behavior = createGameBehavior(gameSlug, props.mode ?? 'daily', () => props.isGuest)
+	const mode = props.mode ?? 'daily'
+	const practice = mode === 'practice'
+	const behavior = createGameBehavior(gameSlug, mode, () => props.isGuest)
 	const abandon = () => behavior.abandon()
 	let boardMounted = false
 	onMount(() => {
@@ -45,21 +54,24 @@ export function createBoardFinish(
 			boardMounted = true
 		})
 	})
-	const draft = createPlayDraft(
-		props.mode !== 'archive' && props.puzzle.puzzleId && props.draftScope
-			? {
-					day: props.puzzle.puzzleDate,
-					game: gameSlug,
-					difficulty: props.difficulty,
-					puzzleId: props.puzzle.puzzleId,
-					owner: props.draftScope,
-				}
-			: undefined,
-		() => state() === 'playing',
-		() => {
-			if (boardMounted && state() === 'playing') behavior.interact()
-		},
-	)
+	const onProgress = () => {
+		if (boardMounted && state() === 'playing') behavior.interact()
+	}
+	const draft = practice
+		? createTransientDraft(onProgress)
+		: createPlayDraft(
+				mode === 'daily' && props.puzzle.puzzleId && props.draftScope
+					? {
+							day: props.puzzle.puzzleDate,
+							game: gameSlug,
+							difficulty: props.difficulty,
+							puzzleId: props.puzzle.puzzleId,
+							owner: props.draftScope,
+						}
+					: undefined,
+				() => state() === 'playing',
+				onProgress,
+			)
 	const [score, setScore] = createSignal<number>()
 	const [revealJson, setRevealJson] = createSignal<string>()
 	let intent: SubmitGuessInput | undefined
@@ -73,16 +85,32 @@ export function createBoardFinish(
 		if (!intent || (state() !== 'playing' && state() !== 'failed')) return
 		setState('pending')
 		try {
-			const result = await submitGuess(intent)
+			const { status, attempts, timeSpentMs } = intent
+			const result = practice
+				? await submitPractice({
+						...practicePuzzleInput(props, gameSlug),
+						status,
+						attempts,
+						timeSpentMs,
+						submissionJson: encodeSubmissionJson(intent),
+					})
+				: await submitGuess(intent)
 			if (!disposed) {
-				if (result.valid && result.status === intent.status) {
-					behavior.complete(intent.status, intent.timeSpentMs, props.pickIndex ?? null)
-					draft.discard()
-					if (props.mode !== 'archive') recordFirstFinishDay(props.puzzle.puzzleDate)
-					setRevealJson(result.revealJson)
-					if (isFieldSet(result, SubmitGuessResponseSchema.field.score)) setScore(result.score)
+				if (
+					result.valid &&
+					result.status === status &&
+					(!practice || result.gameSlug === gameSlug)
+				) {
+					behavior.complete(status, timeSpentMs, practice ? null : (props.pickIndex ?? null))
+					if (!practice) draft.discard()
+					if (mode === 'daily') recordFirstFinishDay(props.puzzle.puzzleDate)
+					setRevealJson(!practice || status === 'lost' ? result.revealJson : undefined)
+					const scoreField = practice
+						? SubmitPracticeResponseSchema.field.score
+						: SubmitGuessResponseSchema.field.score
+					if (isFieldSet(result, scoreField)) setScore(result.score)
 					setState('accepted')
-				} else if (isAlreadyPlayedError(result.error)) alreadyPlayed()
+				} else if (!practice && isAlreadyPlayedError(result.error)) alreadyPlayed()
 				else if (
 					options &&
 					!result.valid &&
@@ -99,7 +127,7 @@ export function createBoardFinish(
 			}
 		} catch (error) {
 			if (!disposed) {
-				if (isAlreadyPlayedError(error)) alreadyPlayed()
+				if (!practice && isAlreadyPlayedError(error)) alreadyPlayed()
 				else setState('failed')
 			}
 		}
@@ -115,11 +143,12 @@ export function createBoardFinish(
 		get isGuest() {
 			return props.isGuest
 		},
+		onNewPractice: props.onNewPractice,
 		result() {
 			if (state() !== 'accepted' || !intent) return
 			return {
 				gameSlug,
-				mode: props.mode ?? 'daily',
+				mode,
 				status: intent.status,
 				puzzleDate: intent.puzzleDate,
 				todayKey: props.todayKey,
@@ -137,7 +166,7 @@ export function createBoardFinish(
 		) {
 			if (intent) return
 			behavior.interact()
-			intent = withIdempotencyKey({
+			const next: SubmitGuessInput = {
 				gameSlug,
 				status: options?.status ?? 'won',
 				attempts: options?.attempts ?? 1,
@@ -146,7 +175,8 @@ export function createBoardFinish(
 				puzzleId: props.puzzle.puzzleId,
 				difficulty: options?.difficulty ?? props.difficulty,
 				submission,
-			})
+			}
+			intent = practice ? next : withIdempotencyKey(next)
 			void send()
 		},
 		retry: send,
@@ -193,18 +223,38 @@ export function BoardFinish(props: {
 								{result().status === 'won' ? <Check size={17} /> : <Minus size={17} />}
 							</span>
 							<h2 class="font-display" role="status">
-								{props.message}
+								{result().mode === 'practice'
+									? t(result().status === 'won' ? 'practice.won' : 'practice.lost')
+									: props.message}
 							</h2>
 						</div>
-						<ResultActions
-							facts={result()}
-							isGuest={props.finish.isGuest}
-							freshWin
-							onDetailsOpenChange={setResultOpen}
-							locale={props.locale}
-							shareTitle={props.shareTitle}
-							shareText={props.shareText}
-						/>
+						<Show
+							when={result().mode === 'practice'}
+							fallback={
+								<ResultActions
+									facts={{ ...result(), mode: result().mode === 'archive' ? 'archive' : 'daily' }}
+									isGuest={props.finish.isGuest}
+									freshWin
+									onDetailsOpenChange={setResultOpen}
+									locale={props.locale}
+									shareTitle={props.shareTitle}
+									shareText={props.shareText}
+								/>
+							}
+						>
+							<PracticeFinishActions
+								locale={props.locale}
+								gameSlug={result().gameSlug}
+								attempts={result().attempts}
+								score={result().score}
+								reveal={
+									result().status === 'lost' && props.finish.revealJson()
+										? props.message
+										: undefined
+								}
+								onNewPractice={props.finish.onNewPractice}
+							/>
+						</Show>
 					</div>
 				)}
 			</Show>
