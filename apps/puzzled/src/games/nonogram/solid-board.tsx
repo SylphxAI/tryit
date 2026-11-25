@@ -5,6 +5,7 @@ import { puzzleThemeLabel } from '@/games/shared/puzzle-theme-label'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { brushCell, type Cell, createBrush, strokeCells } from './brush'
+import { findClueMismatches } from './mismatch'
 import { parseNonogramClientPayload } from './parse-client'
 import zhTwThemes from './puzzle-themes.zh-TW.json'
 import {
@@ -130,8 +131,27 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 	const clueDimmed = (id: string, met: boolean) => dimmed()[id] ?? met
 	const toggleClue = (id: string, met: boolean) =>
 		setDimmed((prev) => ({ ...prev, [id]: !clueDimmed(id, met) }))
+	const conflicts = createMemo(() => findClueMismatches(grid(), props.data))
+	const rowConflict = (row: number) => conflicts().rows.includes(row) || undefined
+	const colConflict = (col: number) => conflicts().columns.includes(col) || undefined
+	const listFormat = new Intl.ListFormat(props.locale)
+	const conflictMessage = createMemo(() => {
+		const { rows, columns } = conflicts()
+		const lines = [
+			...rows.map((row) => t('common.cellRow', { index: row + 1 })),
+			...columns.map((col) => t('common.cellColumn', { index: col + 1 })),
+		]
+		return lines.length
+			? t('games.nonogram.messages.clueMismatch', {
+					count: lines.length,
+					lines: listFormat.format(lines),
+				})
+			: ''
+	})
 	const clueClass =
-		'rounded text-[clamp(.55rem,2.5vw,.875rem)] tabular-nums hover:bg-background focus-visible:z-10 aria-pressed:text-muted-foreground [&[aria-pressed=true]>span]:line-through'
+		'group rounded text-[clamp(.55rem,2.5vw,.875rem)] tabular-nums hover:bg-background focus-visible:z-10 aria-pressed:text-muted-foreground data-conflict:text-destructive data-conflict:inset-ring-2 data-conflict:inset-ring-destructive [&[aria-pressed=true]:not([data-conflict])>span:not([aria-hidden])]:line-through'
+	// Reserve space for the cue in both states, so the grid tracks never resize.
+	const conflictCueClass = 'invisible font-bold group-data-conflict:visible'
 	const label = (axis: 'Row' | 'Column', index: number, clues: number[]) =>
 		`${t(`common.cell${axis}`, { index: index + 1 })}: ${clues.join(', ') || '0'}`
 	const modeClass =
@@ -182,6 +202,8 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 							type="button"
 							id={`paint-col-${col()}`}
 							aria-label={label('Column', col(), clues)}
+							aria-invalid={colConflict(col())}
+							data-conflict={colConflict(col())}
 							class={`flex flex-col items-center justify-end pb-1 leading-tight ${clueClass}`}
 							aria-pressed={clueDimmed(
 								`paint-col-${col()}`,
@@ -191,6 +213,9 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 								toggleClue(`paint-col-${col()}`, isColClueMet(grid(), props.data, col()))
 							}
 						>
+							<span aria-hidden="true" class={conflictCueClass}>
+								!
+							</span>
 							<For each={clues} fallback={<span>0</span>}>
 								{(n) => <span>{n}</span>}
 							</For>
@@ -204,12 +229,17 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 								type="button"
 								id={`paint-row-${row}`}
 								aria-label={label('Row', row, rowClues[row])}
+								aria-invalid={rowConflict(row)}
+								data-conflict={rowConflict(row)}
 								class={`flex items-center justify-end gap-0.5 px-1 ${clueClass}`}
 								aria-pressed={clueDimmed(`paint-row-${row}`, isRowClueMet(grid(), props.data, row))}
 								onClick={() =>
 									toggleClue(`paint-row-${row}`, isRowClueMet(grid(), props.data, row))
 								}
 							>
+								<span aria-hidden="true" class={conflictCueClass}>
+									!
+								</span>
 								<For each={rowClues[row]} fallback={<span>0</span>}>
 									{(n) => <span>{n}</span>}
 								</For>
@@ -294,6 +324,12 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 						</button>
 					</div>
 				</Show>
+				<p
+					role="status"
+					class="min-h-5 h-10 overflow-y-auto text-center text-sm leading-5 font-semibold text-destructive"
+				>
+					{conflictMessage()}
+				</p>
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.nonogram.complete')} />
 		</div>

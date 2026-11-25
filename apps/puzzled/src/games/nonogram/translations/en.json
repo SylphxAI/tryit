@@ -16,7 +16,8 @@
 	"errors": "{count} errors",
 	"complete": "Picture Complete!",
 	"messages": {
-		"incorrect": "That cell should not be filled"
+		"incorrect": "That cell should not be filled",
+		"clueMismatch": "{count, plural, one {{lines} does not match its clue.} other {{lines} do not match their clues.}}"
 	},
 	"difficulty": {
 		"easy": "Easy",

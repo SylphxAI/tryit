@@ -107,7 +107,7 @@ export function lineRuns(filled: boolean[]): number[] {
 	return runs.length > 0 ? runs : [0]
 }
 
-function sameRuns(a: number[], b: number[]): boolean {
+export function sameRuns(a: number[], b: number[]): boolean {
 	const norm = (runs: number[]) => (runs.length === 0 ? [0] : runs)
 	const [x, y] = [norm(a), norm(b)]
 	return x.length === y.length && x.every((value, i) => value === y[i])

@@ -455,3 +455,94 @@ for (const viewport of [
 		})
 	}
 }
+
+for (const scenario of [
+	{
+		viewport: { width: 1440, height: 900 },
+		colorScheme: 'light',
+		locale: 'en-US',
+		undo: 'Undo',
+		both: 'Row 1 and Column 2 do not match their clues.',
+		rowOnly: 'Row 3 does not match its clue.',
+		red: 'rgb(168, 43, 35)',
+	},
+	{
+		viewport: { width: 390, height: 844 },
+		colorScheme: 'dark',
+		locale: 'zh-TW',
+		undo: '復原',
+		both: '第 1 行和第 2 列的填色與數字提示不符。',
+		rowOnly: '第 3 行的填色與數字提示不符。',
+		red: 'rgb(242, 123, 112)',
+	},
+] as const) {
+	const { viewport, colorScheme, locale, undo, both, rowOnly, red } = scenario
+	test(`Nonogram flags clue mismatches and clears them on Undo (${viewport.width}×${viewport.height}, ${locale})`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport)
+		await page.emulateMedia({ colorScheme })
+		const clues = Array.from({ length: 10 }, () => [1])
+		await play(
+			page,
+			'nonogram',
+			{ width: 10, height: 10, rowClues: clues, colClues: clues },
+			locale,
+			'medium',
+		)
+		await expect(page.locator('html')).toHaveCSS('color-scheme', colorScheme)
+
+		const board = page.locator('[data-nonogram-board]')
+		const grid = board.locator('.play-board')
+		const cell = (row: number, col: number) =>
+			grid.locator(`[data-paint-row="${row}"][data-paint-col="${col}"]`)
+		const conflicts = grid.locator('[data-conflict], [aria-invalid]')
+		const status = board.locator('p[role="status"]')
+		const undoButton = board.getByRole('button', { name: undo, exact: true })
+		await cell(0, 0).click()
+		await cell(1, 1).click()
+		await expect(conflicts).toHaveCount(0)
+		await expect(status).toBeEmpty()
+		await page.evaluate(() => document.fonts.ready)
+		const geometry = async () => ({
+			grid: await grid.boundingBox(),
+			status: await status.boundingBox(),
+			undo: await undoButton.boundingBox(),
+			overflow: await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+		})
+		const before = await geometry()
+		expect(before.overflow).toBe(0)
+
+		await cell(0, 1).click() // Overfills both clues while nine other lines on each axis are still valid.
+		await expect(status).toHaveText(both)
+		await expect(conflicts).toHaveCount(2)
+		for (const id of ['paint-row-0', 'paint-col-1']) {
+			const clue = grid.locator(`#${id}`)
+			await expect(clue).toHaveAttribute('aria-invalid', 'true')
+			await expect(clue).toHaveAttribute('data-conflict', 'true')
+			await expect(clue.getByText('!', { exact: true })).toBeVisible()
+			await expect(clue).toHaveCSS('color', red)
+			const shadow = await clue.evaluate((element) => getComputedStyle(element).boxShadow)
+			expect(shadow).toContain(`${red} 0px 0px 0px 2px inset`)
+		}
+		expect(await geometry()).toEqual(before)
+
+		await undoButton.click()
+		await expect(conflicts).toHaveCount(0)
+		await expect(status).toBeEmpty()
+		await expect(grid.getByText('!', { exact: true }).first()).toBeHidden()
+		await expect(cell(0, 1)).toHaveAttribute('aria-pressed', 'false')
+		await expect(cell(0, 0)).toHaveAttribute('aria-pressed', 'true')
+
+		// Mark the row off one cell at a time; only the final mark rules out its clue.
+		for (let col = 0; col < 9; col++) await cell(2, col).click({ button: 'right' })
+		await expect(status).toBeEmpty()
+		await cell(2, 9).click({ button: 'right' })
+		await expect(status).toHaveText(rowOnly)
+		await expect(conflicts).toHaveCount(1)
+		await expect(grid.locator('#paint-row-2')).toHaveAttribute('aria-invalid', 'true')
+		await undoButton.click()
+		await expect(status).toBeEmpty()
+		await expect(conflicts).toHaveCount(0)
+	})
+}
