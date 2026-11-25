@@ -208,7 +208,7 @@
 	[data-play-canvas] .play-split .play-board { grid-area: board; }
 	[data-play-canvas] .play-split .play-meta { grid-area: meta; align-self: end; }
 	[data-play-canvas] .play-split .play-tools { grid-area: tools; }
-	[data-play-canvas] .play-split :is(.quad-status, .pip-feedback) { grid-area: status; align-self: start; }
+	[data-play-canvas] .play-split .pip-feedback { grid-area: status; align-self: start; }
 	[data-play-canvas] [data-pip-place-board] .pip-actions { grid-area: meta; justify-self: end; align-self: end; }
 	[data-play-canvas] [data-pip-place-board] .play-meta { display: none; }
 	[data-play-canvas] [data-block-slide-board] .play-board { max-inline-size: none; }
@@ -273,7 +273,7 @@
 	overscroll-behavior: contain;
 }
 
-[data-play-canvas] .play-body:has([data-board-finished]) :is(.play-tools, .pip-actions, .quad-status, .pip-feedback) {
+[data-play-canvas] .play-body:has([data-board-finished]) :is(.play-tools, .pip-actions, .pip-feedback) {
 	visibility: hidden;
 }
 
@@ -286,7 +286,7 @@
 @media (width >= 1024px) {
 	[data-play-canvas] .play-split > .play-meta,
 	[data-play-canvas] .play-split > .play-tools,
-	[data-play-canvas] .play-split > :is(.quad-status, .pip-feedback) { margin-block: 0; }
+	[data-play-canvas] .play-split > .pip-feedback { margin-block: 0; }
 
 	[data-play-canvas] .play-split .completion-card {
 		/* Absolute grid placement uses only the right column without sizing it. */
