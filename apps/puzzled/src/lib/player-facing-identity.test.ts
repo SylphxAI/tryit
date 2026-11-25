@@ -58,6 +58,7 @@ import { createTranslator } from './i18n/translate'
 import { legacyPageRedirect } from './legacy-page-redirect'
 
 const APP_ROOT = join(import.meta.dir, '..', '..')
+const legacyMatchWording = /\bsets?\b|セット|\bconjuntos?\b/i
 
 type ForbiddenMark = {
 	label: string
@@ -480,15 +481,35 @@ describe('launch IP hygiene', () => {
 				'teal',
 				'triangle',
 			])
-			expect(JSON.stringify(t.raw('games.patternMatch')), locale).not.toMatch(
-				/\bsets?\b|セット|\bconjuntos?\b/i,
-			)
+			expect(JSON.stringify(t.raw('games.patternMatch')), locale).not.toMatch(legacyMatchWording)
 			expect(JSON.stringify(t.raw('catalog.game.pattern-match')), locale).not.toMatch(
-				/\bsets?\b|セット|\bconjuntos?\b/i,
+				legacyMatchWording,
 			)
 			expect(JSON.stringify(t.raw('games.wordSearch')), locale).not.toMatch(/\bword hunt\b/i)
 		}
 		expect(createTranslator('en-US')('games.patternMatch.messages.correct')).toBe('Valid trio!')
+	})
+
+	test('daily Match copy uses its own terminology in every locale', () => {
+		const dailyFiles = collectFiles(join(APP_ROOT, 'src/messages'), (file) =>
+			file.endsWith('/daily.json'),
+		)
+		// Other daily copy can use generic wording, e.g. "next daily set".
+		const hits = dailyFiles
+			.flatMap(jsonStrings)
+			.filter(
+				({ surface, value }) =>
+					/\.(?:patternMatch|pattern-match)(?:\.|\[|$)/.test(surface) &&
+					legacyMatchWording.test(value),
+			)
+		expect(hits).toEqual([])
+
+		const key = 'daily.firstAction.patternMatch'
+		for (const locale of locales) {
+			const t = createTranslator(locale)
+			expect(t.has(key), locale).toBe(true)
+			expect(t(key), locale).not.toMatch(legacyMatchWording)
+		}
 	})
 
 	test('only Quartet is published; quizzes still use the same 19 game IDs', () => {
