@@ -188,9 +188,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 			class="play-split mx-auto flex w-full max-w-md flex-col gap-2 md:gap-4"
 			data-crossword-board
 		>
-			<div
-				class={`play-meta flex flex-wrap items-center justify-between gap-x-3 pb-1 text-sm font-semibold text-muted-foreground ${styles.meta}`}
-			>
+			<div class="play-meta hidden flex-wrap items-center justify-between gap-x-3 pb-1 text-sm font-semibold text-muted-foreground sm:flex">
 				<Show when={!acrossOnly} fallback={<span>{t('games.crossword.acrossOnly')}</span>}>
 					<span class="tabular-nums" dir="ltr">
 						{filled()} / {total}
@@ -357,7 +355,13 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 				/>
 				<details class="crossword-clues">
 					<summary class="min-h-11 cursor-pointer py-2 text-sm font-semibold">
-						{t('games.crossword.clues')}
+						<span>{t('games.crossword.clues')}</span>
+						<span
+							class="float-end rounded-full bg-muted px-2 text-xs leading-5 text-muted-foreground tabular-nums sm:hidden"
+							dir="ltr"
+						>
+							{filled()} / {total}
+						</span>
 					</summary>
 					<div class="grid grid-cols-2 gap-3">
 						<For each={acrossOnly ? ['across' as const] : directions}>

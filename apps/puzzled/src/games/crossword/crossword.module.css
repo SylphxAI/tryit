@@ -1,11 +1,3 @@
-/* The old play canvas hides the repeated game title at this width. Keep the
-   progress and direction row visible without changing the shared canvas. */
-@media (width < 640px) {
-	:global([data-play-canvas] [data-crossword-board] .play-meta).meta {
-		display: flex;
-	}
-}
-
 .cell[aria-pressed='true'] {
 	box-shadow: inset 0 0 0 2px var(--color-on-accent);
 }
