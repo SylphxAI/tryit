@@ -1,0 +1,13 @@
+{
+	"label": "Treino",
+	"another": "Treinar com outro desafio",
+	"newPuzzle": "Novo desafio",
+	"newAfterFinish": "Novo desafio de treino",
+	"backToToday": "Voltar ao desafio de hoje",
+	"unlockTitle": "Jogue mais com o Tryit Plus",
+	"unlockBody": "Jogue quantos desafios de treino quiser, sem anúncios. O treino não afeta o desafio de hoje nem a sua sequência.",
+	"unavailable": "Não foi possível carregar o desafio de treino.",
+	"loading": "Carregando o desafio de treino…",
+	"won": "Desafio de treino resolvido",
+	"lost": "Desafio de treino encerrado"
+}

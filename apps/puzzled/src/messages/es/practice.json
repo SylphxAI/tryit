@@ -1,0 +1,13 @@
+{
+	"label": "Práctica",
+	"another": "Practicar con otro puzle",
+	"newPuzzle": "Nuevo puzle",
+	"newAfterFinish": "Nuevo puzle de práctica",
+	"backToToday": "Volver al puzle de hoy",
+	"unlockTitle": "Juega más con Tryit Plus",
+	"unlockBody": "Juega a todos los puzles de práctica que quieras, sin anuncios. La práctica no afecta al puzle de hoy ni a tu racha.",
+	"unavailable": "No se pudo cargar el puzle de práctica.",
+	"loading": "Cargando el puzle de práctica…",
+	"won": "Puzle de práctica resuelto",
+	"lost": "Puzle de práctica terminado"
+}

@@ -1,0 +1,13 @@
+{
+	"label": "练习",
+	"another": "再练一题",
+	"newPuzzle": "新谜题",
+	"newAfterFinish": "新练习题",
+	"backToToday": "返回今天的谜题",
+	"unlockTitle": "用 Tryit Plus 多玩几题",
+	"unlockBody": "练习题不限量，没有广告。练习不会影响今天的谜题或你的连胜记录。",
+	"unavailable": "无法加载练习题。",
+	"loading": "正在加载练习题…",
+	"won": "练习题已解开",
+	"lost": "练习已结束"
+}
