@@ -577,12 +577,12 @@ for (const [width, height] of [
 		])
 		const storage = await page.evaluate(async () => ({
 			local: Object.keys(localStorage).sort(),
-			session: Object.keys(sessionStorage),
+			session: Object.keys(sessionStorage).sort(),
 			idb: (await indexedDB.databases()).map(({ name }) => name),
 		}))
 		expect(storage).toEqual({
-			local: [`puzzled:picks:${daily.puzzleDate}`, 'puzzled:pwa:first-finish-day'],
-			session: ['puzzled:play-draft-tab'],
+			local: ['puzzled:pwa:first-finish-day'],
+			session: ['puzzled:daily-level:sudoku', 'puzzled:play-draft-tab'],
 			idb: [],
 		})
 	})
