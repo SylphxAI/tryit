@@ -17,6 +17,13 @@
 	"region": "区域",
 	"tile": "骨牌 {a}–{b}",
 	"rejected": "还没完成。拿起一块骨牌继续吧。",
+	"conflicts": {
+		"sum": "区域 {region} 的点数总和是 {actual}，必须等于 {target}。",
+		"equalTarget": "区域 {region} 的每一格都要是 {target} 点。",
+		"equal": "区域 {region} 的每一格点数都要相同。",
+		"unequal": "区域 {region} 的每一格点数都要不同。",
+		"pickUp": "拿起一块骨牌来调整。"
+	},
 	"selectDomino": "请先在下方选择一张骨牌",
 	"pickAdjacent": "请选择上下左右相邻的一格"
 }

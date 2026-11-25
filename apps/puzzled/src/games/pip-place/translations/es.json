@@ -17,6 +17,13 @@
 	"region": "Región",
 	"tile": "Ficha {a}–{b}",
 	"rejected": "Aún no. Retira una ficha para seguir jugando.",
+	"conflicts": {
+		"sum": "La región {region} suma {actual} puntos, pero debe sumar {target}.",
+		"equalTarget": "Cada casilla de la región {region} debe tener {target} puntos.",
+		"equal": "Todas las casillas de la región {region} deben tener la misma cantidad de puntos.",
+		"unequal": "Cada casilla de la región {region} debe tener una cantidad de puntos distinta.",
+		"pickUp": "Retira una ficha para corregir el tablero."
+	},
 	"selectDomino": "Elige primero una ficha de dominó de abajo",
 	"pickAdjacent": "Elige una casilla contigua: arriba, abajo, a la izquierda o a la derecha"
 }

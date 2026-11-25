@@ -17,6 +17,13 @@
 	"region": "Region",
 	"tile": "Tile {a}–{b}",
 	"rejected": "Not quite. Pick up a tile to keep playing.",
+	"conflicts": {
+		"sum": "Region {region} adds up to {actual}, needs {target}.",
+		"equalTarget": "Region {region} needs all {target}s.",
+		"equal": "Region {region} needs all equal spots.",
+		"unequal": "Region {region} needs all different spots.",
+		"pickUp": "Pick up a tile to fix it."
+	},
 	"selectDomino": "Select a domino below first",
 	"pickAdjacent": "Pick an adjacent up/down/left/right square"
 }

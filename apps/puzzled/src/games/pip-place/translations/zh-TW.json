@@ -17,6 +17,13 @@
 	"region": "區域",
 	"tile": "骨牌 {a}–{b}",
 	"rejected": "還沒完成。拿起一塊骨牌繼續吧。",
+	"conflicts": {
+		"sum": "區域 {region} 的點數總和是 {actual}，必須等於 {target}。",
+		"equalTarget": "區域 {region} 的每一格都必須是 {target} 點。",
+		"equal": "區域 {region} 的每一格點數都必須相同。",
+		"unequal": "區域 {region} 的每一格點數都必須不同。",
+		"pickUp": "拿起一塊骨牌來調整。"
+	},
 	"selectDomino": "請先在下方選擇一張骨牌",
 	"pickAdjacent": "請選擇上、下、左、右相鄰的一格"
 }

@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import { createInitialState, type PipPlaceAction, pipPlaceReducer } from './board-state'
 import { FIXTURE_2X3_PUZZLE, FIXTURE_2X3_TILES_B } from './fixtures'
+import { getConflictDetails } from './types'
 
 const puzzle = FIXTURE_2X3_PUZZLE
 
@@ -78,4 +79,44 @@ test('drag commits one oriented placement; invalid endpoints do not disturb tap 
 	const previous = state()
 	dispatch({ type: 'DRAG_TILE', from: { row: 1, col: 1 }, to: from })
 	expect(state()).toBe(previous)
+})
+
+test('a full losing placement stays playable and picking up or undoing the tile clears its conflict', () => {
+	const { state, dispatch, touch } = setup()
+	for (const tile of FIXTURE_2X3_TILES_B.slice(0, 2)) {
+		dispatch({
+			type: 'SELECT_TRAY',
+			index: state().tray.findIndex(({ pa, pb }) => tile.pa === pa && tile.pb === pb),
+		})
+		touch(tile.a.row, tile.a.col)
+		touch(tile.b.row, tile.b.col)
+	}
+	dispatch({ type: 'SELECT_TRAY', index: 0 })
+	dispatch({ type: 'ROTATE' })
+	// Put the 1 on the sum-0 cell.
+	touch(0, 2)
+	touch(1, 2)
+	expect(state().tray).toHaveLength(0)
+	expect(state().gameStatus).toBe('playing')
+	expect(getConflictDetails(state().placed, puzzle).regions).toEqual([
+		{ regionId: 0, kind: 'sum', target: 0, actualSum: 1, cells: [{ row: 0, col: 2 }] },
+	])
+
+	touch(0, 2)
+	expect(state().tray).toHaveLength(1)
+	expect(getConflictDetails(state().placed, puzzle)).toEqual({ cells: [], regions: [] })
+	touch(0, 2)
+	touch(1, 2)
+	expect(getConflictDetails(state().placed, puzzle).regions).toHaveLength(1)
+	dispatch({ type: 'UNDO' })
+	expect(state().tray).toHaveLength(1)
+	expect(getConflictDetails(state().placed, puzzle)).toEqual({ cells: [], regions: [] })
+
+	// Reorient the tile and actually satisfy the rule.
+	dispatch({ type: 'SELECT_TRAY', index: 0 })
+	dispatch({ type: 'ROTATE' })
+	touch(0, 2)
+	touch(1, 2)
+	expect(state().gameStatus).toBe('won')
+	expect(getConflictDetails(state().placed, puzzle)).toEqual({ cells: [], regions: [] })
 })
