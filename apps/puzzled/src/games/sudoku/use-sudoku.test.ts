@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { createInitialState, type SudokuAction, sudokuReducer } from './state'
-import type { SudokuPuzzleClientData } from './types'
+import { hasCellConflict, type SudokuPuzzleClientData } from './types'
 
 const puzzle: SudokuPuzzleClientData = {
 	grid: Array.from({ length: 9 }, (_, row) =>
@@ -27,6 +27,37 @@ function game(data = puzzle) {
 		},
 	}
 }
+
+describe('Sudoku cell conflicts', () => {
+	test.each([
+		['row', 8, 4],
+		['column', 4, 8],
+		['box', 7, 7],
+	] as const)('marks both a player entry and its given %s peer', (_unit, row, col) => {
+		const g = game()
+		const values = () => g.state.userGrid.map((row) => row.map((cell) => cell.value))
+		g.select(row, col)
+		g.input(9)
+		expect(hasCellConflict(values(), row, col)).toBe(true)
+		expect(hasCellConflict(values(), 8, 8)).toBe(true)
+
+		g.act({ type: 'CLEAR_CELL' })
+		expect(hasCellConflict(values(), row, col)).toBe(false)
+		expect(hasCellConflict(values(), 8, 8)).toBe(false)
+	})
+
+	test('marks both player entries but not the same digit outside their row, column and box', () => {
+		const g = game()
+		g.select(0, 0)
+		g.input(9)
+		g.select(0, 4)
+		g.input(9)
+		const values = g.state.userGrid.map((row) => row.map((cell) => cell.value))
+		expect(hasCellConflict(values, 0, 0)).toBe(true)
+		expect(hasCellConflict(values, 0, 4)).toBe(true)
+		expect(hasCellConflict(values, 8, 8)).toBe(false)
+	})
+})
 
 describe('Sudoku reversible edits', () => {
 	test('undo restores the exact board, including all notes pruned by a number', () => {

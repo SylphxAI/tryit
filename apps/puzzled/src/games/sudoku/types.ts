@@ -91,6 +91,12 @@ export function isValidPlacement(
 	return true
 }
 
+/** True when a filled cell shares its digit with a peer in its row, column or box. */
+export function hasCellConflict(values: (number | null)[][], row: number, col: number): boolean {
+	const value = values[row][col]
+	return value !== null && !isValidPlacement(values, row, col, value)
+}
+
 /**
  * True when every cell holds 1-9 and every row, column and box holds each
  * digit once. Multiple completions can satisfy a served puzzle; the server
