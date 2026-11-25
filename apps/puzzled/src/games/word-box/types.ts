@@ -61,6 +61,20 @@ function getLetterSide(box: LetterBox, letter: string): BoxSide | null {
 	return null
 }
 
+export function getFrameSelection(
+	box: LetterBox,
+	playing: boolean,
+	current: string,
+	required: string | undefined,
+) {
+	if (!playing) return {}
+	const last = current.at(-1)
+	return {
+		anchor: last ?? required,
+		lockedSide: last ? getLetterSide(box, last) : undefined,
+	}
+}
+
 /**
  * Check if word uses only valid letters from the box
  */

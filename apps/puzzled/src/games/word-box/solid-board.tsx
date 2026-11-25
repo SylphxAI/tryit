@@ -6,6 +6,7 @@ import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/sh
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { isFrameWord } from './dictionary'
+import { FrameGrid } from './frame-grid'
 import { parseWordBoxClientPayload } from './parse-client'
 import {
 	allLettersUsed,
@@ -17,12 +18,6 @@ import {
 } from './types'
 
 const slug = 'word-box'
-const sides = [
-	{ key: 'top', position: 'col-start-2 row-start-1 flex-row' },
-	{ key: 'right', position: 'col-start-3 row-start-2 flex-col' },
-	{ key: 'bottom', position: 'col-start-2 row-start-3 flex-row' },
-	{ key: 'left', position: 'col-start-1 row-start-2 flex-col' },
-] as const
 
 export default function WordBoxBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -74,7 +69,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 	const used = createMemo(() => getUsedLetters(words()))
 	const required = () => words().at(-1)?.slice(-1)
 	const playable = () => finish.state() === 'playing' && !checking()
-	const total = sides.reduce((count, side) => count + box[side.key].length, 0)
+	const total = Object.values(box).reduce((count, letters) => count + letters.length, 0)
 
 	function invalid(reason: NonNullable<ReturnType<typeof error>>) {
 		triggerHaptic('error')
@@ -209,35 +204,16 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 			</div>
 			<fieldset class="space-y-3" aria-busy={checking()}>
 				<legend class="sr-only">{copy('input')}</legend>
-				<div
-					class="mx-auto grid w-full max-w-64 grid-cols-[auto_1fr_auto] grid-rows-[auto_1fr_auto] gap-1"
-					dir="ltr"
-				>
-					<div
-						aria-hidden="true"
-						class="col-start-2 row-start-2 rounded-xl border-2 border-primary bg-muted"
-					/>
-					<For each={sides}>
-						{(side) => (
-							<div class={`flex items-center justify-center gap-1 ${side.position}`}>
-								<For each={box[side.key]}>
-									{(letter) => (
-										<button
-											type="button"
-											class="grid size-11 place-items-center rounded-full border border-border bg-background text-lg font-bold hover:bg-muted disabled:opacity-60 data-used:bg-primary data-used:text-primary-foreground"
-											data-used={used().has(letter) || undefined}
-											data-box-letter={letter}
-											disabled={!playable()}
-											onClick={() => add(letter)}
-										>
-											{letter}
-										</button>
-									)}
-								</For>
-							</div>
-						)}
-					</For>
-				</div>
+				<FrameGrid
+					box={box}
+					used={used()}
+					words={words()}
+					current={current()}
+					required={required()}
+					playing={finish.state() === 'playing'}
+					playable={playable()}
+					add={add}
+				/>
 				<form
 					class="flex flex-wrap items-center justify-center gap-2"
 					onSubmit={(event) => {
