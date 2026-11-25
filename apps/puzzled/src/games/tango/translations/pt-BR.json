@@ -7,7 +7,7 @@
 	"rules": {
 		"title": "Como jogar",
 		"rule1": "Cada linha e coluna deve ter o mesmo número de sóis e luas",
-		"rule2": "No máximo 2 símbolos iguais seguidos",
+		"rule2": "Não coloque três símbolos iguais seguidos, nem na horizontal nem na vertical.",
 		"rule3": "Todas as linhas devem ser únicas, e todas as colunas também"
 	},
 	"startGame": "Começar jogo",
@@ -16,7 +16,12 @@
 		"moon": "Lua",
 		"blank": "Vazia"
 	},
-	"hasConflicts": "Algumas células violam as regras",
+	"conflicts": {
+		"duplicateRows": "As linhas {lines} são iguais. Cada linha deve ser diferente.",
+		"duplicateColumns": "As colunas {lines} são iguais. Cada coluna deve ser diferente.",
+		"consecutive": "Não pode haver mais de dois sóis ou luas seguidos na mesma linha ou coluna.",
+		"imbalance": "Cada linha e coluna deve ter a mesma quantidade de sóis e luas."
+	},
 	"complete": "Desafio concluído!",
 	"lockedClue": "Pista fixa."
 }

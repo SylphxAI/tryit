@@ -7,7 +7,7 @@
 	"rules": {
 		"title": "How to Play",
 		"rule1": "Each row and column must have equal suns and moons",
-		"rule2": "No more than 2 of the same symbol in a row",
+		"rule2": "Never place three of the same symbol consecutively, horizontally or vertically.",
 		"rule3": "All rows must be unique, all columns must be unique"
 	},
 	"startGame": "Start Game",
@@ -16,7 +16,12 @@
 		"moon": "Moon",
 		"blank": "Blank"
 	},
-	"hasConflicts": "Some cells violate the rules",
+	"conflicts": {
+		"duplicateRows": "Rows {lines} are identical. Every row must be unique.",
+		"duplicateColumns": "Columns {lines} are identical. Every column must be unique.",
+		"consecutive": "No more than two suns or moons in a row or column.",
+		"imbalance": "Each row and column must have the same number of suns and moons."
+	},
 	"complete": "Puzzle Complete!",
 	"lockedClue": "Locked clue."
 }

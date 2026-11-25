@@ -4,7 +4,7 @@ import { createMemo, createSignal, For, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseTangoClientPayload } from './parse-client'
-import { type CellValue, getConflicts, isSolved, type TangoPuzzleData } from './types'
+import { type CellValue, getConflictDetails, isSolved, type TangoPuzzleData } from './types'
 
 export default function DuoBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -35,10 +35,12 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 	const [grid, setGrid] = finish.draft.signal('grid', initial)
 	const [lockedClue, setLockedClue] = createSignal(false)
 	const locked = () => finish.state() !== 'playing'
+	const details = createMemo(() => getConflictDetails(grid()))
 	const conflicts = createMemo(
-		() => new Set(getConflicts(grid()).map(({ row, col }) => row * size + col)),
+		() => new Set(details().cells.map(({ row, col }) => row * size + col)),
 	)
-	const full = () => grid().every((line) => line.every((cell) => cell.value !== null))
+	const lists = new Intl.ListFormat(props.locale, { type: 'conjunction' })
+	const formatGroup = (group: number[]) => ({ lines: lists.format(group.map(String)) })
 	function change(row: number, col: number, value: CellValue) {
 		const current = grid()[row][col]
 		if (locked()) return
@@ -102,7 +104,7 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 				</div>
 			</fieldset>
 			<Show when={!locked()}>
-				<div class="flex flex-wrap items-center gap-3">
+				<div>
 					<button
 						class="min-h-11 rounded-xl border border-border px-4 disabled:opacity-50"
 						type="button"
@@ -114,11 +116,23 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 					>
 						{t('common.reset')}
 					</button>
-					<Show when={conflicts().size > 0 || full()}>
-						<p role="status" class="text-sm font-semibold text-destructive">
-							{t('games.duo.hasConflicts')}
-						</p>
-					</Show>
+					<div
+						role="status"
+						class="space-y-1 text-sm font-semibold text-destructive [&:not(:empty)]:mt-2"
+					>
+						<For each={details().duplicateRows}>
+							{(group) => <p>{t('games.duo.conflicts.duplicateRows', formatGroup(group))}</p>}
+						</For>
+						<For each={details().duplicateColumns}>
+							{(group) => <p>{t('games.duo.conflicts.duplicateColumns', formatGroup(group))}</p>}
+						</For>
+						<Show when={details().consecutive}>
+							<p>{t('games.duo.conflicts.consecutive')}</p>
+						</Show>
+						<Show when={details().imbalance}>
+							<p>{t('games.duo.conflicts.imbalance')}</p>
+						</Show>
+					</div>
 				</div>
 			</Show>
 			<div role="status" class="text-sm font-semibold">

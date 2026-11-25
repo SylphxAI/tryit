@@ -49,57 +49,82 @@ export type TangoGameState = {
 export const DEFAULT_SIZE = 6
 export const MAX_CONSECUTIVE = 2
 
-/**
- * Get conflicts for the current grid state
- */
-export function getConflicts(grid: TangoCell[][]): { row: number; col: number }[] {
-	const conflicts: { row: number; col: number }[] = []
+type ConflictCell = { row: number; col: number }
+
+/** Cell coordinates are zero-based; row and column groups are one-based for display. */
+export type TangoConflictDetails = {
+	cells: ConflictCell[]
+	consecutive: boolean
+	imbalance: boolean
+	duplicateRows: number[][]
+	duplicateColumns: number[][]
+}
+
+function duplicateGroups(lines: CellValue[][]): number[][] {
+	const groups = new Map<string, number[]>()
+	for (const [index, line] of lines.entries()) {
+		if (line.includes(null)) continue
+		const key = line.join(',')
+		const group = groups.get(key)
+		if (group) group.push(index + 1)
+		else groups.set(key, [index + 1])
+	}
+	return [...groups.values()].filter((group) => group.length > 1)
+}
+
+export function getConflictDetails(grid: TangoCell[][]): TangoConflictDetails {
+	const cells = new Map<number, ConflictCell>()
 	const size = grid.length
+	const rows = grid.map((row) => row.map(({ value }) => value))
+	const columns = Array.from({ length: size }, (_, col) => rows.map((row) => row[col]))
+	let consecutive = false
+	let imbalance = false
+
+	function mark(row: number, col: number) {
+		cells.set(row * size + col, { row, col })
+	}
 
 	for (let r = 0; r < size; r++) {
 		for (let c = 0; c < size; c++) {
-			const value = grid[r][c].value
-			if (!value) continue
-
-			// Check consecutive violation at this position
 			if (hasConsecutiveViolationAt(grid, r, c)) {
-				conflicts.push({ row: r, col: c })
+				consecutive = true
+				mark(r, c)
 			}
 		}
 	}
 
-	// Check row counts
-	for (let r = 0; r < size; r++) {
-		const rowValues = grid[r].map((cell) => cell.value)
-		const sunCount = rowValues.filter((v) => v === 'sun').length
-		const moonCount = rowValues.filter((v) => v === 'moon').length
-
-		if (sunCount > size / 2 || moonCount > size / 2) {
-			// Add all cells in this row as conflicts
-			for (let c = 0; c < size; c++) {
-				if (grid[r][c].value && !conflicts.some((cf) => cf.row === r && cf.col === c)) {
-					conflicts.push({ row: r, col: c })
-				}
+	function markUnbalanced(lines: CellValue[][], markCell: (line: number, offset: number) => void) {
+		for (const [index, line] of lines.entries()) {
+			const suns = line.filter((value) => value === 'sun').length
+			const moons = line.filter((value) => value === 'moon').length
+			if (suns <= size / 2 && moons <= size / 2) continue
+			imbalance = true
+			for (let offset = 0; offset < size; offset++) {
+				if (line[offset]) markCell(index, offset)
 			}
 		}
 	}
+	markUnbalanced(rows, mark)
+	markUnbalanced(columns, (col, row) => mark(row, col))
 
-	// Check column counts
-	for (let c = 0; c < size; c++) {
-		const colValues = grid.map((row) => row[c].value)
-		const sunCount = colValues.filter((v) => v === 'sun').length
-		const moonCount = colValues.filter((v) => v === 'moon').length
-
-		if (sunCount > size / 2 || moonCount > size / 2) {
-			for (let r = 0; r < size; r++) {
-				if (grid[r][c].value && !conflicts.some((cf) => cf.row === r && cf.col === c)) {
-					conflicts.push({ row: r, col: c })
-				}
-			}
+	const duplicateRows = duplicateGroups(rows)
+	const duplicateColumns = duplicateGroups(columns)
+	for (const group of duplicateRows) {
+		for (const row of group) {
+			for (let col = 0; col < size; col++) mark(row - 1, col)
+		}
+	}
+	for (const group of duplicateColumns) {
+		for (const col of group) {
+			for (let row = 0; row < size; row++) mark(row, col - 1)
 		}
 	}
 
-	return conflicts
+	return { cells: [...cells.values()], consecutive, imbalance, duplicateRows, duplicateColumns }
+}
+
+export function getConflicts(grid: TangoCell[][]): ConflictCell[] {
+	return getConflictDetails(grid).cells
 }
 
 /**
