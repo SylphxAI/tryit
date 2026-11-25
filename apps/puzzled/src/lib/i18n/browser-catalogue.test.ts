@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test'
-import { browserMessages, prepareBrowserMessages } from './browser-catalogue'
+import {
+	browserMessages,
+	prepareBrowserMessages,
+	prepareExtendedBrowserMessages,
+} from './browser-catalogue'
 import { defaultLocale, locales } from './config'
 import { loadMessages } from './messages'
 
@@ -17,6 +21,8 @@ test('only English is initially available; locale imports preserve all resolved 
 	for (const locale of locales) {
 		await prepareBrowserMessages(locale)
 		const messages = browserMessages(locale)
+		expect(messages).not.toHaveProperty('settings')
+		await prepareExtendedBrowserMessages(locale)
 		expect(messages).toEqual(loadMessages(locale))
 		await prepareBrowserMessages(locale)
 		expect(browserMessages(locale)).toBe(messages)

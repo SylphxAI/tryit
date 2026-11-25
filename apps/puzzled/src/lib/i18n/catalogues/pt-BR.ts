@@ -18,10 +18,8 @@ import wordHivePtBR from '@/games/word-hive/translations/pt-BR.json'
 import wordLadderPtBR from '@/games/word-ladder/translations/pt-BR.json'
 import wordSearchPtBR from '@/games/word-search/translations/pt-BR.json'
 import ptBRAchievements from '@/messages/pt-BR/achievements.json'
-import ptBRAdmin from '@/messages/pt-BR/admin.json'
 import ptBRAnnouncements from '@/messages/pt-BR/announcements.json'
 import ptBRArchive from '@/messages/pt-BR/archive.json'
-import ptBRAuth from '@/messages/pt-BR/auth.json'
 import ptBRCalendar from '@/messages/pt-BR/calendar.json'
 import ptBRCatalog from '@/messages/pt-BR/catalog.json'
 import ptBRCommon from '@/messages/pt-BR/common.json'
@@ -31,27 +29,19 @@ import ptBRDaily from '@/messages/pt-BR/daily.json'
 import ptBRFooter from '@/messages/pt-BR/footer.json'
 import ptBRGameResult from '@/messages/pt-BR/game-result.json'
 import ptBRHome from '@/messages/pt-BR/home.json'
-import ptBRLeaderboard from '@/messages/pt-BR/leaderboard.json'
-import ptBRLegal from '@/messages/pt-BR/legal.json'
 import ptBRModes from '@/messages/pt-BR/modes.json'
 import ptBRNav from '@/messages/pt-BR/nav.json'
 import ptBROnboarding from '@/messages/pt-BR/onboarding.json'
 import ptBRPagination from '@/messages/pt-BR/pagination.json'
 import ptBRPlus from '@/messages/pt-BR/plus.json'
 import ptBRPwa from '@/messages/pt-BR/pwa.json'
-import ptBRReauth from '@/messages/pt-BR/reauth.json'
-import ptBRSettings from '@/messages/pt-BR/settings.json'
 import ptBRShare from '@/messages/pt-BR/share.json'
-import ptBRStats from '@/messages/pt-BR/stats.json'
 import ptBRStreak from '@/messages/pt-BR/streak.json'
-import ptBRSupport from '@/messages/pt-BR/support.json'
 
 export const messages = {
 	achievements: ptBRAchievements,
-	admin: ptBRAdmin,
 	announcements: ptBRAnnouncements,
 	archive: ptBRArchive,
-	auth: ptBRAuth,
 	calendar: ptBRCalendar,
 	catalog: ptBRCatalog,
 	common: ptBRCommon,
@@ -61,20 +51,14 @@ export const messages = {
 	footer: ptBRFooter,
 	gameResult: ptBRGameResult,
 	home: ptBRHome,
-	leaderboard: ptBRLeaderboard,
-	legal: ptBRLegal,
 	modes: ptBRModes,
 	nav: ptBRNav,
 	onboarding: ptBROnboarding,
 	pagination: ptBRPagination,
 	plus: ptBRPlus,
 	pwa: ptBRPwa,
-	reauth: ptBRReauth,
-	settings: ptBRSettings,
 	share: ptBRShare,
-	stats: ptBRStats,
 	streak: ptBRStreak,
-	support: ptBRSupport,
 }
 
 export const games = {

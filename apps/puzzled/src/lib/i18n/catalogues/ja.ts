@@ -18,10 +18,8 @@ import wordHiveJa from '@/games/word-hive/translations/ja.json'
 import wordLadderJa from '@/games/word-ladder/translations/ja.json'
 import wordSearchJa from '@/games/word-search/translations/ja.json'
 import jaAchievements from '@/messages/ja/achievements.json'
-import jaAdmin from '@/messages/ja/admin.json'
 import jaAnnouncements from '@/messages/ja/announcements.json'
 import jaArchive from '@/messages/ja/archive.json'
-import jaAuth from '@/messages/ja/auth.json'
 import jaCalendar from '@/messages/ja/calendar.json'
 import jaCatalog from '@/messages/ja/catalog.json'
 import jaCommon from '@/messages/ja/common.json'
@@ -31,27 +29,19 @@ import jaDaily from '@/messages/ja/daily.json'
 import jaFooter from '@/messages/ja/footer.json'
 import jaGameResult from '@/messages/ja/game-result.json'
 import jaHome from '@/messages/ja/home.json'
-import jaLeaderboard from '@/messages/ja/leaderboard.json'
-import jaLegal from '@/messages/ja/legal.json'
 import jaModes from '@/messages/ja/modes.json'
 import jaNav from '@/messages/ja/nav.json'
 import jaOnboarding from '@/messages/ja/onboarding.json'
 import jaPagination from '@/messages/ja/pagination.json'
 import jaPlus from '@/messages/ja/plus.json'
 import jaPwa from '@/messages/ja/pwa.json'
-import jaReauth from '@/messages/ja/reauth.json'
-import jaSettings from '@/messages/ja/settings.json'
 import jaShare from '@/messages/ja/share.json'
-import jaStats from '@/messages/ja/stats.json'
 import jaStreak from '@/messages/ja/streak.json'
-import jaSupport from '@/messages/ja/support.json'
 
 export const messages = {
 	achievements: jaAchievements,
-	admin: jaAdmin,
 	announcements: jaAnnouncements,
 	archive: jaArchive,
-	auth: jaAuth,
 	calendar: jaCalendar,
 	catalog: jaCatalog,
 	common: jaCommon,
@@ -61,20 +51,14 @@ export const messages = {
 	footer: jaFooter,
 	gameResult: jaGameResult,
 	home: jaHome,
-	leaderboard: jaLeaderboard,
-	legal: jaLegal,
 	modes: jaModes,
 	nav: jaNav,
 	onboarding: jaOnboarding,
 	pagination: jaPagination,
 	plus: jaPlus,
 	pwa: jaPwa,
-	reauth: jaReauth,
-	settings: jaSettings,
 	share: jaShare,
-	stats: jaStats,
 	streak: jaStreak,
-	support: jaSupport,
 }
 
 export const games = {

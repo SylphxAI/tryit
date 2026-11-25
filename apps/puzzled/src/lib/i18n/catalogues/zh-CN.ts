@@ -18,10 +18,8 @@ import wordHiveZhCN from '@/games/word-hive/translations/zh-CN.json'
 import wordLadderZhCN from '@/games/word-ladder/translations/zh-CN.json'
 import wordSearchZhCN from '@/games/word-search/translations/zh-CN.json'
 import zhCNAchievements from '@/messages/zh-CN/achievements.json'
-import zhCNAdmin from '@/messages/zh-CN/admin.json'
 import zhCNAnnouncements from '@/messages/zh-CN/announcements.json'
 import zhCNArchive from '@/messages/zh-CN/archive.json'
-import zhCNAuth from '@/messages/zh-CN/auth.json'
 import zhCNCalendar from '@/messages/zh-CN/calendar.json'
 import zhCNCatalog from '@/messages/zh-CN/catalog.json'
 import zhCNCommon from '@/messages/zh-CN/common.json'
@@ -31,30 +29,20 @@ import zhCNDaily from '@/messages/zh-CN/daily.json'
 import zhCNFooter from '@/messages/zh-CN/footer.json'
 import zhCNGameResult from '@/messages/zh-CN/game-result.json'
 import zhCNHome from '@/messages/zh-CN/home.json'
-import zhCNLeaderboard from '@/messages/zh-CN/leaderboard.json'
-import zhCNLegal from '@/messages/zh-CN/legal.json'
 import zhCNModes from '@/messages/zh-CN/modes.json'
 import zhCNNav from '@/messages/zh-CN/nav.json'
 import zhCNOnboarding from '@/messages/zh-CN/onboarding.json'
 import zhCNPagination from '@/messages/zh-CN/pagination.json'
 import zhCNPlus from '@/messages/zh-CN/plus.json'
 import zhCNPwa from '@/messages/zh-CN/pwa.json'
-import zhCNReauth from '@/messages/zh-CN/reauth.json'
-import zhCNSettings from '@/messages/zh-CN/settings.json'
 import zhCNShare from '@/messages/zh-CN/share.json'
-import zhCNStats from '@/messages/zh-CN/stats.json'
 import zhCNStreak from '@/messages/zh-CN/streak.json'
-import zhCNSupport from '@/messages/zh-CN/support.json'
 
 export const messages = {
 	common: zhCNCommon,
-	auth: zhCNAuth,
 	nav: zhCNNav,
 	home: zhCNHome,
-	settings: zhCNSettings,
-	admin: zhCNAdmin,
 	archive: zhCNArchive,
-	legal: zhCNLegal,
 	pagination: zhCNPagination,
 	plus: zhCNPlus,
 	achievements: zhCNAchievements,
@@ -66,15 +54,11 @@ export const messages = {
 	daily: zhCNDaily,
 	footer: zhCNFooter,
 	gameResult: zhCNGameResult,
-	leaderboard: zhCNLeaderboard,
 	modes: zhCNModes,
 	onboarding: zhCNOnboarding,
 	pwa: zhCNPwa,
-	reauth: zhCNReauth,
 	share: zhCNShare,
-	stats: zhCNStats,
 	streak: zhCNStreak,
-	support: zhCNSupport,
 }
 
 export const games = {

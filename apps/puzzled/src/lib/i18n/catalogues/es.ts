@@ -18,10 +18,8 @@ import wordHiveEs from '@/games/word-hive/translations/es.json'
 import wordLadderEs from '@/games/word-ladder/translations/es.json'
 import wordSearchEs from '@/games/word-search/translations/es.json'
 import esAchievements from '@/messages/es/achievements.json'
-import esAdmin from '@/messages/es/admin.json'
 import esAnnouncements from '@/messages/es/announcements.json'
 import esArchive from '@/messages/es/archive.json'
-import esAuth from '@/messages/es/auth.json'
 import esCalendar from '@/messages/es/calendar.json'
 import esCatalog from '@/messages/es/catalog.json'
 import esCommon from '@/messages/es/common.json'
@@ -31,27 +29,19 @@ import esDaily from '@/messages/es/daily.json'
 import esFooter from '@/messages/es/footer.json'
 import esGameResult from '@/messages/es/game-result.json'
 import esHome from '@/messages/es/home.json'
-import esLeaderboard from '@/messages/es/leaderboard.json'
-import esLegal from '@/messages/es/legal.json'
 import esModes from '@/messages/es/modes.json'
 import esNav from '@/messages/es/nav.json'
 import esOnboarding from '@/messages/es/onboarding.json'
 import esPagination from '@/messages/es/pagination.json'
 import esPlus from '@/messages/es/plus.json'
 import esPwa from '@/messages/es/pwa.json'
-import esReauth from '@/messages/es/reauth.json'
-import esSettings from '@/messages/es/settings.json'
 import esShare from '@/messages/es/share.json'
-import esStats from '@/messages/es/stats.json'
 import esStreak from '@/messages/es/streak.json'
-import esSupport from '@/messages/es/support.json'
 
 export const messages = {
 	achievements: esAchievements,
-	admin: esAdmin,
 	announcements: esAnnouncements,
 	archive: esArchive,
-	auth: esAuth,
 	calendar: esCalendar,
 	catalog: esCatalog,
 	common: esCommon,
@@ -61,20 +51,14 @@ export const messages = {
 	footer: esFooter,
 	gameResult: esGameResult,
 	home: esHome,
-	leaderboard: esLeaderboard,
-	legal: esLegal,
 	modes: esModes,
 	nav: esNav,
 	onboarding: esOnboarding,
 	pagination: esPagination,
 	plus: esPlus,
 	pwa: esPwa,
-	reauth: esReauth,
-	settings: esSettings,
 	share: esShare,
-	stats: esStats,
 	streak: esStreak,
-	support: esSupport,
 }
 
 export const games = {

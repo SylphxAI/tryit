@@ -18,10 +18,8 @@ import wordHiveZhHK from '@/games/word-hive/translations/zh-HK.json'
 import wordLadderZhHK from '@/games/word-ladder/translations/zh-HK.json'
 import wordSearchZhHK from '@/games/word-search/translations/zh-HK.json'
 import zhHKAchievements from '@/messages/zh-HK/achievements.json'
-import zhHKAdmin from '@/messages/zh-HK/admin.json'
 import zhHKAnnouncements from '@/messages/zh-HK/announcements.json'
 import zhHKArchive from '@/messages/zh-HK/archive.json'
-import zhHKAuth from '@/messages/zh-HK/auth.json'
 import zhHKCalendar from '@/messages/zh-HK/calendar.json'
 import zhHKCatalog from '@/messages/zh-HK/catalog.json'
 import zhHKCommon from '@/messages/zh-HK/common.json'
@@ -31,30 +29,20 @@ import zhHKDaily from '@/messages/zh-HK/daily.json'
 import zhHKFooter from '@/messages/zh-HK/footer.json'
 import zhHKGameResult from '@/messages/zh-HK/game-result.json'
 import zhHKHome from '@/messages/zh-HK/home.json'
-import zhHKLeaderboard from '@/messages/zh-HK/leaderboard.json'
-import zhHKLegal from '@/messages/zh-HK/legal.json'
 import zhHKModes from '@/messages/zh-HK/modes.json'
 import zhHKNav from '@/messages/zh-HK/nav.json'
 import zhHKOnboarding from '@/messages/zh-HK/onboarding.json'
 import zhHKPagination from '@/messages/zh-HK/pagination.json'
 import zhHKPlus from '@/messages/zh-HK/plus.json'
 import zhHKPwa from '@/messages/zh-HK/pwa.json'
-import zhHKReauth from '@/messages/zh-HK/reauth.json'
-import zhHKSettings from '@/messages/zh-HK/settings.json'
 import zhHKShare from '@/messages/zh-HK/share.json'
-import zhHKStats from '@/messages/zh-HK/stats.json'
 import zhHKStreak from '@/messages/zh-HK/streak.json'
-import zhHKSupport from '@/messages/zh-HK/support.json'
 
 export const messages = {
 	common: zhHKCommon,
-	auth: zhHKAuth,
 	nav: zhHKNav,
 	home: zhHKHome,
-	settings: zhHKSettings,
-	admin: zhHKAdmin,
 	archive: zhHKArchive,
-	legal: zhHKLegal,
 	pagination: zhHKPagination,
 	plus: zhHKPlus,
 	achievements: zhHKAchievements,
@@ -66,15 +54,11 @@ export const messages = {
 	daily: zhHKDaily,
 	footer: zhHKFooter,
 	gameResult: zhHKGameResult,
-	leaderboard: zhHKLeaderboard,
 	modes: zhHKModes,
 	onboarding: zhHKOnboarding,
 	pwa: zhHKPwa,
-	reauth: zhHKReauth,
 	share: zhHKShare,
-	stats: zhHKStats,
 	streak: zhHKStreak,
-	support: zhHKSupport,
 }
 
 export const games = {
