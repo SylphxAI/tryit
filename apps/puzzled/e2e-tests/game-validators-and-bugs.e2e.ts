@@ -252,42 +252,55 @@ test('Crossword types immediately, switches clues live, and marks only rejected 
 	const third = board.locator('[data-crossword-cell="1,0"]')
 	const banner = board.getByRole('status')
 	const check = board.getByRole('button', { name: 'Check', exact: true })
+	const progress = board.locator('.play-meta')
+	const cluesToggle = board.locator('.crossword-clues > summary')
 	await expect(banner).toHaveText('1 Across: Across hint')
+	await expect(progress).toBeVisible()
+	await expect(progress.locator('span')).toHaveText(['0 / 3', 'Across'])
 	await expect(first).toHaveAttribute('aria-pressed', 'true')
-	const colors = await first.evaluate((cell) => {
-		const reference = document.createElement('span')
-		reference.className = 'bg-primary text-primary-foreground'
-		cell.append(reference)
-		const expected = [
-			getComputedStyle(reference).backgroundColor,
-			getComputedStyle(reference).color,
-		]
-		reference.remove()
-		return {
-			actual: [getComputedStyle(cell).backgroundColor, getComputedStyle(cell).color],
-			expected,
-		}
-	})
-	expect(colors.actual).toEqual(colors.expected)
-	await page.keyboard.press('a')
-	await expect(first).toHaveAccessibleName(/, A$/)
+	await expect(first).toHaveCSS('background-color', 'rgb(244, 180, 42)')
+	await expect(first).toHaveCSS('color', 'rgb(26, 23, 18)')
+	await expect(second).toHaveCSS('background-color', 'rgb(252, 240, 210)')
+	await check.scrollIntoViewIfNeeded()
+	const beforeIncomplete = await cluesToggle.boundingBox()
 	await check.click()
 	await expect(board.getByRole('alert')).toHaveText('Fill every square before checking.')
+	expect(await cluesToggle.boundingBox()).toEqual(beforeIncomplete)
 	expect(submitted).toBe(0)
+	await page.keyboard.press('a')
+	await expect(first).toHaveAccessibleName(/, A$/)
+	await expect(progress.locator('span')).toHaveText(['1 / 3', 'Across'])
 	await first.dblclick()
 	await expect(banner).toHaveText('1 Down: Down hint')
 	await expect(third).toHaveAttribute('data-word', 'true')
-	await board.getByText('Clues', { exact: true }).click()
+	await expect(progress.locator('span')).toHaveText(['1 / 3', 'Down'])
+	await cluesToggle.click()
+	await expect(board.getByRole('button', { name: '1. Down hint' })).toHaveAttribute(
+		'aria-current',
+		'true',
+	)
+	await expect(board.getByRole('button', { name: '1. Down hint' })).toHaveCSS(
+		'background-color',
+		'rgb(252, 240, 210)',
+	)
 	await board.getByRole('button', { name: '1. Across hint' }).click()
 	await expect(banner).toHaveText('1 Across: Across hint')
 	await page.keyboard.type('AB')
 	await board.getByRole('button', { name: '1. Down hint' }).click()
 	await expect(banner).toHaveText('1 Down: Down hint')
 	await page.keyboard.type('AC')
+	await expect(progress.locator('span')).toHaveText(['3 / 3', 'Down'])
+	await check.scrollIntoViewIfNeeded()
+	const beforeIncorrect = await cluesToggle.boundingBox()
 	await check.click()
 	await expect(board.getByRole('alert')).toHaveText('Try again')
+	expect(await cluesToggle.boundingBox()).toEqual(beforeIncorrect)
 	await expect(second).toHaveAttribute('aria-invalid', 'true')
-	await expect(second).not.toHaveCSS('box-shadow', 'none')
+	await expect(second).toHaveCSS('box-shadow', 'rgb(168, 43, 35) 0px 0px 0px 3px inset')
+	await second.click()
+	await expect(second).toHaveAttribute('aria-pressed', 'true')
+	await expect(second).toHaveCSS('background-color', 'rgb(244, 180, 42)')
+	await expect(second).toHaveCSS('box-shadow', /rgb\(168, 43, 35\) 0px 0px 0px 3px inset/)
 	await expect(board.locator('[aria-invalid="true"]')).toHaveCount(1)
 	await expect(board.getByText('✓', { exact: true })).toHaveCount(0)
 })
@@ -398,6 +411,7 @@ test('Mini Grid keeps the clue visible and disables navigation on a single-clue 
 		clues: { across: [navigationAcross], down: [] },
 	})
 	const bar = page.locator('[data-crossword-clue-bar]')
+	await expect(page.locator('[data-crossword-board] .play-meta')).toHaveText('Across clues today')
 	await expect(bar.getByRole('status')).toHaveText('1 Across: First row')
 	await expect(bar.getByRole('button', { name: 'Previous clue' })).toBeDisabled()
 	await expect(bar.getByRole('button', { name: 'Next clue' })).toBeDisabled()

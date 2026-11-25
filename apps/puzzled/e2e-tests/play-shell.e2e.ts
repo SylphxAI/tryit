@@ -185,7 +185,8 @@ for (const [width, height] of layouts) {
 						)
 						expect(await keyboard.boundingBox()).toEqual(before)
 					}
-					expect(await canvasGeometry(page)).toEqual({
+					const geometry = await canvasGeometry(page)
+					expect(geometry).toEqual({
 						bad: [],
 						inFlow: true,
 						frameless: true,
@@ -197,6 +198,20 @@ for (const [width, height] of layouts) {
 							[0, 0, 0],
 						],
 					})
+					if (slug === 'crossword' && width === 390) {
+						const board = page.locator('[data-crossword-board]')
+						const clues = board.locator('summary')
+						const q = board.getByRole('button', { name: 'Q', exact: true })
+						await expect(board.locator('.play-meta')).toBeHidden()
+						await expect(clues.getByText('0 / 25', { exact: true })).toBeVisible()
+						const before = [await q.boundingBox(), await clues.boundingBox()]
+						await board.getByRole('button', { name: 'Check', exact: true }).tap()
+						await expect(board.getByRole('alert')).toHaveText('Fill every square before checking.')
+						expect([await q.boundingBox(), await clues.boundingBox()]).toEqual(before)
+						expect(await canvasGeometry(page)).toEqual(geometry)
+						await q.tap()
+						await expect(clues.getByText('1 / 25', { exact: true })).toBeVisible()
+					}
 					if (slug === 'cryptogram') {
 						const keyboard = page.locator('[data-cipher-keyboard]')
 						await expect(keyboard).toHaveAttribute('dir', 'ltr')
