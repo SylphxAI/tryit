@@ -34,6 +34,7 @@ import zhHKNav from '@/messages/zh-HK/nav.json'
 import zhHKOnboarding from '@/messages/zh-HK/onboarding.json'
 import zhHKPagination from '@/messages/zh-HK/pagination.json'
 import zhHKPlus from '@/messages/zh-HK/plus.json'
+import zhHKPractice from '@/messages/zh-HK/practice.json'
 import zhHKPwa from '@/messages/zh-HK/pwa.json'
 import zhHKShare from '@/messages/zh-HK/share.json'
 import zhHKStreak from '@/messages/zh-HK/streak.json'
@@ -52,6 +53,7 @@ export const messages = {
 	consent: zhHKConsent,
 	crossPromo: zhHKCrossPromo,
 	daily: zhHKDaily,
+	practice: zhHKPractice,
 	footer: zhHKFooter,
 	gameResult: zhHKGameResult,
 	modes: zhHKModes,

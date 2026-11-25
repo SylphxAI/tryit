@@ -34,6 +34,7 @@ import enUSNav from '@/messages/en-US/nav.json'
 import enUSOnboarding from '@/messages/en-US/onboarding.json'
 import enUSPagination from '@/messages/en-US/pagination.json'
 import enUSPlus from '@/messages/en-US/plus.json'
+import enUSPractice from '@/messages/en-US/practice.json'
 import enUSPwa from '@/messages/en-US/pwa.json'
 import enUSShare from '@/messages/en-US/share.json'
 import enUSStreak from '@/messages/en-US/streak.json'
@@ -52,6 +53,7 @@ export const messages = {
 	consent: enUSConsent,
 	crossPromo: enUSCrossPromo,
 	daily: enUSDaily,
+	practice: enUSPractice,
 	footer: enUSFooter,
 	gameResult: enUSGameResult,
 	modes: enUSModes,
