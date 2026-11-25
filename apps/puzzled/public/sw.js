@@ -31,7 +31,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
 	if (event.request.mode !== 'navigate' || event.request.method !== 'GET') return
 	const url = new URL(event.request.url)
-	if (url.origin !== self.location.origin) return
+	// Only documents use the offline fallback. Leave API hops (including
+	// OAuth redirects) on the browser's native navigation path.
+	if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
 
 	event.respondWith(
 		fetch(event.request).catch(async () => {
