@@ -256,7 +256,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 										>
 											<button
 												type="button"
-												class="flex h-12 min-w-9 flex-col items-center justify-center rounded-md border border-border bg-background hover:bg-muted aria-pressed:border-primary aria-pressed:ring-2 aria-pressed:ring-primary data-revealed:bg-muted"
+												class="flex h-12 min-w-9 flex-col items-center justify-center rounded-md border border-border bg-background hover:not-aria-pressed:bg-muted aria-pressed:border-accent-warm aria-pressed:bg-accent-warm-soft aria-pressed:ring-2 aria-pressed:ring-accent-warm/45 data-revealed:not-aria-pressed:bg-muted"
 												aria-label={copy('cipherLetter', {
 													cipher: char,
 													guess: guesses()[char] || copy('blank'),

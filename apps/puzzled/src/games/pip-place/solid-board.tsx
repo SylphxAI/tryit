@@ -274,7 +274,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 								data-pip-cell={key}
 								data-invalid={invalid() || undefined}
 								class={
-									'relative grid aspect-square min-w-0 select-none place-items-center rounded-sm border border-border/70 aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-1 data-invalid:border-destructive data-invalid:ring-2 data-invalid:ring-inset data-invalid:ring-destructive focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-foreground ' +
+									'relative grid aspect-square min-w-0 select-none place-items-center rounded-sm border border-border/70 aria-pressed:not-data-invalid:border-accent-warm aria-pressed:not-data-invalid:ring-2 aria-pressed:not-data-invalid:ring-accent-warm aria-pressed:not-data-invalid:ring-offset-1 data-invalid:border-destructive data-invalid:ring-2 data-invalid:ring-inset data-invalid:ring-destructive focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-foreground ' +
 									regionColors[cell.id % regionColors.length]
 								}
 								classList={{ 'touch-none': !!selectedFace() && !placedPips().has(key) }}
@@ -329,7 +329,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 			</div>
 			<Show when={playing()}>
 				<div
-					class="play-tools flex flex-wrap justify-center gap-2 rounded-xl data-highlight:ring-2 data-highlight:ring-primary data-highlight:ring-offset-2"
+					class="play-tools flex flex-wrap justify-center gap-2 rounded-xl data-highlight:ring-2 data-highlight:ring-accent-warm data-highlight:ring-offset-2"
 					data-pip-tray
 					data-highlight={board().cue === 'selectDomino' || undefined}
 					dir="ltr"
@@ -344,7 +344,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 								aria-pressed={board().selectedTrayIndex === index}
 								aria-label={t('games.pipPlace.tile', { a: face().pa, b: face().pb })}
 								data-pip-tile={`${face().pa}-${face().pb}`}
-								class="flex min-h-11 min-w-12 items-center justify-center rounded-lg border border-border bg-background px-1 shadow-sm aria-pressed:ring-2 aria-pressed:ring-primary"
+								class="flex min-h-11 min-w-12 items-center justify-center rounded-lg border border-border bg-background px-1 shadow-sm aria-pressed:border-accent-warm aria-pressed:bg-accent-warm-soft aria-pressed:ring-2 aria-pressed:ring-accent-warm/45"
 								onClick={(event) => selectTray(index, event)}
 							>
 								<PipFace value={face().pa} />
