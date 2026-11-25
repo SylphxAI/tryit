@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ConnectError } from '@connectrpc/connect'
-import { ArrowLeft, CircleHelp, Lock, Play, SlidersHorizontal, X } from 'lucide-solid'
+import { ArrowLeft, CircleHelp, Play, SlidersHorizontal, X } from 'lucide-solid'
 import {
 	createEffect,
 	createResource,
@@ -19,15 +19,18 @@ import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
 import type { PuzzleDifficulty } from '@/games/types'
 import { isPlusRequiredError } from '@/lib/billing/plus'
-import { startDaily } from '@/lib/connect/puzzle-client'
+import { getTodayProgress, startDaily } from '@/lib/connect/puzzle-client'
 import { slugToCamelCase } from '@/lib/game-slug'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { classifyDailyResponse, type DailySnapshot, loadDailySnapshot } from '../lib/daily-fallback'
-import { recordDailyPick } from '../lib/daily-picks'
+import { claimedDailyPicks, dailyPickCount } from '../lib/daily-picks'
+import { rememberDailyLevel } from '../lib/daily-resume-path'
 import type { GameDayRequest } from '../lib/day-request'
 import { markStartIntent, takeStartIntent } from '../lib/start-intent'
 import { todayPlayPath } from '../lib/today-play-path'
+import { DailyPickCount } from './daily-pick-count'
+import { DailyUnlock } from './daily-unlock'
 import { readPlayDraftScope } from './play-scope'
 import { ResultActions } from './result-actions'
 
@@ -88,6 +91,8 @@ export function DailyPlay(props: {
 	data: GamePageData
 	day: GameDayRequest
 	todayKey: string
+	resetAt: number
+	onLocked: () => void
 	difficulty?: PuzzleDifficulty
 	started: boolean
 	initial?: State
@@ -154,13 +159,23 @@ export function DailyPlay(props: {
 		if (!value || seen || !board || choose) return
 		seen = true
 		sendFunnel({ event: 'game_start', game_slug: slug })
-		if (!archive) recordDailyPick(value.puzzleDate, slug)
+		if (!archive) rememberDailyLevel(value.puzzleDate, slug, props.difficulty)
 	})
-	const returnTo = () =>
-		props.data.canonicalPath +
-		(archive
-			? `?${new URLSearchParams({ mode: 'archive', date: props.day.puzzleDate ?? '' })}`
-			: '')
+	createEffect(() => {
+		if (snapshot('locked')) props.onLocked()
+	})
+	const [picks] = createResource(
+		() => mounted() && !archive && snapshot('playable')?.puzzleDate,
+		async (dayKey) => {
+			try {
+				const claimed = claimedDailyPicks(await getTodayProgress([]), dayKey)
+				return claimed?.includes(slug) ? dailyPickCount(claimed) : null
+			} catch {
+				return null
+			}
+		},
+		{ initialValue: null },
+	)
 	const unavailable = () => (
 		<div class="play-entry mx-auto max-w-md space-y-2 text-center">
 			<h2 class="font-display text-xl">{t('daily.unavailableTitle')}</h2>
@@ -180,35 +195,20 @@ export function DailyPlay(props: {
 		<BoardIntro
 			data={props.data}
 			date={date()}
+			picks={snapshot('playable') ? (picks.latest ?? undefined) : undefined}
+			locked={Boolean(snapshot('locked'))}
 			changeDifficulty={!archive && props.data.difficultyLevels.length > 0}
 		/>
 	)
 	const content = () => (
 		<Switch fallback={loading()}>
 			<Match when={snapshot('locked')}>
-				<div
-					data-unlock-panel={archive ? 'archive' : 'picks'}
-					class="play-entry mx-auto max-w-xl space-y-4 text-center"
-				>
-					<h2 class="flex items-center justify-center gap-2 font-display text-2xl">
-						<Lock size={20} aria-hidden="true" />
-						{t(archive ? 'plus.unlock.archiveTitle' : 'plus.unlock.title')}
-					</h2>
-					<a
-						class={playButton}
-						href={localizedPath(
-							props.data.locale,
-							`/pricing?${new URLSearchParams({ callbackUrl: returnTo(), trigger: 'game_unlock' })}`,
-						)}
-					>
-						{t('plus.unlock.cta')}
-					</a>
-					<p>
-						<a class="underline" href={props.data.catalog}>
-							{t('plus.unlock.backToToday')}
-						</a>
-					</p>
-				</div>
+				<DailyUnlock
+					data={props.data}
+					day={props.day}
+					todayKey={props.todayKey}
+					resetAt={props.resetAt}
+				/>
 			</Match>
 			<Match when={snapshot('completed')}>
 				{(result) => (
@@ -373,7 +373,13 @@ export function DailyPlay(props: {
 	return <Suspense fallback={loading()}>{content()}</Suspense>
 }
 
-function BoardIntro(props: { data: GamePageData; date?: string; changeDifficulty: boolean }) {
+function BoardIntro(props: {
+	data: GamePageData
+	date?: string
+	picks?: number
+	locked: boolean
+	changeDifficulty: boolean
+}) {
 	const t = createTranslator(props.data.locale)
 	let rules: HTMLDialogElement | undefined
 	const wordNotice = !props.data.locale.startsWith('en-') && englishWordPuzzles.has(props.data.slug)
@@ -387,17 +393,23 @@ function BoardIntro(props: { data: GamePageData; date?: string; changeDifficulty
 				<h1 class="play-title hidden min-w-0 flex-1 font-display text-lg font-bold">
 					{props.data.name}
 				</h1>
-				<time class="play-date mr-auto text-muted-foreground" datetime={props.date}>
-					<Show when={props.date}>
-						{(date) =>
-							new Intl.DateTimeFormat(props.data.locale, {
-								dateStyle: 'medium',
-								timeZone: 'UTC',
-							}).format(new Date(date()))
-						}
+				<div class="play-date mr-auto flex flex-wrap items-center gap-x-2 text-muted-foreground">
+					<time datetime={props.date}>
+						<Show when={props.date}>
+							{(date) =>
+								new Intl.DateTimeFormat(props.data.locale, {
+									dateStyle: 'medium',
+									timeZone: 'UTC',
+								}).format(new Date(date()))
+							}
+						</Show>
+					</time>
+					<Show when={props.picks !== undefined}>
+						<span aria-hidden="true">·</span>
+						<DailyPickCount locale={props.data.locale} count={props.picks ?? 0} />
 					</Show>
-				</time>
-				<Show when={props.changeDifficulty}>
+				</div>
+				<Show when={props.changeDifficulty && !props.locked}>
 					<a class="chrome-control play-difficulty" href={`${props.data.canonicalPath}#play`}>
 						<SlidersHorizontal size={15} class="hidden sm:block" aria-hidden="true" />
 						{t('common.difficulty.selectDifficulty')}
@@ -413,19 +425,21 @@ function BoardIntro(props: { data: GamePageData; date?: string; changeDifficulty
 					<span>{t('common.help')}</span>
 				</button>
 			</div>
-			<div class="play-cue">
-				<p class="text-muted-foreground" data-first-action>
-					{t(`daily.firstAction.${slugToCamelCase(props.data.slug)}`)}
-				</p>
-				<Show when={wordNotice}>
-					<p
-						class="mt-1 inline-flex rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold"
-						data-english-word-puzzle
-					>
-						{t('daily.englishWordPuzzle')}
+			<Show when={!props.locked}>
+				<div class="play-cue">
+					<p class="text-muted-foreground" data-first-action>
+						{t(`daily.firstAction.${slugToCamelCase(props.data.slug)}`)}
 					</p>
-				</Show>
-			</div>
+					<Show when={wordNotice}>
+						<p
+							class="mt-1 inline-flex rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold"
+							data-english-word-puzzle
+						>
+							{t('daily.englishWordPuzzle')}
+						</p>
+					</Show>
+				</div>
+			</Show>
 			<dialog
 				ref={rules}
 				// Keep global board shortcuts from consuming keys meant for the dialog.

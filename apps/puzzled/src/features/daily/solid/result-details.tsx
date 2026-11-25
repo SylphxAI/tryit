@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { ArrowRight, Check, Minus, X } from 'lucide-solid'
+import { Check, Minus, X } from 'lucide-solid'
 import {
 	createResource,
 	createSignal,
@@ -12,29 +12,27 @@ import {
 import { Portal } from 'solid-js/web'
 import { recallChallenge, sharedResultCard, toSharedResult } from '@/features/daily/lib/challenge'
 import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
-import { deriveHomeExposure } from '@/features/daily/lib/home-exposure'
 import {
 	type ResultCardModel,
 	type ResultCardStrings,
 	resultCardChips,
 } from '@/features/daily/lib/result-card'
-import { formatResultElapsed, resultRitual } from '@/features/daily/lib/result-ritual'
-import { markStartIntent } from '@/features/daily/lib/start-intent'
-import { todayPlayPath } from '@/features/daily/lib/today-play-path'
+import { formatResultElapsed, type resultRitual } from '@/features/daily/lib/result-ritual'
 import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
-import { getAllGameMetadata } from '@/games/registry'
-import { getSharedResult, getTodayProgress } from '@/lib/connect/puzzle-client'
-import { freeGameForDayKey } from '@/lib/free-rotation'
-import { slugToCamelCase } from '@/lib/game-slug'
+import { getSharedResult } from '@/lib/connect/puzzle-client'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
+
+import { DailyPickCount } from './daily-pick-count'
+import { DailyNextLink, DailyPickSteps } from './daily-pick-ui'
 
 export function ResultDetails(props: {
 	model: ResultCardModel
 	strings: ResultCardStrings
 	timeSpentMs?: number | null
 	difficulty?: string | null
+	ritual?: ReturnType<typeof resultRitual>
 	locale: Locale
 	trigger: JSX.Element
 	onOpenChange: (open: boolean) => void
@@ -75,26 +73,6 @@ export function ResultDetails(props: {
 			return null
 		}
 	})
-	const [ritual] = createResource(
-		() => (opened() && props.model.mode === 'daily' ? props.model.dayKey : null),
-		async (dayKey) => {
-			const modules = getAllGameMetadata()
-			try {
-				const progress = await getTodayProgress(modules.map(({ slug }) => slug))
-				const { slugs } = deriveHomeExposure({
-					modules,
-					dayKey,
-					freeGameSlug: freeGameForDayKey(dayKey),
-					completions: {},
-					limit: modules.length,
-				})
-				return resultRitual(progress, dayKey, props.model.gameSlug, slugs)
-			} catch {
-				return null
-			}
-		},
-		{ initialValue: null },
-	)
 	const chips = (model: ResultCardModel, exactTime?: string | null) => (
 		<dl class="result-stats">
 			<For
@@ -166,21 +144,12 @@ export function ResultDetails(props: {
 				</header>
 				{chips(props.model, formatResultElapsed(props.timeSpentMs))}
 				<Show when={opened()}>
-					<Show when={!ritual.loading && ritual.latest}>
+					<Show when={props.ritual}>
 						{(today) => (
 							<div class="result-ritual" data-ritual-completed={today().completed}>
 								<div class="result-ritual-head">
-									<p>
-										{t('gameResult.freeProgress', {
-											done: today().completed,
-											total: DAILY_FREE_PICKS,
-										})}
-									</p>
-									<span class="result-steps" aria-hidden="true">
-										<For each={Array.from({ length: DAILY_FREE_PICKS })}>
-											{(_, i) => <span data-filled={i() < today().completed || undefined} />}
-										</For>
-									</span>
+									<DailyPickCount locale={props.locale} count={today().used} />
+									<DailyPickSteps class="result-steps" count={today().used} />
 								</div>
 								<Show when={today().completed === DAILY_FREE_PICKS}>
 									<p class="result-ritual-warm">{t('gameResult.freeFinished')}</p>
@@ -203,27 +172,15 @@ export function ResultDetails(props: {
 					</Show>
 				</Show>
 				<div class="result-dialog-actions">
-					<Show when={opened() && !ritual.loading && ritual.latest?.next}>
+					<Show when={opened() && props.ritual?.next}>
 						{(slug) => (
-							<a
+							<DailyNextLink
 								class="result-button result-next"
-								href={localizedPath(props.locale, todayPlayPath(slug()))}
-								onClick={(event) => {
-									if (
-										!event.defaultPrevented &&
-										!event.ctrlKey &&
-										!event.metaKey &&
-										!event.shiftKey &&
-										!event.altKey
-									)
-										markStartIntent(slug())
-								}}
-							>
-								{t(ritual.latest?.resume ? 'gameResult.resumeNext' : 'gameResult.playNext', {
-									game: t(`games.${slugToCamelCase(slug())}.name`),
-								})}
-								<ArrowRight size={18} aria-hidden="true" />
-							</a>
+								slug={slug()}
+								dayKey={props.model.dayKey ?? ''}
+								locale={props.locale}
+								resume={props.ritual?.resume === true}
+							/>
 						)}
 					</Show>
 					{props.children}

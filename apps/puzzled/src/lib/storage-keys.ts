@@ -30,15 +30,8 @@ export const SOUND_ENABLED_KEY = 'puzzled:sound:enabled'
 export const PWA_PROMPT_DISMISSED_KEY = 'puzzled:pwa:prompt-dismissed'
 
 // ==========================================
-// Daily free picks (display mirror)
+// Daily play continuity
 // ==========================================
-/**
- * Prefix of the per-day list of games this browser opened today
- * (`puzzled:picks:<dayKey>`). A display mirror only: the server owns the
- * picks and the gate, and this list never admits or refuses play.
- */
-export const DAILY_PICKS_KEY_PREFIX = 'puzzled:picks:'
-
 /** Same-tab in-progress daily board state; strictly necessary for reload recovery. */
 export const DAILY_PLAY_DRAFT_PREFIX = 'puzzled:play-draft:v2:'
 export const DAILY_PLAY_DRAFT_TAB_KEY = 'puzzled:play-draft-tab'

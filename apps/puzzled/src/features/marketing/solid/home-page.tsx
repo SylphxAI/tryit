@@ -17,17 +17,13 @@ import {
 	serializeDismissedCookie,
 } from '@/features/announcements/lib/dismissed'
 import { CATALOG_CATEGORIES } from '@/features/catalog/lib/catalog'
-import {
-	DAILY_FREE_PICKS,
-	picksLeft,
-	readDailyPicks,
-	subscribeDailyPicks,
-} from '@/features/daily/lib/daily-picks'
+import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
 import { summarizeDailyProgress } from '@/features/daily/lib/daily-progress'
 import { deriveHomeExposure } from '@/features/daily/lib/home-exposure'
 import { deriveHomePlayState, scopeHomePlayState } from '@/features/daily/lib/home-play-state'
 import { markStartIntent } from '@/features/daily/lib/start-intent'
 import { todayPlayPath, todayResultPath } from '@/features/daily/lib/today-play-path'
+import { DailyPickCount } from '@/features/daily/solid/daily-pick-count'
 import { formatCountdown } from '@/features/home/lib/day-boundary'
 import { homeDayCopy, lineupStatus } from '@/features/home/lib/home-day-copy'
 import { homeParticipationCopy } from '@/features/home/lib/home-participation-copy'
@@ -62,20 +58,13 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 	const href = (path: string) => localizedPath(page.locale, path)
 	const count = page.catalog.length
 	const [now, setNow] = createSignal(page.servedAt)
-	const [localPicks, setPicks] = createSignal(0)
 	const [mounted, setMounted] = createSignal(false)
 	const [dismissed, setDismissed] = createSignal<readonly string[]>([])
 	onMount(() => {
 		setMounted(true)
 		setNow(Date.now())
 		const interval = setInterval(() => setNow(Date.now()), 1000)
-		const sync = () => setPicks(Math.min(DAILY_FREE_PICKS, readDailyPicks(page.dayKey).length))
-		sync()
-		const unsubscribe = subscribeDailyPicks(sync)
-		onCleanup(() => {
-			clearInterval(interval)
-			unsubscribe()
-		})
+		onCleanup(() => clearInterval(interval))
 	})
 	const status = createMemo(() => {
 		const results = props.facts()?.results ?? {}
@@ -112,13 +101,13 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 		}),
 	)
 	const format = new Intl.NumberFormat(page.locale)
-	const picks = () => props.facts()?.freePicks ?? localPicks()
-	const pickLabel = () => t('home.picks.progress', { used: picks(), total: DAILY_FREE_PICKS })
+	const picks = () => props.facts()?.freePicks
+	const pickLabel = () => <DailyPickCount locale={page.locale} count={picks() ?? 0} />
 	const pickSlots = () => (
 		<span class="flex items-center gap-1" aria-hidden="true">
 			<For each={Array.from({ length: DAILY_FREE_PICKS })}>
 				{(_, index) => (
-					<span class="picks-slot" classList={{ 'picks-slot-used': index() < picks() }} />
+					<span class="picks-slot" classList={{ 'picks-slot-used': index() < (picks() ?? 0) }} />
 				)}
 			</For>
 		</span>
@@ -297,24 +286,19 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 								{t('home.day.puzzleNumber', { number: page.puzzleNumber })} ·{' '}
 								{t('home.lineup.subtitleShort', { count })}
 							</p>
-							<Suspense
-								fallback={
-									<p class="picks-pill">
-										{pickSlots()}
-										{pickLabel()}
-									</p>
-								}
-							>
+							<Suspense fallback={null}>
 								<Show
 									when={props.facts()?.unlimited}
 									fallback={
 										<Show
-											when={picksLeft(picks()) === 0}
+											when={picks() === DAILY_FREE_PICKS}
 											fallback={
-												<p data-daily-picks={picks()} class="picks-pill">
-													{pickSlots()}
-													{pickLabel()}
-												</p>
+												<Show when={picks() !== undefined}>
+													<p data-daily-picks={picks()} class="picks-pill">
+														{pickSlots()}
+														{pickLabel()}
+													</p>
+												</Show>
 											}
 										>
 											<a

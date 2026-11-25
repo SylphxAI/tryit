@@ -86,6 +86,22 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 					score: 37,
 				})
 			}
+			// Opt-in browser cap journey. The marker is a fixture-only cookie, never
+			// accepted as identity by the production API.
+			const capFixture =
+				options.openPlans &&
+				request.headers.get('cookie')?.includes('__Host-puzzled_guest=cap-fixture')
+			if (capFixture && url.pathname === '/puzzled.v1.PuzzleService/GetTodayProgress') {
+				const { gameSlugs = [] } = await request.json()
+				return Response.json({
+					dayKey: productDayKey(),
+					freePicks: { gameSlugs: ['sudoku', 'number-path', 'killer-sudoku'] },
+					games: gameSlugs.map((gameSlug: string) => ({
+						gameSlug,
+						hasCompleted: gameSlug === 'sudoku',
+					})),
+				})
+			}
 			if (url.pathname !== '/puzzled.v1.PuzzleService/GetDaily') {
 				return connectError(404, 'not_found', 'not_found')
 			}
@@ -101,6 +117,8 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 			}
 			const slug = typeof input.gameSlug === 'string' ? input.gameSlug.trim() : ''
 			if (!slug) return connectError(400, 'invalid_argument', 'game_slug_required')
+			if (capFixture && slug === 'crowns')
+				return connectError(403, 'permission_denied', 'plus_required')
 			const requestedDifficulty =
 				typeof input.difficulty === 'string' ? input.difficulty.trim() : ''
 			if (requestedDifficulty && !DIFFICULTIES.has(requestedDifficulty as PuzzleDifficulty)) {

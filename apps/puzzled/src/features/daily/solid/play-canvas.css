@@ -278,6 +278,10 @@
 }
 
 [data-play-canvas] .play-tools .completion-card { visibility: visible; }
+/* Keep the optional post-win card in reach on phones, without moving the board. */
+[data-play-canvas] .completion-card:has(.result-install) {
+	max-block-size: min(19rem, 58cqh);
+}
 
 @media (width >= 1024px) {
 	[data-play-canvas] .play-split > .play-meta,

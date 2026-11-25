@@ -26,6 +26,7 @@ test('private elapsed time keeps exact seconds and never invents a missing durat
 
 test('momentum skips finished games and distinguishes a new pick from a resume', () => {
 	expect(resultRitual(response(['number-path'], ['sudoku']), day, 'number-path', lineup)).toEqual({
+		used: 1,
 		completed: 1,
 		next: 'crowns',
 		resume: false,
@@ -37,7 +38,7 @@ test('momentum skips finished games and distinguishes a new pick from a resume',
 			'number-path',
 			lineup,
 		),
-	).toEqual({ completed: 2, next: 'duo', resume: true })
+	).toEqual({ used: 3, completed: 2, next: 'duo', resume: true })
 	expect(
 		resultRitual(
 			response(['number-path', 'sudoku', 'duo'], ['sudoku', 'duo']),

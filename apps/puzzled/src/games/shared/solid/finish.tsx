@@ -59,8 +59,7 @@ export function createBoardFinish(
 			if (!disposed) {
 				if (result.valid && result.status === intent.status) {
 					draft.discard()
-					if (props.mode !== 'archive')
-						recordFirstFinishDay(intent.puzzleDate ?? props.puzzle.puzzleDate)
+					if (props.mode !== 'archive') recordFirstFinishDay(props.puzzle.puzzleDate)
 					setRevealJson(result.revealJson)
 					if (isFieldSet(result, SubmitGuessResponseSchema.field.score)) setScore(result.score)
 					setState('accepted')
@@ -174,6 +173,7 @@ export function BoardFinish(props: {
 						</div>
 						<ResultActions
 							facts={result()}
+							freshWin
 							onDetailsOpenChange={setResultOpen}
 							locale={props.locale}
 							shareTitle={props.shareTitle}

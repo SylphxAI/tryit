@@ -27,6 +27,7 @@ export function GameLanding(
 	props: ParentProps<{
 		data: GamePageData
 		stage: boolean
+		locked: boolean
 		playHref: string
 		daily: boolean
 		isGuest: boolean
@@ -148,25 +149,27 @@ export function GameLanding(
 										{d().description}
 									</p>
 									<div class="mt-4">{facts()}</div>
-									<a
-										href={props.playHref}
-										data-start-intent={props.daily ? d().slug : undefined}
-										class={`mt-6 ${playButton}`}
-										onClick={(event) => {
-											if (
-												props.daily &&
-												!event.defaultPrevented &&
-												!event.metaKey &&
-												!event.ctrlKey &&
-												!event.altKey &&
-												!event.shiftKey
-											)
-												markStartIntent(d().slug)
-										}}
-									>
-										<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
-										{t().play}
-									</a>
+									<Show when={!props.locked}>
+										<a
+											href={props.playHref}
+											data-start-intent={props.daily ? d().slug : undefined}
+											class={`mt-6 ${playButton}`}
+											onClick={(event) => {
+												if (
+													props.daily &&
+													!event.defaultPrevented &&
+													!event.metaKey &&
+													!event.ctrlKey &&
+													!event.altKey &&
+													!event.shiftKey
+												)
+													markStartIntent(d().slug)
+											}}
+										>
+											<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
+											{t().play}
+										</a>
+									</Show>
 									<Show when={props.isGuest}>
 										<p class="mt-2 text-sm text-muted-foreground">
 											{t().guest}{' '}

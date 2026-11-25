@@ -30,6 +30,20 @@ function worker() {
 }
 
 describe('Tryit service worker', () => {
+	test('leaves OAuth and other API navigations to the browser', () => {
+		const { handlers } = worker()
+		for (const path of ['/api/identity/oauth/callback?flow=fixture', '/api/health']) {
+			let intercepted = false
+			handlers.get('fetch')?.({
+				request: { mode: 'navigate', method: 'GET', url: new URL(path, 'https://tryit.fun').href },
+				respondWith: () => {
+					intercepted = true
+				},
+			})
+			expect(intercepted).toBe(false)
+		}
+	})
+
 	test('renders the localized push payload without caching any data', async () => {
 		const { handlers, notifications } = worker()
 		let pending: Promise<unknown> = Promise.resolve()

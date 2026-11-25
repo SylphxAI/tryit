@@ -1,11 +1,14 @@
 /** @jsxImportSource solid-js */
-import { ChartNoAxesColumnIncreasing, Download, Share2 } from 'lucide-solid'
-import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
-import { getGameMetadata } from '@/games/registry'
-import { shareResult } from '@/lib/connect/puzzle-client'
+import { ChartNoAxesColumnIncreasing, Download, Flame, Share2 } from 'lucide-solid'
+import { createMemo, createResource, createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { getAllGameMetadata, getGameMetadata } from '@/games/registry'
+import { createGamificationServiceClient } from '@/lib/connect/gamification-client'
+import { getTodayProgress, shareResult } from '@/lib/connect/puzzle-client'
+import { freeGameForDayKey } from '@/lib/free-rotation'
 import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
+import { deriveHomeExposure } from '../lib/home-exposure'
 import {
 	buildResultCard,
 	type ResultCardInput,
@@ -13,7 +16,10 @@ import {
 	resultCardStringsFrom,
 	resultCardTextAlternative,
 } from '../lib/result-card'
+import { resultRitual } from '../lib/result-ritual'
 import { shareResultText } from '../lib/result-share'
+import { DailyNextLink } from './daily-pick-ui'
+import { PwaInstallNudge } from './pwa-install-nudge'
 import { ResultDetails } from './result-details'
 import './result.css'
 
@@ -34,6 +40,7 @@ export function ResultActions(props: {
 	facts: Facts
 	locale: Locale
 	onDetailsOpenChange: (open: boolean) => void
+	freshWin?: boolean
 	shareTitle?: string
 	shareText?: string
 }) {
@@ -48,7 +55,9 @@ export function ResultActions(props: {
 	onCleanup(() => {
 		disposed = true
 	})
+	const [mounted, setMounted] = createSignal(false)
 	onMount(async () => {
+		setMounted(true)
 		if (props.facts.mode !== 'daily') return
 		const { gameSlug, puzzleDate } = props.facts
 		try {
@@ -77,6 +86,44 @@ export function ResultActions(props: {
 				: undefined,
 		})
 	})
+	const ritualDay = () => {
+		const current = model()
+		return mounted() && current.mode === 'daily' && current.dayKey === props.facts.todayKey
+			? current.dayKey
+			: undefined
+	}
+	const [ritual] = createResource(
+		ritualDay,
+		async (dayKey) => {
+			try {
+				const modules = getAllGameMetadata()
+				const progress = await getTodayProgress(modules.map(({ slug }) => slug))
+				const { slugs } = deriveHomeExposure({
+					modules,
+					dayKey,
+					freeGameSlug: freeGameForDayKey(dayKey),
+					completions: {},
+					limit: modules.length,
+				})
+				return resultRitual(progress, dayKey, props.facts.gameSlug, slugs)
+			} catch {
+				return null
+			}
+		},
+		{ initialValue: null },
+	)
+	const [streak] = createResource(
+		() => ritualDay() && model().status === 'won',
+		async () => {
+			try {
+				const response = await createGamificationServiceClient().getStreakInfo({})
+				return response.info?.currentStreak ?? null
+			} catch {
+				return null
+			}
+		},
+		{ initialValue: null },
+	)
 	async function share(surface: Surface) {
 		if (pending()) return
 		setPending(true)
@@ -157,6 +204,24 @@ export function ResultActions(props: {
 	)
 	return (
 		<>
+			<Show when={streak.latest !== null}>
+				<p class="result-current-streak" data-result-streak>
+					<Flame size={16} aria-hidden="true" />
+					{t('streak.currentStreak')}:{' '}
+					{new Intl.NumberFormat(props.locale).format(streak.latest ?? 0)}
+				</p>
+			</Show>
+			<Show when={ritual.latest?.next}>
+				{(slug) => (
+					<DailyNextLink
+						class="result-button result-next"
+						slug={slug()}
+						dayKey={props.facts.todayKey ?? ''}
+						locale={props.locale}
+						resume={ritual.latest?.resume === true}
+					/>
+				)}
+			</Show>
 			<div class="result-action-row">
 				<button
 					type="button"
@@ -174,6 +239,7 @@ export function ResultActions(props: {
 					strings={strings}
 					timeSpentMs={props.facts.timeSpentMs}
 					difficulty={props.facts.difficulty}
+					ritual={ritual.latest}
 					trigger={
 						<>
 							<ChartNoAxesColumnIncreasing size={16} aria-hidden="true" />
@@ -205,6 +271,9 @@ export function ResultActions(props: {
 				</ResultDetails>
 			</div>
 			{status('rail')}
+			<Show when={props.freshWin && model().status === 'won'}>
+				<PwaInstallNudge locale={props.locale} />
+			</Show>
 		</>
 	)
 }
