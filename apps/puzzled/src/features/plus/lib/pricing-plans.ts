@@ -7,8 +7,9 @@ import {
 	CURRENCY_COOKIE,
 	chooseCurrency,
 } from '@/lib/billing/currency'
-import { planCards } from '@/lib/billing/plus'
+import { type PlanCard, planCards } from '@/lib/billing/plus'
 import { withPresentationDeadline } from '@/lib/presentation-document'
+import { pricingYearlySaving } from './pricing-display'
 
 const transientCodes = new Set([
 	Code.Unknown,
@@ -45,10 +46,29 @@ export async function loadPricingPlans<T extends { salesOpen: boolean }>(
 	return plans === permanentFailure ? null : plans
 }
 
-export function pricingPlanState(plans: { salesOpen: boolean } | null, cardCount: number) {
+export type PricingPlanState = 'closed' | 'unavailable' | 'open'
+
+export function pricingPlanState(
+	plans: { salesOpen: boolean } | null,
+	cardCount: number,
+): PricingPlanState {
 	if (plans?.salesOpen === false) return 'closed'
 	if (!plans || cardCount === 0) return 'unavailable'
 	return 'open'
+}
+
+/** The fourth-game lock uses the same cards as pricing, with yearly as the anchor. */
+export function individualUnlockPlans(cards: readonly PlanCard[]) {
+	const individual = cards.filter((card) => !card.family)
+	const monthly = individual.find((card) => card.interval === 'month')
+	const yearly = individual.find((card) => card.interval === 'year')
+	const pass = individual.find((card) => card.interval === 'once')
+	return [yearly, pass, monthly]
+		.filter((card) => card !== undefined)
+		.map((card) => ({
+			...card,
+			savingPercent: card.interval === 'year' ? pricingYearlySaving(monthly, yearly) : null,
+		}))
 }
 
 /** Pricing and comparisons resolve the catalogue against the same request preference. */
@@ -66,5 +86,6 @@ export function selectPricingPlans(
 		available: currencies,
 	})
 	const cards = plans?.salesOpen ? planCards(plans.plans, currency) : []
-	return { currencies, currency, cards, planState: pricingPlanState(plans, cards.length) }
+	const planState = pricingPlanState(plans, cards.length)
+	return { currencies, currency, cards, planState }
 }

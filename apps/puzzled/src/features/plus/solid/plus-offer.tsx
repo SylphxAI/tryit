@@ -1,15 +1,11 @@
 /** @jsxImportSource solid-js */
 import { Check } from 'lucide-solid'
 import { createEffect, createMemo, createSignal, For, type JSX, Show } from 'solid-js'
-import {
-	formatMonthlyEquivalentPrice,
-	formatPrice,
-	type PlanCard,
-	yearlySavingPercent,
-} from '@/lib/billing/plus'
+import { formatMonthlyEquivalentPrice, formatPrice, type PlanCard } from '@/lib/billing/plus'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
+import { formatFamilyMonthlyPerPerson, pricingYearlySaving } from '../lib/pricing-display'
 import styles from './pricing.module.css'
 import { SubscribeButton } from './subscribe-button'
 import { TrialChargeLine } from './trial-charge-line'
@@ -34,6 +30,8 @@ type Props = {
 	/** Available interval options for this tier in the chosen currency. */
 	once?: PlanCard
 	yearly: PlanCard | undefined
+	/** Seat count for the per-person equivalent on the yearly Family offer. */
+	familyMax?: number
 	monthly: PlanCard | undefined
 	locale: Locale
 	signedIn: boolean
@@ -74,10 +72,7 @@ export function PlusOffer(props: Props) {
 	createEffect(() => setInterval(defaultInterval()))
 	const current = createMemo(() => options().find((card) => card.interval === interval()))
 	const price = (card: PlanCard) => formatPrice(card.amountMinor, card.currency, props.locale)
-	const saving = () =>
-		props.yearly && props.monthly
-			? yearlySavingPercent(props.monthly.amountMinor, props.yearly.amountMinor)
-			: null
+	const saving = () => pricingYearlySaving(props.monthly, props.yearly)
 	const features = () => props.features ?? []
 	const benefits = () =>
 		features().length > 0 ? (
@@ -175,6 +170,18 @@ export function PlusOffer(props: Props) {
 															props.locale,
 														),
 													})}
+													{props.familyMax ? (
+														<span class="block text-xs">
+															{t('familyMonthlyPerPerson', {
+																count: props.familyMax,
+																price: formatFamilyMonthlyPerPerson(
+																	card,
+																	props.familyMax,
+																	props.locale,
+																),
+															})}
+														</span>
+													) : null}
 												</span>
 											) : null}
 										</span>

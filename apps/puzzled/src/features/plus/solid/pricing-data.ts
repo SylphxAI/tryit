@@ -15,6 +15,7 @@ import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import { siteShellData } from '@/shared/solid/site-shell-data'
 
 import { loadPricingPlans, selectPricingPlans } from '../lib/pricing-plans'
+import { pricingBuyerFaq, pricingProductJsonLd } from '../lib/pricing-structured-data'
 
 export async function readPricingPage(
 	locale: Locale,
@@ -47,6 +48,19 @@ export async function readPricingPage(
 			entrySurface: search.get('entry_surface') ?? undefined,
 			fallback,
 		})
+	const familyMax = plans?.familyMaxMembers || 4
+	const meta = pageMetadata({
+		locale,
+		path: '/pricing',
+		baseUrl: canonicalSiteOrigin(request.headers),
+		title: t('metaTitle'),
+		description: t('metaDescription'),
+		imagePath: ogImagePath({
+			title: t('metaTitle'),
+			subtitle: t('lead', { count: gameCount }),
+			eyebrow: translate('plus.name'),
+		}),
+	})
 	return {
 		locale,
 		planState,
@@ -56,7 +70,7 @@ export async function readPricingPage(
 		currencies,
 		currency,
 		cards,
-		familyMax: plans?.familyMaxMembers ?? 4,
+		familyMax,
 		plusMember: showsCurrentPlan(access),
 		signedIn: Boolean(viewer),
 		checkout: search.get('checkout'),
@@ -65,18 +79,14 @@ export async function readPricingPage(
 		plusCheckoutTrigger: trigger('pricing_card'),
 		familyCheckoutTrigger: trigger('pricing_family_card'),
 		shell: siteShellData(locale, '/pricing', translate, now),
-		meta: pageMetadata({
-			locale,
-			path: '/pricing',
-			baseUrl: canonicalSiteOrigin(request.headers),
-			title: t('metaTitle'),
-			description: t('metaDescription'),
-			imagePath: ogImagePath({
-				title: t('metaTitle'),
-				subtitle: t('lead', { count: gameCount }),
-				eyebrow: translate('plus.name'),
-			}),
+		meta,
+		buyerFaq: pricingBuyerFaq(translate, {
+			gameCount,
+			archiveDays: ARCHIVE_WINDOW_DAYS,
+			passDays: cards.find((card) => card.id === 'individual_once')?.accessDays ?? 3,
+			familyMax,
 		}),
+		productJsonLd: pricingProductJsonLd(translate, meta, planState, cards),
 	}
 }
 

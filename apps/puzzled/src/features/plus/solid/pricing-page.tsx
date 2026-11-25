@@ -3,6 +3,7 @@
 import { Check, Play } from 'lucide-solid'
 import { For } from 'solid-js'
 import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
+import { MarketingFaq } from '@/features/marketing/solid/marketing-faq'
 import { MarketingHero } from '@/features/marketing/solid/marketing-hero'
 import { MarketingSection } from '@/features/marketing/solid/marketing-section'
 import { formatPrice } from '@/lib/billing/plus'
@@ -10,6 +11,7 @@ import { gamePath } from '@/lib/game-slug'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { cn } from '@/lib/utils'
+import { JsonLd } from '@/shared/solid/json-ld'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
 import { CurrencySwitcher } from './currency-switcher'
@@ -21,6 +23,7 @@ export function PricingPage(props: { data: PricingData }) {
 	return (
 		<SiteShell data={props.data.shell} signedIn={props.data.signedIn}>
 			<PageMeta value={props.data.meta} />
+			{props.data.productJsonLd && <JsonLd value={props.data.productJsonLd} />}
 			<PricingBody data={props.data} />
 		</SiteShell>
 	)
@@ -53,6 +56,7 @@ function PricingBody({ data }: { data: PricingData }) {
 		cards.find((card) => card.family === family && card.interval === 'month')
 	const yearly = (family: boolean) =>
 		cards.find((card) => card.family === family && card.interval === 'year')
+	const everydayBenefits = [t('includesAdFree'), t('includesSync')]
 	const includes = (family: boolean) => [
 		t('includesAllGames', { count: gameCount }),
 		t('includesArchive'),
@@ -74,6 +78,20 @@ function PricingBody({ data }: { data: PricingData }) {
 		'inline-flex min-h-11 items-center justify-center text-[15px] font-semibold',
 		'underline underline-offset-4 hover:text-foreground',
 	].join(' ')
+
+	const buyerFaq = <MarketingFaq id="buyer-faq" {...data.buyerFaq} class={styles.faq} />
+	const everydayBenefitList = (
+		<ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1 px-1 text-sm text-muted-foreground">
+			<For each={everydayBenefits}>
+				{(line) => (
+					<li class="flex items-start gap-2">
+						<Check class="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+						{line}
+					</li>
+				)}
+			</For>
+		</ul>
+	)
 
 	if (data.planState !== 'open') {
 		const closed = data.planState === 'closed'
@@ -121,7 +139,7 @@ function PricingBody({ data }: { data: PricingData }) {
 							</button>
 						)}
 						<ul class="mt-5 space-y-2.5 border-t border-border pt-5">
-							<For each={includes(true)}>
+							<For each={[...includes(true), ...everydayBenefits]}>
 								{(line) => (
 									<li class="flex items-start gap-2.5 text-[15px]">
 										<Check class="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
@@ -132,6 +150,7 @@ function PricingBody({ data }: { data: PricingData }) {
 						</ul>
 					</div>
 				</MarketingSection>
+				{buyerFaq}
 			</main>
 		)
 	}
@@ -189,6 +208,7 @@ function PricingBody({ data }: { data: PricingData }) {
 								</a>
 							</div>
 							{planLinks}
+							{everydayBenefitList}
 						</div>
 					) : (
 						<PlusOffer
@@ -211,6 +231,7 @@ function PricingBody({ data }: { data: PricingData }) {
 							signedIn={signedIn}
 							subscribed={false}
 							afterCheckout={planLinks}
+							footerSlot={everydayBenefitList}
 						/>
 					)}
 					{familyYear || familyMonth ? (
@@ -226,6 +247,7 @@ function PricingBody({ data }: { data: PricingData }) {
 							callbackUrl={callbackUrl}
 							checkoutTrigger={familyCheckoutTrigger}
 							yearly={familyYear}
+							familyMax={familyMax}
 							monthly={familyMonth}
 							locale={locale}
 							signedIn={signedIn}
@@ -258,6 +280,7 @@ function PricingBody({ data }: { data: PricingData }) {
 					<span aria-hidden="true">→</span>
 				</a>
 			</MarketingSection>
+			{buyerFaq}
 		</main>
 	)
 }
