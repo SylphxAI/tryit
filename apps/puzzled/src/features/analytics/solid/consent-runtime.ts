@@ -10,7 +10,9 @@ import {
 	cookieConsent,
 	notifyConsentChange,
 	onConsentChange,
+	type SignalStream,
 	setConsentContext,
+	trackSignalPage,
 } from '../lib/consent'
 import { trackGa4KeyEvent } from '../lib/ga4-key-events'
 import {
@@ -70,6 +72,7 @@ export function ConsentRuntime() {
 		const consent = cookieConsent()
 		if (!consent.ready) return
 		const touch = captureSignalTouch()
+		trackSignalPage(trackablePath(pathname))
 		syncEntrySurface(search, consent.analytics)
 		syncReferral({ pathname, search, touch, granted: consent.analytics && consent.explicit })
 	}
@@ -130,7 +133,12 @@ export function ConsentRuntime() {
 					setActiveGoogleTag(tag)
 				}
 				setCheckoutMeasurementId(ids?.ga ?? null)
-				setConsentContext({ region, gpc: data.gpc })
+				const raw: Partial<SignalStream> | null = data.stream ?? null
+				const stream =
+					typeof raw?.apiKey === 'string' && typeof raw.baseUrl === 'string'
+						? { apiKey: raw.apiKey, baseUrl: raw.baseUrl }
+						: undefined
+				setConsentContext({ region, gpc: data.gpc, stream })
 			} catch {
 				// If the HTTP privacy signal could not be read, leave measurement off.
 			}

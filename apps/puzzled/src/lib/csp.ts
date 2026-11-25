@@ -41,7 +41,8 @@ export function buildCsp(
 		dev = false,
 		ads = false,
 		googleTag = false,
-	}: { dev?: boolean; ads?: boolean; googleTag?: boolean } = {},
+		signalOrigin,
+	}: { dev?: boolean; ads?: boolean; googleTag?: boolean; signalOrigin?: string } = {},
 ): string {
 	const tagFrames = googleTag ? ` ${GOOGLE_TAG_FRAME_HOSTS.join(' ')}` : ''
 	const tagConnect = googleTag ? ` ${GOOGLE_TAG_CONNECT_HOSTS.join(' ')}` : ''
@@ -54,9 +55,8 @@ export function buildCsp(
 		`style-src 'self' 'unsafe-inline'`,
 		"img-src 'self' data: blob: https:",
 		`font-src 'self' data:`,
-		// The browser talks only to this origin (identity, events and errors are
-		// same-origin routes).
-		`connect-src 'self'${adConnect}${tagConnect}`,
+		// Identity and error reporting are same-origin; Signal is explicitly scoped.
+		`connect-src 'self'${adConnect}${tagConnect}${signalOrigin ? ` ${signalOrigin}` : ''}`,
 		`frame-src 'self'${adFrames}${tagFrames}`,
 		"worker-src 'self'",
 		"object-src 'none'",

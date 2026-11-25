@@ -2288,6 +2288,7 @@ dependencies = [
  "ed25519-dalek 3.0.0",
  "getrandom 0.4.3",
  "hmac 0.13.0",
+ "jiff",
  "jsonwebtoken",
  "puzzled-core",
  "rand 0.10.3",

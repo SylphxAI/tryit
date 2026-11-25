@@ -13,6 +13,7 @@ pub mod client;
 pub mod consent_db;
 pub mod fixtures;
 pub mod pricing;
+mod signal;
 
 #[cfg(test)]
 mod tests;

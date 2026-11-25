@@ -8,6 +8,7 @@ import { buildCsp, createNonce } from '@/lib/csp'
 import { env } from '@/lib/env'
 import { canonicalPageRedirect, preferredPageRedirect } from '@/lib/i18n/page-redirect'
 import { legacyPageRedirect, retiredOpenGraphImage } from '@/lib/legacy-page-redirect'
+import { signalStreamConfig } from '@/lib/signal-config'
 
 export default createMiddleware({
 	onRequest(event) {
@@ -18,6 +19,7 @@ export default createMiddleware({
 			'Content-Security-Policy',
 			buildCsp(nonce, {
 				dev: env.NODE_ENV === 'development',
+				signalOrigin: signalStreamConfig()?.baseUrl,
 				ads: adsConfig(env) !== null,
 				googleTag: googleTagIds(env) !== null,
 			}),

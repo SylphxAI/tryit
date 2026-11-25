@@ -1,10 +1,19 @@
 import { afterEach, expect, test } from 'bun:test'
 import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
+import { buildCsp } from '@/lib/csp'
+import { signalStreamConfig } from '@/lib/signal-config'
 import { CONSENT_KEY } from '@/lib/storage-keys'
 import { GET } from '@/routes/api/consent-context'
 import { checkoutSignalHeaders, setCheckoutMeasurementId } from './checkout-signal'
-import { cookieConsent, saveCookieChoice, setConsentContext } from './consent'
+import {
+	captureSignalTouch,
+	cookieConsent,
+	saveCookieChoice,
+	setConsentContext,
+	trackSignalPage,
+} from './consent'
 
+const realFetch = globalThis.fetch
 const globals = globalThis as unknown as Record<string, unknown>
 const navigatorGpc = Object.getOwnPropertyDescriptor(navigator, 'globalPrivacyControl')
 const denied = 'denied,denied,denied,denied'
@@ -63,6 +72,7 @@ function snapshot() {
 
 afterEach(() => {
 	setConsentContext(null)
+	globalThis.fetch = realFetch
 	globals.window = undefined
 	globals.document = undefined
 	if (navigatorGpc) Object.defineProperty(navigator, 'globalPrivacyControl', navigatorGpc)
@@ -154,3 +164,146 @@ for (const gpc of ['header', 'browser']) {
 		expect(store.has('puzzled:signal.touch')).toBe(false)
 	})
 }
+
+const campaign = {
+	gclid: 'fixture_g',
+	gbraid: 'fixture_gb',
+	wbraid: 'fixture_wb',
+	fbclid: 'fixture_fb',
+	utm_source: 'fixture_source',
+	utm_medium: 'fixture_medium',
+	utm_campaign: '促銷',
+	utm_term: 'fixture_term',
+	utm_content: 'fixture_content',
+}
+const stream = { apiKey: 'sylphx_pk_local_fixture', baseUrl: 'https://signal.example.test' }
+
+function signalBrowser() {
+	const store = browser()
+	const win = globals.window as { location: { href: string } }
+	const navigate = (path: string) => {
+		win.location.href = `https://tryit.fun${path}`
+	}
+	navigate(
+		`/pricing?${new URLSearchParams({ ...campaign, next: 'private', utm_id: 'fixture_extra' })}`,
+	)
+	const requests: Array<{
+		url: string
+		init?: RequestInit
+		body: {
+			consent: string
+			events: Array<{
+				event_id: string
+				event_name: string
+				session_id: string
+				properties: Record<string, unknown>
+			}>
+		}
+	}> = []
+	globalThis.fetch = (async (url, init) => {
+		requests.push({ url: String(url), init, body: JSON.parse(String(init?.body)) })
+		return new Response(null, { status: 403 }) // The scoped platform key may still be pending.
+	}) as typeof fetch
+	return { store, requests, navigate }
+}
+
+test('Wave 1 stays off without a saved grant; EEA never captures the pre-grant landing', () => {
+	const { store, requests, navigate } = signalBrowser()
+	setConsentContext({ region: 'EEA', gpc: false, stream })
+	trackSignalPage('/pricing')
+	expect(captureSignalTouch()).toEqual({})
+	expect(store.size).toBe(0)
+	navigate('/')
+	saveCookieChoice('granted')
+	trackSignalPage('/')
+	expect(requests.map((req) => req.body.events[0].properties)).toEqual([{ path: '/' }])
+	expect(store.has('puzzled:signal.touch')).toBe(false)
+})
+
+test('ROW checkout defaults do not enable the opt-in SPA stream', () => {
+	const { requests } = signalBrowser()
+	setConsentContext({ region: 'ROW', gpc: false, stream })
+	trackSignalPage('/pricing')
+	expect(requests).toHaveLength(0)
+	expect(snapshot().fields).toMatchObject(campaign)
+})
+
+for (const choice of ['analytics_only', 'granted'] as const) {
+	test(`SPA capture of all nine requested fields respects ${choice} and dedups views, touches and session`, () => {
+		const { store, requests, navigate } = signalBrowser()
+		setConsentContext({ region: 'EEA', gpc: false, stream })
+		saveCookieChoice(choice)
+		const initialTouch = store.get('puzzled:signal.touch') ?? ''
+		for (let i = 0; i < 3; i++) {
+			captureSignalTouch()
+			trackSignalPage('/pricing')
+		}
+		expect(requests).toHaveLength(1)
+		expect(store.get('puzzled:signal.touch')).toBe(initialTouch)
+		const req = requests[0]
+		expect(req.url).toBe('https://signal.example.test/v1/analytics/events:batch')
+		expect(req.init?.keepalive).toBe(true)
+		expect(req.init?.credentials).toBe('omit')
+		expect(req.init?.referrerPolicy).toBe('no-referrer')
+		expect(req.init?.signal).toBeInstanceOf(AbortSignal)
+		expect(Object.fromEntries(new Headers(req.init?.headers))).toEqual({
+			'content-type': 'application/json',
+			'x-sylphx-key': stream.apiKey,
+		})
+		expect(req.body.consent).toBe('granted')
+		const event = req.body.events[0]
+		expect(event.event_id).toBe(`${event.session_id}:page_view:1`)
+		expect(event.event_name).toBe('page_view')
+		const fields = Object.fromEntries(
+			Object.entries(campaign).filter(([key]) => choice === 'granted' || key.startsWith('utm_')),
+		)
+		expect(event.properties).toEqual({ ...fields, utm_id: 'fixture_extra', path: '/pricing' })
+		expect(snapshot().fields).toMatchObject(fields)
+		if (choice === 'analytics_only') {
+			expect(initialTouch).not.toMatch(/gclid|gbraid|wbraid|fbclid/)
+			expect(snapshot().fields).not.toHaveProperty('fbc')
+		}
+		navigate('/private?token=never-forward')
+		trackSignalPage(null)
+		navigate('/pricing?next=private')
+		trackSignalPage('/pricing')
+		expect(requests).toHaveLength(2)
+		const second = requests[1].body.events[0]
+		expect(second.session_id).toBe(event.session_id)
+		expect(second.event_id).toBe(`${event.session_id}:page_view:2`)
+		expect([...store.values()].join(' ')).not.toContain(event.session_id)
+	})
+}
+
+for (const gpc of [true, false]) {
+	test(`Wave 1 suppresses all requests on ${gpc ? 'GPC' : 'stored refusal'}`, () => {
+		const { store, requests } = signalBrowser()
+		store.set(CONSENT_KEY, gpc ? 'granted' : 'denied')
+		store.set('puzzled:signal.touch', 'previous touch')
+		setConsentContext({ region: 'ROW', gpc, stream })
+		trackSignalPage('/pricing')
+		expect(requests).toHaveLength(0)
+		expect(store.has('puzzled:signal.touch')).toBe(false)
+		expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
+	})
+}
+
+test('Signal CSP and context admit only a publishable key at a configured HTTPS origin', () => {
+	for (const url of ['http://origin.test', 'https://origin.test/path', 'https://origin.test?q=x']) {
+		expect(
+			signalStreamConfig({ SYLPHX_PUBLISHABLE_KEY: stream.apiKey, SYLPHX_API_URL: url }),
+		).toBeUndefined()
+	}
+	expect(
+		signalStreamConfig({ SYLPHX_PUBLISHABLE_KEY: 'secret_fixture', SYLPHX_API_URL: undefined }),
+	).toBeUndefined()
+	const config = signalStreamConfig({
+		SYLPHX_PUBLISHABLE_KEY: stream.apiKey,
+		SYLPHX_API_URL: stream.baseUrl,
+	})
+	expect(config).toEqual(stream)
+	expect(buildCsp(undefined, { signalOrigin: config?.baseUrl })).toContain(
+		"connect-src 'self' https://signal.example.test;",
+	)
+	expect(buildCsp(undefined)).not.toContain('signal.example.test')
+})

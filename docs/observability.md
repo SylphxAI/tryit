@@ -77,7 +77,23 @@ The analytics (`/api/observability/analytics`) and session-replay
 (`/api/observability/session-replays`) routes posted to the legacy
 Observability host with `OBSERVABILITY_API_KEY`, which was never set, so they
 never delivered. They, their hooks, the Web Vitals reporter and the game
-analytics batcher are deleted. The SDK has no analytics or replay surface yet.
+analytics batcher are deleted.
+
+## Consented Signal stream
+
+Signal uses the environment's `SYLPHX_PUBLISHABLE_KEY` with `analytics:ingest`
+on `SYLPHX_API_URL` (default `https://api.sylphx.com`). Both senders use
+`POST /v1/analytics/events:batch`, a fresh request with `X-Sylphx-Key`, and
+an explicit granted consent snapshot. GPC is enforced locally, not forwarded.
+
+The browser stream separately requires a saved analytics or full grant. Each
+committed public route visit sends one page view, with no raw query or referrer,
+one in-memory session per uninterrupted grant, and SDK deduplicated campaign
+storage. Analytics-only never emits or retains click IDs. Checkout-start events
+use the existing checkout consent snapshot and an ID derived from the Money
+session, without player identifiers. Delivery is best effort with a 10 s timeout;
+missing scopes, failed requests and exhausted capacity do not delay checkout.
+The existing settled-conversion outbox is unchanged.
 
 ## First-party funnel counter
 

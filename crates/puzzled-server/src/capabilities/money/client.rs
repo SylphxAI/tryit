@@ -898,6 +898,12 @@ impl Money {
         let Some(payload) = measurement.binding(session_id, self.public_url()) else {
             return;
         };
+        super::signal::checkout_started(
+            &self.origin,
+            self.publishable_key.as_deref(),
+            session_id,
+            measurement,
+        );
         let Some(key) = self.publishable_key.as_deref() else {
             tracing::warn!("checkout attribution publishable key unavailable");
             return;
