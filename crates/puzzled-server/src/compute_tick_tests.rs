@@ -1,6 +1,8 @@
 //! Exercise the real router against the published SDK and a local JWKS issuer.
 //! No product-side key injection or alternate receipt verification path.
 
+use std::sync::{Arc, Mutex};
+
 use axum::body::{to_bytes, Body};
 use axum::http::{Method, Request, StatusCode};
 use axum::response::Response;
@@ -9,6 +11,8 @@ use ed25519_dalek::{Signer as _, SigningKey};
 use serde_json::{json, Value};
 use sylphx::auth::verify::{CALLBACK_RECEIPT_ISSUER, CALLBACK_RECEIPT_TYP};
 use tower::ServiceExt;
+use tracing::instrument::WithSubscriber as _;
+use tracing_subscriber::fmt::MakeWriter;
 
 use crate::{router, AppState};
 
@@ -258,6 +262,14 @@ async fn compute_callbacks_accept_only_authentic_receipts_for_the_exact_request(
         ] {
             let (status, body) = call(provider.state(), request(path, bearer.as_deref())).await;
             assert_eq!(status, StatusCode::UNAUTHORIZED, "{case} {path}: {body}");
+            if path != JOBS_PATH {
+                let expected = if bearer.is_none() {
+                    "tick_receipt_missing"
+                } else {
+                    "tick_receipt_invalid"
+                };
+                assert_eq!(body, json!({"error": expected}), "{case} {path}");
+            }
         }
         let (status, body) = call(
             provider.state(),
@@ -296,18 +308,91 @@ async fn compute_callbacks_never_authorize_on_provider_outage() {
         )
         .await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{path}: {body}");
-        let message = if path == JOBS_PATH {
-            &body["message"]
+        if path == JOBS_PATH {
+            assert_eq!(
+                body["message"], "tick_receipt_unavailable",
+                "{path}: {body}"
+            );
         } else {
-            &body["error"]
-        };
-        assert_eq!(message, "tick_receipt_unavailable", "{path}: {body}");
+            assert_eq!(body, json!({"error": "tick_receipt_unavailable"}), "{path}");
+        }
         let (status, _) = call(provider.state(), request(path, None)).await;
         assert_eq!(
             status,
             StatusCode::UNAUTHORIZED,
             "missing during outage: {path}"
         );
+    }
+}
+
+#[derive(Clone, Default)]
+struct TickLogs(Arc<Mutex<Vec<u8>>>);
+
+impl<'a> MakeWriter<'a> for TickLogs {
+    type Writer = <Mutex<Vec<u8>> as MakeWriter<'a>>::Writer;
+
+    fn make_writer(&'a self) -> Self::Writer {
+        self.0.make_writer()
+    }
+}
+
+#[tokio::test]
+async fn compute_tick_warning_omits_receipt_sdk_payload_and_query() {
+    let provider = Provider::start(StatusCode::OK).await;
+    let logs = TickLogs::default();
+    // Keep the callsite interest shared: with only one registered dispatcher,
+    // an unrelated test without a subscriber can first register it as disabled.
+    let _other = tracing::Dispatch::new(tracing::subscriber::NoSubscriber::default());
+    let subscriber = tracing_subscriber::fmt()
+        .with_writer(logs.clone())
+        .without_time()
+        .with_ansi(false)
+        .with_max_level(tracing::Level::WARN)
+        .finish();
+    let path = COMPUTE_PATHS[0];
+    let sdk_payload = "test-algorithm-not-for-logs";
+    let header = URL_SAFE_NO_PAD.encode(json!({"alg": sdk_payload}).to_string());
+    let invalid_receipt = format!("{header}.fixture.fixture");
+    let query_value = "test-query-not-for-logs";
+    let mut req = request(
+        &format!("{path}?test={query_value}"),
+        Some(&invalid_receipt),
+    );
+    req.headers_mut().insert(
+        "x-forwarded-host",
+        invalid_receipt
+            .parse()
+            .unwrap_or_else(|_| panic!("forwarded host fixture")),
+    );
+    req.headers_mut().insert(
+        "x-forwarded-proto",
+        "http"
+            .parse()
+            .unwrap_or_else(|_| panic!("protocol fixture")),
+    );
+
+    let (status, body) = call(provider.state(), req)
+        .with_subscriber(subscriber)
+        .await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    assert_eq!(body, json!({"error": "tick_receipt_invalid"}));
+
+    let bytes = logs.0.lock().unwrap_or_else(|e| panic!("log buffer: {e}"));
+    let output = std::str::from_utf8(&bytes).unwrap_or_else(|e| panic!("log encoding: {e}"));
+    assert!(!output.contains(&invalid_receipt));
+    assert!(!output.contains(sdk_payload));
+    assert!(!output.contains(query_value));
+    assert_eq!(output.matches("compute tick rejected").count(), 1);
+    for field in [
+        "WARN",
+        "reason=\"tick_receipt_invalid\"",
+        "verify_error=\"algorithm\"",
+        "host=\"puzzled.test\"",
+        "forwarded_host=\"-\"",
+        "forwarded_proto=\"http\"",
+        &format!("path=\"{path}\""),
+    ] {
+        assert!(output.contains(field), "missing diagnostic field: {field}");
     }
 }
 
