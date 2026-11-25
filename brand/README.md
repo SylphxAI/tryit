@@ -33,6 +33,7 @@ alone, and CI runs it.
 | App icon master (rounded ground) | `svg/puzzled-app-icon.svg` |
 | iOS home screen (square, opaque) | `svg/puzzled-app-icon-square.svg` |
 | Android maskable (full bleed, glyph in the safe zone) | `svg/puzzled-maskable.svg` |
+| Google Ads business logo (1200×1200, circular-crop-safe) | `marketing/logo-1200.png`, rendered from `svg/puzzled-maskable.svg` |
 | Browser tab: 16 and 32 px, pixel grids | `favicon/grid-16.txt`, `favicon/grid-32.txt` (hand-editable), `favicon/favicon.svg` (the 32 px grid, switches to a paper tile in dark mode), `favicon/favicon.ico` (16, 32, 48) |
 | Ready-made PNGs | `favicon/favicon-{16,32,48}.png`; `app-icon/apple-touch-icon-180.png`; `app-icon/icon-{48,72,96,128,144,152,192,384,512}.png`; `app-icon/icon-maskable-512.png` |
 | Colour and type values | `tokens.json`; the generated CSS variables are `tokens.css` |
@@ -128,6 +129,7 @@ the master here and run `python3 brand/build.py` (CI fails when a copy drifts).
 | `apps/puzzled/public/apple-touch-icon.png` (180 px) | `app-icon/apple-touch-icon-180.png` |
 | `apps/puzzled/public/icons/icon-48.png` … `icon-512.png` | `app-icon/icon-48.png` … `icon-512.png` |
 | `apps/puzzled/public/icons/icon-maskable-512.png` | `app-icon/icon-maskable-512.png` |
+| `apps/puzzled/public/brand/logo-1200.png` | `marketing/logo-1200.png` |
 | `apps/puzzled/public/brand/mark.svg` (named by the proxy skip-list test) | `svg/puzzled-symbol.svg` |
 | `apps/puzzled/public/brand/mark-mono.svg` (`<link rel="mask-icon">`) | `svg/puzzled-symbol-mono.svg` |
 

@@ -31,6 +31,14 @@
       512
     ]
   },
+  "renders": [
+    {
+      "master": "svg/puzzled-maskable.svg",
+      "width": 1200,
+      "height": 1200,
+      "out": "marketing/logo-1200.png"
+    }
+  ],
   "outputs": {
     "apps/puzzled/public/favicon.ico": "favicon/favicon.ico",
     "apps/puzzled/public/favicon.png": "favicon/favicon-32.png",
@@ -46,6 +54,7 @@
     "apps/puzzled/public/icons/icon-384.png": "app-icon/icon-384.png",
     "apps/puzzled/public/icons/icon-512.png": "app-icon/icon-512.png",
     "apps/puzzled/public/icons/icon-maskable-512.png": "app-icon/icon-maskable-512.png",
+    "apps/puzzled/public/brand/logo-1200.png": "marketing/logo-1200.png",
     "apps/puzzled/public/brand/mark.svg": "svg/puzzled-symbol.svg",
     "apps/puzzled/public/brand/mark-mono.svg": "svg/puzzled-symbol-mono.svg"
   },
