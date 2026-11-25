@@ -64,7 +64,13 @@ test.describe('Solid signed-in settings', () => {
 		context,
 		baseURL,
 	}) => {
-		const publicMemberAwarePaths = ['/delete-account', '/stats', '/family/join', '/archive']
+		const publicMemberAwarePaths = [
+			'/delete-account',
+			'/stats',
+			'/family/join',
+			'/archive',
+			'/games',
+		]
 		const header = page.locator('header').first()
 		const signIn = header.getByRole('link', { name: 'Sign in', exact: true })
 		const account = header.getByRole('link', { name: 'Account', exact: true })
@@ -82,13 +88,28 @@ test.describe('Solid signed-in settings', () => {
 			await expect(signIn).toHaveCount(0)
 		}
 
-		// The public catalog stays independent of session reads.
-		await page.goto('/games')
-		await expect(signIn).toBeVisible()
-
 		await context.addCookies([{ ...memberCookie(baseURL!), value: 'expired-fixture-session' }])
 		await page.goto('/stats')
 		await expect(signIn).toBeVisible()
+		const response = await page.goto('/games')
+		expect(response?.headers()['cache-control']).toBe('private, no-store')
+		await expect(signIn).toBeVisible()
+		await expect(account).toHaveCount(0)
+	})
+
+	test('the public privacy policy does not read the member session', async ({
+		page,
+		context,
+		baseURL,
+	}) => {
+		await context.addCookies([memberCookie(baseURL!)])
+		const response = await page.goto('/privacy')
+		expect(response?.status()).toBe(200)
+		await expect(page).toHaveURL('/privacy')
+		const header = page.locator('header').first()
+		await expect(header.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible()
+		await expect(header.getByRole('link', { name: 'Account', exact: true })).toHaveCount(0)
+		expect((await fixture()).some(({ path }) => path === '/v1/sessions/current')).toBe(false)
 	})
 
 	test('renders a single h1, mobile navigation, localized privacy links and no account id outside Account', async ({
