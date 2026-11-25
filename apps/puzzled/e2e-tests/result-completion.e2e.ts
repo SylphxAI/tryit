@@ -511,6 +511,8 @@ for (const viewport of [
 					let openScrim: number[] | undefined
 					if (slug === 'number-path') {
 						const cta = (await playNext.boundingBox())!
+						// Clicking the rail's "See your result" can leave .result-next hovered.
+						if (!mobile) await page.mouse.move(scrim.x, scrim.y)
 						const result = await page.screenshot({
 							path: info.outputPath('path-result.png'),
 							scale: 'css',
