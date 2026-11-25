@@ -8,7 +8,6 @@ pub mod funnel;
 pub mod gamification;
 pub mod identity_access;
 pub mod jobs;
-pub mod leaderboard;
 pub mod metrics;
 pub mod money;
 pub mod preferences;

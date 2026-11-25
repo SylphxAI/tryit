@@ -3,7 +3,6 @@
 use puzzled_core::gamification::personal_streak::parse_day_key;
 use puzzled_core::identity_policy::guest_day_id::normalize_guest_user_id;
 use puzzled_core::jobs_policy::backoff::backoff_base_ms;
-use puzzled_core::leaderboard::enrich::ANONYMOUS_DISPLAY_NAME;
 use puzzled_core::presentation_policy::reduced_motion::prefers_reduced_from_matches;
 use puzzled_core::privacy::pii_scrub::looks_like_email;
 use puzzled_core::product_policy::error_codes::ERROR_CODES;
@@ -41,7 +40,6 @@ fn core_generates_and_scores_sudoku_without_shell() {
 #[test]
 fn capability_domains_decide_on_fixture_facts() {
     assert!(normalize_guest_user_id("a1b2c3d4-e5f6-7890-abcd-ef1234567890").is_some());
-    assert_eq!(ANONYMOUS_DISPLAY_NAME, "Anonymous");
     assert_eq!(backoff_base_ms(0), 60_000);
     assert!(looks_like_email("player@example.com"));
     assert!(ERROR_CODES.contains(&"UNAUTHORIZED"));

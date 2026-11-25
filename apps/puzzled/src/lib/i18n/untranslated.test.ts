@@ -36,7 +36,6 @@ const LOCALE_KEYS: Partial<Record<Locale, string[]>> = {
 	es: [
 		'footer.legalHeading',
 		'footer.cookies',
-		'leaderboard.moduleLabel',
 		'legal.privacy.eyebrow',
 		'legal.privacy.sections.cookies.title',
 		'legal.terms.eyebrow',

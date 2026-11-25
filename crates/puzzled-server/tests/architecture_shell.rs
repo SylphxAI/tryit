@@ -89,11 +89,9 @@ async fn connect_json(app: axum::Router, uri: &str, body: &str) -> (StatusCode, 
     (status, json)
 }
 
-/// Puzzled sells no paid tier and there is no Sylphx commerce service: the
-/// leaderboard and every game answer from puzzled's own API, and nothing in
-/// the shell dials a commerce origin even when one is configured.
+/// Public stats and playable daily games answer from Tryit's API without calling commerce.
 #[tokio::test]
-async fn leaderboard_and_every_game_answer_without_commerce() {
+async fn today_overview_and_every_game_answer_without_commerce() {
     let commerce = match std::net::TcpListener::bind("127.0.0.1:0") {
         Ok(listener) => listener,
         Err(error) => panic!("bind commerce trap: {error}"),
@@ -112,14 +110,14 @@ async fn leaderboard_and_every_game_answer_without_commerce() {
 
     let (status, _) = connect_json(
         app.clone(),
-        "/puzzled.v1.StatsService/GetLeaderboard",
-        r#"{"gameSlug":"sudoku","type":"LEADERBOARD_TYPE_SCORE","period":"LEADERBOARD_PERIOD_ALL","limit":10}"#,
+        "/puzzled.v1.StatsService/GetTodayOverview",
+        "{}",
     )
     .await;
     assert_eq!(
         status,
         StatusCode::OK,
-        "leaderboard must answer without commerce"
+        "today overview must answer without commerce"
     );
 
     let today = puzzled_core::puzzle_play::daily_time::product_day_key(chrono::Utc::now());

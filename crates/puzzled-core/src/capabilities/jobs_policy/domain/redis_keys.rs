@@ -13,15 +13,6 @@ pub fn daily_puzzle_key(game_slug: &str, date: &str) -> String {
     format!("puzzle:{game_slug}:{date}")
 }
 
-/// Dual-oracle of `keys.leaderboard`.
-#[must_use]
-pub fn leaderboard_key(game_slug: &str, period: &str) -> Option<String> {
-    match period {
-        "daily" | "weekly" | "all" => Some(format!("leaderboard:{game_slug}:{period}")),
-        _ => None,
-    }
-}
-
 /// Dual-oracle of `keys.userStreak`.
 #[must_use]
 pub fn user_streak_key(user_id: &str, game_slug: &str) -> String {
@@ -51,11 +42,6 @@ mod tests {
             daily_puzzle_key("word-guess", "2026-07-16"),
             "puzzle:word-guess:2026-07-16"
         );
-        assert_eq!(
-            leaderboard_key("sudoku", "weekly").as_deref(),
-            Some("leaderboard:sudoku:weekly")
-        );
-        assert!(leaderboard_key("sudoku", "monthly").is_none());
         assert_eq!(user_streak_key("u1", "tango"), "streak:u1:tango");
         assert_eq!(session_cache_key("s1"), "session:s1");
         assert_eq!(impersonation_key("admin"), "impersonate:admin");

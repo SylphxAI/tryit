@@ -254,23 +254,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn connect_get_leaderboard_requires_game_slug() {
-        let app = router(AppState::new(None));
-        let response = match app
-            .oneshot(build_connect_request(
-                "/puzzled.v1.StatsService/GetLeaderboard",
-                Body::from("{}"),
-            ))
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => panic!("connect GetLeaderboard: {error}"),
-        };
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    }
-
-    #[tokio::test]
-    async fn connect_get_leaderboard_empty_without_db() {
+    async fn connect_get_leaderboard_returns_retired_error() {
         let app = router(AppState::new(None));
         let response = match app
             .oneshot(build_connect_request(
@@ -282,16 +266,10 @@ mod tests {
             Ok(response) => response,
             Err(error) => panic!("connect GetLeaderboard: {error}"),
         };
-        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
         let json = body_json(response).await;
-        // ProtoJSON omits empty repeated fields; treat missing as empty.
-        assert!(
-            json.get("entries").map_or(true, |v| v
-                .as_array()
-                .is_some_and(|entries| entries.is_empty())),
-            "unexpected entries: {:?}",
-            json.get("entries")
-        );
+        assert_eq!(json["code"], "unimplemented");
+        assert_eq!(json["message"], "leaderboard_retired");
     }
 
     #[tokio::test]

@@ -21,7 +21,6 @@ export const CLIENT_NAMESPACES = [
 	'gameResult',
 	'games',
 	'home',
-	'leaderboard',
 	'modes',
 	'nav',
 	'onboarding',

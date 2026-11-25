@@ -1,6 +1,5 @@
 import jaAdmin from '@/messages/ja/admin.json'
 import jaAuth from '@/messages/ja/auth.json'
-import jaLeaderboard from '@/messages/ja/leaderboard.json'
 import jaLegal from '@/messages/ja/legal.json'
 import jaReauth from '@/messages/ja/reauth.json'
 import jaSettings from '@/messages/ja/settings.json'
@@ -14,6 +13,5 @@ export const messages = {
 	settings: jaSettings,
 	stats: jaStats,
 	support: jaSupport,
-	leaderboard: jaLeaderboard,
 	reauth: jaReauth,
 }

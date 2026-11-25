@@ -439,7 +439,7 @@
 			},
 			{
 				"value": "Leaderboard",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "Legal",
@@ -615,10 +615,6 @@
 				]
 			},
 			{
-				"value": "Player",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
-			},
-			{
 				"value": "Preferences",
 				"keys": [
 					"settings.nav.preferences",
@@ -694,7 +690,7 @@
 			},
 			{
 				"value": "Puzzle",
-				"keys": ["leaderboard.moduleLabel", "stats.history.module", "stats.modules.module"]
+				"keys": ["stats.history.module", "stats.modules.module"]
 			},
 			{
 				"value": "Puzzle #{number}",
@@ -708,10 +704,6 @@
 					"settings.notifications.quickActions.title",
 					"settings.overview.quickActions"
 				]
-			},
-			{
-				"value": "Rank",
-				"keys": ["leaderboard.columns.rank", "settings.playerCard.stats.rank"]
 			},
 			{
 				"value": "Recovery Codes",
@@ -811,12 +803,7 @@
 			},
 			{
 				"value": "Score",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "Search settings",
@@ -967,10 +954,6 @@
 				"keys": ["settings.preferences.appearance.theme", "settings.theme"]
 			},
 			{
-				"value": "This Week",
-				"keys": ["admin.analytics.thisWeek", "leaderboard.period.week"]
-			},
-			{
 				"value": "Time",
 				"keys": ["gameResult.time", "share.card.timeLabel", "stats.history.time"]
 			},
@@ -980,12 +963,7 @@
 			},
 			{
 				"value": "Today",
-				"keys": [
-					"leaderboard.period.today",
-					"nav.today",
-					"stats.calendar.todayLabel",
-					"stats.today.title"
-				]
+				"keys": ["nav.today", "stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
 				"value": "Today is still open",
@@ -1577,7 +1555,7 @@
 			},
 			{
 				"value": "Leaderboard",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "Legal",
@@ -1753,10 +1731,6 @@
 				]
 			},
 			{
-				"value": "Player",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
-			},
-			{
 				"value": "Preferences",
 				"keys": [
 					"settings.nav.preferences",
@@ -1832,7 +1806,7 @@
 			},
 			{
 				"value": "Puzzle",
-				"keys": ["leaderboard.moduleLabel", "stats.history.module", "stats.modules.module"]
+				"keys": ["stats.history.module", "stats.modules.module"]
 			},
 			{
 				"value": "Puzzle #{number}",
@@ -1846,10 +1820,6 @@
 					"settings.notifications.quickActions.title",
 					"settings.overview.quickActions"
 				]
-			},
-			{
-				"value": "Rank",
-				"keys": ["leaderboard.columns.rank", "settings.playerCard.stats.rank"]
 			},
 			{
 				"value": "Recovery Codes",
@@ -1949,12 +1919,7 @@
 			},
 			{
 				"value": "Score",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "Search settings",
@@ -2105,10 +2070,6 @@
 				"keys": ["settings.preferences.appearance.theme", "settings.theme"]
 			},
 			{
-				"value": "This Week",
-				"keys": ["admin.analytics.thisWeek", "leaderboard.period.week"]
-			},
-			{
 				"value": "Time",
 				"keys": ["gameResult.time", "share.card.timeLabel", "stats.history.time"]
 			},
@@ -2118,12 +2079,7 @@
 			},
 			{
 				"value": "Today",
-				"keys": [
-					"leaderboard.period.today",
-					"nav.today",
-					"stats.calendar.todayLabel",
-					"stats.today.title"
-				]
+				"keys": ["nav.today", "stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
 				"value": "Today is still open",
@@ -2495,12 +2451,7 @@
 			},
 			{
 				"value": "今日",
-				"keys": [
-					"leaderboard.period.today",
-					"nav.today",
-					"stats.calendar.todayLabel",
-					"stats.today.title"
-				]
+				"keys": ["nav.today", "stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
 				"value": "今日精選",
@@ -2573,7 +2524,7 @@
 			},
 			{
 				"value": "全部",
-				"keys": ["catalog.filterAll", "leaderboard.period.all", "pagination.all"]
+				"keys": ["catalog.filterAll", "pagination.all"]
 			},
 			{
 				"value": "全部複製",
@@ -2605,12 +2556,7 @@
 			},
 			{
 				"value": "分數",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "分析",
@@ -2853,7 +2799,7 @@
 			},
 			{
 				"value": "排行榜",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "推送",
@@ -3069,10 +3015,6 @@
 			{
 				"value": "玩 {game}（每日 19 款任揀 3 款免費）",
 				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
-				"value": "玩家",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
 			},
 			{
 				"value": "玩家卡",
@@ -3302,7 +3244,6 @@
 				"keys": [
 					"admin.games.title",
 					"admin.sidebar.games",
-					"leaderboard.moduleLabel",
 					"nav.games",
 					"stats.history.module",
 					"stats.modules.module"
@@ -3660,12 +3601,7 @@
 			},
 			{
 				"value": "今天",
-				"keys": [
-					"leaderboard.period.today",
-					"nav.today",
-					"stats.calendar.todayLabel",
-					"stats.today.title"
-				]
+				"keys": ["nav.today", "stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
 				"value": "今天精選",
@@ -3742,7 +3678,7 @@
 			},
 			{
 				"value": "全部",
-				"keys": ["catalog.filterAll", "leaderboard.period.all", "pagination.all"]
+				"keys": ["catalog.filterAll", "pagination.all"]
 			},
 			{
 				"value": "全部複製",
@@ -3782,12 +3718,7 @@
 			},
 			{
 				"value": "分數",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "分析",
@@ -4025,7 +3956,7 @@
 			},
 			{
 				"value": "排行榜",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "推播",
@@ -4237,10 +4168,6 @@
 			{
 				"value": "玩 {game}（每天 19 款任選 3 款免費）",
 				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
-				"value": "玩家",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
 			},
 			{
 				"value": "玩家卡",
@@ -4457,7 +4384,6 @@
 				"keys": [
 					"admin.games.title",
 					"admin.sidebar.games",
-					"leaderboard.moduleLabel",
 					"nav.games",
 					"stats.history.module",
 					"stats.modules.module"
@@ -4840,10 +4766,6 @@
 				"keys": ["stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
-				"value": "今日",
-				"keys": ["leaderboard.period.today", "nav.today"]
-			},
-			{
 				"value": "今日精选",
 				"keys": ["catalog.freeToday", "home.lineup.freeToday"]
 			},
@@ -4901,7 +4823,7 @@
 			},
 			{
 				"value": "全部",
-				"keys": ["catalog.filterAll", "leaderboard.period.all", "pagination.all"]
+				"keys": ["catalog.filterAll", "pagination.all"]
 			},
 			{
 				"value": "全部复制",
@@ -4955,12 +4877,7 @@
 			},
 			{
 				"value": "分数",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "分析",
@@ -5245,7 +5162,7 @@
 			},
 			{
 				"value": "排行榜",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "推荐",
@@ -5467,7 +5384,6 @@
 				"keys": [
 					"admin.games.title",
 					"admin.sidebar.games",
-					"leaderboard.moduleLabel",
 					"nav.games",
 					"stats.history.module",
 					"stats.modules.module"
@@ -5480,10 +5396,6 @@
 			{
 				"value": "状态",
 				"keys": ["admin.dlq.table.status", "gameResult.status"]
-			},
-			{
-				"value": "玩家",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
 			},
 			{
 				"value": "玩家卡",
@@ -6097,12 +6009,7 @@
 			},
 			{
 				"value": "スコア",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "ステータス",
@@ -6235,12 +6142,7 @@
 			},
 			{
 				"value": "パズル",
-				"keys": [
-					"leaderboard.moduleLabel",
-					"stats.history.module",
-					"stats.modules.module",
-					"stats.modules.title"
-				]
+				"keys": ["stats.history.module", "stats.modules.module", "stats.modules.title"]
 			},
 			{
 				"value": "パズル #{number}",
@@ -6295,10 +6197,6 @@
 			{
 				"value": "プレイを始める",
 				"keys": ["settings.overview.startPlaying", "stats.startPlaying"]
-			},
-			{
-				"value": "プレイヤー",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
 			},
 			{
 				"value": "プレイヤーカード",
@@ -6419,7 +6317,7 @@
 			},
 			{
 				"value": "ランキング",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "ランキングを見る",
@@ -6482,12 +6380,7 @@
 			},
 			{
 				"value": "今日",
-				"keys": [
-					"leaderboard.period.today",
-					"nav.today",
-					"stats.calendar.todayLabel",
-					"stats.today.title"
-				]
+				"keys": ["nav.today", "stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
 				"value": "今日のおすすめ",
@@ -6500,10 +6393,6 @@
 			{
 				"value": "今日はまだ終わっていません",
 				"keys": ["stats.streakCard.notPlayedToday", "stats.streakHintOpen"]
-			},
-			{
-				"value": "今週",
-				"keys": ["admin.analytics.thisWeek", "leaderboard.period.week"]
 			},
 			{
 				"value": "余白を小さくして、より密度の高いレイアウトにします",
@@ -7275,7 +7164,7 @@
 			},
 			{
 				"value": "Clasificación",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "Cola de mensajes fallidos",
@@ -7519,10 +7408,6 @@
 				"keys": ["gameResult.mistakes", "share.card.mistakesLabel"]
 			},
 			{
-				"value": "Esta semana",
-				"keys": ["admin.analytics.thisWeek", "leaderboard.period.week"]
-			},
-			{
 				"value": "Estado",
 				"keys": ["admin.dlq.table.status", "gameResult.status"]
 			},
@@ -7632,12 +7517,7 @@
 			},
 			{
 				"value": "Hoy",
-				"keys": [
-					"leaderboard.period.today",
-					"nav.today",
-					"stats.calendar.todayLabel",
-					"stats.today.title"
-				]
+				"keys": ["nav.today", "stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
 				"value": "Hoy todavía está abierto",
@@ -7696,10 +7576,6 @@
 					"settings.playerCard.stats.gamesPlayed",
 					"stats.played"
 				]
-			},
-			{
-				"value": "Jugador",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
 			},
 			{
 				"value": "Jugador de Tryit",
@@ -7888,12 +7764,7 @@
 			},
 			{
 				"value": "Puntuación",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "Puntuación de seguridad",
@@ -7916,7 +7787,7 @@
 			},
 			{
 				"value": "Puzzle",
-				"keys": ["leaderboard.moduleLabel", "stats.history.module", "stats.modules.module"]
+				"keys": ["stats.history.module", "stats.modules.module"]
 			},
 			{
 				"value": "Página {page} de {total}",
@@ -8578,7 +8449,7 @@
 			},
 			{
 				"value": "Desafio",
-				"keys": ["leaderboard.moduleLabel", "stats.history.module", "stats.modules.module"]
+				"keys": ["stats.history.module", "stats.modules.module"]
 			},
 			{
 				"value": "Desafio nº {number}",
@@ -8711,10 +8582,6 @@
 				"keys": ["auth.forgotPassword", "auth.forgotPasswordTitle"]
 			},
 			{
-				"value": "Esta semana",
-				"keys": ["admin.analytics.thisWeek", "leaderboard.period.week"]
-			},
-			{
 				"value": "Estatísticas",
 				"keys": ["nav.stats", "stats.title"]
 			},
@@ -8803,12 +8670,7 @@
 			},
 			{
 				"value": "Hoje",
-				"keys": [
-					"leaderboard.period.today",
-					"nav.today",
-					"stats.calendar.todayLabel",
-					"stats.today.title"
-				]
+				"keys": ["nav.today", "stats.calendar.todayLabel", "stats.today.title"]
 			},
 			{
 				"value": "Hoje ainda está em aberto",
@@ -8825,10 +8687,6 @@
 			{
 				"value": "Ir para o suporte",
 				"keys": ["legal.privacy.cta.support", "legal.terms.cta.support"]
-			},
-			{
-				"value": "Jogador",
-				"keys": ["leaderboard.columns.player", "plus.family.unnamed"]
 			},
 			{
 				"value": "Jogador do Tryit",
@@ -9069,20 +8927,11 @@
 			},
 			{
 				"value": "Pontuação",
-				"keys": [
-					"gameResult.score",
-					"leaderboard.columns.score",
-					"share.card.scoreLabel",
-					"stats.history.score"
-				]
+				"keys": ["gameResult.score", "share.card.scoreLabel", "stats.history.score"]
 			},
 			{
 				"value": "Pontuação média",
 				"keys": ["admin.analytics.avgScore", "stats.avgScore"]
-			},
-			{
-				"value": "Posição",
-				"keys": ["leaderboard.columns.rank", "settings.playerCard.stats.rank"]
 			},
 			{
 				"value": "Preferências",
@@ -9131,7 +8980,7 @@
 			},
 			{
 				"value": "Ranking",
-				"keys": ["leaderboard.title", "nav.leaderboard", "stats.viewLeaderboard"]
+				"keys": ["nav.leaderboard", "stats.viewLeaderboard"]
 			},
 			{
 				"value": "Razoável",

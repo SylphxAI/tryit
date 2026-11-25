@@ -1,5 +1,4 @@
 import zhTWAuth from '@/messages/zh-TW/auth.json'
-import zhTWLeaderboard from '@/messages/zh-TW/leaderboard.json'
 import zhTWLegal from '@/messages/zh-TW/legal.json'
 import zhTWSettings from '@/messages/zh-TW/settings.json'
 import zhTWStats from '@/messages/zh-TW/stats.json'
@@ -11,5 +10,4 @@ export const messages = {
 	settings: zhTWSettings,
 	stats: zhTWStats,
 	support: zhTWSupport,
-	leaderboard: zhTWLeaderboard,
 }
