@@ -117,7 +117,12 @@ export const KNOWN_VARS: readonly EnvVar[] = [
 	{
 		name: 'SYLPHX_PUBLISHABLE_KEY',
 		required: false,
-		description: 'Sylphx Auth publishable key (auth:public); sign-up, sign-in and social start',
+		description: 'Sylphx publishable key for Auth and consented Signal events',
+	},
+	{
+		name: 'SYLPHX_API_URL',
+		required: false,
+		description: 'Sylphx API origin; Signal defaults to https://api.sylphx.com',
 	},
 	{
 		name: 'EVENTS_API_KEY',
@@ -235,6 +240,12 @@ export const env = {
 	/** Listen port for the local dev fallback */
 	get PORT(): string | undefined {
 		return process.env.PORT
+	},
+	get SYLPHX_API_URL(): string | undefined {
+		return process.env.SYLPHX_API_URL
+	},
+	get SYLPHX_PUBLISHABLE_KEY(): string | undefined {
+		return process.env.SYLPHX_PUBLISHABLE_KEY
 	},
 	/** Events dest origin override */
 	get EVENTS_API_ORIGIN(): string | undefined {

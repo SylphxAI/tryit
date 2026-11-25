@@ -198,7 +198,9 @@ The same Signal consent snapshot gates the checkout RPC. Rust accepts only the
 three supported snapshots and honors Sec-GPC independently. Only permitted
 campaign dimensions go to Money, and Events gets the checkout ID, consent flags,
 and only the analytics and ad identifiers those flags allow. No raw browser
-URL, session cookie, or account ID enters the Events binding.
+URL, session cookie, or account ID enters the Events binding. Rust remains the
+sole binding writer, including on denied snapshots; the browser uses the SDK
+snapshot helpers and does not bind again after checkout creation.
 
 ## 6. Conversion moments (ethical)
 

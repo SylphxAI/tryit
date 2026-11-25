@@ -1,4 +1,8 @@
-import { parseAttributionCookies } from '@sylphx/sdk/signal'
+import {
+	type AttributionBindingRequest,
+	parseAttributionCookies,
+	type SignalAttribution,
+} from '@sylphx/sdk/signal'
 import { checkoutEntrySurface } from './checkout-entry-surface'
 import { captureSignalTouch, cookieConsent } from './consent'
 
@@ -8,8 +12,16 @@ export function setCheckoutMeasurementId(value: string | null) {
 	measurementId = value ?? undefined
 }
 
-/** Money still owns checkout identity and the Events write. Send the SDK consent
- * snapshot, not a country/locale guess or raw cookie/URL. */
+type CheckoutSnapshot = Omit<
+	AttributionBindingRequest,
+	'checkout_session_id' | 'processor_session_id' | 'subscription_id' | 'page_location' | 'consent'
+> &
+	Omit<SignalAttribution, 'capturedAt'>
+
+/** Use the SDK's consent, touch and checkout binding fields at the browser/RPC
+ * boundary. Only Rust has the authoritative checkout session ID and binds to
+ * Events; using bindCheckoutAttribution in the browser would create a second
+ * writer and skip denials and checkout flows without a browser callback. */
 export function checkoutSignalHeaders(trigger?: string): Record<string, string> {
 	const { signals } = cookieConsent()
 	const headers: Record<string, string> = {
@@ -33,12 +45,13 @@ export function checkoutSignalHeaders(trigger?: string): Record<string, string> 
 		const { gclid, gbraid, wbraid, fbclid, capturedAt, ...utm } = captureSignalTouch()
 		const metaClick =
 			fbclid && capturedAt && !fbc?.endsWith(`.${fbclid}`) ? `fb.1.${capturedAt}.${fbclid}` : fbc
-		const json = JSON.stringify({
+		const snapshot: CheckoutSnapshot = {
 			ga_client_id: gaClientId,
 			ga_session_id: gaSessionId,
 			...utm,
 			...(ad ? { gclid, gbraid, wbraid, fbclid, fbc: metaClick, fbp } : {}),
-		})
+		}
+		const json = JSON.stringify(snapshot)
 		// ASCII-safe wire encoding, including international campaign tags.
 		const binary = Array.from(new TextEncoder().encode(json), (byte) =>
 			String.fromCharCode(byte),

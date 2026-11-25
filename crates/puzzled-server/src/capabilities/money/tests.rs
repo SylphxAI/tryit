@@ -27,6 +27,7 @@ struct FakeMoney {
     checks: Vec<Value>,
     sessions: Vec<Value>,
     bindings: Vec<Value>,
+    signals: Vec<Value>,
     catalog: Value,
 }
 
@@ -129,12 +130,29 @@ fn fake_money_router(fake: Fake) -> Router {
                 |State(fake): State<Fake>,
                  headers: axum::http::HeaderMap,
                  Json(body): Json<Value>| async move {
-                    assert_eq!(headers["x-sylphx-key"], "pk_fixture");
+                    assert_eq!(headers["x-sylphx-key"], "sylphx_pk_local_fixture");
                     assert!(!headers.contains_key("authorization"));
                     assert!(!headers.contains_key("cookie"));
                     assert!(!headers.contains_key("referer"));
                     fake.lock().unwrap().bindings.push(body);
                     StatusCode::SERVICE_UNAVAILABLE // attribution failure must not block checkout
+                },
+            ),
+        )
+        .route(
+            "/v1/analytics/events:batch",
+            post(
+                |State(fake): State<Fake>,
+                 headers: axum::http::HeaderMap,
+                 Json(batch): Json<Value>| async move {
+                    assert_eq!(headers["x-sylphx-key"], "sylphx_pk_local_fixture");
+                    assert!(!headers.contains_key("authorization"));
+                    assert!(!headers.contains_key("cookie"));
+                    assert!(!headers.contains_key("referer"));
+                    assert!(!headers.contains_key("sec-gpc"));
+                    let mut fake = fake.lock().unwrap();
+                    fake.signals.push(batch);
+                    StatusCode::FORBIDDEN
                 },
             ),
         )
@@ -301,7 +319,7 @@ async fn checkout_binds_full_split_or_denied_signal_snapshots_to_events() {
     use super::checkout_attribution::CheckoutAttribution;
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
     let (money, fake) = fake_money(200, json!({"entitled": false})).await;
-    let money = money.with_publishable_key("pk_fixture");
+    let money = money.with_publishable_key("sylphx_pk_local_fixture");
     let catalog = parsed(catalog_fixture(&[]));
     let consent = Consent::for_plan(false, false).unwrap();
     let full = "granted,granted,granted,granted";
@@ -364,7 +382,29 @@ async fn checkout_binds_full_split_or_denied_signal_snapshots_to_events() {
         .unwrap();
         assert_eq!(result.created.url, "https://checkout.example/pay/cs_1");
     }
+    tokio::time::timeout(Duration::from_secs(3), async {
+        while fake.lock().unwrap().signals.len() < 2 {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap();
     let fake = fake.lock().unwrap();
+    assert_eq!(fake.signals.len(), 2);
+    for batch in &fake.signals {
+        assert_eq!(batch["consent"], "granted");
+        let event = &batch["events"][0];
+        assert_eq!(event["event_name"], "checkout_started");
+        assert_eq!(
+            event["properties"],
+            json!({"entry_surface": "seo_vs-nyt-games"})
+        );
+        assert!(!event.to_string().contains("chk_1"));
+    }
+    assert_eq!(
+        fake.signals[0]["events"][0]["event_id"],
+        fake.signals[1]["events"][0]["event_id"]
+    );
     let dims = |i: usize| &fake.sessions[i]["metadata"];
     assert_eq!(dims(0)["entry_surface"], "seo_vs-nyt-games");
     assert_eq!(dims(0)["utm_source"], "stored");

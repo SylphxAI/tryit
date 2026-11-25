@@ -1,6 +1,7 @@
 import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
 import { googleTagIds } from '@/features/analytics/lib/google-tag'
 import { env } from '@/lib/env'
+import { signalStreamConfig } from '@/lib/signal-config'
 
 // Treat European territories and ICU aliases/reserved regions as strict.
 const STRICT_TERRITORIES = new Set(
@@ -21,6 +22,7 @@ export function GET({ request }: { request: Request }) {
 					?.split(',')
 					.some((value) => value.trim() === '1') ?? false,
 			ids: googleTagIds(env),
+			stream: signalStreamConfig(),
 		},
 		{ headers: { 'Cache-Control': 'private, no-store' } },
 	)
