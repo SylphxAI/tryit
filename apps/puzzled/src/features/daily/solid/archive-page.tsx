@@ -84,7 +84,7 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 										id="archive-unlock-title"
 										class="font-display text-lg leading-tight md:text-xl"
 									>
-										{t('mobileUnlockTitle')}
+										{t('mobileUnlockTitle', { days: ARCHIVE_WINDOW_DAYS })}
 									</h2>
 									<p class="mt-1 text-sm leading-relaxed text-muted-foreground tabular-nums">
 										{priceLine ??
@@ -103,7 +103,7 @@ export function ArchivePage(props: { data: ArchivePageData }) {
 					</Show>
 					<section aria-labelledby="archive-list-title">
 						<h2 id="archive-list-title" class="sr-only">
-							{t('listTitle')}
+							{t('listTitle', { days: ARCHIVE_WINDOW_DAYS })}
 						</h2>
 						<ArchiveAlmanac
 							days={days}

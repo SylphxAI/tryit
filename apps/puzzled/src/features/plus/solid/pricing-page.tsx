@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { Check, Play } from 'lucide-solid'
 import { For } from 'solid-js'
+import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
 import { MarketingHero } from '@/features/marketing/solid/marketing-hero'
 import { MarketingSection } from '@/features/marketing/solid/marketing-section'
 import { formatPrice } from '@/lib/billing/plus'
@@ -43,7 +44,7 @@ function PricingBody({ data }: { data: PricingData }) {
 	} = data
 	const translate = createTranslator(locale)
 	const t = (key: string, values?: Record<string, string | number>) =>
-		translate(`plus.pricing.${key}`, values)
+		translate(`plus.pricing.${key}`, { days: ARCHIVE_WINDOW_DAYS, ...values })
 	const tPlus = (key: string) => translate(`plus.${key}`)
 	const href = (path: string) => localizedPath(locale, path)
 	const monthly = (family: boolean) =>

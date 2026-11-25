@@ -15,7 +15,7 @@ import { productDayKey } from '@/lib/product-day'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import { siteShellData } from '@/shared/solid/site-shell-data'
-import { archiveDayKeys } from '../lib/archive-days'
+import { ARCHIVE_WINDOW_DAYS, archiveDayKeys } from '../lib/archive-days'
 
 export async function readArchivePage(locale: Locale, request: Request, now = new Date()) {
 	const t = createTranslator(locale)
@@ -27,7 +27,7 @@ export async function readArchivePage(locale: Locale, request: Request, now = ne
 	const offer = buildCheckoutOffer(locale, request.headers, plans)
 	const prices = selectOfferPrices(offer.cards, offer.currency, locale)
 	const title = t('archive.metaTitle')
-	const description = t('archive.metaDescription')
+	const description = t('archive.metaDescription', { days: ARCHIVE_WINDOW_DAYS })
 	const games = getAllGameMetadata().map((game) => ({
 		slug: game.slug,
 		name: t(`games.${slugToCamelCase(game.slug)}.name`),

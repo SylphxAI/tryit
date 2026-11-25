@@ -1,13 +1,13 @@
 {
 	"metaTitle": "Archivo de puzles",
-	"metaDescription": "Explora los 19 juegos de los últimos 30 días. Desbloquea puzzles anteriores con Tryit Plus.",
+	"metaDescription": "Explora los 19 juegos de los últimos {days} días. Desbloquea puzzles anteriores con Tryit Plus.",
 	"eyebrow": "Archivo",
 	"title": "Tu archivo de puzzles",
 	"yesterdayIntro": "Empieza por ayer, {date}, o elige cualquiera de los últimos {count} días.",
 	"requiresPlus": "Requiere Tryit Plus",
 	"body": "Más de tus juegos favoritos. Explora todos los juegos de los últimos 30 días y elige un puzzle para jugar con Plus.",
 	"playFreeToday": "Jugar {game} (3 de 19 gratis al día)",
-	"listTitle": "Últimos 30 días · los 19 juegos",
+	"listTitle": "Últimos {days} días · los 19 juegos",
 	"playDayLabel": "Jugar {game} del {date}",
 	"play": "Jugar",
 	"playToday": "Juega el ritual de hoy ({game})",
@@ -18,7 +18,7 @@
 	"filterLabel": "Filtrar por categoría",
 	"yesterday": "Ayer",
 	"dayCount": "{count} juegos",
-	"mobileUnlockTitle": "Desbloquea los últimos 30 días",
+	"mobileUnlockTitle": "Desbloquea los últimos {days} días",
 	"mobileUnlockBody": "Juega los {games} juegos de los últimos {count} días con un pase de 3 días o Tryit Plus.",
 	"mobileUnlockCta": "Desbloquear archivo"
 }

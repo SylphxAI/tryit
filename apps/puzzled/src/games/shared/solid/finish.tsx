@@ -18,6 +18,7 @@ import { createPlayDraft } from './play-draft'
 export type DailyBoardProps = {
 	puzzle: Extract<DailySnapshot, { kind: 'playable' }>
 	locale: Locale
+	todayKey?: string
 	mode?: 'daily' | 'archive'
 	difficulty?: PuzzleDifficulty
 	draftScope?: string
@@ -99,6 +100,7 @@ export function createBoardFinish(
 				mode: props.mode ?? 'daily',
 				status: intent.status,
 				puzzleDate: intent.puzzleDate,
+				todayKey: props.todayKey,
 				difficulty: intent.difficulty,
 				attempts: intent.attempts,
 				score: score(),

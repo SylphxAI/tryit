@@ -62,9 +62,10 @@ describe('daily puzzle identity', () => {
 				mode: 'daily',
 				status: 'won',
 				puzzleDate: result.puzzleDate,
+				todayKey: dayKey,
 			})
 			expect(card.dayKey).toBe(dayKey)
-			expect(card.deepLink).toContain(`date=${dayKey}`)
+			expect(card.deepLink).toBe(`https://tryit.fun/games/${gameSlug}?utm_source=share`)
 			expect(
 				formatRitualShareText({
 					origin: 'https://tryit.fun',
@@ -72,6 +73,7 @@ describe('daily puzzle identity', () => {
 					gameName: 'Daily puzzle',
 					status: 'won',
 					puzzleDate: result.puzzleDate,
+					todayKey: dayKey,
 				}),
 			).toContain(` • #${puzzleNumber}`)
 		})

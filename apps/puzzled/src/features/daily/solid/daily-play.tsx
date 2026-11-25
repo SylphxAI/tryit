@@ -87,6 +87,7 @@ const failed = (error: unknown): State =>
 export function DailyPlay(props: {
 	data: GamePageData
 	day: GameDayRequest
+	todayKey: string
 	difficulty?: PuzzleDifficulty
 	started: boolean
 	initial?: State
@@ -239,6 +240,7 @@ export function DailyPlay(props: {
 								mode: props.day.mode,
 								status: result().session.status,
 								puzzleDate: result().puzzleDate,
+								todayKey: props.todayKey,
 								attempts: result().session.attempts,
 								difficulty: result().session.difficulty,
 								score: result().session.score,
@@ -320,6 +322,7 @@ export function DailyPlay(props: {
 						<Dynamic
 							component={board}
 							puzzle={value()}
+							todayKey={props.todayKey}
 							mode={props.day.mode}
 							locale={props.data.locale}
 							difficulty={props.difficulty}
