@@ -3,7 +3,8 @@ import { Lightbulb, RotateCcw } from 'lucide-solid'
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { trackHintUsed } from '@/features/analytics/lib/behavioral-events'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
-import { checkGuess } from '@/lib/connect/puzzle-client'
+import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
+import { isAlreadyPlayedError } from '@/lib/connect/already-played'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { parseCryptogramClientPayload } from './parse-client'
@@ -57,14 +58,11 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 		hintVersion++
 		clearTimeout(noticeTimer)
 	})
-	const grade = (guess: unknown) =>
-		checkGuess({
-			gameSlug: slug,
-			guess,
-			puzzleId: props.puzzle.puzzleId,
-			puzzleDate: props.puzzle.puzzleDate,
-			difficulty: props.difficulty,
-		})
+	const grade = (guess: unknown) => gradeBoardGuess(props, slug, guess)
+	function gradeError(cause: unknown, fail: () => void) {
+		if (props.mode !== 'practice' && isAlreadyPlayedError(cause)) props.onAlreadyPlayed()
+		else fail()
+	}
 
 	createEffect(() => {
 		retryCount()
@@ -91,10 +89,10 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 				if (solved) finish.finish({ guesses: submitted, hintsUsed: state().hintsUsed })
 				dispatch({ type: 'CHECKED', guesses: submitted, solved })
 			},
-			() => {
+			(cause) => {
 				if (stale) return
 				setGradePending(false)
-				setGradeFailed(true)
+				gradeError(cause, () => setGradeFailed(true))
 			},
 		)
 	})
@@ -121,8 +119,8 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 					trackHintUsed(slug, props.mode ?? 'daily', hintCount)
 				}
 			} else setHintFailed(true)
-		} catch {
-			if (version === hintVersion) setHintFailed(true)
+		} catch (cause) {
+			if (version === hintVersion) gradeError(cause, () => setHintFailed(true))
 		} finally {
 			if (version === hintVersion) setHintPending(false)
 		}

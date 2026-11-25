@@ -1,6 +1,7 @@
 import { batch, createSignal, onCleanup } from 'solid-js'
 import { createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
-import { checkGuess } from '@/lib/connect/puzzle-client'
+import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
+import { isAlreadyPlayedError } from '@/lib/connect/already-played'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { checkHiveDraft, createInitialState, spellingBeeReducer } from './play-state'
 import { readHiveGrade } from './read-grade'
@@ -63,13 +64,7 @@ export function createHivePlay(props: DailyBoardProps & { data: WordHivePlayData
 		dispatch({ type: 'GRADING', grading: true })
 		triggerHaptic('submit')
 		try {
-			const response = await checkGuess({
-				gameSlug: slug,
-				puzzleId: props.puzzle.puzzleId,
-				puzzleDate: props.puzzle.puzzleDate,
-				difficulty: props.difficulty,
-				guess: { word },
-			})
+			const response = await gradeBoardGuess(props, slug, { word })
 			if (disposed) return
 			const grade = readHiveGrade(response)
 			if (!grade) throw new Error('invalid_hive_grade')
@@ -95,8 +90,13 @@ export function createHivePlay(props: DailyBoardProps & { data: WordHivePlayData
 					finish.finish({ foundWords: next.foundWords }, { attempts: next.foundWords.length })
 				}
 			})
-		} catch {
+		} catch (cause) {
 			if (disposed) return
+			if (props.mode !== 'practice' && isAlreadyPlayedError(cause)) {
+				dispatch({ type: 'REJECT_WORD' })
+				props.onAlreadyPlayed()
+				return
+			}
 			batch(() => {
 				dispatch({ type: 'REJECT_WORD' })
 				setError('grade')

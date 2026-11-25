@@ -261,6 +261,11 @@ fn winning_input(game: &str, solution: &Value, data: &Value) -> Value {
         "block-slide" => generate::block_slide::solution_submission(solution),
         "pip-place" => generate::pip_place::solution_submission(solution),
         "number-path" => generate::number_path::solution_submission(solution),
+        "word-search" => generate::word_search::solution_submission(solution),
+        "word-ladder" => generate::word_ladder::solution_submission(solution),
+        "word-hive" => generate::word_hive::solution_submission(solution),
+        "word-box" => generate::word_box::solution_submission(solution),
+        "cryptogram" => generate::cryptogram::solution_submission(solution),
         "crowns" => {
             let size = data["size"].as_u64().unwrap() as usize;
             let mut grid = vec![vec![false; size]; size];
@@ -295,6 +300,24 @@ fn assert_public_keys(game: &str, data: &Value) {
         ],
         "pip-place" => &["cols", "maxPip", "regionOf", "regions", "rows"],
         "number-path" => &["clues", "size"],
+        // The word list is a clue; the coordinates are the solution.
+        "word-search" => &["grid", "theme", "wordCount", "words"],
+        "word-ladder" => &["endWord", "minSteps", "startWord", "wordLength"],
+        "word-hive" => &[
+            "centerLetter",
+            "maxScore",
+            "outerLetters",
+            "totalPangrams",
+            "totalWords",
+        ],
+        "word-box" => &["box"],
+        "cryptogram" => &[
+            "author",
+            "category",
+            "encryptedText",
+            "maxHints",
+            "uniqueLetters",
+        ],
         _ => unreachable!("not a practice game"),
     };
     let map = data.as_object().unwrap();
@@ -309,10 +332,20 @@ fn assert_public_keys(game: &str, data: &Value) {
         "solutionJson",
         "solution_json",
         "word",
-        "words",
         "queens",
         "validSets",
-    ] {
+        "placements",
+        "path",
+        "validWords",
+        "pangrams",
+        "originalText",
+        "cipher",
+        "reverseCipher",
+        "allLetters",
+    ]
+    .into_iter()
+    .chain((game != "word-search").then_some("words"))
+    {
         assert!(
             !data.to_string().contains(&format!("\"{key}\"")),
             "{game}: {key}"
@@ -326,6 +359,103 @@ fn assert_public_keys(game: &str, data: &Value) {
             .iter()
             .any(Value::is_null)));
     }
+}
+
+async fn assert_practice_grading(
+    app: &Router,
+    paid: &str,
+    game: &str,
+    mut params: Value,
+    data: &Value,
+    solution: &Value,
+) {
+    let Some(limit) = guess_limit(game) else {
+        params["guessJson"] = json!("{}");
+        let (status, body) = rpc(app, "CheckPracticeGuess", params, Some(paid), None).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{game}: {body}");
+        assert_eq!(body["message"], "game_not_graded_per_guess");
+        return;
+    };
+    let mut revealed = Vec::new();
+    let mut hint_guesses = serde_json::Map::new();
+    for attempt in 0..limit {
+        let (input, expected) = match game {
+            "arithmo" => {
+                assert_eq!(limit, 6);
+                (
+                    json!({"equation": solution["equation"]}),
+                    json!({"tiles": vec!["correct"; 8]}),
+                )
+            }
+            "quad-words" => (
+                json!({"word": solution["words"][0]}),
+                json!(vec!["correct"; 5]),
+            ),
+            "word-guess" => (
+                json!({"word": solution["word"]}),
+                json!({"tiles": vec!["correct"; 5]}),
+            ),
+            "word-hive" => {
+                assert_eq!(limit, 1000);
+                let words = solution["validWords"].as_array().unwrap();
+                let pangrams = solution["pangrams"].as_array().unwrap();
+                assert!(words.len() < limit as usize);
+                let word = words.get(attempt as usize);
+                (
+                    json!({"word": word.cloned().unwrap_or_else(|| json!("ZZZZ"))}),
+                    json!({
+                        "valid": word.is_some(),
+                        "pangram": word.is_some_and(|word| pangrams.contains(word)),
+                        "totalWords": words.len(),
+                        "totalPangrams": pangrams.len(),
+                    }),
+                )
+            }
+            "cryptogram" => {
+                assert_eq!(limit, 30);
+                assert_eq!(data["maxHints"], 3);
+                if attempt < 3 {
+                    let encrypted = data["encryptedText"]
+                        .as_str()
+                        .unwrap()
+                        .chars()
+                        .filter(char::is_ascii_uppercase)
+                        .filter(|ch| !revealed.contains(&ch.to_string()))
+                        .min()
+                        .unwrap()
+                        .to_string();
+                    let letter = &solution["reverseCipher"][&encrypted];
+                    let input =
+                        json!({"hint": true, "guesses": hint_guesses, "revealed": revealed});
+                    hint_guesses.insert(encrypted.clone(), letter.clone());
+                    revealed.push(encrypted.clone());
+                    (input, json!({"encrypted": encrypted, "letter": letter}))
+                } else if attempt == limit - 1 {
+                    (
+                        json!({"guesses": solution["reverseCipher"]}),
+                        json!({"solved": true}),
+                    )
+                } else {
+                    (json!({"guesses": hint_guesses}), json!({"solved": false}))
+                }
+            }
+            _ => unreachable!("missing practice grading case for {game}"),
+        };
+        params["guessJson"] = json!(input.to_string());
+        let (status, body) = rpc(app, "CheckPracticeGuess", params.clone(), Some(paid), None).await;
+        assert_eq!(status, StatusCode::OK, "{game}: {body}");
+        let result = json_field(&body, "resultJson");
+        let actual = if game == "quad-words" {
+            &result["boards"][0]
+        } else {
+            &result
+        };
+        assert_eq!(*actual, expected, "{game}");
+    }
+    params["difficulty"] = json!(" HARD "); // Ignored for games without levels.
+    let (status, body) = rpc(app, "CheckPracticeGuess", params, Some(paid), None).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS, "{game}: {body}");
+    assert_eq!(body["message"], "guess_limit_reached");
 }
 
 #[tokio::test]
@@ -369,7 +499,8 @@ async fn plus_can_finish_every_practice_game_without_using_the_daily_store() {
             .position(|&level| Some(level) == difficulty);
         let internal = practice_internal_seed(game, SEED) + offset.unwrap_or(0) as i64;
         let (_, solution) = generate_seeded(game, internal, difficulty).unwrap();
-        let mut submit = params.clone();
+        assert_practice_grading(&app, &paid, game, params.clone(), &data, &solution).await;
+        let mut submit = params;
         submit["status"] = json!("won");
         submit["timeSpentMs"] = json!("60000");
         submit["attempts"] = json!(1);
@@ -386,43 +517,6 @@ async fn plus_can_finish_every_practice_game_without_using_the_daily_store() {
         assert_eq!(accepted["status"], "won");
         assert_eq!(accepted["gameSlug"], game);
         assert_eq!(json_field(&accepted, "revealJson"), solution, "{game}");
-        if let Some(limit) = guess_limit(game) {
-            let (input, tile_count) = match game {
-                "arithmo" => (json!({"equation": solution["equation"]}), 8),
-                "quad-words" => (json!({"word": solution["words"][0]}), 5),
-                _ => (json!({"word": solution["word"]}), 5),
-            };
-            let mut guess = params.clone();
-            guess["guessJson"] = json!(input.to_string());
-            if game == "arithmo" {
-                assert_eq!(limit, 6);
-            }
-            for _ in 0..limit {
-                let (status, body) =
-                    rpc(&app, "CheckPracticeGuess", guess.clone(), Some(&paid), None).await;
-                assert_eq!(status, StatusCode::OK, "{game}: {body}");
-                let result = json_field(&body, "resultJson");
-                let tiles = if game == "quad-words" {
-                    &result["boards"][0]
-                } else {
-                    &result["tiles"]
-                };
-                assert_eq!(*tiles, json!(vec!["correct"; tile_count]));
-                if game == "arithmo" {
-                    assert_eq!(result, json!({"tiles": vec!["correct"; 8]}));
-                }
-            }
-            guess["difficulty"] = json!(" HARD "); // Ignored for games without levels.
-            let (status, body) = rpc(&app, "CheckPracticeGuess", guess, Some(&paid), None).await;
-            assert_eq!(status, StatusCode::TOO_MANY_REQUESTS, "{game}: {body}");
-            assert_eq!(body["message"], "guess_limit_reached");
-        } else {
-            let mut guess = params;
-            guess["guessJson"] = json!("{}");
-            let (status, body) = rpc(&app, "CheckPracticeGuess", guess, Some(&paid), None).await;
-            assert_eq!(status, StatusCode::BAD_REQUEST, "{game}: {body}");
-            assert_eq!(body["message"], "game_not_graded_per_guess");
-        }
     }
     let params = json!({"gameSlug":"sudoku"});
     let (status, first) = rpc(&app, "GetPracticePuzzle", params.clone(), Some(&paid), None).await;
