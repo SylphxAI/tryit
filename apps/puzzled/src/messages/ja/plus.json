@@ -18,6 +18,7 @@
 		"individualBody": "1人用です。",
 		"family": "Tryit Plus ファミリー",
 		"familyBody": "最大{count}人まで。それぞれ自分の統計と連続記録を持てます。",
+		"familyMonthlyPerPerson": "定員の{count}人で使うと1人あたり月額約{price}",
 		"monthly": "月額",
 		"yearly": "年額",
 		"weekendPass": "{days}日間パス",
@@ -30,6 +31,8 @@
 		"includesAllGames": "毎日、全{count}ゲームが遊べます",
 		"includesArchive": "過去{days}日分のパズル",
 		"includesStats": "すべてのゲームの統計と連続記録",
+		"includesAdFree": "広告は一切なし",
+		"includesSync": "スマホとパソコンで同期",
 		"includesFamily": "最大{count}人で共有",
 		"trialLine": "{days}日間無料。その後は年額{price}で、最初のお支払いは{date}です。設定からいつでも1ステップで解約できます。",
 		"startTrial": "{days}日間の無料体験を始める",
@@ -54,7 +57,26 @@
 		"notNowPlayFree": "今はやめて、毎日19種から3つ無料で遊ぶ",
 		"choosePlus": "Tryit Plusを選ぶ",
 		"signInToGetPlus": "ログインしてPlusを購入",
-		"signInToStartFamily": "ログインしてファミリープランを開始"
+		"signInToStartFamily": "ログインしてファミリープランを開始",
+		"faq": {
+			"title": "Tryit Plusのよくある質問",
+			"pass": {
+				"question": "{passDays}日間パスはどのように使えますか？",
+				"answer": "お支払いは1回だけ。{passDays}日間、毎日全{count}種類のゲームと過去{days}日分のパズルを遊べます。自動更新はありません。"
+			},
+			"cancel": {
+				"question": "サブスクリプションは解約できますか？",
+				"answer": "設定で「サブスクリプションを解約」を選び、確認してください。終えたパズルの記録、連続記録、統計はそのまま残ります。有料期間が終わっても、毎日好きな3つのゲームを無料で遊べます。"
+			},
+			"ads": {
+				"question": "プレイ中に広告は表示されますか？",
+				"answer": "無料プランでも有料プランでも、プレイが広告で中断されることはありません。Tryit Plusでは、どの画面にも広告は表示されません。"
+			},
+			"family": {
+				"question": "ファミリープランはどのように使えますか？",
+				"answer": "最大{count}人で利用できます。メンバーごとにアカウントがあり、連続記録や統計も別々です。"
+			}
+		}
 	},
 	"trial": {
 		"endsOn": "Tryit Plusの無料体験は{date}に終了します。料金は請求されず、終えた記録はすべて統計に残ります。",
@@ -64,6 +86,7 @@
 		"title": "今日の無料3ゲームはプレイ済みです",
 		"archiveTitle": "過去の日はTryit Plusの対象です",
 		"body": "毎日{count}種類から3つのパズルを無料で遊べます（今日の注目：{game}）。Tryit Plusですべての{count}ゲームと過去の日が解放されます。",
+		"benefits": "毎日全{count}種類のゲームと過去{days}日分のパズルを、すべて広告なしで",
 		"cta": "Tryit Plusを見る",
 		"signIn": "ログイン",
 		"playFree": "{game}を無料でプレイ",

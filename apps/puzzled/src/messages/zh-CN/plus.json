@@ -18,6 +18,7 @@
 		"individualBody": "供一位玩家使用。",
 		"family": "Tryit Plus 家庭方案",
 		"familyBody": "最多 {count} 人使用，各自保留统计和连续记录。",
+		"familyMonthlyPerPerson": "{count} 个名额全部用满时，每人每月约 {price}",
 		"monthly": "按月",
 		"yearly": "按年",
 		"weekendPass": "{days} 天通行证",
@@ -30,6 +31,8 @@
 		"includesAllGames": "每天可玩全部 {count} 款游戏",
 		"includesArchive": "过去 {days} 天的题目",
 		"includesStats": "每款游戏的统计和连续记录",
+		"includesAdFree": "完全无广告",
+		"includesSync": "手机和电脑间同步进度",
 		"includesFamily": "最多与 {count} 人共享",
 		"trialLine": "免费试用 {days} 天，之后每年 {price}，首次扣款日为 {date}。可随时在“设置”中一步取消。",
 		"startTrial": "开始 {days} 天免费试用",
@@ -54,7 +57,26 @@
 		"notNowPlayFree": "暂不订阅，每天 19 款谜题任选 3 款免费玩",
 		"choosePlus": "选择 Tryit Plus",
 		"signInToGetPlus": "登录以购买 Plus",
-		"signInToStartFamily": "登录以开通家庭方案"
+		"signInToStartFamily": "登录以开通家庭方案",
+		"faq": {
+			"title": "Tryit Plus 常见问题",
+			"pass": {
+				"question": "{passDays} 天通行证怎么用？",
+				"answer": "只需支付一次，即可在 {passDays} 天内畅玩全部 {count} 款每日游戏和过去 {days} 天的题目。通行证不会自动续期。"
+			},
+			"cancel": {
+				"question": "可以取消订阅吗？",
+				"answer": "在“设置”中选择取消订阅并确认。已完成的题目、连续记录和统计都会保留。付费期结束后，每天仍可任选 3 款游戏免费玩。"
+			},
+			"ads": {
+				"question": "游戏中会有广告吗？",
+				"answer": "无论使用免费还是付费方案，广告都不会打断游戏。Tryit Plus 的所有页面都没有广告。"
+			},
+			"family": {
+				"question": "家庭方案如何使用？",
+				"answer": "家庭方案最多可供 {count} 位成员使用。每位成员都有自己的账户、连续记录和统计。"
+			}
+		}
 	},
 	"trial": {
 		"endsOn": "你的 Tryit Plus 免费一周将于 {date} 结束。不会收取任何费用，你已完成的内容会继续保留在统计中。",
@@ -64,6 +86,7 @@
 		"title": "今天的 3 款免费游戏已玩完",
 		"archiveTitle": "往日题目属于 Tryit Plus",
 		"body": "每天 {count} 款谜题可任选 3 款免费玩（今日精选：{game}）。Tryit Plus 开放全部 {count} 款游戏和所有往日题目。",
+		"benefits": "畅玩每天的全部 {count} 款游戏和过去 {days} 天的题目，完全无广告",
 		"cta": "了解 Tryit Plus",
 		"signIn": "登录",
 		"playFree": "免费玩 {game}",

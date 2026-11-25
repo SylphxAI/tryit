@@ -18,6 +18,7 @@
 		"individualBody": "Para un solo jugador.",
 		"family": "Tryit Plus Familia",
 		"familyBody": "Hasta {count} personas, cada una con sus propias estadísticas y rachas.",
+		"familyMonthlyPerPerson": "Unos {price} por persona al mes con las {count} plazas ocupadas",
 		"monthly": "Mensual",
 		"yearly": "Anual",
 		"weekendPass": "Pase de {days} días",
@@ -30,6 +31,8 @@
 		"includesAllGames": "Los {count} juegos, todos los días",
 		"includesArchive": "Puzzles de los últimos {days} días",
 		"includesStats": "Estadísticas y rachas de cada juego",
+		"includesAdFree": "Sin ningún anuncio",
+		"includesSync": "Se sincroniza entre el móvil y el ordenador",
 		"includesFamily": "Comparte con hasta {count} personas",
 		"trialLine": "Gratis durante {days} días; después, {price} al año, con el primer cobro el {date}. Cancela cuando quieras en Ajustes, en un solo paso.",
 		"startTrial": "Empezar prueba gratuita de {days} días",
@@ -54,7 +57,26 @@
 		"notNowPlayFree": "Ahora no, jugar 3 puzzles gratis de 19 al día",
 		"choosePlus": "Elegir Tryit Plus",
 		"signInToGetPlus": "Inicia sesión para conseguir Plus",
-		"signInToStartFamily": "Inicia sesión para empezar el plan Familiar"
+		"signInToStartFamily": "Inicia sesión para empezar el plan Familiar",
+		"faq": {
+			"title": "Preguntas sobre Tryit Plus",
+			"pass": {
+				"question": "¿Cómo funciona el pase de {passDays} días?",
+				"answer": "Con un solo pago tienes {passDays} días de acceso a los {count} juegos diarios y a los puzzles de los últimos {days} días. El pase no se renueva automáticamente."
+			},
+			"cancel": {
+				"question": "¿Puedo cancelar mi suscripción?",
+				"answer": "En Ajustes, elige cancelar la suscripción y confirma. Conservas tus puzzles completados, tus rachas y tus estadísticas. Cuando termine el periodo de pago, podrás seguir eligiendo 3 juegos gratis cada día."
+			},
+			"ads": {
+				"question": "¿Los anuncios interrumpen el juego?",
+				"answer": "Ningún anuncio interrumpe la partida, tanto en el plan gratuito como en los de pago. Con Tryit Plus, no hay anuncios en ninguna pantalla."
+			},
+			"family": {
+				"question": "¿Cómo funciona el plan familiar?",
+				"answer": "El plan familiar admite hasta {count} personas. Cada una tiene su propia cuenta, con sus rachas y estadísticas."
+			}
+		}
 	},
 	"trial": {
 		"endsOn": "Tu semana gratis de Tryit Plus termina el {date}. No se cobra nada y todo lo que hayas completado se queda en tus estadísticas.",
@@ -64,6 +86,7 @@
 		"title": "Ya jugaste tus 3 juegos gratis de hoy",
 		"archiveTitle": "Los días anteriores forman parte de Tryit Plus",
 		"body": "3 de los {count} puzzles son gratis cada día (destacado de hoy: {game}). Tryit Plus desbloquea los {count} juegos y todos los días anteriores.",
+		"benefits": "Los {count} juegos diarios y los puzzles de los últimos {days} días, sin ningún anuncio",
 		"cta": "Ver Tryit Plus",
 		"signIn": "Iniciar sesión",
 		"playFree": "Juega {game} gratis",

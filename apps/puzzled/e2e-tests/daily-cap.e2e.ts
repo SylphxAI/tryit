@@ -204,6 +204,16 @@ for (const viewport of [
 				await expect(countdown).toHaveText('Resets in 0h 2m')
 
 				await expect(lock.locator('[data-unlock-plan]')).toHaveCount(3)
+				expect(
+					await lock
+						.locator('[data-unlock-plan]')
+						.evaluateAll((rows) => rows.map((row) => row.getAttribute('data-unlock-plan'))),
+				).toEqual(['individual_yearly', 'individual_once', 'individual_monthly'])
+				await expect(
+					lock.getByText('All 19 daily games + puzzles from the past 30 days, completely ad-free'),
+				).toBeVisible()
+				await expect(lock.getByText('one time', { exact: true })).toBeVisible()
+				expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
 				const prices = await lock.locator('[data-unlock-plan] dd').allTextContents()
 				expect(prices.every((price) => price.includes(colorScheme === 'dark' ? '€' : '$'))).toBe(
 					true,
@@ -221,6 +231,15 @@ for (const viewport of [
 					await expect(
 						pricing.locator('#plus').getByText(price, { exact: true }).first(),
 					).toBeVisible()
+				const hero = lock.locator('[data-unlock-plan="individual_yearly"]')
+				const yearly = pricing.locator('#plus').getByRole('radio', { name: /^Yearly/ })
+				await expect(yearly).toBeChecked()
+				for (const pattern of [/Save \d+%/, /[^\s]+ a month/]) {
+					const chip = hero.getByText(pattern)
+					await expect(chip).toBeVisible()
+					const copy = (await chip.textContent()) ?? ''
+					await expect(pricing.locator('#plus').getByText(copy, { exact: true })).toBeVisible()
+				}
 				await pricing.close()
 				await expect(lock.getByRole('link', { name: /^Resume:/ })).toHaveCount(2)
 				const hard = lock.getByRole('link', { name: 'Resume: Cage Sudoku' })
