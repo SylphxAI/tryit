@@ -44,7 +44,7 @@ impl TickError {
     }
 }
 
-/// Verify the receipt against the exact callback URL; log only safe fields on rejection.
+/// Verify the receipt against the exact callback URL; log only safe admission fields.
 pub async fn admit_tick(jwks_url: &str, headers: &HeaderMap, path: &str) -> Result<(), TickError> {
     let token = headers
         .get(header::AUTHORIZATION)
@@ -52,12 +52,18 @@ pub async fn admit_tick(jwks_url: &str, headers: &HeaderMap, path: &str) -> Resu
         .and_then(|v| v.strip_prefix("Bearer "))
         .map(str::trim)
         .filter(|t| !t.is_empty());
-    verify_tick(jwks_url, headers, path, token)
-        .await
-        .map_err(|(reject, verify_error)| {
-            // Do not echo a receipt copied into another diagnostic field.
-            let safe = |value: &str| !token.is_some_and(|token| value.contains(token));
-            let path = path.split('?').next().unwrap_or("-");
+    let admission = verify_tick(jwks_url, headers, path, token).await;
+
+    // Do not echo a receipt copied into another diagnostic field.
+    let safe = |value: &str| !token.is_some_and(|token| value.contains(token));
+    let path = path.split('?').next().unwrap_or("-");
+    let path = if safe(path) { path } else { "-" };
+    match admission {
+        Ok(()) => {
+            tracing::info!(path, status = 200u16, "compute tick admitted");
+            Ok(())
+        }
+        Err((reject, verify_error)) => {
             tracing::warn!(
                 reason = reject.reason(),
                 verify_error,
@@ -72,11 +78,12 @@ pub async fn admit_tick(jwks_url: &str, headers: &HeaderMap, path: &str) -> Resu
                     .and_then(|v| v.to_str().ok())
                     .filter(|s| matches!(*s, "http" | "https") && safe(s))
                     .unwrap_or("-"),
-                path = if safe(path) { path } else { "-" },
+                path,
                 "compute tick rejected"
             );
-            reject
-        })
+            Err(reject)
+        }
+    }
 }
 
 // Diagnostic projection only: reject arbitrary text, userinfo and overlong values.

@@ -397,6 +397,60 @@ async fn compute_tick_warning_omits_receipt_sdk_payload_and_query() {
 }
 
 #[tokio::test]
+async fn compute_tick_admission_info_omits_signed_receipt_and_query() {
+    let provider = Provider::start(StatusCode::OK).await;
+    let logs = TickLogs::default();
+    // As in the warning test, keep callsite interest shared with parallel tests.
+    let _other = tracing::Dispatch::new(tracing::subscriber::NoSubscriber::default());
+    let subscriber = tracing_subscriber::fmt()
+        .with_writer(logs.clone())
+        .without_time()
+        .with_ansi(false)
+        .with_max_level(tracing::Level::INFO)
+        .finish();
+    let path = COMPUTE_PATHS[0];
+    let query_value = "test-admission-query-not-for-logs";
+    let path_and_query = format!("{path}?test={query_value}");
+    let signed_receipt = receipt(&path_and_query, json!({}), 7);
+    let mut req = request(&path_and_query, Some(&signed_receipt));
+    req.headers_mut().insert(
+        "x-forwarded-host",
+        signed_receipt
+            .parse()
+            .unwrap_or_else(|_| panic!("forwarded host fixture")),
+    );
+    req.headers_mut().insert(
+        "x-forwarded-proto",
+        "https"
+            .parse()
+            .unwrap_or_else(|_| panic!("protocol fixture")),
+    );
+
+    let (status, body) = call(provider.state(), req)
+        .with_subscriber(subscriber)
+        .await;
+    assert_admitted(&path_and_query, status, &body);
+
+    let bytes = logs.0.lock().unwrap_or_else(|e| panic!("log buffer: {e}"));
+    let output = std::str::from_utf8(&bytes).unwrap_or_else(|e| panic!("log encoding: {e}"));
+    assert!(!output.contains(&signed_receipt));
+    assert!(!output.contains(query_value));
+    assert!(!output.contains("?test="));
+    assert!(!output.contains("compute tick rejected"));
+    assert_eq!(output.matches("compute tick admitted").count(), 1);
+    let event = output
+        .lines()
+        .find(|line| line.contains("compute tick admitted"))
+        .unwrap_or_else(|| panic!("missing admission event"));
+    for field in ["INFO", "status=200", &format!("path=\"{path}\"")] {
+        assert!(
+            event.split_whitespace().any(|part| part == field),
+            "missing admission field: {field}"
+        );
+    }
+}
+
+#[tokio::test]
 async fn compute_callbacks_bind_host_and_preserve_the_existing_forwarded_host_fallback() {
     let provider = Provider::start(StatusCode::OK).await;
     for path in COMPUTE_PATHS.into_iter().chain([JOBS_PATH]) {

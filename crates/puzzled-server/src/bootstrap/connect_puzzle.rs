@@ -33,6 +33,7 @@ use puzzled_core::puzzle_play::game_flows::build_daily_status;
 use puzzled_core::puzzle_play::game_slugs::{canonicalize_game_slug, is_valid_game_slug};
 use puzzled_core::{generate_sudoku_puzzle, SudokuDifficulty};
 
+use super::connect_practice::{self, PracticeGuessBudget};
 use super::state::AppState;
 use crate::bootstrap::identity::RequestAccess;
 use crate::capabilities::billing::service::access as entitlement_access;
@@ -50,11 +51,13 @@ use crate::capabilities::puzzle_play::adapters::result_shares_db::{
     load_shared_result, record_share_on_connection, set_share_streak_on_connection,
 };
 use crate::proto::puzzled::v1::{
-    CheckGuessRequest, CheckGuessResponse, DailyCompletion, GameProgress, GetDailyRequest,
-    GetDailyResponse, GetPuzzleRequest, GetPuzzleResponse, GetSharedResultRequest,
+    CheckGuessRequest, CheckGuessResponse, CheckPracticeGuessRequest, DailyCompletion,
+    GameProgress, GetDailyRequest, GetDailyResponse, GetPracticePuzzleRequest,
+    GetPracticePuzzleResponse, GetPuzzleRequest, GetPuzzleResponse, GetSharedResultRequest,
     GetSharedResultResponse, GetTodayProgressRequest, GetTodayProgressResponse, PuzzleService,
     RecordShareLandingRequest, RecordShareLandingResponse, ShareResultRequest, ShareResultResponse,
-    StartDailyRequest, StartDailyResponse, SubmitGuessRequest, SubmitGuessResponse, TodayFreePicks,
+    StartDailyRequest, StartDailyResponse, SubmitGuessRequest, SubmitGuessResponse,
+    SubmitPracticeRequest, SubmitPracticeResponse, TodayFreePicks,
 };
 
 const SLICE_PUZZLE: &str = "S2-puzzle-connect";
@@ -74,6 +77,7 @@ enum Admission {
 #[derive(Clone)]
 pub struct PuzzleConnectService {
     state: AppState,
+    practice_guesses: PracticeGuessBudget,
     /// Graded guesses per (player, game, day, difficulty), capped at the
     /// game's own guess limit so CheckGuess cannot be used to search for the
     /// answer. Per process and per day; cleared when the day changes.
@@ -84,6 +88,7 @@ impl PuzzleConnectService {
     pub fn new(state: AppState) -> Self {
         Self {
             state,
+            practice_guesses: PracticeGuessBudget::default(),
             guesses: Arc::new(std::sync::Mutex::new((NaiveDate::MIN, HashMap::new()))),
         }
     }
@@ -739,7 +744,7 @@ fn difficulty_label(d: SudokuDifficulty) -> &'static str {
     }
 }
 
-fn parse_status(raw: &str) -> Option<SubmissionStatus> {
+pub(super) fn parse_status(raw: &str) -> Option<SubmissionStatus> {
     match raw.trim().to_ascii_lowercase().as_str() {
         "won" => Some(SubmissionStatus::Won),
         "lost" => Some(SubmissionStatus::Lost),
@@ -747,7 +752,7 @@ fn parse_status(raw: &str) -> Option<SubmissionStatus> {
     }
 }
 
-fn status_label(s: SubmissionStatus) -> &'static str {
+pub(super) fn status_label(s: SubmissionStatus) -> &'static str {
     match s {
         SubmissionStatus::Won => "won",
         SubmissionStatus::Lost => "lost",
@@ -832,6 +837,36 @@ fn date_from_string(raw: Option<&str>) -> Option<NaiveDate> {
 
 #[allow(refining_impl_trait_internal, refining_impl_trait_reachable)]
 impl PuzzleService for PuzzleConnectService {
+    async fn get_practice_puzzle(
+        &self,
+        ctx: RequestContext,
+        request: ServiceRequest<'_, GetPracticePuzzleRequest>,
+    ) -> ServiceResult<GetPracticePuzzleResponse> {
+        connect_practice::get(&self.state, &ctx, request.to_owned_message()).await
+    }
+
+    async fn check_practice_guess(
+        &self,
+        ctx: RequestContext,
+        request: ServiceRequest<'_, CheckPracticeGuessRequest>,
+    ) -> ServiceResult<CheckGuessResponse> {
+        connect_practice::check_guess(
+            &self.state,
+            &self.practice_guesses,
+            &ctx,
+            request.to_owned_message(),
+        )
+        .await
+    }
+
+    async fn submit_practice(
+        &self,
+        ctx: RequestContext,
+        request: ServiceRequest<'_, SubmitPracticeRequest>,
+    ) -> ServiceResult<SubmitPracticeResponse> {
+        connect_practice::submit(&self.state, &ctx, request.to_owned_message()).await
+    }
+
     async fn record_share_landing(
         &self,
         ctx: RequestContext,
