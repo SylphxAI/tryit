@@ -1,3 +1,4 @@
+import { uuidv7 } from '@sylphx/sdk/runtime'
 import {
 	createSignalBrowser,
 	resolveEffectiveConsent,
@@ -90,7 +91,7 @@ function syncBrowser() {
 	const stream = consent.explicit ? context.stream : undefined
 	if (browser && Boolean(session) !== Boolean(stream)) resetBrowser()
 	if (browser) return
-	const id = stream ? crypto.randomUUID() : undefined
+	const id = stream ? uuidv7() : undefined
 	browser = createSignalBrowser({
 		region: context.region,
 		gpc: context.gpc,
