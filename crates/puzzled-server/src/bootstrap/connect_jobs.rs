@@ -9,10 +9,12 @@ use chrono::Utc;
 use connectrpc::{
     ConnectError, ErrorCode, RequestContext, Response, ServiceRequest, ServiceResult,
 };
+use uuid::Uuid;
 
 use super::compute_ticks::{admit_tick, TickError};
 use super::state::AppState;
 use crate::capabilities::jobs::adapters::jobs_db;
+use crate::capabilities::preferences::unsubscribe::UnsubscribeTokens;
 use crate::proto::puzzled::v1::{JobsService, RunRetentionJobRequest, RunRetentionJobResponse};
 use crate::shared::dest_http::{dest_email_connector_id, dest_email_delivery, dest_events_deliver};
 use puzzled_core::puzzle_play::daily_time::product_day_key;
@@ -178,13 +180,15 @@ impl JobsConnectService {
     }
 
     async fn run_win_back_emails(&self) -> Result<u32, Vec<String>> {
+        let Some(unsubscribe) = &self.state.unsubscribe else {
+            return Err(vec!["unsubscribe_not_configured".to_string()]);
+        };
         let Some(pool) = &self.state.pool else {
             return Err(vec!["no database pool".to_string()]);
         };
         let connector_id = dest_email_connector_id().map_err(|e| vec![e])?;
         let origin =
             crate::shared::public_origin::public_origin().map_err(|e| vec![e.to_string()])?;
-        let (subject, text_body) = win_back_message(&origin);
         let mut errors = Vec::new();
         let mut processed = 0u32;
         let today = Utc::now().date_naive();
@@ -193,24 +197,27 @@ impl JobsConnectService {
                 .await
                 .map_err(|e| vec![e])?;
             for (user_id, email) in targets {
-                let delivery = dest_email_delivery(
-                    &connector_id,
-                    &user_id,
-                    &email,
-                    email_type,
-                    subject,
-                    &text_body,
-                );
-                match dest_events_deliver(delivery).await {
-                    Ok(()) => {
-                        if let Err(e) =
-                            jobs_db::record_win_back_email(pool, &user_id, email_type, today).await
-                        {
-                            errors.push(format!("{user_id} record: {e}"));
-                        } else {
-                            processed += 1;
-                        }
-                    }
+                let result = async {
+                    let now_ms = jiff::Timestamp::now().as_millisecond();
+                    let unsubscribe_url =
+                        win_back_unsubscribe_url(unsubscribe, &origin, &user_id, now_ms)?;
+                    let (subject, text_body) = win_back_message(&origin, &unsubscribe_url);
+                    let delivery = dest_email_delivery(
+                        &connector_id,
+                        &user_id,
+                        &email,
+                        email_type,
+                        subject,
+                        &text_body,
+                    );
+                    dest_events_deliver(delivery).await?;
+                    jobs_db::record_win_back_email(pool, &user_id, email_type, today)
+                        .await
+                        .map_err(|e| format!("record: {e}"))
+                }
+                .await;
+                match result {
+                    Ok(()) => processed += 1,
                     Err(e) => errors.push(format!("{user_id}: {e}")),
                 }
             }
@@ -272,16 +279,30 @@ pub fn jobs_connect_service(state: AppState) -> Arc<JobsConnectService> {
     Arc::new(JobsConnectService::new(state))
 }
 
-fn win_back_message(origin: &str) -> (&'static str, String) {
+fn win_back_unsubscribe_url(
+    unsubscribe: &UnsubscribeTokens,
+    origin: &str,
+    user_id: &str,
+    now_ms: i64,
+) -> Result<String, String> {
+    let user_id = Uuid::parse_str(user_id).map_err(|_| "invalid_win_back_user_id".to_string())?;
+    let token = unsubscribe.sign(user_id, now_ms)?;
+    Ok(format!("{origin}/api/email/unsubscribe?token={token}"))
+}
+
+fn win_back_message(origin: &str, unsubscribe_url: &str) -> (&'static str, String) {
     (
         "Your next puzzle is waiting at Tryit",
-        format!("Take a short puzzle break at Tryit.\n\nPlay today's puzzle: {origin}/\n\nNeed a hand? hi@tryit.fun"),
+        format!("Take a short puzzle break at Tryit.\n\nPlay today's puzzle: {origin}/\n\nNeed a hand? hi@tryit.fun\n\nUnsubscribe from puzzle emails: {unsubscribe_url}"),
     )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{send_due_daily_reminders_with, win_back_message};
+    use super::{
+        send_due_daily_reminders_with, win_back_message, win_back_unsubscribe_url, AppState,
+        JobsConnectService, UnsubscribeTokens,
+    };
 
     use crate::capabilities::preferences::adapters::web_push;
     use crate::test_support::fresh_database;
@@ -289,19 +310,54 @@ mod tests {
     use uuid::Uuid;
 
     #[test]
-    fn tryit_win_back_copy_uses_configured_links_and_support() {
+    fn tryit_win_back_copy_uses_signed_opt_out_and_configured_origin() -> Result<(), String> {
+        const ISSUED: i64 = 1_700_000_000_000;
+        const TOKEN: &str = "00000000-0000-0000-0000-000000000001.loyw3v28.ce95d784698caad5";
+        let tokens = UnsubscribeTokens::new("test-unsubscribe-key".into());
+        let other_key = UnsubscribeTokens::new("wrong-key".into());
+        let user_id = Uuid::from_u128(1);
+        let other_id = Uuid::from_u128(2);
         for origin in [
             crate::shared::public_origin::DEFAULT_PUBLIC_URL,
             "https://puzzled.gg",
             "https://puzzled.test",
         ] {
-            let (subject, body) = win_back_message(origin);
+            let url = win_back_unsubscribe_url(&tokens, origin, &user_id.to_string(), ISSUED)?;
+            let (subject, body) = win_back_message(origin, &url);
+            let prefix =
+                format!("Unsubscribe from puzzle emails: {origin}/api/email/unsubscribe?token=");
+            let token = body.lines().find_map(|line| line.strip_prefix(&prefix));
+            assert_eq!(token, Some(TOKEN));
+            let token = token.ok_or("missing opt-out link")?;
+            assert_eq!(tokens.verify(token, ISSUED), Some(user_id));
+            assert_eq!(other_key.verify(token, ISSUED), None);
+            let forged = token.replacen(&user_id.to_string(), &other_id.to_string(), 1);
+            assert_eq!(tokens.verify(&forged, ISSUED), None);
             assert_eq!(subject, "Your next puzzle is waiting at Tryit");
             assert!(body.contains(&format!("Play today's puzzle: {origin}/")));
             assert!(body.contains("hi@tryit.fun"));
             assert!(!body.contains("day7"));
             assert!(!subject.contains("Puzzled"));
+            assert!(!subject.contains("Sylphx"));
+            assert!(!body.contains("Sylphx"));
+            assert!(!body.contains("streak"));
         }
+        assert_eq!(
+            win_back_unsubscribe_url(&tokens, "https://tryit.fun", "not-a-uuid", ISSUED),
+            Err("invalid_win_back_user_id".into())
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn win_back_refuses_before_database_or_delivery_without_unsubscribe_key() {
+        let mut state = AppState::new(None);
+        state.unsubscribe = None;
+        let jobs = JobsConnectService::new(state);
+        assert_eq!(
+            jobs.run_win_back_emails().await,
+            Err(vec!["unsubscribe_not_configured".to_string()])
+        );
     }
 
     /// Exercise consecutive Compute ticks through the real database claim/release
