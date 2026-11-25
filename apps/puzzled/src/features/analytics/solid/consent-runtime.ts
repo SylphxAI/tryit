@@ -50,7 +50,7 @@ export function ConsentRuntime() {
 		// Only public paths track page views. Tag initialization also supports the
 		// explicit conversion on the subscription return page.
 		const checkoutReturn =
-			consent.analytics &&
+			(consent.analytics || consent.marketing) &&
 			/^(?:\/[^/]+)?\/settings\/subscription\/?$/.test(path) &&
 			subscriptionReturn(new URLSearchParams(search)).session !== null
 		const isPublic = trackablePath(path) !== null
@@ -122,6 +122,8 @@ export function ConsentRuntime() {
 				const ids = googleTagIds({
 					GA_MEASUREMENT_ID: typeof data.ids?.ga === 'string' ? data.ids.ga : undefined,
 					GOOGLE_ADS_ID: typeof data.ids?.ads === 'string' ? data.ids.ads : undefined,
+					GOOGLE_ADS_PURCHASE_LABEL:
+						typeof data.ids?.adsPurchaseLabel === 'string' ? data.ids.adsPurchaseLabel : undefined,
 				})
 				if (ids) {
 					tag = createGoogleTag({

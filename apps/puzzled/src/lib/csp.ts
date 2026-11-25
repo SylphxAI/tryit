@@ -24,16 +24,22 @@ export const NONCE_HEADER = 'x-nonce'
 /** Hosts the Google tag reports to, added to connect-src only while it is configured. */
 export const GOOGLE_TAG_CONNECT_HOSTS = [
 	'https://www.googletagmanager.com',
+	'https://google-analytics.com',
 	'https://*.google-analytics.com',
+	'https://analytics.google.com',
 	'https://*.analytics.google.com',
 	'https://*.g.doubleclick.net',
+	'https://ad.doubleclick.net',
 	'https://www.google.com',
 	'https://www.googleadservices.com',
 	'https://pagead2.googlesyndication.com',
 ] as const
 
-/** Frame host the Ads conversion tag may use, added only while the tag is configured. */
-export const GOOGLE_TAG_FRAME_HOSTS = ['https://td.doubleclick.net'] as const
+/** Frames the Ads conversion tag may use, added only while the tag is configured. */
+export const GOOGLE_TAG_FRAME_HOSTS = [
+	'https://www.googletagmanager.com',
+	'https://td.doubleclick.net',
+] as const
 
 export function buildCsp(
 	nonce: string | undefined,

@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
+import { resolveEffectiveConsent, type SignalConsent } from '@sylphx/sdk/signal'
 import { reportCheckoutReturn } from '@/features/plus/lib/checkout-return'
 import { CONSENT_KEY } from '@/lib/storage-keys'
-import { CHECKOUT_QUOTE_KEY, setConsentContext } from './consent'
+import { CHECKOUT_QUOTE_KEY, cookieConsent, setConsentContext } from './consent'
 import {
 	cleanEventParams,
 	createGoogleTag,
 	deleteGoogleCookies,
+	type GoogleTagIds,
 	googleCookieNames,
 	googleTagIds,
 	rememberCheckoutQuote,
@@ -14,6 +15,7 @@ import {
 	type TagDocument,
 	type TagWindow,
 	trackablePath,
+	trackCheckoutPurchase,
 	trackCheckoutTrialStart,
 	trackSignUp,
 } from './google-tag'
@@ -23,9 +25,13 @@ const consentSignals = (choice: { analytics: boolean; marketing: boolean }) =>
 		storedChoice: choice.marketing ? 'granted' : choice.analytics ? 'analytics_only' : 'denied',
 	})
 
-const IDS = { ga: 'G-TEST1234', ads: 'AW-123456789' }
+const IDS = { ga: 'G-TEST1234', ads: 'AW-123456789', adsPurchaseLabel: 'FixturePurchase' }
 
-function harness(choice: { analytics: boolean; marketing: boolean }, ids = IDS) {
+function harness(
+	choice: { analytics: boolean; marketing: boolean },
+	ids: GoogleTagIds = IDS,
+	currentConsent?: () => SignalConsent,
+) {
 	const scripts: string[] = []
 	const calls: unknown[][] = []
 	const store = new Map<string, string>()
@@ -44,7 +50,7 @@ function harness(choice: { analytics: boolean; marketing: boolean }, ids = IDS) 
 		ids,
 		win,
 		doc,
-		consent: () => consentSignals(state),
+		consent: currentConsent ?? (() => consentSignals(state)),
 	})
 	return { tag, scripts, calls, state, store, win }
 }
@@ -69,8 +75,24 @@ describe('ids', () => {
 		expect(googleTagIds({ GA_MEASUREMENT_ID: ' G-ABCD1234 ' })).toEqual({
 			ga: 'G-ABCD1234',
 			ads: null,
+			adsPurchaseLabel: null,
 		})
 	})
+})
+
+test('purchase label is exposed only alongside a valid Ads ID and safe label', () => {
+	const config = {
+		GA_MEASUREMENT_ID: IDS.ga,
+		GOOGLE_ADS_ID: IDS.ads,
+		GOOGLE_ADS_PURCHASE_LABEL: IDS.adsPurchaseLabel,
+	}
+	expect(googleTagIds(config)).toEqual(IDS)
+	expect(googleTagIds({ ...config, GOOGLE_ADS_ID: 'AW-invalid' })?.adsPurchaseLabel).toBeNull()
+	for (const label of ['short/path', 'a.b.c', 'a b c', 'x', 'x'.repeat(65)]) {
+		expect(
+			googleTagIds({ ...config, GOOGLE_ADS_PURCHASE_LABEL: label })?.adsPurchaseLabel,
+		).toBeNull()
+	}
 })
 
 describe('loading', () => {
@@ -195,13 +217,16 @@ describe('events', () => {
 			plan: 'individual_yearly',
 			items: [{ item_id: 'individual_yearly' }],
 		})
-		expect(cleanEventParams({ user_id: 'u_abc123XYZ' })).toEqual({ user_id: 'u_abc123XYZ' })
+		expect(cleanEventParams({ user_id: 'u_abc123XYZ' })).toEqual({})
 	})
 })
 
 describe('conversions', () => {
-	function install(choice = { analytics: true, marketing: true }) {
-		const h = harness(choice)
+	function install(
+		choice = { analytics: true, marketing: true },
+		currentConsent?: () => SignalConsent,
+	) {
+		const h = harness(choice, IDS, currentConsent)
 		h.tag.sync()
 		h.calls.length = 0
 		const items = new Map<string, string>()
@@ -243,21 +268,97 @@ describe('conversions', () => {
 		expect([...items.keys()].filter((k) => k.includes('checkout-quote'))).toEqual([])
 	})
 
-	test('confirmed paid return emits no browser purchase even with both destinations live', () => {
+	test('confirmed paid return sends exactly the Ads purchase and does not resend with a new quote', () => {
 		const { h, items } = install()
-		setConsentContext({ region: 'EEA', gpc: false })
-		try {
-			items.set(CONSENT_KEY, 'granted')
-			rememberCheckoutQuote({ plan: 'individual_monthly', value: 4.99, currency: 'GBP' })
-			expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(true)
-			const paid = { sessionId: 'cs_fixture_paid_1', status: 'paid' as const }
-			reportCheckoutReturn(paid)
-			reportCheckoutReturn(paid)
-			expect(sent(h)).toEqual([])
-			expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(false)
-		} finally {
-			setConsentContext(null)
+		const quote = { plan: 'individual_monthly', value: 4.99, currency: 'GBP' }
+		rememberCheckoutQuote(quote)
+		expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(true)
+		const paid = { sessionId: 'cs_fixture_paid_1', status: 'paid' as const }
+		reportCheckoutReturn(paid)
+		expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(false)
+		rememberCheckoutQuote(quote)
+		reportCheckoutReturn(paid)
+		expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(false)
+		expect(sent(h)).toEqual([
+			[
+				'conversion',
+				{
+					send_to: 'AW-123456789/FixturePurchase',
+					value: 4.99,
+					currency: 'GBP',
+					transaction_id: 'cs_fixture_paid_1',
+				},
+			],
+		])
+	})
+
+	for (const [choice, gpc] of [
+		[null, false],
+		['denied', false],
+		['analytics_only', false],
+		['granted', true],
+	] as const) {
+		test(`paid return drops the quote without Ads on ${choice}, gpc=${gpc}`, () => {
+			const { h, items } = install(undefined, () => cookieConsent().signals)
+			try {
+				if (choice) items.set(CONSENT_KEY, choice)
+				setConsentContext({ region: 'EEA', gpc })
+				h.tag.sync()
+				items.set(
+					CHECKOUT_QUOTE_KEY,
+					JSON.stringify({ plan: 'pass', value: 4.99, currency: 'USD' }),
+				)
+				reportCheckoutReturn({ status: 'paid', sessionId: 'cs_fixture_paid_2' })
+				expect(sent(h)).toEqual([])
+				expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(false)
+				expect([...items.keys()].some((key) => key.includes('paid:'))).toBe(false)
+			} finally {
+				setConsentContext(null)
+			}
+		})
+	}
+
+	test('Ads purchase checks both consent signals again even after Ads is loaded', () => {
+		const choice = { ...consentSignals({ analytics: true, marketing: true }) }
+		const { h } = install(undefined, () => choice)
+		for (const signal of ['ad_storage', 'ad_user_data'] as const) {
+			choice[signal] = 'denied'
+			expect(h.tag.adsPurchase({ value: 1, currency: 'usd', transactionId: 'cs_fixture' })).toBe(
+				false,
+			)
+			choice[signal] = 'granted'
 		}
+		expect(sent(h)).toEqual([])
+	})
+
+	test('Ads purchase is inert before tag load, with bad fields, or without a label', () => {
+		const h = harness({ analytics: true, marketing: true })
+		const payload = { value: 1, currency: 'USD', transactionId: 'cs_fixture' }
+		expect(h.tag.adsPurchase(payload)).toBe(false)
+		h.tag.sync()
+		for (const input of [
+			{ value: Infinity },
+			{ value: 0 },
+			{ currency: 'USD-private' },
+			{ transactionId: 'user@example.test' },
+		]) {
+			expect(h.tag.adsPurchase({ ...payload, ...input })).toBe(false)
+		}
+		const noLabel = harness(h.state, { ...IDS, adsPurchaseLabel: null })
+		noLabel.tag.sync()
+		expect(noLabel.tag.adsPurchase(payload)).toBe(false)
+		expect(sent(h)).toEqual([])
+		expect(sent(noLabel)).toEqual([])
+	})
+
+	test('no purchase is sent when the dedup marker cannot be saved', () => {
+		const { h } = install()
+		rememberCheckoutQuote({ plan: 'pass', value: 5, currency: 'USD' })
+		window.localStorage.setItem = () => {
+			throw new Error('storage blocked')
+		}
+		expect(trackCheckoutPurchase({ sessionId: 'cs_fixture' })).toBe(false)
+		expect(sent(h)).toEqual([])
 	})
 
 	test('without consent nothing is stored or sent, and the quote is not consumed', () => {
@@ -315,13 +416,14 @@ describe('cookies', () => {
 })
 
 describe('config privacy flags', () => {
-	test('Ads config also turns off personalization signals', () => {
+	test('Ads config turns off personalization signals and enhanced conversions', () => {
 		const h = harness({ analytics: false, marketing: true })
 		h.tag.sync()
 		const cfg = h.calls.find((c) => c[0] === 'config' && c[1] === IDS.ads)
 		expect(cfg?.[2]).toMatchObject({
 			allow_google_signals: false,
 			allow_ad_personalization_signals: false,
+			allow_enhanced_conversions: false,
 		})
 	})
 })

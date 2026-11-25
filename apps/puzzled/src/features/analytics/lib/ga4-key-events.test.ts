@@ -37,7 +37,7 @@ function installBrowserStubs() {
 	}
 	setConsentContext({ region: 'EEA', gpc: false })
 	const tag = createGoogleTag({
-		ids: { ga: 'G-TEST1234', ads: null },
+		ids: { ga: 'G-TEST1234', ads: null, adsPurchaseLabel: null },
 		win: g.window as TagWindow,
 		doc: {
 			cookie: '',

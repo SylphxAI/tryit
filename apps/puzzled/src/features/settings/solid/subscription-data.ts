@@ -66,7 +66,7 @@ export async function readSubscriptionPage(
 		handoff,
 		hasClaimCookie,
 		view,
-		conversion: status && sessionId ? { status, sessionId, userId: user.id } : null,
+		conversion: status && sessionId ? { status, sessionId } : null,
 	}
 }
 

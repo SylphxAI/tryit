@@ -1,6 +1,8 @@
 import { test as base, type Page, type Route } from '@playwright/test'
 
 export const id = 'G-TEST1234'
+export const adsId = 'AW-18596053831'
+export const purchaseLabel = 'didiCKiywr8dEMeGpaNF'
 
 function whileTargetOpen(page: Page, handle: (route: Route) => Promise<void>) {
 	return async (route: Route) => {
@@ -24,10 +26,10 @@ function whileTargetOpen(page: Page, handle: (route: Route) => Promise<void>) {
 }
 
 /** Inspect the real runtime while preventing any external Google request. */
-export async function capture(page: Page) {
+export async function capture(page: Page, stubIds = true) {
 	const requests: string[] = []
 	await page.route(
-		/https:\/\/[^/]*(googletagmanager\.com|google-analytics\.com|analytics\.google\.com|googleadservices\.com|googlesyndication\.com|doubleclick\.net)\//,
+		/https:\/\/[^/]*(googletagmanager\.com|google-analytics\.com|analytics\.google\.com|www\.google\.com|googleadservices\.com|googlesyndication\.com|doubleclick\.net)\//,
 		whileTargetOpen(page, async (route) => {
 			requests.push(route.request().url())
 			await route.fulfill({
@@ -36,13 +38,17 @@ export async function capture(page: Page) {
 			})
 		}),
 	)
+	if (!stubIds) return requests
 	await page.route(
 		'**/api/consent-context',
 		whileTargetOpen(page, async (route) => {
 			const response = await route.fetch()
 			await route.fulfill({
 				response,
-				json: { ...(await response.json()), ids: { ga: id, ads: 'AW-123456789' } },
+				json: {
+					...(await response.json()),
+					ids: { ga: id, ads: adsId, adsPurchaseLabel: purchaseLabel },
+				},
 			})
 		}),
 	)

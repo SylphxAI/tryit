@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 import { fixtureToken } from '../scripts/auth-fixture-facts'
+import { adsId, capture, commands, purchaseLabel } from './google-tag-support'
 
 const fixture = process.env.SUBSCRIPTION_FIXTURE_URL ?? 'http://127.0.0.1:18894'
 
@@ -95,6 +96,77 @@ test.describe('Solid subscription and family settings', () => {
 			},
 			{ method: 'GetSubscription', body: { refresh: true } },
 		])
+	})
+
+	test('confirmed paid checkout queues one consented Ads conversion and cannot replay on reload', async ({
+		page,
+		context,
+		baseURL,
+	}) => {
+		const sessionId = 'fixture_checkout_delayed'
+		const quoteKey = 'puzzled:ads:checkout-quote'
+		const returnPath = `/settings/subscription?session_id=${sessionId}&callbackUrl=%2Fgames%2Fsudoku`
+		await context.addCookies([
+			{ url: baseURL!, name: 'puzzled_session', value: fixtureToken },
+			{ url: baseURL!, name: 'puzzled_checkout_claim', value: 'test-claim', httpOnly: true },
+		])
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		const googleRequests = await capture(page, false)
+		await forwardBilling(page)
+		const initial = await page.request.get('/api/consent-context')
+		expect((await initial.json()).ids).toEqual({
+			ga: 'G-J5P11P794N',
+			ads: adsId,
+			adsPurchaseLabel: purchaseLabel,
+		})
+		// Two loopback claim calls settle the fixture; no real order is created.
+		const claim = `${fixture}/puzzled.v1.BillingService/ClaimCheckout`
+		for (let i = 0; i < 2; i++) {
+			const response = await page.request.post(claim, {
+				data: { checkoutSessionId: sessionId },
+				headers: { cookie: `puzzled_session=${fixtureToken}` },
+			})
+			expect(await response.json()).toEqual({ claimed: i === 1 })
+		}
+		await page.addInitScript(
+			({ quoteKey }) => {
+				localStorage.setItem('puzzled:signal.consent', 'granted')
+				// Reseed even on reload: the session marker, not only quote deletion, must deduplicate.
+				localStorage.setItem(
+					quoteKey,
+					JSON.stringify({ plan: 'family_yearly', value: 79.99, currency: 'GBP' }),
+				)
+			},
+			{ quoteKey },
+		)
+		const conversions = async () =>
+			(await commands(page)).filter(
+				([command, event]) => command === 'event' && event === 'conversion',
+			)
+		await page.goto(returnPath)
+		await expect(page.getByRole('link', { name: 'Return to puzzle' })).toBeVisible()
+		await expect.poll(conversions).toEqual([
+			[
+				'event',
+				'conversion',
+				{
+					send_to: `${adsId}/${purchaseLabel}`,
+					value: 79.99,
+					currency: 'GBP',
+					transaction_id: sessionId,
+				},
+			],
+		])
+		await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), quoteKey)).toBeNull()
+		expect(googleRequests).toHaveLength(1)
+		await page.reload()
+		await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), quoteKey)).toBeNull()
+		expect(await conversions()).toEqual([])
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE', 'Sec-GPC': '1' })
+		await page.reload()
+		await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), quoteKey)).toBeNull()
+		expect(await conversions()).toEqual([])
+		expect(googleRequests).toHaveLength(2)
 	})
 
 	test('owner confirms cancellation, resumes, rotates the invite and removes only the intended member', async ({
