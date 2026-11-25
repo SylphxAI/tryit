@@ -28,6 +28,63 @@ async function play(page: Page, slug: string, data: unknown, locale = 'en-US', d
 	await expect(page.locator('[data-game-stage="board"]')).toBeVisible()
 }
 
+for (const viewport of [
+	{ width: 1440, height: 900 },
+	{ width: 390, height: 844 },
+]) {
+	for (const colorScheme of ['light', 'dark'] as const) {
+		test(`Duo highlights identical full rows before the board is full (${viewport.width}×${viewport.height}, ${colorScheme})`, async ({
+			page,
+		}) => {
+			await page.setViewportSize(viewport)
+			await page.emulateMedia({ colorScheme })
+			const line = ['sun', 'moon', 'sun', 'moon', 'sun', 'moon']
+			const initialGrid = Array.from({ length: 6 }, () => Array(6).fill(null))
+			initialGrid[0] = line
+			initialGrid[2] = [...line.slice(0, -1), null]
+			const mobile = viewport.width === 390
+			await play(page, 'duo', { size: 6, initialGrid }, mobile ? 'zh-HK' : 'en-US')
+			await expect(page.locator('html')).toHaveCSS('color-scheme', colorScheme)
+			const board = page.locator('[data-game-stage="board"]')
+			const cells = board.locator('fieldset button')
+			const last = cells.nth(17)
+			const invalid = board.locator('fieldset button[data-invalid="true"][aria-invalid="true"]')
+			const status = board
+				.getByRole('status')
+				.getByText(
+					mobile
+						? '第 1及3 行的排列一樣，每行的排列都要不同。'
+						: 'Rows 1 and 3 are identical. Every row must be unique.',
+					{ exact: true },
+				)
+			await expect(cells).toHaveCount(36)
+			await expect(invalid).toHaveCount(0)
+			await expect(status).toHaveCount(0)
+
+			await last.click() // A fourth sun breaks balance, but the rows still differ.
+			await expect(invalid).toHaveCount(6)
+			await expect(status).toHaveCount(0)
+			await last.click() // Moon: row 3 now matches row 1.
+			await expect(status).toBeVisible()
+			await expect(invalid).toHaveCount(12)
+			const red = colorScheme === 'dark' ? 'rgb(242, 123, 112)' : 'rgb(168, 43, 35)'
+			for (const index of [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17]) {
+				const cell = cells.nth(index)
+				await expect(cell).toHaveAttribute('data-invalid', 'true')
+				await expect(cell).toHaveAttribute('aria-invalid', 'true')
+				await expect(cell).toHaveCSS('border-top-color', red)
+				const shadow = await cell.evaluate((element) => getComputedStyle(element).boxShadow)
+				expect(shadow).toContain(`${red} 0px 0px 0px 2px inset`)
+			}
+			await expect(board.getByText(/Some cells violate the rules|有格子違反規則/)).toHaveCount(0)
+
+			await last.press('Backspace')
+			await expect(invalid).toHaveCount(0)
+			await expect(status).toHaveCount(0)
+		})
+	}
+}
+
 for (const [locale, error] of [
 	['en-US', 'Not in word list'],
 	['zh-HK', '不在詞庫中'],

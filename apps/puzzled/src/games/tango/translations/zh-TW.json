@@ -7,7 +7,7 @@
 	"rules": {
 		"title": "玩法",
 		"rule1": "每行每列的太陽和月亮數量必須相同",
-		"rule2": "同一行不能有超過 2 個相同符號",
+		"rule2": "橫向或直向都不能連續出現 3 個相同符號。",
 		"rule3": "所有行必須唯一，所有列必須唯一"
 	},
 	"startGame": "開始遊戲",
@@ -16,7 +16,12 @@
 		"moon": "月亮",
 		"blank": "空白"
 	},
-	"hasConflicts": "有格子違反規則",
+	"conflicts": {
+		"duplicateRows": "第 {lines} 橫排的排列相同，每一橫排都必須不同。",
+		"duplicateColumns": "第 {lines} 直排的排列相同，每一直排都必須不同。",
+		"consecutive": "不論橫向或直向，都不能連續出現三個以上的太陽或月亮。",
+		"imbalance": "每一列和每一欄的太陽和月亮數量都必須相同。"
+	},
 	"complete": "謎題完成！",
 	"lockedClue": "這是固定提示。"
 }

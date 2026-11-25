@@ -7,7 +7,7 @@
 	"rules": {
 		"title": "Cómo jugar",
 		"rule1": "Cada fila y columna debe tener el mismo número de soles y de lunas",
-		"rule2": "No puede haber más de 2 símbolos iguales seguidos",
+		"rule2": "No coloques tres símbolos iguales seguidos, ni en horizontal ni en vertical.",
 		"rule3": "Todas las filas deben ser distintas, y todas las columnas también"
 	},
 	"startGame": "Empezar partida",
@@ -16,7 +16,12 @@
 		"moon": "Luna",
 		"blank": "Vacía"
 	},
-	"hasConflicts": "Algunas casillas incumplen las reglas",
+	"conflicts": {
+		"duplicateRows": "Las filas {lines} son idénticas. Cada fila debe ser distinta.",
+		"duplicateColumns": "Las columnas {lines} son idénticas. Cada columna debe ser distinta.",
+		"consecutive": "No puede haber más de dos soles o lunas seguidos en una fila o columna.",
+		"imbalance": "Cada fila y columna debe tener la misma cantidad de soles y lunas."
+	},
 	"complete": "¡Puzle completado!",
 	"lockedClue": "Pista fija."
 }
