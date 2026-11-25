@@ -9,6 +9,12 @@ export const PRACTICE_GAMES = [
 	'crowns',
 	'nonogram',
 	'pattern-match',
+	'killer-sudoku',
+	'duo',
+	'arithmo',
+	'block-slide',
+	'pip-place',
+	'number-path',
 ] as const
 
 export function isPracticeSupported(slug: string): slug is (typeof PRACTICE_GAMES)[number] {

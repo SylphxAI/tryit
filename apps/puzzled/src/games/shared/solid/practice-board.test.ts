@@ -1,6 +1,7 @@
 import { afterEach, expect, mock, test } from 'bun:test'
 import { Code } from '@connectrpc/connect'
 import { createRoot } from 'solid-js'
+import { parseGrade } from '@/games/arithmo/feedback'
 import { getPracticePuzzle } from '@/lib/connect/puzzle-client'
 import { resetConnectTransportCache } from '@/lib/connect/transport'
 import type { DailyBoardProps } from './board-finish-controller'
@@ -122,6 +123,96 @@ test.each(['word-guess', 'quad-words'])(
 		).toThrow('missing_practice_seed')
 		expect(seen).toHaveLength(1)
 		expect(seen[0]).toEndWith('/puzzled.v1.PuzzleService/CheckPracticeGuess')
+	},
+)
+
+test('Arithmo receives eight graded tiles from CheckPracticeGuess', async () => {
+	const tiles: NonNullable<ReturnType<typeof parseGrade>> = [
+		'correct',
+		'present',
+		'absent',
+		'absent',
+		'present',
+		'absent',
+		'correct',
+		'absent',
+	]
+	const guess = { equation: '12+34=46' }
+	const props = { ...practiceProps, difficulty: undefined }
+	const send = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+		const req = new Request(input, init)
+		expect(req.url).toEndWith('/puzzled.v1.PuzzleService/CheckPracticeGuess')
+		expect(await req.json()).toEqual({
+			gameSlug: 'arithmo',
+			practiceSeed: String(seed),
+			guessJson: JSON.stringify(guess),
+		})
+		return Response.json({ resultJson: JSON.stringify({ tiles }) })
+	})
+	globalThis.fetch = send as unknown as typeof fetch
+	expect(parseGrade(await gradeBoardGuess(props, 'arithmo', guess))).toEqual(tiles)
+	expect(() => gradeBoardGuess({ ...props, practiceSeed: 0n }, 'arithmo', guess)).toThrow(
+		'missing_practice_seed',
+	)
+	expect(send).toHaveBeenCalledTimes(1)
+})
+
+test.each([
+	['killer-sudoku', 'easy', { finalGrid: [[1]], mistakes: 0 }],
+	['block-slide', 'hard', { moveCount: 42 }],
+] as const)(
+	'%s carries the picked level through practice fetch and finish',
+	async (gameSlug, difficulty, submission) => {
+		const paths: string[] = []
+		globalThis.fetch = (async (input, init) => {
+			const req = new Request(input, init)
+			const method = new URL(req.url).pathname.split('/').at(-1)
+			const body = await req.json()
+			expect(body).toMatchObject({ gameSlug, difficulty })
+			if (method === 'GetPracticePuzzle') {
+				paths.push(method)
+				expect(body).toEqual({ gameSlug, difficulty })
+				return Response.json({
+					gameSlug,
+					difficulty,
+					practiceSeed: String(seed),
+					puzzleDataJson: '{}',
+				})
+			}
+			expect(method).toBe('SubmitPractice')
+			paths.push('SubmitPractice')
+			expect(body).toMatchObject({
+				practiceSeed: String(seed),
+				status: 'won',
+				submissionJson: JSON.stringify(submission),
+			})
+			expect(body).not.toHaveProperty('puzzleId')
+			expect(body).not.toHaveProperty('puzzleDate')
+			return Response.json({ valid: true, gameSlug, status: 'won' })
+		}) as typeof fetch
+		const board = await getPracticePuzzle({ gameSlug, difficulty, practiceSeed: 0n })
+		const { finish, dispose } = createRoot((dispose) => ({
+			finish: createBoardFinish(
+				{ ...practiceProps, practiceSeed: board.practiceSeed, difficulty },
+				gameSlug,
+			),
+			dispose,
+		}))
+		try {
+			finish.finish(submission)
+			await Bun.sleep(0)
+			expect(finish.result()).toMatchObject({
+				mode: 'practice',
+				gameSlug,
+				difficulty,
+				status: 'won',
+			})
+			expect(paths).toEqual(['GetPracticePuzzle', 'SubmitPractice'])
+			expect(makeDailyDraft).not.toHaveBeenCalled()
+			expect(recordFirstFinishDay).not.toHaveBeenCalled()
+		} finally {
+			dispose()
+		}
 	},
 )
 
