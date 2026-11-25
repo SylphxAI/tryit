@@ -125,6 +125,12 @@ async function canvasGeometry(page: Page) {
 		)
 		const bad = controls.flatMap((el) => {
 			const r = el.getBoundingClientRect()
+			const quote = el.closest('[data-cipher-quote]')
+			if (quote && quote.scrollHeight > quote.clientHeight) {
+				const scrollport = quote.getBoundingClientRect()
+				// Clipped letters are verified separately by focusing the final tile.
+				if (r.top < scrollport.top || r.bottom > scrollport.bottom) return []
+			}
 			const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
 			return r.bottom <= dockRect.top && el.contains(hit)
 				? []
@@ -191,6 +197,20 @@ for (const [width, height] of layouts) {
 							[0, 0, 0],
 						],
 					})
+					if (slug === 'cryptogram' && width === 390) {
+						const quote = page.locator('[data-cipher-quote]')
+						const keyboard = page.locator('[data-cipher-keyboard]')
+						const last = quote.locator('[data-cipher-letter]').last()
+						await expect(quote.locator('[data-cipher-letter]').first()).toBeInViewport({ ratio: 1 })
+						await expect(last).not.toBeInViewport()
+						await expect(keyboard).toBeInViewport({ ratio: 1 })
+						await last.focus()
+						await expect(last).toBeInViewport({ ratio: 1 })
+						await last.press('Enter')
+						await keyboard.getByRole('button', { name: 'A', exact: true }).click()
+						await expect(last).toContainText('A')
+						await expect(keyboard).toBeInViewport({ ratio: 1 })
+					}
 					if (width >= 1024 && splitGames.includes(slug)) {
 						const board = (await page.locator('.play-board').boundingBox())!
 						const tools = (await page.locator('.play-tools').boundingBox())!
