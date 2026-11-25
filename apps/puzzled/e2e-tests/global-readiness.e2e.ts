@@ -71,7 +71,7 @@ for (const [locale, quad, hunt] of [
 			const schema = json
 				.map((text) => JSON.parse(text))
 				.find((node) => node['@type'] === 'FAQPage')
-			expect(schema.mainEntity).toHaveLength(2)
+			expect(schema.mainEntity).toHaveLength(3)
 			for (const { name, acceptedAnswer } of schema.mainEntity) {
 				expect(name).toMatch(/\p{Script=Han}/u)
 				expect(acceptedAnswer.text).toMatch(/\p{Script=Han}/u)
