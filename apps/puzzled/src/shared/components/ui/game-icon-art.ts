@@ -82,12 +82,16 @@ const ART = {
 		{ kind: 'circle', cx: 9, cy: 13.4, r: 1.1, fill: true },
 		{ kind: 'circle', cx: 19.4, cy: 7.7, r: 2.3, fill: true, accent: true },
 	],
-	// A shape and its match; the matched core lights up.
+	// The three Match glyphs; one lights up.
 	'pattern-match': [
-		{ kind: 'rect', x: 3, y: 3, width: 8.6, height: 8.6, rx: 2 },
-		{ kind: 'rect', x: 5.6, y: 5.6, width: 3.4, height: 3.4, rx: 1, fill: true },
-		{ kind: 'circle', cx: 16.9, cy: 16.9, r: 4.6 },
-		{ kind: 'circle', cx: 16.9, cy: 16.9, r: 2, fill: true, accent: true },
+		{ kind: 'circle', cx: 6.6, cy: 7, r: 3.5 },
+		{ kind: 'path', d: 'M17.4 3.5 21.4 10.5 13.4 10.5Z' },
+		{
+			kind: 'path',
+			d: 'M9.5 13.5 14.5 13.5 17 17.5 14.5 21.5 9.5 21.5 7 17.5Z',
+			fill: true,
+			accent: true,
+		},
 	],
 	// Die face; the winning pip is lit.
 	'pip-place': [

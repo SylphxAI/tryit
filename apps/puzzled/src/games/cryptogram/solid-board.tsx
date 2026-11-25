@@ -13,9 +13,10 @@ import {
 	cryptogramReducer,
 	isFullyFilled,
 } from './state'
-import { ALPHABET, type CryptogramPuzzleData } from './types'
+import type { CryptogramPuzzleData } from './types'
 
 const slug = 'cryptogram'
+const keyboardRows = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'] as const
 
 export default function CryptogramBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -299,32 +300,42 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 			<p role="status" class="text-center text-sm empty:sr-only">
 				{notice()}
 			</p>
-			<div class="flex flex-wrap justify-center gap-1" dir="ltr" data-cipher-keyboard>
-				<For each={Array.from(ALPHABET)}>
-					{(letter) => (
-						<button
-							type="button"
-							class="min-h-11 min-w-9 rounded-md border border-border bg-background font-semibold hover:bg-muted disabled:opacity-50 data-used:bg-muted"
-							data-used={Object.values(guesses()).includes(letter) || undefined}
-							disabled={
-								!editable() ||
-								(selected() !== null &&
-									(!canType() || state().revealedLetters.some((key) => guesses()[key] === letter)))
-							}
-							onClick={() => typeLetter(letter)}
-						>
-							{letter}
-						</button>
+			{/* Ten equal columns on each row; Clear occupies the last three on the bottom. */}
+			<div class="mx-auto grid w-full max-w-lg gap-1" dir="ltr" data-cipher-keyboard>
+				<For each={keyboardRows}>
+					{(row, index) => (
+						<div class="grid auto-cols-[calc((100%-2.25rem)/10)] grid-flow-col justify-center gap-1">
+							<For each={Array.from(row)}>
+								{(letter) => (
+									<button
+										type="button"
+										class="min-h-11! min-w-0! touch-manipulation rounded-md border border-border bg-background font-semibold hover:bg-muted disabled:opacity-50 data-used:bg-muted"
+										data-used={Object.values(guesses()).includes(letter) || undefined}
+										disabled={
+											!editable() ||
+											(selected() !== null &&
+												(!canType() ||
+													state().revealedLetters.some((key) => guesses()[key] === letter)))
+										}
+										onClick={() => typeLetter(letter)}
+									>
+										{letter}
+									</button>
+								)}
+							</For>
+							<Show when={index() === keyboardRows.length - 1}>
+								<button
+									type="button"
+									class="col-span-3 min-h-11! min-w-0! touch-manipulation rounded-md border border-border bg-muted px-1 text-xs font-semibold hover:bg-background disabled:opacity-50 sm:text-sm"
+									disabled={!canType()}
+									onClick={clear}
+								>
+									{copy('clear')}
+								</button>
+							</Show>
+						</div>
 					)}
 				</For>
-				<button
-					type="button"
-					class="min-h-11 px-2 text-sm font-semibold underline disabled:opacity-50"
-					disabled={!canType()}
-					onClick={clear}
-				>
-					{copy('clear')}
-				</button>
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={copy('complete')} />
 		</section>

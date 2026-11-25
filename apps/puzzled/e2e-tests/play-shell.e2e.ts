@@ -197,6 +197,32 @@ for (const [width, height] of layouts) {
 							[0, 0, 0],
 						],
 					})
+					if (slug === 'cryptogram') {
+						const keyboard = page.locator('[data-cipher-keyboard]')
+						await expect(keyboard).toHaveAttribute('dir', 'ltr')
+						const geometry = await keyboard.evaluate((el) => {
+							const rows = new Map<number, string[]>()
+							const keys = Array.from(el.querySelectorAll('button'))
+							for (const key of keys) {
+								const top = key.getBoundingClientRect().top
+								const row = rows.get(top) ?? []
+								row.push(key.textContent?.trim() ?? '')
+								rows.set(top, row)
+							}
+							return {
+								rows: Array.from(rows.values(), (row) => row.join(' ')),
+								minHeight: Math.min(...keys.map((key) => key.getBoundingClientRect().height)),
+								overflow: el.scrollWidth - el.clientWidth,
+							}
+						})
+						expect(geometry.rows).toEqual([
+							'Q W E R T Y U I O P',
+							'A S D F G H J K L',
+							'Z X C V B N M Clear letter',
+						])
+						expect(geometry.minHeight).toBeGreaterThanOrEqual(44)
+						expect(geometry.overflow).toBe(0)
+					}
 					if (slug === 'cryptogram' && width === 390) {
 						const quote = page.locator('[data-cipher-quote]')
 						const keyboard = page.locator('[data-cipher-keyboard]')
@@ -207,8 +233,31 @@ for (const [width, height] of layouts) {
 						await last.focus()
 						await expect(last).toBeInViewport({ ratio: 1 })
 						await last.press('Enter')
-						await keyboard.getByRole('button', { name: 'A', exact: true }).click()
-						await expect(last).toContainText('A')
+						const key = keyboard.getByRole('button', { name: 'A', exact: true })
+						await key.tap()
+						await expect(last).toHaveAccessibleName(/: A$/)
+						await expect(key).toHaveAttribute('data-used')
+						await keyboard.getByRole('button', { name: 'Clear letter', exact: true }).tap()
+						await expect(last).toHaveAccessibleName(/: blank$/)
+						await expect(key).not.toHaveAttribute('data-used')
+
+						const encrypted = await last.getAttribute('data-cipher-letter')
+						await page.route('**/puzzled.v1.PuzzleService/CheckGuess', async (route) => {
+							expect(JSON.parse(route.request().postDataJSON().guessJson)).toMatchObject({
+								hint: true,
+							})
+							await route.fulfill({
+								json: { resultJson: JSON.stringify({ encrypted, letter: 'A' }) },
+							})
+						})
+						await page.getByRole('button', { name: /^Hint \(/ }).tap()
+						await expect(last).toBeDisabled()
+						await quote
+							.locator(`[data-cipher-letter]:not([data-cipher-letter="${encrypted}"])`)
+							.first()
+							.tap()
+						await expect(key).toHaveAttribute('data-used')
+						await expect(key).toBeDisabled()
 						await expect(keyboard).toBeInViewport({ ratio: 1 })
 					}
 					if (width >= 1024 && splitGames.includes(slug)) {
