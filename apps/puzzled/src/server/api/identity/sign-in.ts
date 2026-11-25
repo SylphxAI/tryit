@@ -12,8 +12,8 @@ import {
 } from '@/lib/identity/client-auth'
 import { emailProblem } from '@/lib/identity/form-validation'
 import { admitJsonPost } from '@/lib/identity/http'
-import { isPolicyAcceptance, POLICY_ACCEPTANCE } from '@/lib/identity/policy-consent'
-import { policyConsentRequest } from '@/lib/identity/policy-consent-server'
+import { isPolicyAcceptance } from '@/lib/identity/policy-consent'
+import { recordPolicyAcceptance } from '@/lib/identity/policy-consent-server'
 import { resolveUser } from '@/lib/identity/request-identity'
 import { issueSession } from '@/lib/identity/session-response'
 import { completeSignIn, userAgentOf } from '@/lib/identity/sign-in'
@@ -69,7 +69,7 @@ async function finish(config: AuthConfig, request: Request, ticket: string, viaE
 	// Bind the explicit acceptance to the actual verified session before releasing the cookie.
 	const user = await resolveUser(token, userAgent)
 	if (!user) return refusal('sign_in_unavailable', 502)
-	await policyConsentRequest(token, user.id, userAgent, POLICY_ACCEPTANCE)
+	await recordPolicyAcceptance(user.id)
 	const response = reply({ signedIn: true, newAccount: viaEmail && newAccount })
 	if (viaEmail && newAccount) response.headers.append('set-cookie', signUpCookieHeader('email'))
 	// In particular, do not replace or expire the existing guest or checkout claim cookie.

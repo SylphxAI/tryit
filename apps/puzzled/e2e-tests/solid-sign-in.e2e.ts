@@ -14,6 +14,8 @@ const browserCookies = [
 const startPath = '/v1/client/continue'
 const verifyPath = `${startPath}/verify`
 const redeemPath = '/v1/client/tickets:redeem'
+const ledgerPath = '/v1/consents'
+const passkeyVerifyPath = '/v1/client/sign-in/passkey/verify'
 const edgeHeaders = {
 	'sylphx-edge': 'public',
 	'x-forwarded-host': 'tryit.fun',
@@ -51,6 +53,38 @@ async function fixture(
 			: undefined,
 	)
 	return (await response.json()).calls
+}
+
+function expectConsentWriteAfterProof(
+	calls: Awaited<ReturnType<typeof fixture>>,
+	proofPath: string,
+) {
+	const ledger = calls.filter(({ path }) => path === ledgerPath)
+	expect(ledger).toEqual([
+		{
+			path: ledgerPath,
+			body: {
+				idempotency_key: expect.stringMatching(
+					/^[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
+				),
+				project_id: 'organization-00000000-0000-4000-8000-000000000123',
+				principal_id: 'fixture-user',
+				purpose: 'necessary',
+				state: 'granted',
+				legal_basis: 'consent',
+				occurred_at_unix_seconds: expect.any(Number),
+			},
+		},
+	])
+	const paths = calls.map(({ path }) => path)
+	expect(paths.filter((path) => path.startsWith('/v1/auth/'))).toEqual([])
+	const proofIndex = paths.lastIndexOf(proofPath)
+	expect(proofIndex).toBeGreaterThanOrEqual(0)
+	const redeemIndex = paths.indexOf(redeemPath)
+	expect(redeemIndex).toBeGreaterThan(proofIndex)
+	const resolvedIndex = paths.indexOf('/v1/sessions/current', redeemIndex + 1)
+	expect(resolvedIndex).toBeGreaterThan(redeemIndex)
+	expect(paths.indexOf(ledgerPath)).toBeGreaterThan(resolvedIndex)
 }
 
 const practicePath = '/games/word-guess?mode=practice'
@@ -313,52 +347,82 @@ test('mobile OTP stays inline, masks recipient, preserves rejected input, and re
 	for (const cookie of browserCookies)
 		expect(cookies.find(({ name }) => name === cookie.name)).toMatchObject(cookie)
 	expect(await page.evaluate(() => document.cookie)).not.toContain('fixture-session')
-	const calls = (await fixture()).map(({ path }) => path)
-	expect(calls.filter((path) => path === startPath)).toHaveLength(1)
-	expect(calls.filter((path) => path === verifyPath)).toHaveLength(2)
-	expect(calls.filter((path) => path === redeemPath)).toHaveLength(1)
-	expect((await fixture()).filter(({ path }) => path === '/v1/auth/consent:accept')).toEqual([
-		{ path: '/v1/auth/consent:accept', body: POLICY_ACCEPTANCE },
-	])
+	const calls = await fixture()
+	expect(calls.filter(({ path }) => path === startPath)).toHaveLength(1)
+	expect(calls.filter(({ path }) => path === verifyPath)).toHaveLength(2)
+	expect(calls.filter(({ path }) => path === redeemPath)).toHaveLength(1)
+	expectConsentWriteAfterProof(calls, verifyPath)
 })
 
-test('real sign-in endpoint requires browser Origin, valid proof and current consent before it sets cookies', async ({
+const emailProof = { step: 'email-verify', flow: 'A'.repeat(43), code: '141421' }
+const passkeyProof = {
+	step: 'passkey-verify',
+	challenge_id: 'fixture-ceremony',
+	credential_id: 'abc',
+	client_data_json: 'abc',
+	authenticator_data: 'abc',
+	signature: 'abc',
+	user_handle: '',
+}
+const signInURL = '/api/identity/sign-in'
+const signInHeaders = { ...edgeHeaders, origin: edgeOrigin }
+
+test('real sign-in endpoint requires browser Origin, valid proof and current acceptance', async ({
 	request,
 }) => {
-	await fixture('refuse-consent')
-	const verify = {
-		step: 'email-verify',
-		flow: 'A'.repeat(43),
-		code: '141421',
-		acceptance: POLICY_ACCEPTANCE,
-	}
+	await fixture('enabled')
+	const verify = { ...emailProof, acceptance: POLICY_ACCEPTANCE }
 	for (const origin of [undefined, 'https://foreign.example', 'null']) {
-		const response = await request.post('/api/identity/sign-in', {
+		const response = await request.post(signInURL, {
 			headers: origin === undefined ? edgeHeaders : { ...edgeHeaders, origin },
 			data: verify,
 		})
 		expect(response.status()).toBe(403)
 		expect(response.headers()['set-cookie']).toBeUndefined()
 	}
-	const headers = { ...edgeHeaders, origin: edgeOrigin }
-	const malformed = await request.post('/api/identity/sign-in', {
-		headers,
+	const malformed = await request.post(signInURL, {
+		headers: signInHeaders,
 		data: { ...verify, code: '12345' },
 	})
 	expect(malformed.status()).toBe(400)
-	const missingConsent = await request.post('/api/identity/sign-in', {
-		headers,
-		data: { ...verify, acceptance: undefined },
-	})
-	expect(missingConsent.status()).toBe(400)
+	for (const proof of [emailProof, passkeyProof]) {
+		for (const acceptance of [undefined, { ...POLICY_ACCEPTANCE, terms_version: '2020-01-01' }]) {
+			const response = await request.post(signInURL, {
+				headers: signInHeaders,
+				data: { ...proof, acceptance },
+			})
+			expect(response.status()).toBe(400)
+			expect(await response.json()).toEqual({ error: 'policy_acceptance_required' })
+			expect(response.headers()['set-cookie']).toBeUndefined()
+		}
+	}
 	expect(await fixture()).toEqual([])
-	const refused = await request.post('/api/identity/sign-in', { headers, data: verify })
-	expect(refused.status()).toBe(502)
-	expect(refused.headers()['set-cookie']).toBeUndefined()
-	expect(refused.headers()['cache-control']).toBe('no-store')
+})
+
+for (const [proof, path] of [
+	[emailProof, verifyPath],
+	[passkeyProof, passkeyVerifyPath],
+] as const) {
+	test(`${proof.step} fails closed when the consent ledger refuses the write`, async ({
+		request,
+	}) => {
+		await fixture('refuse-consent')
+		const refused = await request.post(signInURL, {
+			headers: signInHeaders,
+			data: { ...proof, acceptance: POLICY_ACCEPTANCE },
+		})
+		expect(refused.status()).toBe(502)
+		expect(await refused.json()).toEqual({ error: 'sign_in_unavailable' })
+		expect(refused.headers()['set-cookie']).toBeUndefined()
+		expect(refused.headers()['cache-control']).toBe('no-store')
+		expectConsentWriteAfterProof(await fixture(), path)
+	})
+}
+
+test('real passkey sign-in records acceptance and sets the session cookie', async ({ request }) => {
 	await fixture('enabled')
-	const begun = await request.post('/api/identity/sign-in', {
-		headers,
+	const begun = await request.post(signInURL, {
+		headers: signInHeaders,
 		data: { step: 'passkey-start', origin: 'https://ignored.example', rp_id: 'ignored.example' },
 	})
 	expect(begun.ok()).toBeTruthy()
@@ -366,26 +430,19 @@ test('real sign-in endpoint requires browser Origin, valid proof and current con
 		rpId: new URL(edgeOrigin).hostname,
 		credentialIds: [],
 	})
-	const response = await request.post('/api/identity/sign-in', {
-		headers,
-		data: {
-			step: 'passkey-verify',
-			acceptance: POLICY_ACCEPTANCE,
-			challenge_id: 'fixture-ceremony',
-			credential_id: 'abc',
-			client_data_json: 'abc',
-			authenticator_data: 'abc',
-			signature: 'abc',
-			user_handle: '',
-		},
+	const response = await request.post(signInURL, {
+		headers: signInHeaders,
+		data: { ...passkeyProof, acceptance: POLICY_ACCEPTANCE },
 	})
 	expect(response.ok()).toBeTruthy()
 	expect(await response.json()).toEqual({ signedIn: true, newAccount: false })
-	expect(response.headers()['set-cookie']).toContain('HttpOnly')
-	expect((await fixture()).find(({ path }) => path.endsWith('/passkey/begin'))?.body).toEqual({
+	expect(response.headers()['set-cookie']).toMatch(/^puzzled_session=.+;.*HttpOnly/)
+	const calls = await fixture()
+	expect(calls.find(({ path }) => path.endsWith('/passkey/begin'))?.body).toEqual({
 		rp_id: new URL(edgeOrigin).hostname,
-		origin: headers.origin,
+		origin: signInHeaders.origin,
 	})
+	expectConsentWriteAfterProof(calls, passkeyVerifyPath)
 })
 
 for (const [isNew, consent, expected] of [
