@@ -33,6 +33,7 @@ describe('proxy path skipping', () => {
 			'/apple-touch-icon.png',
 			'/icons/icon-512.png',
 			'/brand/mark.svg',
+			'/brand/logo-1200.png',
 		]) {
 			expect(isProxySkippedPath(path)).toBe(true)
 		}
