@@ -8,19 +8,13 @@ use super::super::generate::{generate_seeded, served_payload, DIFFICULTIES, DIFF
 use super::guess_grading::grade_guess;
 use super::submission_validation::{validate_submission, SubmissionEnvelope, SubmissionVerdict};
 
-pub const PRACTICE_GAMES: [&str; 12] = [
+pub const PRACTICE_GAMES: [&str; 6] = [
     "sudoku",
     "word-guess",
     "quad-words",
     "crowns",
     "nonogram",
     "pattern-match",
-    "killer-sudoku",
-    "duo",
-    "arithmo",
-    "block-slide",
-    "pip-place",
-    "number-path",
 ];
 
 /// Stable, versioned FNV-1a domain separation. Keep the result outside the
@@ -134,38 +128,6 @@ mod tests {
                 puzzle.generate().unwrap().solution,
                 "{game}"
             );
-        }
-    }
-
-    #[test]
-    fn canonical_descriptor_preserves_only_supported_difficulties() {
-        let duo = PracticePuzzle::new("duo", 1, "").unwrap();
-        assert_eq!(PracticePuzzle::new("tango", 1, "hard"), Ok(duo));
-        assert_eq!(duo.game(), "duo");
-        assert_eq!(duo.difficulty(), None);
-        assert_eq!(
-            practice_internal_seed("tango", 1),
-            practice_internal_seed("duo", 1)
-        );
-
-        for game in ["killer-sudoku", "block-slide"] {
-            for level in DIFFICULTIES {
-                let canonical = PracticePuzzle::new(game, 1, level).unwrap();
-                let padded_uppercase = format!(" {} ", level.to_ascii_uppercase());
-                assert_eq!(
-                    PracticePuzzle::new(game, 1, &padded_uppercase),
-                    Ok(canonical)
-                );
-                assert_eq!(canonical.difficulty(), Some(level));
-            }
-            for omitted_or_invalid in ["", "unknown"] {
-                assert_eq!(
-                    PracticePuzzle::new(game, 1, omitted_or_invalid)
-                        .unwrap()
-                        .difficulty(),
-                    Some("medium")
-                );
-            }
         }
     }
 

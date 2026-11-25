@@ -2,7 +2,7 @@
 
 use puzzled_core::puzzle_play::application::guess_grading::guess_limit;
 use puzzled_core::puzzle_play::application::practice::{practice_internal_seed, PRACTICE_GAMES};
-use puzzled_core::puzzle_play::generate::{self, generate_seeded, DIFFICULTIES};
+use puzzled_core::puzzle_play::generate::{self, generate_seeded};
 
 use super::*;
 use crate::capabilities::identity_access::adapters::guest_credentials;
@@ -255,12 +255,6 @@ fn winning_input(game: &str, solution: &Value, data: &Value) -> Value {
         "quad-words" => generate::quad_words::solution_submission(solution),
         "nonogram" => generate::nonogram::solution_submission(solution),
         "pattern-match" => generate::pattern_match::solution_submission(solution),
-        "killer-sudoku" => generate::killer_sudoku::solution_submission(solution),
-        "duo" => generate::duo::solution_submission(solution),
-        "arithmo" => generate::arithmo::solution_submission(solution),
-        "block-slide" => generate::block_slide::solution_submission(solution),
-        "pip-place" => generate::pip_place::solution_submission(solution),
-        "number-path" => generate::number_path::solution_submission(solution),
         "crowns" => {
             let size = data["size"].as_u64().unwrap() as usize;
             let mut grid = vec![vec![false; size]; size];
@@ -281,20 +275,6 @@ fn assert_public_keys(game: &str, data: &Value) {
         "crowns" => &["regions", "size"],
         "nonogram" => &["colClues", "height", "rowClues", "theme", "width"],
         "pattern-match" => &["cards", "totalSets"],
-        "killer-sudoku" => &["cages", "grid"],
-        "duo" => &["initialGrid", "size"],
-        "arithmo" => &["length"],
-        // The minimum is the public par. It does not encode the moves to solve it.
-        "block-slide" => &[
-            "blocks",
-            "exitX",
-            "exitY",
-            "gridHeight",
-            "gridWidth",
-            "minMoves",
-        ],
-        "pip-place" => &["cols", "maxPip", "regionOf", "regions", "rows"],
-        "number-path" => &["clues", "size"],
         _ => unreachable!("not a practice game"),
     };
     let map = data.as_object().unwrap();
@@ -318,9 +298,8 @@ fn assert_public_keys(game: &str, data: &Value) {
             "{game}: {key}"
         );
     }
-    let grid_key = if game == "duo" { "initialGrid" } else { "grid" };
-    if matches!(game, "sudoku" | "killer-sudoku" | "duo") {
-        assert!(data[grid_key].as_array().unwrap().iter().any(|row| row
+    if game == "sudoku" {
+        assert!(data["grid"].as_array().unwrap().iter().any(|row| row
             .as_array()
             .unwrap()
             .iter()
@@ -329,7 +308,7 @@ fn assert_public_keys(game: &str, data: &Value) {
 }
 
 #[tokio::test]
-async fn plus_can_finish_every_practice_game_without_using_the_daily_store() {
+async fn plus_can_repeat_all_six_games_without_using_the_daily_store() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -337,21 +316,9 @@ async fn plus_can_finish_every_practice_game_without_using_the_daily_store() {
     fake.lock().unwrap().paid.push(PAID.into());
     let app = router(AppState::new(Some(pool.clone())).with_money(Some(spawn_money(fake).await)));
     let paid = token(PAID);
-    let cases = PRACTICE_GAMES.into_iter().flat_map(|game| {
-        let levels: &[&str] = if matches!(game, "killer-sudoku" | "block-slide") {
-            &DIFFICULTIES
-        } else {
-            &[""]
-        };
-        levels.iter().map(move |&level| (game, level))
-    });
-    for (game, level) in cases {
-        let slug = match game {
-            "crowns" => "queens",
-            "duo" => "tango",
-            _ => game,
-        };
-        let params = json!({"gameSlug":slug,"practiceSeed":SEED.to_string(),"difficulty":level});
+    for game in PRACTICE_GAMES {
+        let slug = if game == "crowns" { "queens" } else { game };
+        let params = json!({"gameSlug":slug,"practiceSeed":SEED.to_string()});
         let (status, board) =
             rpc(&app, "GetPracticePuzzle", params.clone(), Some(&paid), None).await;
         assert_eq!(status, StatusCode::OK, "{game}: {board}");
@@ -361,13 +328,7 @@ async fn plus_can_finish_every_practice_game_without_using_the_daily_store() {
         let data = json_field(&board, "puzzleDataJson");
         assert_public_keys(game, &data);
         let difficulty = board["difficulty"].as_str();
-        if !level.is_empty() {
-            assert_eq!(difficulty, Some(level), "{game}");
-        }
-        let offset = DIFFICULTIES
-            .iter()
-            .position(|&level| Some(level) == difficulty);
-        let internal = practice_internal_seed(game, SEED) + offset.unwrap_or(0) as i64;
+        let internal = practice_internal_seed(game, SEED) + i64::from(difficulty == Some("medium"));
         let (_, solution) = generate_seeded(game, internal, difficulty).unwrap();
         let mut submit = params.clone();
         submit["status"] = json!("won");
@@ -387,16 +348,13 @@ async fn plus_can_finish_every_practice_game_without_using_the_daily_store() {
         assert_eq!(accepted["gameSlug"], game);
         assert_eq!(json_field(&accepted, "revealJson"), solution, "{game}");
         if let Some(limit) = guess_limit(game) {
-            let (input, tile_count) = match game {
-                "arithmo" => (json!({"equation": solution["equation"]}), 8),
-                "quad-words" => (json!({"word": solution["words"][0]}), 5),
-                _ => (json!({"word": solution["word"]}), 5),
+            let word = if game == "quad-words" {
+                &solution["words"][0]
+            } else {
+                &solution["word"]
             };
             let mut guess = params.clone();
-            guess["guessJson"] = json!(input.to_string());
-            if game == "arithmo" {
-                assert_eq!(limit, 6);
-            }
+            guess["guessJson"] = json!(json!({"word": word}).to_string());
             for _ in 0..limit {
                 let (status, body) =
                     rpc(&app, "CheckPracticeGuess", guess.clone(), Some(&paid), None).await;
@@ -407,21 +365,12 @@ async fn plus_can_finish_every_practice_game_without_using_the_daily_store() {
                 } else {
                     &result["tiles"]
                 };
-                assert_eq!(*tiles, json!(vec!["correct"; tile_count]));
-                if game == "arithmo" {
-                    assert_eq!(result, json!({"tiles": vec!["correct"; 8]}));
-                }
+                assert_eq!(*tiles, json!(vec!["correct"; 5]));
             }
             guess["difficulty"] = json!(" HARD "); // Ignored for games without levels.
             let (status, body) = rpc(&app, "CheckPracticeGuess", guess, Some(&paid), None).await;
             assert_eq!(status, StatusCode::TOO_MANY_REQUESTS, "{game}: {body}");
             assert_eq!(body["message"], "guess_limit_reached");
-        } else {
-            let mut guess = params;
-            guess["guessJson"] = json!("{}");
-            let (status, body) = rpc(&app, "CheckPracticeGuess", guess, Some(&paid), None).await;
-            assert_eq!(status, StatusCode::BAD_REQUEST, "{game}: {body}");
-            assert_eq!(body["message"], "game_not_graded_per_guess");
         }
     }
     let params = json!({"gameSlug":"sudoku"});

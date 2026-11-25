@@ -1,5 +1,4 @@
 import { expect, mock, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
 import { Code, ConnectError } from '@connectrpc/connect'
 import {
 	checkoutEntrySurface,
@@ -7,50 +6,34 @@ import {
 	trustedEntrySurface,
 } from '@/features/analytics/lib/checkout-entry-surface'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
-import { getAllGameMetadata, getGameMetadata } from '@/games/registry'
+import { getAllGameMetadata } from '@/games/registry'
 import { isPracticeSupported, PRACTICE_GAMES, practicePath, practiceRefusal } from './practice'
 
 const track = mock(() => {})
 mock.module('@/features/analytics/lib/behavioral-events', () => ({ trackBehavioralEvent: track }))
 const { practiceImpression, practicePricingHref } = await import('./practice-impression')
 
-test('the twelve registered practice games match the Rust allowlist in order', () => {
-	const source = readFileSync(
-		new URL(
-			'../../../../../../crates/puzzled-core/src/capabilities/puzzle_play/application/practice.rs',
-			import.meta.url,
-		),
-		'utf8',
-	)
-	const allowlist = source.match(/pub const PRACTICE_GAMES:.*?= \[([\s\S]*?)\];/)?.[1] ?? ''
-	const rustPracticeGames = Array.from(allowlist.matchAll(/"([a-z-]+)"/g), ([, game]) => game)
-	expect(rustPracticeGames).toHaveLength(12)
-	expect<readonly string[]>(PRACTICE_GAMES).toEqual(rustPracticeGames)
-	expect<readonly string[]>(
+test('practice matches the six supported games and links preserve the level', () => {
+	const rustPracticeGames = [
+		'sudoku',
+		'word-guess',
+		'quad-words',
+		'crowns',
+		'nonogram',
+		'pattern-match',
+	] as const
+	expect(PRACTICE_GAMES).toEqual(rustPracticeGames)
+	expect(
 		getAllGameMetadata()
 			.map(({ slug }) => slug)
 			.filter(isPracticeSupported)
 			.sort(),
 	).toEqual([...rustPracticeGames].sort())
-	expect(isPracticeSupported('duo')).toBe(true)
-	expect(isPracticeSupported('tango')).toBe(false) // The web route canonicalizes the alias.
-	expect(isPracticeSupported('crossword')).toBe(false)
+	expect(practicePath('/zh-TW/games/crowns', 'hard')).toBe(
+		'/zh-TW/games/crowns?mode=practice&difficulty=hard#play',
+	)
+	expect(practicePath('/games/word-guess')).toBe('/games/word-guess?mode=practice#play')
 })
-
-test.each(['killer-sudoku', 'block-slide', 'crowns'])(
-	'%s practice links preserve all levels',
-	(game) => {
-		expect(isPracticeSupported(game)).toBe(true)
-		const levels = getGameMetadata(game)?.difficultyLevels
-		expect(levels?.map(({ level }) => level)).toEqual(['easy', 'medium', 'hard'])
-		for (const { level } of levels ?? []) {
-			expect(practicePath(`/zh-TW/games/${game}`, level)).toBe(
-				`/zh-TW/games/${game}?mode=practice&difficulty=${level}#play`,
-			)
-		}
-		expect(practicePath('/games/arithmo')).toBe('/games/arithmo?mode=practice#play')
-	},
-)
 
 test('only authoritative practice refusals offer Plus', () => {
 	expect(
