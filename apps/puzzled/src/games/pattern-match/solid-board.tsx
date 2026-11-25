@@ -181,7 +181,7 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 						{(card) => (
 							<button
 								type="button"
-								class="grid min-h-16 min-w-0 place-items-center rounded-xl border-2 border-border bg-background p-1.5 sm:min-h-20 hover:border-muted-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:ring-2 aria-pressed:ring-primary/30"
+								class="grid min-h-16 min-w-0 place-items-center rounded-xl border-2 border-border bg-background p-1.5 sm:min-h-20 hover:not-aria-pressed:border-muted-foreground aria-pressed:border-accent-warm aria-pressed:bg-accent-warm-soft aria-pressed:ring-2 aria-pressed:ring-accent-warm/45"
 								data-match-card={card.id}
 								aria-label={cardLabel(card, t)}
 								aria-pressed={selected().includes(card)}
