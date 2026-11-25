@@ -4,12 +4,19 @@
 	"highlight": "Every guess plays all four words",
 	"description": "Solve 4 hidden words at once",
 	"clearGuess": "Clear guess",
+	"board": "Board {number}",
+	"keyboard": {
+		"correct": "correct",
+		"present": "wrong position",
+		"absent": "not in word"
+	},
 	"howToPlay": "How to Play",
 	"rules": {
 		"title": "How to Play",
 		"rule1": "Guess all 4 hidden words in 9 tries",
 		"rule2": "Each guess applies to all 4 boards",
-		"rule3": "Green = correct, Yellow = wrong position, Gray = not in word"
+		"rule3": "Green = correct, Yellow = wrong position, Gray = not in word",
+		"rule4": "Each key splits into four corners, one for each board"
 	},
 	"startGame": "Start Game",
 	"complete": "Puzzle Complete!",
