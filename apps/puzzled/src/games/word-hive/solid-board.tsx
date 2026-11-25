@@ -350,14 +350,21 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 	)
 }
 
-function RankRail(props: { state: SpellingBeeState; t: Translate }) {
+export function RankRail(props: { state: SpellingBeeState; t: Translate }) {
 	const rankLabel = (rank: SpellingBeeRank) => translateRank(props.t, rank)
 	const score = () => `${props.t('gameResult.score')}: ${props.state.score}`
 	const progress = () =>
 		props.state.maxScore > 0 ? Math.min(100, (props.state.score / props.state.maxScore) * 100) : 0
-	const nextRank = createMemo(
-		() => props.state.maxScore > 0 && getNextRankThreshold(props.state.score, props.state.maxScore),
-	)
+	const nextRankLabel = () => {
+		const { score, maxScore } = props.state
+		const next = maxScore > 0 ? getNextRankThreshold(score, maxScore) : null
+		return next
+			? props.t('games.wordHive.nextRank', {
+					points: next.pointsNeeded,
+					rank: rankLabel(next.rank),
+				})
+			: ''
+	}
 	const reached = () => RANK_THRESHOLDS.findIndex(({ rank }) => rank === props.state.rank)
 
 	return (
@@ -396,14 +403,7 @@ function RankRail(props: { state: SpellingBeeState; t: Translate }) {
 				</For>
 			</div>
 			<p class="min-h-4 text-xs font-semibold text-muted-foreground tabular-nums">
-				<Show when={nextRank()}>
-					{(next) =>
-						props.t('games.wordHive.nextRank', {
-							points: next().pointsNeeded,
-							rank: rankLabel(next().rank),
-						})
-					}
-				</Show>
+				{nextRankLabel()}
 			</p>
 		</div>
 	)
