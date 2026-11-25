@@ -86,7 +86,11 @@ function flatten(
 	out: Record<string, string> = {},
 ): Record<string, string> {
 	if (typeof value === 'string') out[path] = value
-	else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+	else if (Array.isArray(value)) {
+		for (const [index, child] of value.entries()) {
+			flatten(child, `${path}[${index}]`, out)
+		}
+	} else if (value !== null && typeof value === 'object') {
 		for (const [key, child] of Object.entries(value as Json)) {
 			flatten(child, path ? `${path}.${key}` : key, out)
 		}
@@ -113,6 +117,13 @@ export function untranslatedKeys(locale: Locale): string[] {
 }
 
 const fullLocales = locales.filter((locale) => locale !== 'en-US' && !localeFallbacks[locale])
+
+test('flatten includes strings in arrays and in objects inside arrays', () => {
+	expect(flatten({ catalog: { tips: ['First tip', { notes: ['Nested tip', null] }] } })).toEqual({
+		'catalog.tips[0]': 'First tip',
+		'catalog.tips[1].notes[0]': 'Nested tip',
+	})
+})
 
 describe('full locales carry no untranslated player-facing strings', () => {
 	test('the full locales are the ones without a fallback', () => {
