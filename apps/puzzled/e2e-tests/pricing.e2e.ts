@@ -178,7 +178,7 @@ for (const viewport of VIEWPORTS) {
 					const offer = page.locator(`#${id}`)
 					await expect(offer.getByText('All 19 games, every day', { exact: true })).toBeVisible()
 					await expect(
-						offer.getByText('Every past day in the archive', { exact: true }),
+						offer.getByText('Puzzles from the past 30 days', { exact: true }),
 					).toBeVisible()
 					await expect(
 						offer.getByText('Stats and streaks for every game', { exact: true }),
