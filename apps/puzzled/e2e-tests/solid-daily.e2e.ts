@@ -1012,6 +1012,36 @@ test('Frame keeps a legal chain and accepts only a saved full box', async ({ pag
 	})
 })
 
+test('Arithmo hides the cursor while grading and after a win with unused rows', async ({
+	page,
+}) => {
+	const { board } = await mount(page, 'arithmo', { length: 8 }, false, {
+		puzzleId: '05f1afc1-155d-4083-8728-4b83ab31838a',
+		grade: () => ({ tiles: Array.from({ length: 8 }, () => 'correct') }),
+	})
+	const release = Promise.withResolvers<void>()
+	await page.route('**/puzzled.v1.PuzzleService/GradeGuess', async (route) => {
+		await release.promise
+		await route.fallback()
+	})
+	const grid = board.locator('[data-arithmo-grid]')
+	const cursor = grid.locator('[data-active-slot]')
+	const enter = board.locator('[data-arithmo-board]').getByRole('button', { name: 'Enter' })
+	await expect(cursor).toHaveCount(1)
+	await page.keyboard.type('12+34=46')
+	await expect(cursor).toHaveCount(0)
+	await enter.click()
+	try {
+		await expect(enter).toBeDisabled()
+		await expect(cursor).toHaveCount(0)
+	} finally {
+		release.resolve()
+	}
+	await expect(grid.locator('[data-grade="correct"]')).toHaveCount(8)
+	await expect(board.getByRole('button', { name: 'Copy challenge' })).toBeVisible()
+	await expect(cursor).toHaveCount(0)
+})
+
 test('Arithmo grades valid equations and reveals the answer only after accepting a loss', async ({
 	page,
 }) => {

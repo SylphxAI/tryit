@@ -189,10 +189,16 @@ function Arithmo(props: DailyBoardProps) {
 									{(col) => {
 										const char = () => (attempt()?.guess ?? (current() ? draft() : ''))[col] ?? ''
 										const tile = () => attempt()?.tiles[col] ?? 'empty'
+										const activeSlot = () => current() && !grading() && col === draft().length
+										const appearance = () =>
+											activeSlot()
+												? 'border-accent-warm bg-accent-warm-soft inset-ring-1 inset-ring-accent-warm/45'
+												: `${tones[tile()]} ${current() && char() ? 'border-muted-foreground' : ''}`
 										return (
 											<span
 												data-grade={tile()}
-												class={`grid aspect-square place-items-center rounded-md border-2 font-display text-lg font-extrabold sm:text-xl ${tones[tile()]} ${current() && char() ? 'border-muted-foreground' : ''}`}
+												data-active-slot={activeSlot() ? 'true' : undefined}
+												class={`grid aspect-square place-items-center rounded-md border-2 font-display text-lg font-extrabold sm:text-xl ${appearance()}`}
 											>
 												{glyph(char())}
 												<Show when={feedbackText(tile())}>

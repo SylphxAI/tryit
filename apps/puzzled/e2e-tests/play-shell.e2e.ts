@@ -169,6 +169,60 @@ for (const [width, height] of [
 				hasTouch: width === 390,
 				isMobile: width === 390,
 			})
+			test('Arithmo amber cursor advances without shifting any of the 48 cells', async ({
+				page,
+			}, testInfo) => {
+				await openBoard(page, 'arithmo')
+				const board = page.locator('[data-arithmo-board]')
+				const tiles = board.locator('[data-arithmo-grid] [data-grade]')
+				const cursor = board.locator('[data-active-slot]')
+				await expect(tiles).toHaveCount(48)
+				await expect(
+					page.locator(colorScheme === 'dark' ? 'html.dark' : 'html:not(.dark)'),
+				).toHaveCount(1)
+				await page.evaluate(() => document.fonts.ready)
+				const bounds = () =>
+					tiles.evaluateAll((cells) => cells.map((cell) => cell.getBoundingClientRect().toJSON()))
+				const before = await bounds()
+				const expectGeometry = async () => {
+					expect(await bounds()).toEqual(before)
+					expect((await canvasGeometry(page)).overflow).toEqual([
+						[0, 0, 0],
+						[0, 0, 0],
+						[0, 0, 0],
+					])
+				}
+				const expectColumn = async (col: number) => {
+					await expect(cursor).toHaveCount(1)
+					await expect(tiles.nth(col)).toHaveAttribute('data-active-slot', 'true')
+					await expect(cursor).toHaveText('')
+					await expectGeometry()
+				}
+				await expectColumn(0)
+				await expect(cursor).toHaveCSS('border-top-color', 'rgb(244, 180, 42)')
+				await expect(cursor).toHaveCSS(
+					'background-color',
+					colorScheme === 'dark' ? 'rgba(244, 180, 42, 0.14)' : 'rgb(252, 240, 210)',
+				)
+				await expect(cursor).toHaveCSS('box-shadow', /inset/)
+				if (width === 390) await board.getByRole('button', { name: '1', exact: true }).tap()
+				else await page.keyboard.press('1')
+				await expectColumn(1)
+				await expect(tiles.first()).toHaveText('1')
+				await page.screenshot({ path: testInfo.outputPath('arithmo-active-slot.png') })
+				if (width === 390) await board.getByRole('button', { name: 'Delete', exact: true }).tap()
+				else await page.keyboard.press('Backspace')
+				await expectColumn(0)
+				const equation = '12+34=46'
+				for (const [col, char] of [...equation].entries()) {
+					await page.keyboard.press(char)
+					await expect(tiles.nth(col)).toHaveText(char)
+					if (col < equation.length - 1) await expectColumn(col + 1)
+				}
+				await expect(cursor).toHaveCount(0)
+				await expectGeometry()
+			})
+
 			for (const [slug, tableCount] of [
 				['word-guess', 1],
 				['quad-words', 4],
