@@ -204,7 +204,7 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData; t: Transla
 											buttons[row][col] = el
 										}}
 										type="button"
-										class="grid min-w-0 place-items-center rounded bg-background font-display text-[clamp(.6rem,3.2vw,1rem)] font-bold text-foreground focus-visible:z-10 data-found:bg-emerald-500/25 data-selected:bg-primary data-selected:text-primary-foreground"
+										class="grid min-w-0 place-items-center rounded bg-background font-display text-[clamp(.6rem,3.2vw,1rem)] font-bold text-foreground focus-visible:z-10 data-found:not-data-selected:bg-emerald-500/25 data-selected:bg-accent-warm data-selected:text-on-accent"
 										data-row={row}
 										data-col={col}
 										data-found={highlighted().some((cell) => same(cell, pos)) || undefined}

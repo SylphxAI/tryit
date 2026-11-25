@@ -134,7 +134,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 											buttons[index()] = el
 										}}
 										type="button"
-										class="grid min-w-0 place-items-center border border-border bg-background text-sm tabular-nums data-visited:bg-surface-muted focus-visible:z-10 focus-visible:outline-offset-[-3px] sm:text-base"
+										class="grid min-w-0 place-items-center border border-border bg-background text-sm tabular-nums data-visited:bg-accent-warm-soft focus-visible:z-10 focus-visible:outline-offset-[-3px] sm:text-base"
 										data-visited={step() !== undefined || undefined}
 										aria-pressed={step() !== undefined}
 										aria-label={[
@@ -169,7 +169,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 									>
 										<Show when={clue ?? step()}>
 											<span
-												class="relative z-[2] grid size-[60%] min-w-0 place-items-center rounded-md bg-background font-semibold text-muted-foreground data-clue:bg-foreground data-clue:text-background data-end:bg-primary data-end:text-primary-foreground data-start:bg-primary data-start:text-primary-foreground motion-safe:data-start:animate-pulse motion-safe:data-start:[animation-iteration-count:2]"
+												class="relative z-[2] grid size-[60%] min-w-0 place-items-center rounded-md bg-background font-semibold text-muted-foreground data-clue:not-data-start:not-data-end:bg-foreground data-clue:not-data-start:not-data-end:text-background [&:is([data-start],[data-end])]:bg-accent-warm [&:is([data-start],[data-end])]:text-on-accent [&:is([data-start],[data-end])]:inset-ring-2 [&:is([data-start],[data-end])]:inset-ring-cta-edge/40 motion-safe:data-start:animate-pulse motion-safe:data-start:[animation-iteration-count:2]"
 												data-clue={clue !== null || undefined}
 												data-start={start() || undefined}
 												data-end={(step() !== undefined && step() === path().length) || undefined}
@@ -182,7 +182,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 							}}
 						</For>
 						<svg
-							class="pointer-events-none absolute inset-0 z-[1] size-full text-foreground/65"
+							class="pointer-events-none absolute inset-0 z-[1] size-full text-cta-edge dark:text-accent-warm"
 							viewBox={`0 0 ${size} ${size}`}
 							aria-hidden="true"
 						>
@@ -191,6 +191,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 								fill="none"
 								stroke="currentColor"
 								stroke-width="0.1"
+								stroke-linecap="round"
 								stroke-linejoin="round"
 							/>
 						</svg>
