@@ -4,6 +4,11 @@ import { capture, commands, id } from './google-tag-support'
 
 const snapshotKey = 'fixture-tag-commands'
 
+test.afterEach(async ({ page }) => {
+	// The destination can still be starting ConsentRuntime when the checkout assertions finish.
+	await page.unrouteAll({ behavior: 'ignoreErrors' })
+})
+
 for (const [country, consent, gpc, entry, expected] of [
 	['US', null, false, 'seo_vs-nyt-games', 'full'],
 	['CA', null, false, 'seo_vs-nyt-games', 'full'],

@@ -1,6 +1,6 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
-import { capture, commands, id } from './google-tag-support'
+import { commands, id, googleTagTest as test } from './google-tag-support'
 
 const key = 'puzzled:signal.consent'
 const denied = {
@@ -35,8 +35,8 @@ for (const viewport of [
 		test('EEA keeps all Google signals denied until Accept; equal actions and clear CTA/footer', async ({
 			page,
 			context,
+			googleRequests: requests,
 		}) => {
-			const requests = await capture(page)
 			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 			await page.goto('/?email=private%40example.test&gclid=private-ad')
 			await expect(banner(page)).toBeVisible()
@@ -128,8 +128,8 @@ for (const viewport of [
 		test('non-EEA defaults to analytics and advertising; withdrawal stops the tag and persists in either region', async ({
 			page,
 			context,
+			googleRequests: requests,
 		}) => {
-			const requests = await capture(page)
 			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
 			await page.goto('/')
 			await expect.poll(() => requests.length).toBe(1)
@@ -157,8 +157,10 @@ for (const viewport of [
 		})
 
 		for (const signal of ['header', 'browser'] as const) {
-			test(`${signal} GPC overrides stored analytics and ads grants`, async ({ page }) => {
-				const requests = await capture(page)
+			test(`${signal} GPC overrides stored analytics and ads grants`, async ({
+				page,
+				googleRequests: requests,
+			}) => {
 				await page.setExtraHTTPHeaders({
 					'CF-IPCountry': 'HK',
 					...(signal === 'header' ? { 'Sec-GPC': '1' } : {}),
@@ -210,8 +212,8 @@ test('context is private no-store, only reads the CF header and never varies pag
 
 test('mobile opt-in bar fits every supported locale and Decline does not load Google', async ({
 	page,
+	googleRequests: requests,
 }) => {
-	const requests = await capture(page)
 	await page.setViewportSize({ width: 390, height: 844 })
 	for (const locale of ['', 'en-GB', 'es', 'ja', 'pt-BR', 'zh-CN', 'zh-HK', 'zh-TW']) {
 		await page.goto(`/${locale}`)
