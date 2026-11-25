@@ -2,8 +2,8 @@
 import { CornerDownLeft, Delete } from 'lucide-solid'
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
+import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
 import { isAlreadyPlayedError } from '@/lib/connect/already-played'
-import { checkGuess } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { parseArithmoClientPayload, parseGrade, updateKeyboardStatus } from './feedback'
@@ -78,13 +78,7 @@ function Arithmo(props: DailyBoardProps) {
 		setGrading(true)
 		triggerHaptic('submit')
 		try {
-			const reply = await checkGuess({
-				gameSlug: 'arithmo',
-				puzzleId: props.puzzle.puzzleId,
-				puzzleDate: props.puzzle.puzzleDate,
-				difficulty: props.difficulty,
-				guess: { equation: guess },
-			})
+			const reply = await gradeBoardGuess(props, 'arithmo', { equation: guess })
 			if (disposed) return
 			const tiles = parseGrade(reply)
 			if (!tiles) throw new Error('invalid_arithmo_grade')
@@ -103,7 +97,7 @@ function Arithmo(props: DailyBoardProps) {
 			}
 		} catch (cause) {
 			if (!disposed) {
-				if (isAlreadyPlayedError(cause)) props.onAlreadyPlayed()
+				if (props.mode !== 'practice' && isAlreadyPlayedError(cause)) props.onAlreadyPlayed()
 				else {
 					setError('grade')
 					triggerHaptic('error')
