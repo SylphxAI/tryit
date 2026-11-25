@@ -111,9 +111,9 @@
 		},
 		"word-hive": {
 			"tips": [
-				"List the shortest words you can build with the center letter before reaching for longer finds.",
-				"Repeat letters freely; a hive letter can appear more than once in a word.",
-				"Chase the pangram last, since using all seven letters adds a seven-point bonus."
+				"先用中間的字母拼出較短的詞語，再試較長的詞語。",
+				"同一個字母可以在一個詞語裏重複使用。",
+				"短詞找得差不多了，再試用齊 7 個字母；每找到一個全字母詞，額外加 7 分。"
 			],
 			"faq": [
 				{
@@ -162,9 +162,9 @@
 		},
 		"nonogram": {
 			"tips": [
-				"Begin with the longest run in a line and test every position it can occupy.",
-				"Blocks longer than half the line have a middle section that must be filled in.",
-				"Mark squares you can rule out; fewer blanks make the crossing clues easier to read."
+				"先看每行或每列最長的一段，找出這段可以放在哪些位置。",
+				"如果一段比整行或整列的一半還長，不論放在哪裏，中間重疊的格子都要填色。",
+				"標記確定不填色的格子；待定的格子越少，越容易用交叉方向的提示推理。"
 			],
 			"faq": [
 				{
@@ -179,9 +179,9 @@
 		},
 		"word-ladder": {
 			"tips": [
-				"Change exactly one letter per step, and check that the new word sounds real before sending it.",
-				"Work backwards from the target word when the start has no obvious neighbor.",
-				"Plan the whole chain, because a word you have used cannot appear again."
+				"每步只換一個字母，提交前先確認換出來的是有效的英文詞語。",
+				"如果由起始詞找不到下一步，不妨從目標詞往回推。",
+				"先想好整條路線：每個詞只能用一次。"
 			],
 			"faq": [
 				{
@@ -196,9 +196,9 @@
 		},
 		"arithmo": {
 			"tips": [
-				"Balance both sides before submitting; a guess that does not evaluate is rejected.",
-				"Lock the characters already in the right place and rebuild the equation around them.",
-				"Vary the operators you test early; the equation can use plus, minus, times or divide."
+				"提交前先確認等號兩邊的值相等；不成立的算式不能提交。",
+				"保留位置正確的字元，再用其餘字元組成成立的算式。",
+				"前幾次不妨多試不同的運算符號：答案可能用到加、減、乘或除。"
 			],
 			"faq": [
 				{
@@ -213,8 +213,8 @@
 		},
 		"pattern-match": {
 			"tips": [
-				"Compare one property at a time, starting with the number of shapes on each card.",
-				"If two cards match on a property, the third card must match them too or the trio fails.",
+				"每次只比較一項特徵，先看每張卡上有多少個圖形。",
+				"如果兩張卡的某項特徵相同，第三張也必須相同，三張卡才能成組。",
 				"同一張卡可以屬於多個有效組合。試試用已配對的卡組成新組合。"
 			],
 			"faq": [
@@ -230,9 +230,9 @@
 		},
 		"block-slide": {
 			"tips": [
-				"Clear the space under the target before nudging it toward the exit row.",
-				"Keep your move total low; a piece pushed into a corner is slow to rescue.",
-				"Reset a jammed board rather than testing moves at random; the minimum is shown for scale."
+				"先騰出紅色方塊下方的空間，再把它向底部的出口移。",
+				"想少走幾步，就別輕易把方塊推進角落，移出來可能要多花好幾步。",
+				"卡住時可以重設棋盤，不必亂試；畫面上的最少步數可作參考。"
 			],
 			"faq": [
 				{
@@ -264,9 +264,9 @@
 		},
 		"duo": {
 			"tips": [
-				"Two matching symbols side by side force the squares around them to hold the opposite one.",
-				"Tally each line as it grows: a row of six needs three suns and three moons.",
-				"Test a coin-flip square against the uniqueness rule, since no two rows may match."
+				"兩個相同的符號相鄰時，緊接在它們前後的格子只能填另一種符號。",
+				"一邊填一邊數：6×6 方格的每行、每列都要有 3 個太陽和 3 個月亮。",
+				"如果兩種符號看起來都可以填，試試哪一種會令兩行或兩列的排列完全相同，再排除它。"
 			],
 			"faq": [
 				{
@@ -281,9 +281,9 @@
 		},
 		"word-box": {
 			"tips": [
-				"End each word on a letter that opens a good next word, because the chain only moves forward.",
-				"Alternate sides inside every word; letters from the same side cannot sit next to each other.",
-				"Note the letters you still owe the box, as the final word tends to gather leftovers."
+				"選詞時先想想最後一個字母能接甚麼詞，避免接龍卡住。",
+				"拼詞時記得換邊：相鄰的字母不能來自方框的同一邊。",
+				"記下還沒用過的字母，試試用最後一個詞把它們補齊。"
 			],
 			"faq": [
 				{
@@ -298,9 +298,9 @@
 		},
 		"quad-words": {
 			"tips": [
-				"Open with a spread of common letters, because one guess is scored across all four boards.",
-				"Track each yellow letter per board; it can occupy different spots in different words.",
-				"After a board is solved, save the remaining guesses for the words still open."
+				"開局選一個包含多個不同常見字母的詞，一次為四個棋盤找線索。",
+				"分開記下每個棋盤的黃色字母；同一個字母在不同答案中可能出現在不同位置。",
+				"猜中一個棋盤的詞後，把餘下的機會留給還沒猜中的詞。"
 			],
 			"faq": [
 				{
@@ -315,9 +315,9 @@
 		},
 		"killer-sudoku": {
 			"tips": [
-				"Find cages with only one possible split, such as two cells adding up to three.",
-				"Cage digits still obey Sudoku rows, columns and boxes, so cross off what the grid already holds.",
-				"Subtract a finished cage from the row, column and box it crosses to narrow other cells."
+				"先找數字組合只有一種的加總區，例如兩格合計為 3，就只能填 1 和 2。",
+				"加總區仍須遵守數獨規則：排除同一行、同一列或同一宮格已出現的數字。",
+				"如果整個加總區都在同一行、同一列或同一宮格內，用 45 減去該區總和，就能算出其餘格子的總和。"
 			],
 			"faq": [
 				{
@@ -332,9 +332,9 @@
 		},
 		"cryptogram": {
 			"tips": [
-				"Start with a single-letter word, which can only stand for a or i in plain English.",
-				"Double letters leave fingerprints, so a repeated pair narrows the options quickly.",
-				"Update every occurrence of a letter once you decide it, keeping the mapping consistent."
+				"先看只有一個字母的英文詞，通常是「a」或「I」（我）。",
+				"留意連續重複的字母，例如「letter」中的「tt」，這能幫你縮小範圍。",
+				"確認一個字母的對應後，每次見到它都用同一個字母替換。"
 			],
 			"faq": [
 				{
@@ -349,9 +349,9 @@
 		},
 		"word-search": {
 			"tips": [
-				"Scan the theme first; the grid hides six to ten words that share a topic.",
-				"Check diagonals in both directions and rows read backwards, not just left to right.",
-				"Trace from the last letter back to the first when a long word is hard to spot."
+				"先看主題：方格內藏着 6 至 10 個詞語，都與主題有關。",
+				"別只從左往右找；也要留意直向和斜向，每條直線都可以順着找或倒着找。",
+				"較長的詞語不好找時，不妨由最後一個字母往回找。"
 			],
 			"faq": [
 				{
@@ -366,9 +366,9 @@
 		},
 		"number-path": {
 			"tips": [
-				"Handle corner clues early, since a numbered corner cell has only two neighbors.",
-				"Count the squares between two known numbers; when the total matches, that route is forced.",
-				"Split the board at the numbered clues and solve each stretch separately."
+				"先處理角落的數字：角落的格子只有兩個相鄰格。",
+				"如果兩個已知數字的差剛好等於兩格之間的最短步數，這一段就不能繞路。",
+				"用已標出的數字把路線分成幾段，逐段推理。"
 			],
 			"faq": [
 				{
@@ -383,9 +383,9 @@
 		},
 		"pip-place": {
 			"tips": [
-				"Study the region labels first; a sum of zero pins that whole region to blank ends.",
-				"Regions marked with = take matching numbers, so place tiles that repeat a value there.",
-				"Remember that each tile covers two cells sharing a side, never a diagonal pair."
+				"先看區域標記：總和為 0 的區域，每格都只能放骨牌沒有點數的一端。",
+				"有等號的區域每格點數都要相同，先挑能湊出相同點數的骨牌。",
+				"每塊骨牌只可覆蓋兩個共邊的格子，不能斜放。"
 			],
 			"faq": [
 				{
