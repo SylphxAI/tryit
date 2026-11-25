@@ -157,6 +157,75 @@ async function canvasGeometry(page: Page) {
 	})
 }
 
+for (const [width, height] of [
+	[1440, 900],
+	[390, 844],
+]) {
+	for (const colorScheme of ['light', 'dark'] as const) {
+		test.describe(`${width}×${height} ${colorScheme}`, () => {
+			test.use({
+				viewport: { width, height },
+				colorScheme,
+				hasTouch: width === 390,
+				isMobile: width === 390,
+			})
+			for (const [slug, tableCount] of [
+				['word-guess', 1],
+				['quad-words', 4],
+			] as const) {
+				test(`${slug} amber cursor advances without shifting tiles`, async ({ page }, testInfo) => {
+					await openBoard(page, slug)
+					const board = page.locator(stage)
+					const tiles = board.locator('td')
+					const cursors = board.locator('td[data-active-slot="true"]')
+					await expect(board.getByRole('table')).toHaveCount(tableCount)
+					await expect(tiles).toHaveCount(tableCount * 30)
+					await expect(
+						page.locator(colorScheme === 'dark' ? 'html.dark' : 'html:not(.dark)'),
+					).toHaveCount(1)
+					await page.evaluate(() => document.fonts.ready)
+					const bounds = () =>
+						tiles.evaluateAll((cells) => cells.map((cell) => cell.getBoundingClientRect().toJSON()))
+					const before = await bounds()
+					const canvasBefore = await canvasGeometry(page)
+					expect(canvasBefore.overflow).toEqual([
+						[0, 0, 0],
+						[0, 0, 0],
+						[0, 0, 0],
+					])
+					const expectColumn = async (col: number) => {
+						await expect(cursors).toHaveCount(tableCount)
+						for (let i = 0; i < tableCount; i++) {
+							await expect(tiles.nth(i * 30 + col)).toHaveAttribute('data-active-slot', 'true')
+						}
+						await expect(cursors).toHaveText(Array(tableCount).fill(''))
+						expect(await bounds()).toEqual(before)
+					}
+					await expectColumn(0)
+					await expect(cursors.first()).toHaveCSS('border-top-color', 'rgb(244, 180, 42)')
+					const neutral = await tiles.nth(1).evaluate((el) => getComputedStyle(el).backgroundColor)
+					await expect(cursors.first()).not.toHaveCSS('background-color', neutral)
+					for (const [col, letter] of [...'CRANE'].entries()) {
+						if (width === 390) await board.getByRole('button', { name: letter, exact: true }).tap()
+						else await page.keyboard.press(letter)
+						if (col < 4) await expectColumn(col + 1)
+						else await expect(cursors).toHaveCount(0)
+						for (let i = 0; i < tableCount; i++) {
+							await expect(tiles.nth(i * 30 + col)).toHaveText(letter)
+						}
+					}
+					expect(await bounds()).toEqual(before)
+					if (width === 390) await board.getByRole('button', { name: 'Delete', exact: true }).tap()
+					else await page.keyboard.press('Backspace')
+					await expectColumn(4)
+					expect(await canvasGeometry(page)).toEqual(canvasBefore)
+					await page.screenshot({ path: testInfo.outputPath('active-slot.png') })
+				})
+			}
+		})
+	}
+}
+
 for (const [width, height] of layouts) {
 	test.describe(width + '×' + height, () => {
 		test.use({ viewport: { width, height }, hasTouch: width === 390, isMobile: width === 390 })

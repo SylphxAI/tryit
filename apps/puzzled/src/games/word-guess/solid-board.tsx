@@ -239,10 +239,19 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 													(row === rows().length ? (pendingWord() ?? draft())[col] : '') ??
 													''
 												).toUpperCase()
+											const activeSlot = () =>
+												!inactive() && row === rows().length && col === draft().length
+											const ungradedTone = () =>
+												activeSlot()
+													? 'border-accent-warm bg-accent-warm-soft inset-ring-1 inset-ring-accent-warm/45'
+													: letter()
+														? 'border-muted-foreground bg-card'
+														: 'border-border bg-card'
 											return (
 												<td
 													data-grade={tile()}
-													class={`size-11 rounded-lg border-2 text-center align-middle font-display text-2xl font-bold sm:size-[3.25rem] ${tone(tile(), letter() ? 'border-muted-foreground bg-card' : 'border-border bg-card')}`}
+													data-active-slot={activeSlot() ? 'true' : undefined}
+													class={`size-11 rounded-lg border-2 text-center align-middle font-display text-2xl font-bold sm:size-[3.25rem] ${tone(tile(), ungradedTone())}`}
 												>
 													<Show when={row === rows().length && !outcome()} fallback={letter()}>
 														<button

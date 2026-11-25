@@ -247,6 +247,7 @@ for (const scenario of [
 		await page.keyboard.press('Enter')
 		await received.promise
 		await expect(sync).toBeVisible()
+		await expect(board.locator('[data-active-slot]')).toHaveCount(0)
 		expectInitialRequestOnly()
 		try {
 			await visitGames()
@@ -273,6 +274,7 @@ for (const scenario of [
 				await expect(letter(1)).toHaveAttribute('data-grade', 'present')
 				await expect(letter(2)).toHaveAttribute('data-grade', 'correct')
 				await expect(row(1)).toHaveAttribute('data-current', '')
+				await expect(row(1).locator('td').first()).toHaveAttribute('data-active-slot', 'true')
 			} else {
 				await expect(page.locator('[data-game-stage="board"] fieldset')).toHaveAttribute(
 					'aria-busy',
