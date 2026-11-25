@@ -1,7 +1,7 @@
 /** @jsxImportSource solid-js */
 import { createMemo, createSignal, For, Index, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
-import { createTranslator } from '@/lib/i18n/translate'
+import { createTranslator, type Translate } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { createInitialState, type PipPlaceAction, pipPlaceReducer } from './board-state'
 import { parsePipPlaceClientPayload } from './parse-client'
@@ -9,8 +9,10 @@ import {
 	type Cell,
 	cellKey,
 	cellsEqual,
+	getConflictDetails,
 	type PipPlacePuzzleData,
 	type PipPlaceRegion,
+	type PipPlaceRegionConflict,
 } from './types'
 
 const regionColors = [
@@ -48,9 +50,28 @@ function PipFace(props: { value: number }) {
 }
 
 function badge(region: PipPlaceRegion | undefined) {
-	if (region?.kind === 'sum') return region.value?.toString()
+	if (region?.kind === 'sum') return region.value?.toString() ?? '—'
 	if (region?.kind === 'equal') return region.value === null ? '=' : `=${region.value}`
 	if (region?.kind === 'unequal') return '≠'
+}
+
+function conflictReason(t: Translate, conflict: PipPlaceRegionConflict) {
+	const region = conflict.regionId + 1
+	const target = conflict.target
+	switch (conflict.kind) {
+		case 'sum':
+			return t('games.pipPlace.conflicts.sum', {
+				region,
+				actual: conflict.actualSum,
+				target: target ?? '—',
+			})
+		case 'equal':
+			return target === null
+				? t('games.pipPlace.conflicts.equal', { region })
+				: t('games.pipPlace.conflicts.equalTarget', { region, target })
+		case 'unequal':
+			return t('games.pipPlace.conflicts.unequal', { region })
+	}
 }
 
 export default function PipPlaceBoard(props: DailyBoardProps) {
@@ -95,10 +116,13 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 		const state = board()
 		return state.selectedTrayIndex === null ? undefined : state.tray[state.selectedTrayIndex]
 	}
+	const placed = createMemo(() => board().placed)
+	const details = createMemo(() => getConflictDetails(placed(), data))
+	const invalidCells = createMemo(() => new Set(details().cells.map(cellKey)))
 	const placedPips = createMemo(
 		() =>
 			new Map(
-				board().placed.flatMap((tile) => [
+				placed().flatMap((tile) => [
 					[cellKey(tile.a), tile.pa] as const,
 					[cellKey(tile.b), tile.pb] as const,
 				]),
@@ -220,6 +244,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 				<For each={cells}>
 					{(cell) => {
 						const key = cellKey(cell)
+						const invalid = () => invalidCells().has(key)
 						const region = regions.get(cell.id)
 						const marker = badge(region)
 						const isStart = regionStarts.get(cell.id) === cell
@@ -237,6 +262,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 								type="button"
 								disabled={!playing()}
 								aria-pressed={pending()}
+								aria-invalid={invalid() || undefined}
 								aria-label={[
 									t('common.cellRow', { index: cell.row + 1 }),
 									t('common.cellColumn', { index: cell.col + 1 }),
@@ -246,8 +272,9 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 									.filter((part) => part !== undefined)
 									.join(', ')}
 								data-pip-cell={key}
+								data-invalid={invalid() || undefined}
 								class={
-									'relative grid aspect-square min-w-0 select-none place-items-center rounded-sm border border-border/70 aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-1 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-foreground ' +
+									'relative grid aspect-square min-w-0 select-none place-items-center rounded-sm border border-border/70 aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-1 data-invalid:border-destructive data-invalid:ring-2 data-invalid:ring-inset data-invalid:ring-destructive focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-foreground ' +
 									regionColors[cell.id % regionColors.length]
 								}
 								classList={{ 'touch-none': !!selectedFace() && !placedPips().has(key) }}
@@ -262,9 +289,14 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 								<Show when={isStart && marker}>
 									<span
 										aria-hidden="true"
-										class="absolute top-0.5 left-0.5 rounded bg-background/90 px-0.5 text-[0.625rem] font-bold leading-none"
+										class="absolute top-0.5 left-0.5 z-10 rounded px-0.5 text-[0.625rem] font-bold leading-none"
+										classList={{
+											'bg-background/90': !invalid(),
+											'bg-destructive text-background': invalid(),
+										}}
 									>
 										{marker}
+										{invalid() ? ' !' : ''}
 									</span>
 								</Show>
 								<Show when={value() !== undefined}>
@@ -274,7 +306,7 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 						)
 					}}
 				</For>
-				<For each={board().placed}>
+				<For each={placed()}>
 					{(tile) => (
 						<span
 							aria-hidden="true"
@@ -322,17 +354,28 @@ function PipPlace(props: DailyBoardProps & { data: PipPlacePuzzleData }) {
 						)}
 					</Index>
 				</div>
-				<div role="status" class="pip-feedback text-center text-sm font-semibold text-foreground">
-					<Show when={board().cue}>{(cue) => <p>{t(`games.pipPlace.${cue()}`)}</p>}</Show>
+				<div class="pip-feedback">
+					<div role="status" class="text-center text-sm font-semibold text-foreground">
+						<Show when={board().cue}>{(cue) => <p>{t(`games.pipPlace.${cue()}`)}</p>}</Show>
+					</div>
+					<div role="status" class="space-y-1 text-center text-sm font-semibold text-destructive">
+						<For each={details().regions}>{(conflict) => <p>{conflictReason(t, conflict)}</p>}</For>
+						<Show when={!wrong() && board().tray.length === 0}>
+							<p>
+								{t(
+									details().regions.length
+										? 'games.pipPlace.conflicts.pickUp'
+										: 'games.pipPlace.rejected',
+								)}
+							</p>
+						</Show>
+					</div>
+					<Show when={wrong()}>
+						<p role="alert" class="text-center text-sm font-semibold text-destructive">
+							{t('games.pipPlace.rejected')}
+						</p>
+					</Show>
 				</div>
-				<Show when={wrong()}>
-					<p role="alert">{t('games.pipPlace.rejected')}</p>
-				</Show>
-				<Show when={!wrong() && board().tray.length === 0}>
-					<p role="status" class="text-sm">
-						{t('games.pipPlace.rejected')}
-					</p>
-				</Show>
 			</Show>
 			<BoardFinish
 				finish={finish}

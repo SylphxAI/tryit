@@ -17,6 +17,13 @@
 	"region": "Região",
 	"tile": "Peça {a}–{b}",
 	"rejected": "Ainda não. Retire uma peça para continuar.",
+	"conflicts": {
+		"sum": "A soma dos pontos na região {region} é {actual}, mas precisa ser {target}.",
+		"equalTarget": "Cada célula da região {region} precisa ter {target} pontos.",
+		"equal": "Todas as células da região {region} precisam ter a mesma quantidade de pontos.",
+		"unequal": "Cada célula da região {region} precisa ter uma quantidade diferente de pontos.",
+		"pickUp": "Retire uma peça para corrigir o tabuleiro."
+	},
 	"selectDomino": "Primeiro, escolha uma peça de dominó abaixo",
 	"pickAdjacent": "Escolha uma casa vizinha: acima, abaixo, à esquerda ou à direita"
 }

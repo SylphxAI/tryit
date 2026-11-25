@@ -17,6 +17,13 @@
 	"region": "區域",
 	"tile": "骨牌 {a}–{b}",
 	"rejected": "未啱晒。拎起一塊骨牌繼續玩。",
+	"conflicts": {
+		"sum": "區域 {region} 而家加埋係 {actual} 點，應該係 {target} 點。",
+		"equalTarget": "區域 {region} 每格都要係 {target} 點。",
+		"equal": "區域 {region} 每格嘅點數都要一樣。",
+		"unequal": "區域 {region} 每格嘅點數都要唔同。",
+		"pickUp": "拎起一塊骨牌再調整。"
+	},
 	"selectDomino": "請先在下方選擇一張骨牌",
 	"pickAdjacent": "請選擇上、下、左、右相鄰的一格"
 }

@@ -17,6 +17,13 @@
 	"region": "領域",
 	"tile": "タイル {a}–{b}",
 	"rejected": "まだ正解ではありません。タイルを取り外して続けましょう。",
+	"conflicts": {
+		"sum": "領域 {region} の目の合計は {actual} です。合計が {target} になるように置いてください。",
+		"equalTarget": "領域 {region} の目はすべて {target} にそろえてください。",
+		"equal": "領域 {region} の目はすべて同じ数にそろえてください。",
+		"unequal": "領域 {region} の目はすべて異なる数にしてください。",
+		"pickUp": "タイルを取り外して置き直しましょう。"
+	},
 	"selectDomino": "先に下のドミノ牌を選んでください",
 	"pickAdjacent": "上下左右に隣り合うマスを選んでください"
 }

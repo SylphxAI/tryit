@@ -368,3 +368,90 @@ test('Arithmo explains tile taps and physical Enter submits with a keypad digit 
 	await expect(board.locator('[data-arithmo-grid] [data-grade="absent"]')).toHaveCount(8)
 	expect(guesses).toEqual(['12+34=46'])
 })
+
+for (const viewport of [
+	{ width: 1440, height: 900 },
+	{ width: 390, height: 844 },
+]) {
+	for (const colorScheme of ['light', 'dark'] as const) {
+		test(`Spots explains a violated region before and after the last placement (${viewport.width}×${viewport.height}, ${colorScheme})`, async ({
+			page,
+		}) => {
+			await page.setViewportSize(viewport)
+			await page.emulateMedia({ colorScheme })
+			const mobile = viewport.width === 390
+			await play(
+				page,
+				'pip-place',
+				{
+					maxPip: 1,
+					rows: 2,
+					cols: 3,
+					regionOf: [
+						[0, 0, 1],
+						[1, 1, 1],
+					],
+					regions: [
+						{ id: 0, kind: 'sum', value: 1 },
+						{ id: 1, kind: 'free', value: null },
+					],
+				},
+				mobile ? 'zh-HK' : 'en-US',
+			)
+			await expect(page.locator('html')).toHaveCSS('color-scheme', colorScheme)
+			const board = page.locator('[data-pip-place-board]')
+			const cell = (row: number, col: number) => board.locator(`[data-pip-cell="${row},${col}"]`)
+			const tray = board.locator('[data-pip-tile]')
+			async function place(tile: string, col: number) {
+				await board.locator(`[data-pip-tile="${tile}"]`).click()
+				await cell(0, col).click()
+				await cell(1, col).click()
+			}
+			const invalid = board.locator('[data-pip-cell][data-invalid], [data-pip-cell][aria-invalid]')
+			const reason = board
+				.getByRole('status')
+				.getByText(
+					mobile ? '區域 1 而家加埋係 0 點，應該係 1 點。' : 'Region 1 adds up to 0, needs 1.',
+					{ exact: true },
+				)
+			const guidance = board
+				.getByRole('status')
+				.getByText(mobile ? '拎起一塊骨牌再調整。' : 'Pick up a tile to fix it.', { exact: true })
+			const badge = cell(0, 0).getByText('1 !', { exact: true })
+			await expect(board.locator('[data-pip-cell]')).toHaveCount(6)
+			await place('0-0', 0) // Covers just one of the region's two cells.
+			await expect(tray).toHaveCount(2)
+			await expect(invalid).toHaveCount(0)
+			await expect(reason).toHaveCount(0)
+
+			await place('0-1', 1) // Both top pips are zero; the region now fails.
+			await expect(tray).toHaveCount(1)
+			await expect(reason).toBeVisible()
+			await expect(guidance).toHaveCount(0)
+			await expect(invalid).toHaveCount(2)
+			const red = colorScheme === 'dark' ? 'rgb(242, 123, 112)' : 'rgb(168, 43, 35)'
+			await expect(badge).toBeVisible()
+			await expect(badge).toHaveCSS('background-color', red)
+			for (const col of [0, 1]) {
+				const invalidCell = cell(0, col)
+				await expect(invalidCell).toHaveAttribute('data-invalid', 'true')
+				await expect(invalidCell).toHaveAttribute('aria-invalid', 'true')
+				await expect(invalidCell).toHaveCSS('border-top-color', red)
+				const shadow = await invalidCell.evaluate((element) => getComputedStyle(element).boxShadow)
+				expect(shadow).toContain(`${red} 0px 0px 0px 2px inset`)
+			}
+
+			await place('1-1', 2)
+			await expect(tray).toHaveCount(0)
+			await expect(invalid).toHaveCount(2)
+			await expect(reason).toBeVisible()
+			await expect(guidance).toBeVisible()
+			await cell(0, 1).click()
+			await expect(tray).toHaveCount(1)
+			await expect(invalid).toHaveCount(0)
+			await expect(reason).toHaveCount(0)
+			await expect(guidance).toHaveCount(0)
+			await expect(badge).toHaveCount(0)
+		})
+	}
+}

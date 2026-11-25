@@ -23,6 +23,14 @@ export type PipPlaceRegion = {
 	value: number | null
 }
 
+export type PipPlaceRegionConflict = {
+	regionId: number
+	kind: Exclude<RegionKind, 'free'>
+	target: number | null
+	actualSum: number
+	cells: Cell[]
+}
+
 export type PipPlacePuzzleData = {
 	maxPip: number
 	rows: number
@@ -175,15 +183,68 @@ export function isSolved(tiles: PipPlaceTile[], puzzle: PipPlacePuzzleData): boo
 	return true
 }
 
+/** Report only violated rules in regions whose cells are all covered. */
+export function getRegionConflicts(
+	placed: PipPlaceTile[],
+	puzzle: PipPlacePuzzleData,
+): PipPlaceRegionConflict[] {
+	const placedPips = new Map<string, number>()
+	for (const tile of placed) {
+		placedPips.set(cellKey(tile.a), tile.pa)
+		placedPips.set(cellKey(tile.b), tile.pb)
+	}
+	const coverage = new Map<number, { cells: Cell[]; pips: number[] }>()
+	for (const [row, ids] of puzzle.regionOf.entries()) {
+		for (const [col, id] of ids.entries()) {
+			let region = coverage.get(id)
+			if (!region) {
+				region = { cells: [], pips: [] }
+				coverage.set(id, region)
+			}
+			const cell = { row, col }
+			region.cells.push(cell)
+			const pip = placedPips.get(cellKey(cell))
+			if (pip !== undefined) region.pips.push(pip)
+		}
+	}
+	const conflicts: PipPlaceRegionConflict[] = []
+	for (const region of puzzle.regions) {
+		if (region.kind === 'free') continue
+		const covered = coverage.get(region.id)
+		if (!covered || covered.pips.length !== covered.cells.length) continue
+		const { cells, pips } = covered
+		if (!regionHolds(region, pips)) {
+			conflicts.push({
+				regionId: region.id,
+				kind: region.kind,
+				target: region.value,
+				actualSum: sumPips(pips),
+				cells,
+			})
+		}
+	}
+	return conflicts
+}
+
+export function getConflictDetails(
+	placed: PipPlaceTile[],
+	puzzle: PipPlacePuzzleData,
+): { cells: Cell[]; regions: PipPlaceRegionConflict[] } {
+	const regions = getRegionConflicts(placed, puzzle)
+	return { cells: regions.flatMap((region) => region.cells), regions }
+}
+
+function sumPips(pips: number[]): number {
+	return pips.reduce((total, pip) => total + pip, 0)
+}
+
 function regionHolds(region: PipPlaceRegion, pips: number[]): boolean {
 	switch (region.kind) {
 		case 'free':
 			return true
 		case 'sum': {
 			if (region.value === null || !Number.isInteger(region.value)) return false
-			let total = 0
-			for (const pip of pips) total += pip
-			return total === region.value
+			return sumPips(pips) === region.value
 		}
 		case 'equal': {
 			const first = pips[0]
