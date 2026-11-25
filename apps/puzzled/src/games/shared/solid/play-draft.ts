@@ -27,6 +27,7 @@ export function createPlayDraft(
 		| { day: string; game: string; difficulty?: string; puzzleId: string; owner: string }
 		| undefined,
 	canWrite: Accessor<boolean>,
+	onChange?: () => void,
 ) {
 	const key =
 		identity &&
@@ -126,6 +127,7 @@ export function createPlayDraft(
 			const update = (value: T | ((previous: T) => T)): T => {
 				const previous = untrack(get)
 				const next = typeof value === 'function' ? (value as (previous: T) => T)(previous) : value
+				if (next !== previous) onChange?.()
 				if (key && next !== previous) {
 					changed = true
 					// Coalesce the fields changed by one move; a terminal submission wins

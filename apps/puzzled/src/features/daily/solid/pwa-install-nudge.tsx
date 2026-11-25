@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { Smartphone, X } from 'lucide-solid'
-import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { type PwaPlatform, trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { PWA_PROMPT_DISMISSED_KEY } from '@/lib/storage-keys'
@@ -18,6 +19,29 @@ export function PwaInstallNudge(props: { locale: Locale }) {
 	const [available, setAvailable] = createSignal(false)
 	const [ios, setIos] = createSignal(false)
 	const [prompt, setPrompt] = createSignal<BeforeInstallPromptEvent | null>(null)
+	let prompted: PwaPlatform | undefined
+	let installed = false
+	const platform = () => (prompt() ? 'chromium' : ios() ? 'ios_guide' : undefined)
+	createEffect(() => {
+		if (!available() || prompted) return
+		const visible = platform()
+		if (!visible) return
+		prompted = visible
+		trackBehavioralEvent({
+			event: 'pwa_install_prompted',
+			platform: visible,
+			trigger: 'post_first_win',
+		})
+	})
+	function recordInstalled(platform: PwaPlatform) {
+		if (installed) return
+		installed = true
+		trackBehavioralEvent({ event: 'pwa_installed', platform, trigger: 'post_first_win' })
+	}
+	function onInstalled() {
+		if (prompted) recordInstalled(platform() ?? prompted)
+		dismiss()
+	}
 	onMount(() => {
 		try {
 			if (localStorage.getItem(PWA_PROMPT_DISMISSED_KEY)) return
@@ -35,11 +59,11 @@ export function PwaInstallNudge(props: { locale: Locale }) {
 		setIos(appleMobile && /Safari\//.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua))
 		setPrompt(getInstallPrompt())
 		const stop = onInstallPrompt(setPrompt)
-		window.addEventListener('appinstalled', dismiss)
+		window.addEventListener('appinstalled', onInstalled)
 		onCleanup(() => {
 			stop()
 			mode.removeEventListener('change', sync)
-			window.removeEventListener('appinstalled', dismiss)
+			window.removeEventListener('appinstalled', onInstalled)
 		})
 	})
 	function dismiss() {
@@ -57,6 +81,7 @@ export function PwaInstallNudge(props: { locale: Locale }) {
 		dismiss()
 		try {
 			await event.prompt()
+			if ((await event.userChoice).outcome === 'accepted') recordInstalled('chromium')
 		} catch {
 			/* Browser cancelled or declined the native prompt. */
 		}

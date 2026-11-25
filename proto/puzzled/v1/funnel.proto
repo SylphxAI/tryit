@@ -15,7 +15,8 @@ option features.(pb.cpp).string_type = STRING;
 
 import "google/protobuf/cpp_features.proto";
 
-// Anonymous first-party counters. Signup is server-only.
+// Anonymous first-party counters. Signup is server-only. The event name
+// selects which of the following fields apply.
 message RecordEventRequest {
   string event = 1;
   string path = 2;
@@ -23,6 +24,22 @@ message RecordEventRequest {
   string metric = 4;
   double value = 5 [features.field_presence = EXPLICIT];
   string rating = 6;
+  string mode = 7;
+  string status = 8;
+  // Omission means no daily pick; a provided index must be between 1 and 3.
+  uint32 pick_index = 9 [features.field_presence = EXPLICIT];
+  uint32 time_bucket_s = 10 [features.field_presence = EXPLICIT];
+  bool is_guest = 11 [features.field_presence = EXPLICIT];
+  uint32 progress_pct_bucket = 12 [features.field_presence = EXPLICIT];
+  uint32 hint_count = 13 [features.field_presence = EXPLICIT];
+  string action = 14;
+  bool has_percentile = 15 [features.field_presence = EXPLICIT];
+  string surface = 16;
+  uint32 picks_used = 17 [features.field_presence = EXPLICIT];
+  string currency = 18;
+  string platform = 19;
+  string trigger = 20;
+  string result = 21;
 }
 message RecordEventResponse {}
 service FunnelService {

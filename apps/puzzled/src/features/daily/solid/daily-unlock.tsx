@@ -1,14 +1,20 @@
 /** @jsxImportSource solid-js */
 import { Lock } from 'lucide-solid'
-import { createResource, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
+import { createEffect, createResource, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
+import { trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
 import { getAllGameMetadata } from '@/games/registry'
-import { formatPrice } from '@/lib/billing/plus'
+import { currencyForLocale, formatPrice } from '@/lib/billing/plus'
 import { getTodayProgress } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
-import { claimedDailyPicks, DAILY_FREE_PICKS, unfinishedDailyPicks } from '../lib/daily-picks'
+import {
+	claimedDailyPicks,
+	DAILY_FREE_PICKS,
+	dailyPickCount,
+	unfinishedDailyPicks,
+} from '../lib/daily-picks'
 import { dailyPlayerCopy } from '../lib/daily-player-copy'
 import type { GameDayRequest } from '../lib/day-request'
 import { DailyPickCount } from './daily-pick-count'
@@ -20,6 +26,7 @@ export function DailyUnlock(props: {
 	day: GameDayRequest
 	todayKey: string
 	resetAt: number
+	isGuest?: boolean
 }) {
 	const { locale, catalog, canonicalPath } = props.data
 	const archive = props.day.mode === 'archive'
@@ -36,24 +43,52 @@ export function DailyUnlock(props: {
 		}
 		setReady(true)
 	})
-	const [resumes] = createResource(
-		() => !archive && ready() && remaining() !== 0,
+	const [progress] = createResource(
+		() => ready() && (archive || remaining() !== 0),
 		async () => {
 			try {
-				const progress = await getTodayProgress(getAllGameMetadata().map(({ slug }) => slug))
+				const progress = await getTodayProgress(
+					archive ? [] : getAllGameMetadata().map(({ slug }) => slug),
+				)
 				const picks = claimedDailyPicks(progress, props.todayKey)
-				return picks ? unfinishedDailyPicks(progress, picks) : []
+				return picks
+					? { count: dailyPickCount(picks), resumes: unfinishedDailyPicks(progress, picks) }
+					: null
 			} catch {
-				return []
+				return null
 			}
 		},
-		{ initialValue: [] },
+		{ initialValue: null },
 	)
 	const [prices] = createResource(
 		() => !archive && ready(),
 		() => readUnlockPrices(locale).catch(() => []),
 		{ initialValue: null },
 	)
+	let reported = false
+	createEffect(() => {
+		const is_guest = props.isGuest
+		if (
+			!ready() ||
+			reported ||
+			is_guest === undefined ||
+			progress.loading ||
+			prices.loading ||
+			(!archive && remaining() === 0)
+		)
+			return
+		const picks_used = archive ? progress.latest?.count : DAILY_FREE_PICKS
+		if (picks_used === undefined) return
+		reported = true
+		trackBehavioralEvent({
+			event: 'paywall_hit',
+			surface: archive ? 'archive_lock' : '4th_game_lock',
+			game_slug: props.data.slug,
+			picks_used,
+			currency: prices.latest?.[0]?.currency ?? currencyForLocale(locale),
+			is_guest,
+		})
+	})
 	const callbackUrl = archive ? `${canonicalPath}?date=${props.day.puzzleDate}` : canonicalPath
 	const pricingHref = localizedPath(
 		locale,
@@ -79,9 +114,9 @@ export function DailyUnlock(props: {
 						</time>
 					</p>
 				</Show>
-				<Show when={resumes.latest?.length}>
+				<Show when={!archive && progress.latest?.resumes.length}>
 					<ul class="flex flex-wrap gap-2">
-						<For each={resumes.latest}>
+						<For each={progress.latest?.resumes}>
 							{(slug) => (
 								<li>
 									<DailyNextLink

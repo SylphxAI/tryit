@@ -1074,12 +1074,13 @@ export const funnelEvents = pgTable(
 		metric: text('metric'),
 		value: doublePrecision('value'),
 		rating: text('rating'),
+		params: jsonb('params'),
 	},
 	(table) => [
 		index('funnel_events_event_time_idx').on(table.event, table.occurredAt),
 		check(
 			'funnel_events_event_check',
-			sql`${table.event} IN ('landing', 'game_start', 'signup', 'web_vitals', 'share_landing')`,
+			sql`${table.event} IN ('landing', 'game_start', 'signup', 'web_vitals', 'share_landing', 'game_complete', 'game_abandon', 'hint_used', 'share_clicked', 'paywall_hit', 'pwa_install_prompted', 'pwa_installed', 'push_opted_in')`,
 		),
 	],
 )

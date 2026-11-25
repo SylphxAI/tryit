@@ -17,10 +17,10 @@ const PER_MINUTE: u64 = 1200;
 /// Packed `minute << 20 | count`.
 static WINDOW: AtomicU64 = AtomicU64::new(0);
 
-fn within_cap(now_secs: u64) -> bool {
+fn within_cap(window: &AtomicU64, now_secs: u64) -> bool {
     let minute = now_secs / 60;
     loop {
-        let cur = WINDOW.load(Ordering::Relaxed);
+        let cur = window.load(Ordering::Relaxed);
         let (m, n) = (cur >> 20, cur & 0xF_FFFF);
         let next = if m == minute {
             (m << 20) | (n + 1)
@@ -30,7 +30,7 @@ fn within_cap(now_secs: u64) -> bool {
         if m == minute && n >= PER_MINUTE {
             return false;
         }
-        if WINDOW
+        if window
             .compare_exchange(cur, next, Ordering::Relaxed, Ordering::Relaxed)
             .is_ok()
         {
@@ -66,6 +66,14 @@ impl FunnelService for FunnelConnectService {
             &input.game_slug,
             &input.metric,
             &input.rating,
+            &input.mode,
+            &input.status,
+            &input.action,
+            &input.surface,
+            &input.currency,
+            &input.platform,
+            &input.trigger,
+            &input.result,
         ]
         .iter()
         .map(|s| s.len())
@@ -84,6 +92,21 @@ impl FunnelService for FunnelConnectService {
             metric: Some(input.metric),
             value: input.value,
             rating: Some(input.rating),
+            mode: Some(input.mode),
+            status: Some(input.status),
+            pick_index: input.pick_index,
+            time_bucket_s: input.time_bucket_s,
+            is_guest: input.is_guest,
+            progress_pct_bucket: input.progress_pct_bucket,
+            hint_count: input.hint_count,
+            action: Some(input.action),
+            has_percentile: input.has_percentile,
+            surface: Some(input.surface),
+            picks_used: input.picks_used,
+            currency: Some(input.currency),
+            platform: Some(input.platform),
+            trigger: Some(input.trigger),
+            result: Some(input.result),
         };
         let Some(row) = validate_browser(&incoming) else {
             return Response::ok(RecordEventResponse::default());
@@ -97,7 +120,7 @@ impl FunnelService for FunnelConnectService {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
-        if within_cap(now) {
+        if within_cap(&WINDOW, now) {
             insert(pool, &row).await.map_err(|error| {
                 tracing::warn!(%error, "funnel event not recorded");
                 ConnectError::new(ErrorCode::Unavailable, "funnel_unavailable")
@@ -117,9 +140,10 @@ mod tests {
 
     #[test]
     fn the_cap_holds_within_a_minute_and_resets_in_the_next() {
+        let window = AtomicU64::new(0);
         let t = 6_000_000_000;
-        assert!((0..PER_MINUTE).all(|_| within_cap(t)));
-        assert!(!within_cap(t + 1));
-        assert!(within_cap(t + 60));
+        assert!((0..PER_MINUTE).all(|_| within_cap(&window, t)));
+        assert!(!within_cap(&window, t + 1));
+        assert!(within_cap(&window, t + 60));
     }
 }
