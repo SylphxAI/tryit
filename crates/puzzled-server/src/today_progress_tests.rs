@@ -7,7 +7,7 @@ use chrono::NaiveDate;
 use uuid::Uuid;
 
 use crate::capabilities::puzzle_play::adapters::game_sessions_db::{
-    load_completed_session, load_today_progress, persist_validated_session,
+    load_completed_session, load_today_progress, persist_validated_session, ValidatedSession,
 };
 use crate::test_support::fresh_database;
 
@@ -29,18 +29,22 @@ async fn reports_only_this_players_finishes_for_the_requested_day() {
     ] {
         persist_validated_session(
             &pool,
-            &user.to_string(),
-            game,
-            None,
-            "daily",
-            "won",
-            Some(score),
-            3,
-            61_000,
-            None,
-            Some(day(d)),
-            Some(day(d)),
-            0,
+            ValidatedSession {
+                user_id: &user.to_string(),
+                game_slug: game,
+                difficulty: None,
+                mode: "daily",
+                status: "won",
+                score: Some(score),
+                attempts: 3,
+                time_spent_ms: 61_000,
+                puzzle_id: None,
+                puzzle_date: Some(day(d)),
+                day_key: Some(day(d)),
+                at_ms: 0,
+                hints_used: None,
+                comparison_excluded: false,
+            },
         )
         .await
         .expect("finish stored");
@@ -85,35 +89,43 @@ async fn the_one_finish_reports_the_level_it_was_played_at() {
     let (easy_id, medium_id, hard_id) = (&ids[0], &ids[1], &ids[2]);
     persist_validated_session(
         &pool,
-        &me,
-        "sudoku",
-        Some("medium"),
-        "daily",
-        "won",
-        Some(80),
-        1,
-        61_000,
-        Some(medium_id),
-        Some(day(10)),
-        Some(day(10)),
-        0,
+        ValidatedSession {
+            user_id: &me,
+            game_slug: "sudoku",
+            difficulty: Some("medium"),
+            mode: "daily",
+            status: "won",
+            score: Some(80),
+            attempts: 1,
+            time_spent_ms: 61_000,
+            puzzle_id: Some(medium_id),
+            puzzle_date: Some(day(10)),
+            day_key: Some(day(10)),
+            at_ms: 0,
+            hints_used: None,
+            comparison_excluded: false,
+        },
     )
     .await
     .expect("finish stored");
     persist_validated_session(
         &pool,
-        &me,
-        "wordle",
-        None,
-        "daily",
-        "won",
-        Some(80),
-        1,
-        61_000,
-        None,
-        Some(day(10)),
-        Some(day(10)),
-        0,
+        ValidatedSession {
+            user_id: &me,
+            game_slug: "wordle",
+            difficulty: None,
+            mode: "daily",
+            status: "won",
+            score: Some(80),
+            attempts: 1,
+            time_spent_ms: 61_000,
+            puzzle_id: None,
+            puzzle_date: Some(day(10)),
+            day_key: Some(day(10)),
+            at_ms: 0,
+            hints_used: None,
+            comparison_excluded: false,
+        },
     )
     .await
     .expect("finish stored");
