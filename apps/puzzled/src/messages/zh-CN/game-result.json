@@ -1,4 +1,6 @@
 {
+	"streakMilestone": "连续 {days} 天，玩得漂亮！",
+	"freezeSaved": "连胜保护保住了你的连续记录",
 	"seeResult": "查看成绩",
 	"congratulations": "恭喜！",
 	"gameOver": "游戏结束",

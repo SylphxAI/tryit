@@ -10,6 +10,7 @@
 	--result-ring: #38695e;
 	--result-mark-bg: #e5f1e7;
 	--result-mark-ink: #225f3a;
+	--result-streak-accent: #7a5200;
 	color: var(--result-ink);
 	background: var(--result-paper);
 	border: 1px solid var(--result-edge);
@@ -98,6 +99,7 @@
 .result-button[aria-disabled="true"] { opacity: .72; cursor: wait; }
 
 .result-button:focus-visible,
+.result-guest-link:focus-visible,
 .result-dialog :is(.result-close, .result-next, .result-plus-link, .result-catalog-link):focus-visible {
 	outline: 2px solid var(--result-ring);
 	outline-offset: 2px;
@@ -295,10 +297,79 @@
 	--result-ring: #7ea6ff;
 	--result-mark-bg: #20392b;
 	--result-mark-ink: #abdfbb;
+	--result-streak-accent: #f7cf73;
 }
 .dark :is(.result-button:not(.result-next, .result-copy), .result-close):hover { background: #34312b; }
-.result-current-streak { display: flex; align-items: center; gap: .375rem; margin-block-end: .5rem; font-size: .875rem; font-weight: 750; }
-.result-current-streak svg { color: var(--result-mark-ink); }
+.result-native-share { grid-column: 1 / -1; }
+
+.result-streak-notes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .25rem .5rem;
+	margin-block-end: .5rem;
+}
+
+.result-current-streak,
+.result-freeze-saved {
+	display: flex;
+	align-items: center;
+	gap: .375rem;
+	font-size: .8125rem;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.result-streak-notes svg { flex: none; }
+.result-current-streak:not([data-result-milestone]) svg { color: var(--result-mark-ink); }
+
+.result-current-streak[data-result-milestone],
+.result-freeze-saved {
+	padding: .25rem .625rem;
+	border-radius: .75rem;
+	background: var(--result-tile);
+}
+
+.result-current-streak[data-result-milestone] { color: var(--result-streak-accent); }
+.result-freeze-saved { color: var(--result-quiet); }
+
+.result-guest-capture {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: .25rem .75rem;
+	margin-block-start: .75rem;
+	padding: .5rem .75rem;
+	border-radius: .75rem;
+	background: var(--result-tile);
+	font-size: .8125rem;
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
+/* Leave the board unobscured on the compact, anchored rail. The account
+   strip is optional and scrolls within the card after the play/share actions. */
+@media (width < 1024px) {
+	@container (height >= 26rem) {
+		[data-play-canvas] .completion-card[data-board-finished]:has(.result-guest-capture) {
+			max-block-size: min(12.5rem, 40cqh);
+		}
+	}
+}
+
+.result-guest-capture > div { flex: 1 1 14rem; }
+.result-guest-note { color: var(--result-quiet); margin-block-start: .125rem; }
+
+.result-guest-link {
+	display: inline-flex;
+	align-items: center;
+	min-block-size: 3rem;
+	min-inline-size: 3rem;
+	color: var(--result-ink);
+	font-weight: 700;
+	text-decoration: underline;
+	text-underline-offset: .2em;
+}
 .result-install {
 	display: flex;
 	gap: .625rem;

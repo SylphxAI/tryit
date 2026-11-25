@@ -112,6 +112,9 @@ export function createBoardFinish(
 	return {
 		state,
 		draft,
+		get isGuest() {
+			return props.isGuest
+		},
 		result() {
 			if (state() !== 'accepted' || !intent) return
 			return {
@@ -195,6 +198,7 @@ export function BoardFinish(props: {
 						</div>
 						<ResultActions
 							facts={result()}
+							isGuest={props.finish.isGuest}
 							freshWin
 							onDetailsOpenChange={setResultOpen}
 							locale={props.locale}

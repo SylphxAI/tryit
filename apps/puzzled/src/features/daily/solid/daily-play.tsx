@@ -242,6 +242,7 @@ export function DailyPlay(props: {
 							{t('gameResult.attempts')}: {result().session.attempts}
 						</p>
 						<ResultActions
+							isGuest={isGuest.latest}
 							onDetailsOpenChange={setResultOpen}
 							facts={{
 								gameSlug: slug,

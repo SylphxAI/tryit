@@ -1,4 +1,6 @@
 {
+	"streakMilestone": "{days}日連続でプレイ。おめでとう！",
+	"freezeSaved": "フリーズで連続記録が守られました",
 	"seeResult": "結果を見る",
 	"congratulations": "おめでとうございます!",
 	"gameOver": "ゲームオーバー",

@@ -19,6 +19,12 @@ test('copying a challenge without clipboard permission offers a selectable capti
 	await page.route('**/puzzled.v1.PuzzleService/ShareResult', (route) =>
 		route.fulfill({ json: {} }),
 	)
+	await page.route('**/puzzled.v1.StatsService/GetTodayPercentile', (route) =>
+		route.fulfill({ json: { dispatch: 'insufficient_cohort' } }),
+	)
+	await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) =>
+		route.fulfill({ json: {} }),
+	)
 	await page.goto('/games/sudoku?difficulty=easy&start=1#play')
 	await page.getByRole('button', { name: 'See your result' }).click()
 	const dialog = page.getByRole('dialog', { name: 'Sudoku Complete' })
@@ -30,7 +36,18 @@ test('copying a challenge without clipboard permission offers a selectable capti
 		origin: new URL(page.url()).origin,
 		browserContextId: targetInfo.browserContextId,
 	})
+	const tap = page.waitForRequest(
+		(request) =>
+			request.url().endsWith('/puzzled.v1.FunnelService/RecordEvent') &&
+			request.postDataJSON().event === 'share_clicked',
+	)
 	await dialog.getByRole('button', { name: 'Copy challenge', exact: true }).click()
+	expect((await tap).postDataJSON()).toEqual({
+		event: 'share_clicked',
+		gameSlug: 'sudoku',
+		action: 'copy_challenge',
+		hasPercentile: false,
+	})
 	await expect(dialog.getByRole('status')).toHaveText('Could not share automatically.')
 	await expect(dialog.getByText('Challenge copied')).toHaveCount(0)
 	const caption = dialog.getByRole('textbox', { name: 'Result caption' })

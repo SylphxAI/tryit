@@ -198,6 +198,28 @@ for (const viewport of [
 				}
 				await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
 				await page.emulateMedia({ reducedMotion: 'reduce' })
+				const shareEvents: unknown[] = []
+				await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) => {
+					const event = route.request().postDataJSON()
+					if (event.event === 'share_clicked') shareEvents.push(event)
+					return route.fulfill({ json: {} })
+				})
+				await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
+					route.fulfill({ json: { info: { currentStreak: 7, freezeUsedYesterday: true } } }),
+				)
+				await page.addInitScript(() => {
+					const pending = Promise.withResolvers<void>()
+					Reflect.set(window, 'resolveShare', pending.resolve)
+					Object.defineProperty(navigator, 'share', {
+						value: ({ text }: ShareData) => {
+							Reflect.set(window, 'nativeCaption', text)
+							return pending.promise
+						},
+					})
+				})
+				const prefetched = page.waitForResponse(
+					(response) => response.url().endsWith('/ShareResult') && response.ok(),
+				)
 				const { board } = await playFixture(page, 'word-guess')
 				const keyboard = page
 					.locator('fieldset')
@@ -241,12 +263,32 @@ for (const viewport of [
 				await expect(card.locator('[data-result-percentile]')).toHaveText(
 					'You placed ahead of 73% of today’s players',
 				)
+				await prefetched
+				expect(shareEvents).toEqual([])
+				await expect(card.locator('[data-result-milestone="7"]')).toHaveText(
+					'7-day streak. Nicely played!',
+				)
+				await expect(card.locator('[data-result-freeze-saved]')).toHaveText(
+					'Streak saved by a freeze',
+				)
+				const capture = card.locator('[data-result-guest-capture]')
+				await expect(capture).toHaveCount(1)
+				await expect(capture).toContainText('keep your streak of 7 days')
+				const signIn = capture.getByRole('link', { name: 'Create a free account', exact: true })
+				await expect(signIn).toHaveAttribute('href', '/sign-in?callbackUrl=%2Fstats')
+				const nextAction = card.locator('.result-next')
+				const shareRow = card.locator('.result-action-row')
+				const captureBox = (await capture.boundingBox())!
+				const nextBox = (await nextAction.boundingBox())!
+				const shareBox = (await shareRow.boundingBox())!
+				expect(captureBox.y).toBeGreaterThanOrEqual(shareBox.y + shareBox.height)
+				expect(shareBox.y).toBeGreaterThanOrEqual(nextBox.y + nextBox.height)
 				const assertNoOverflow = async () => {
 					const overflow = await page.evaluate(() =>
 						[
 							document.documentElement,
 							...document.querySelectorAll(
-								'.play-body, [data-board-finished], .result-dialog[open]',
+								'.play-body, [data-board-finished], [data-result-guest-capture], .result-dialog[open]',
 							),
 						]
 							.map((el) => [el.className, el.scrollWidth - el.clientWidth])
@@ -277,7 +319,8 @@ for (const viewport of [
 				await page.screenshot({ path: info.outputPath('five-details.png') })
 				const copy = dialog.getByRole('button', { name: 'Copy challenge', exact: true })
 				const save = dialog.getByRole('button', { name: 'Save PNG', exact: true })
-				for (const action of [railCopy, copy, save]) {
+				const native = dialog.getByRole('button', { name: 'Share result', exact: true })
+				for (const action of [railCopy, copy, save, native, signIn, nextAction]) {
 					const box = (await action.boundingBox())!
 					expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44)
 				}
@@ -301,6 +344,28 @@ for (const viewport of [
 					[139, 85, 197],
 				])
 				expect(await readClipboard()).toBe(caption)
+
+				// Keep the share promise pending and dispatch a second click synchronously.
+				await native.evaluate((button: HTMLButtonElement) => {
+					button.click()
+					button.click()
+				})
+				await expect(native).toHaveAttribute('aria-disabled', 'true')
+				await expect
+					.poll(() => page.evaluate(() => Reflect.get(window, 'nativeCaption')))
+					.toBe(caption)
+				await page.evaluate(() => Reflect.get(window, 'resolveShare')())
+				await expect(native).toBeEnabled()
+				await expect
+					.poll(() => shareEvents)
+					.toEqual(
+						['copy_challenge', 'save_png', 'native_share'].map((action) => ({
+							event: 'share_clicked',
+							gameSlug: 'word-guess',
+							action,
+							hasPercentile: true,
+						})),
+					)
 			})
 		}
 		for (const slug of ['number-path', 'sudoku'] as const) {
