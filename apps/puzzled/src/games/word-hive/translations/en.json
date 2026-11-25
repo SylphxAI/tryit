@@ -26,6 +26,8 @@
 	"foundWords": "Found Words",
 	"pangram": "Pangram",
 	"pangramBonus": "+7 bonus",
+	"nextRank": "+{points, number} to {rank}",
+	"noWords": "No words yet.",
 	"ranks": {
 		"beginner": "Start",
 		"goodStart": "Warm Up",

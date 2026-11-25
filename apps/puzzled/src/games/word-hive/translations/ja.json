@@ -26,6 +26,8 @@
 	"foundWords": "見つけた単語",
 	"pangram": "パングラム",
 	"pangramBonus": "+7ボーナス",
+	"nextRank": "「{rank}」まであと {points, number} 点",
+	"noWords": "まだ単語がありません。",
 	"ranks": {
 		"beginner": "スタート",
 		"goodStart": "ウォームアップ",

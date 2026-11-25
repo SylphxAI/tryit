@@ -26,6 +26,8 @@
 	"foundWords": "已找到的词",
 	"pangram": "全字母句",
 	"pangramBonus": "+7 奖励",
+	"nextRank": "还差 {points, number} 分升至「{rank}」",
+	"noWords": "还没有找到单词。",
 	"ranks": {
 		"beginner": "起步",
 		"goodStart": "热身",
