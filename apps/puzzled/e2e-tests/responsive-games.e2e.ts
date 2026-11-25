@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { gamePath } from '../src/lib/game-slug'
 import { MOBILE, settle, targetOffenders } from './a11y-support'
 
 /**
@@ -61,7 +62,7 @@ test.describe('Game catalog responsiveness', () => {
 		const failures: string[] = []
 		for (const slug of slugs) {
 			await page.setViewportSize({ width: MOBILE.width, height: MOBILE.height })
-			await page.goto(`/games/${slug}`, { waitUntil: 'domcontentloaded' })
+			await page.goto(`${gamePath(slug)}`, { waitUntil: 'domcontentloaded' })
 			await settle(page)
 
 			if ((await page.locator('h1').count()) === 0) failures.push(`${slug}: no heading`)
@@ -75,7 +76,7 @@ test.describe('Game catalog responsiveness', () => {
 		test(`${slug} renders and keeps board controls at 44px on every width`, async ({ page }) => {
 			for (const viewport of VIEWPORTS) {
 				await page.setViewportSize({ width: viewport.width, height: viewport.height })
-				await page.goto(`/games/${slug}`, { waitUntil: 'domcontentloaded' })
+				await page.goto(`${gamePath(slug)}`, { waitUntil: 'domcontentloaded' })
 				await settle(page)
 
 				expect(

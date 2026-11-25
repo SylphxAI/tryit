@@ -4,6 +4,7 @@ import { For } from 'solid-js'
 import { CurrencySwitcher } from '@/features/plus/solid/currency-switcher'
 import { getGameMetadata } from '@/games/registry'
 import { getGameColors } from '@/games/theme-colors'
+import { gamePath } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { type comparisonPricing, comparisonPricingFaqs } from '../components/comparison-pricing'
@@ -209,7 +210,7 @@ export function ComparisonLanding({
 							return (
 								<li>
 									<EditorialLink
-										href={`/games/${pairing.slug}`}
+										href={gamePath(pairing.slug)}
 										class="surface-card group flex h-full overflow-hidden transition-shadow hover:shadow-lift focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 									>
 										<span class={`w-2 shrink-0 ${colors.stripe}`} aria-hidden="true" />

@@ -7,39 +7,47 @@ import { type Card, isValidSet, type PatternMatchClientData } from './types'
 
 type Trio = [number, number, number]
 const maxMistakes = 4 // Connect's PatternMatchSubmission limit.
-const ink = { red: 'text-red-600', green: 'text-emerald-700', purple: 'text-violet-600' }
+// Persisted card attributes stay unchanged; these are presentation names only.
+const shape = { diamond: 'circle', oval: 'triangle', squiggle: 'hexagon' } as const
+const color = { red: 'coral', green: 'teal', purple: 'indigo' } as const
+const fill = { solid: 'solid', striped: 'dotted', empty: 'outline' } as const
+const ink = {
+	coral: 'text-[#aa3c27] dark:text-[#ff8a6b]',
+	teal: 'text-[#006c65] dark:text-[#5ed9ca]',
+	indigo: 'text-[#473ba5] dark:text-[#ada5ff]',
+}
 const glyph = {
-	diamond: 'M20 5 35 30 20 55 5 30Z',
-	oval: 'M20 6a15 24 0 1 0 0 48 15 24 0 1 0 0-48Z',
-	squiggle: 'M10 10Q5 20 15 30T15 50Q10 55 20 55 35 55 30 45T30 25Q35 15 25 10T10 10Z',
+	circle: 'M20 13a17 17 0 1 0 0 34 17 17 0 1 0 0-34Z',
+	triangle: 'M20 11 38 46H2Z',
+	hexagon: 'M11 14h18l9 16-9 16H11L2 30Z',
 }
 
 function CardFace(props: { card: Card }) {
-	const stripe = createUniqueId()
+	const dots = createUniqueId()
 	const card = props.card
 	return (
 		<svg
 			aria-hidden="true"
 			viewBox={`0 0 ${40 * card.count} 60`}
-			class={`h-10 w-auto max-w-full ${ink[card.color]}`}
+			class={`h-10 w-auto max-w-full ${ink[color[card.color]]}`}
 		>
 			<Show when={card.fill === 'striped'}>
 				<defs>
-					<pattern id={stripe} patternUnits="userSpaceOnUse" width="5" height="5">
-						<path d="M0 2.5H5" stroke="currentColor" stroke-width="1.8" />
+					<pattern id={dots} patternUnits="userSpaceOnUse" width="7" height="7">
+						<circle cx="3.5" cy="3.5" r="1.55" fill="currentColor" />
 					</pattern>
 				</defs>
 			</Show>
 			<For each={Array.from({ length: card.count }, (_, index) => index)}>
 				{(index) => (
 					<path
-						d={glyph[card.shape]}
+						d={glyph[shape[card.shape]]}
 						transform={`translate(${40 * index} 0)`}
 						stroke="currentColor"
 						stroke-width="2.5"
 						fill={
 							card.fill === 'striped'
-								? `url(#${stripe})`
+								? `url(#${dots})`
 								: card.fill === 'solid'
 									? 'currentColor'
 									: 'none'
@@ -55,9 +63,9 @@ function cardLabel(card: Card, t: Translate) {
 	const key = 'games.patternMatch.card'
 	return t(`${key}.label`, {
 		count: card.count,
-		color: t(`${key}.${card.color}`),
-		shape: t(`${key}.${card.shape}`),
-		fill: t(`${key}.${card.fill}`),
+		color: t(`${key}.${color[card.color]}`),
+		shape: t(`${key}.${shape[card.shape]}`),
+		fill: t(`${key}.${fill[card.fill]}`),
 	})
 }
 
@@ -118,7 +126,7 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 			else setMessage('notASet')
 			return
 		}
-		// A card may belong to multiple sets. Only the unordered trio is unique.
+		// A card may belong to multiple trios. Only the unordered trio is unique.
 		const trio: Trio = [first.id, second.id, card.id]
 		if (foundSets().some((set) => trio.every((id) => set.includes(id)))) {
 			setMessage('alreadyFound')

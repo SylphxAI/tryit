@@ -1,4 +1,4 @@
-export type CategoryLevel = 0 | 1 | 2 | 3 // 0=easiest (rose), 3=hardest (fuchsia)
+export type CategoryLevel = 0 | 1 | 2 | 3 // 0=easiest (rose), 3=hardest (ochre)
 
 export type Category = {
 	name: string
@@ -67,33 +67,10 @@ export type ConnectionsSolution = {
 	categories: Category[]
 }
 
-// The four group colours: flat printed bands with ink text (AA on each).
-export const CATEGORY_COLORS: Record<
-	CategoryLevel,
-	{ bg: string; text: string; ring: string; shadow: string }
-> = {
-	0: {
-		bg: 'bg-[#f6d26b]',
-		text: 'text-[#1a1712]',
-		ring: 'ring-[#f6d26b]',
-		shadow: 'shadow-[#f6d26b]/50',
-	}, // Easiest - butter
-	1: {
-		bg: 'bg-[#8fd1a0]',
-		text: 'text-[#1a1712]',
-		ring: 'ring-[#8fd1a0]',
-		shadow: 'shadow-[#8fd1a0]/50',
-	}, // Mint
-	2: {
-		bg: 'bg-[#8cc4f0]',
-		text: 'text-[#1a1712]',
-		ring: 'ring-[#8cc4f0]',
-		shadow: 'shadow-[#8cc4f0]/50',
-	}, // Sky
-	3: {
-		bg: 'bg-[#c3b3f5]',
-		text: 'text-[#1a1712]',
-		ring: 'ring-[#c3b3f5]',
-		shadow: 'shadow-[#c3b3f5]/50',
-	}, // Hardest - lavender
-}
+// Tryit's rose / teal / indigo / ochre bands keep ink text in both themes.
+export const CATEGORY_COLORS = {
+	0: { bg: 'bg-[#efa0bb]', text: 'text-[#1a1712]' },
+	1: { bg: 'bg-[#72d3c4]', text: 'text-[#1a1712]' },
+	2: { bg: 'bg-[#a9a4ee]', text: 'text-[#1a1712]' },
+	3: { bg: 'bg-[#d8ad61]', text: 'text-[#1a1712]' },
+} satisfies Record<CategoryLevel, { bg: string; text: string }>

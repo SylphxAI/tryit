@@ -5,7 +5,10 @@ const origin = 'http://web.example.internal'
 
 describe('legacy public page redirects', () => {
 	test.each([
-		['/games/threads', '/games/word-groups'],
+		['/games/threads', '/games/quartet'],
+		['/games/word-groups', '/games/quartet'],
+		['/games/tango', '/games/duo'],
+		['/games/queens', '/games/crowns'],
 		['/games/paint', '/games/nonogram'],
 		['/games/rungs', '/games/word-ladder'],
 		['/games/hunt', '/games/word-search'],
@@ -40,7 +43,7 @@ describe('legacy public page redirects', () => {
 		['/pt-br', '/pt-BR'],
 	])('canonicalizes %s and removes trailing slashes for both route families', (prefix, target) => {
 		for (const [path, canonical] of [
-			['/games/threads/', '/games/word-groups'],
+			['/games/threads/', '/games/quartet'],
 			['/compare/', '/vs'],
 		]) {
 			const response = legacyPageRedirect(new Request(origin + prefix + path, { method: 'HEAD' }))
@@ -60,7 +63,7 @@ describe('legacy public page redirects', () => {
 	})
 
 	test.each([
-		'/games/word-groups',
+		'/games/quartet',
 		'/blogger/post',
 		'/apps-other/post',
 		'/zh/help',

@@ -1,36 +1,36 @@
 {
 	"name": "Trios",
-	"tagline": "12 cartas • Encontre conjuntos",
-	"highlight": "Caça-conjuntos",
-	"description": "Encontre conjuntos de 3 cartas com padrões que combinam",
+	"tagline": "12 cartas • Encontre trios",
+	"highlight": "Caça aos trios",
+	"description": "Encontre trios de cartas com padrões que combinam.",
 	"howToPlay": "Como jogar",
 	"rules": {
 		"title": "Como jogar",
-		"rule1": "Encontre conjuntos de 3 cartas em que cada propriedade seja toda igual OU toda diferente",
+		"rule1": "Encontre três cartas. Cada característica deve ser igual nas três ou diferente em cada uma.",
 		"rule2": "Cada carta tem 4 propriedades: forma, cor, preenchimento e quantidade",
-		"rule3": "Selecione 3 cartas que formem um conjunto válido"
+		"rule3": "Selecione três cartas que formem um trio válido."
 	},
 	"startGame": "Começar jogo",
-	"setsFound": "conjuntos encontrados",
+	"setsFound": "trios encontrados",
 	"clear": "Limpar",
 	"giveUp": "Desistir",
-	"hint": "Selecione 3 cartas para ver se formam um conjunto válido",
-	"complete": "Todos os conjuntos encontrados!",
+	"hint": "Selecione três cartas para ver se formam um trio válido.",
+	"complete": "Você encontrou todos os trios!",
 	"card": {
 		"label": "{count}, {color}, {shape}, {fill}",
-		"diamond": "losango",
-		"oval": "oval",
-		"squiggle": "onda",
-		"red": "vermelho",
-		"green": "verde",
-		"purple": "roxo",
+		"circle": "círculo",
+		"triangle": "triângulo",
+		"hexagon": "hexágono",
+		"coral": "coral",
+		"teal": "verde-azulado",
+		"indigo": "índigo",
 		"solid": "preenchido",
-		"striped": "listrado",
-		"empty": "sem preenchimento"
+		"dotted": "pontilhado",
+		"outline": "só contorno"
 	},
 	"messages": {
-		"correct": "Conjunto válido!",
-		"notASet": "Não é um conjunto válido",
-		"alreadyFound": "Conjunto já encontrado"
+		"correct": "Trio válido!",
+		"notASet": "Não é um trio válido",
+		"alreadyFound": "Você já encontrou esse trio"
 	}
 }

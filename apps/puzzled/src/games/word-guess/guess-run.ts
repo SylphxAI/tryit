@@ -1,3 +1,4 @@
+import { Code, ConnectError } from '@connectrpc/connect'
 import { checkGuess } from '@/lib/connect/puzzle-client'
 import { type Feedback, readWordFeedback } from './feedback'
 
@@ -8,6 +9,7 @@ export type FiveRun = {
 	rows: FiveRow[]
 	pending?: PendingGuess
 	failedWord?: string
+	notInWordList?: boolean
 }
 
 // Only the browser document that sent CheckGuess can observe its reply. Do not
@@ -59,14 +61,19 @@ export function sendFiveGuess(run: FiveRun, puzzle: FivePuzzle, word: string): P
 				const tiles = readWordFeedback(response?.tiles)
 				if (!tiles) throw new Error('invalid_word_grade')
 				run.rows = [...run.rows, { word, tiles }]
-			} catch {
+			} catch (error) {
 				run.failedWord = word
+				run.notInWordList =
+					error instanceof ConnectError &&
+					error.code === Code.InvalidArgument &&
+					error.rawMessage === 'Not in word list'
 			} finally {
 				run.pending = undefined
 			}
 		}),
 	}
 	run.failedWord = undefined
+	run.notInWordList = undefined
 	run.pending = pending
 	return pending
 }

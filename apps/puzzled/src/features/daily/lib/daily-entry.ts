@@ -1,5 +1,6 @@
 import { explicitChallengeGame, isShareLandingQuery } from '@/features/daily/lib/challenge'
 import { getTodaysFreeGame } from '@/lib/free-rotation'
+import { gamePath } from '@/lib/game-slug'
 import { defaultLocale, type Locale } from '@/lib/i18n/config'
 import { localeFromPathname } from '@/lib/i18n/page-locale'
 import { localizedPath } from '@/lib/seo/urls'
@@ -14,7 +15,7 @@ export function dailyEntryTarget(locale: Locale, search: string, now = new Date(
 	const query = shareQuery(new URLSearchParams(search))
 	if (isShareLandingQuery(query)) return null
 	const game = explicitChallengeGame(query) ?? getTodaysFreeGame(now)
-	return localizedPath(locale, `/games/${game}${search}`)
+	return localizedPath(locale, `${gamePath(game)}${search}`)
 }
 
 /** Keep the HTTP 307 contract for partner links; router queries coerce SSR redirects to 302. */

@@ -100,11 +100,11 @@
 			],
 			"faq": [
 				{
-					"question": "Threads 允许几次失误？",
+					"question": "Quartet 允许几次失误？",
 					"answer": "四次。每提交一次错误的组合就扣一次，用完四次该局就结束。"
 				},
 				{
-					"question": "Threads 的「差一个」是什么意思？",
+					"question": "Quartet 的「差一个」是什么意思？",
 					"answer": "你选的四个词中，有三个属于同一组，只有一个不属于，因此只需换掉其中一个词。"
 				}
 			]

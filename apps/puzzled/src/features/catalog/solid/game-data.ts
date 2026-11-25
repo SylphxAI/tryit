@@ -8,7 +8,7 @@ import {
 } from '@/features/catalog/lib/game-page'
 import { getAllGameMetadata } from '@/games/registry'
 import { getTodaysFreeGame } from '@/lib/free-rotation'
-import { canonicalizeGameSlug, slugToCamelCase } from '@/lib/game-slug'
+import { canonicalizeGameSlug, gamePath, slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { difficultyLabelKey } from '@/lib/i18n/difficulty'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -28,7 +28,7 @@ export function buildGamePage(locale: Locale, slug: string, origin: string, now:
 	const tagline = readMessage(t, `${gameKey}.tagline`, '')
 	const category = t(`catalog.category.${metadata.category}`)
 	const tc = (key: string, vars?: Record<string, string>) => t(`catalog.${key}`, vars)
-	const path = `/games/${game.slug}`
+	const path = gamePath(game.slug)
 	const home = localizedPath(locale)
 	const catalog = localizedPath(locale, '/games')
 	const canonicalPath = localizedPath(locale, path)

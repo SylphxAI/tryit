@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 import { getGameSlugs } from '@/games/registry'
+import { gamePath } from '@/lib/game-slug'
 import { buildGamePage } from './game-data'
 
 const games = getGameSlugs()
@@ -8,9 +9,9 @@ const dailyResetGames = new Set(['word-guess', 'quad-words', 'word-search'])
 const day = new Date('2026-11-24T00:00:00Z')
 
 for (const slug of games) {
-	test(`/zh-TW/games/${slug} has localized tips and FAQ copy`, () => {
+	test(`/zh-TW${gamePath(slug)} has localized tips and FAQ copy`, () => {
 		const page = buildGamePage('zh-TW', slug, origin, day)
-		expect(page?.canonicalPath).toBe(`/zh-TW/games/${slug}`)
+		expect(page?.canonicalPath).toBe(`/zh-TW${gamePath(slug)}`)
 		if (!page) throw new Error(`Missing game page: ${slug}`)
 		expect(page.tips).toHaveLength(3)
 		for (const tip of page.tips) {

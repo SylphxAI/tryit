@@ -231,39 +231,41 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 					{copy('author', { name: props.data.author })}
 				</p>
 			</Show>
-			<div class="flex flex-wrap justify-center gap-x-3 gap-y-2" dir="ltr">
-				<For each={props.data.encryptedText.split(/\s+/)}>
-					{(word) => (
-						<div class="flex max-w-full flex-wrap gap-0.5">
-							<For each={Array.from(word)}>
-								{(char) => (
-									<Show
-										when={/^[A-Z]$/.test(char)}
-										fallback={<span class="self-center">{char}</span>}
-									>
-										<button
-											type="button"
-											class="flex h-12 min-w-9 flex-col items-center justify-center rounded-md border border-border bg-background hover:bg-muted aria-pressed:border-primary aria-pressed:ring-2 aria-pressed:ring-primary data-revealed:bg-muted"
-											aria-label={copy('cipherLetter', {
-												cipher: char,
-												guess: guesses()[char] || copy('blank'),
-											})}
-											aria-pressed={selected() === char}
-											data-cipher-letter={char}
-											data-revealed={isRevealed(char) || undefined}
-											disabled={!editable() || isRevealed(char)}
-											onClick={() => select(char)}
+			<fieldset class="min-w-0" aria-label={copy('highlight')} data-cipher-quote dir="ltr">
+				<div class="flex flex-wrap justify-center gap-x-3 gap-y-2 p-0.5">
+					<For each={props.data.encryptedText.split(/\s+/)}>
+						{(word) => (
+							<div class="flex max-w-full flex-wrap gap-0.5">
+								<For each={Array.from(word)}>
+									{(char) => (
+										<Show
+											when={/^[A-Z]$/.test(char)}
+											fallback={<span class="self-center">{char}</span>}
 										>
-											<span class="font-bold">{guesses()[char] || '_'}</span>
-											<span class="text-xs text-muted-foreground">{char}</span>
-										</button>
-									</Show>
-								)}
-							</For>
-						</div>
-					)}
-				</For>
-			</div>
+											<button
+												type="button"
+												class="flex h-12 min-w-9 flex-col items-center justify-center rounded-md border border-border bg-background hover:bg-muted aria-pressed:border-primary aria-pressed:ring-2 aria-pressed:ring-primary data-revealed:bg-muted"
+												aria-label={copy('cipherLetter', {
+													cipher: char,
+													guess: guesses()[char] || copy('blank'),
+												})}
+												aria-pressed={selected() === char}
+												data-cipher-letter={char}
+												data-revealed={isRevealed(char) || undefined}
+												disabled={!editable() || isRevealed(char)}
+												onClick={() => select(char)}
+											>
+												<span class="font-bold">{guesses()[char] || '_'}</span>
+												<span class="text-xs text-muted-foreground">{char}</span>
+											</button>
+										</Show>
+									)}
+								</For>
+							</div>
+						)}
+					</For>
+				</div>
+			</fieldset>
 			<Show when={state().lastCheckWrong}>
 				<p role="status" class="text-sm text-destructive">
 					{copy('wrong')}

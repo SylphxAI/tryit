@@ -42,7 +42,7 @@ const OLD_LITERALS: Record<string, string> = {
 	sudoku: 'Sudoku',
 	duo: 'Duo',
 	'word-box': 'Frame',
-	'word-groups': 'Threads',
+	'word-groups': 'Quartet',
 	'word-guess': 'Five',
 	'word-hive': 'Hive',
 	'word-ladder': 'Rungs',
@@ -130,7 +130,7 @@ const EXPECTED_TEXTS: Array<[string, string]> = [
 	],
 	[
 		'word-groups',
-		'🏆 Threads • #995\n⏱️ 1:23\n\nhttps://tryit.fun/games/word-groups?mode=archive&date=2026-09-21&utm_source=share',
+		'🏆 Quartet • #995\n⏱️ 1:23\n\nhttps://tryit.fun/games/quartet?mode=archive&date=2026-09-21&utm_source=share',
 	],
 	[
 		'word-guess',

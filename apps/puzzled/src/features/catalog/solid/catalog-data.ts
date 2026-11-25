@@ -6,6 +6,7 @@ import {
 } from '@/features/catalog/lib/catalog'
 import { getAllGameMetadata } from '@/games/registry'
 import { getTodaysFreeGame } from '@/lib/free-rotation'
+import { gamePath } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
@@ -30,7 +31,7 @@ export function buildCatalogPage(locale: Locale, origin: string, now: Date) {
 		freeToday: entry.freeToday,
 		title: readMessage(t, entry.titleKey, entry.canonicalTitle),
 		tagline: readMessage(t, entry.taglineKey, ''),
-		href: localizedPath(locale, `/games/${entry.slug}`),
+		href: localizedPath(locale, gamePath(entry.slug)),
 	}))
 	const title = t('catalog.metaTitle')
 	const description = t('catalog.metaDescription')

@@ -7,7 +7,7 @@
  * - Host is origin without scheme for compact clipboard paste.
  */
 
-import { canonicalizeGameSlug } from '@/lib/game-slug'
+import { canonicalizeGameSlug, gamePath } from '@/lib/game-slug'
 import { isValidDayKey, productDayKey } from '@/lib/product-day'
 import { canonicalOrigin } from '@/lib/site-origin'
 import { getPuzzleNumber } from './puzzle-utils'
@@ -51,7 +51,7 @@ export function ritualSharePath(
 ): string {
 	const slug = canonicalizeGameSlug(gameSlug.trim())
 	if (!slug) return '/?utm_source=share'
-	const base = `/games/${slug}`
+	const base = gamePath(slug)
 	const day = puzzleDate?.trim()
 	if (day && isValidDayKey(day) && day < todayKey) {
 		return `${base}?mode=archive&date=${day}&utm_source=share`

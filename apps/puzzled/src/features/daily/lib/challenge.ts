@@ -12,7 +12,7 @@ import {
 	type GetSharedResultResponse,
 	GetSharedResultResponseSchema,
 } from '@/gen/connect/puzzled/v1/puzzle_pb'
-import { canonicalizeGameSlug, PLAYER_TITLE } from '@/lib/game-slug'
+import { canonicalizeGameSlug, gamePath, PLAYER_TITLE } from '@/lib/game-slug'
 import { CHALLENGE_KEY } from '@/lib/storage-keys'
 import { buildResultCard, type ResultCardModel } from './result-card'
 
@@ -142,7 +142,7 @@ export function sharedPlayHref(input: {
 	const shareId = input.shareId?.trim()
 	if (shareId) params.set('ref', shareId)
 	params.set('utm_source', input.utmSource?.trim() || 'share')
-	return `/games/${slug}?${params.toString()}`
+	return `${gamePath(slug)}?${params.toString()}`
 }
 
 /** Explicit game hint from a share URL (`?g=<slug>` or `?game=<slug>`), when valid. */

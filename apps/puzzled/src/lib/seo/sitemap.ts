@@ -1,4 +1,5 @@
 import { getGameSlugs } from '@/games/registry'
+import { gamePath } from '@/lib/game-slug'
 import { defaultLocale, type Locale, locales } from '@/lib/i18n/config'
 import {
 	type ChangeFrequency,
@@ -18,7 +19,7 @@ interface SitemapEntry {
 
 const pages: readonly PublicRoute[] = [
 	...PUBLIC_ROUTES,
-	...getGameSlugs().map((slug) => ({ path: `/games/${slug}`, ...GAME_PAGE_ROUTE })),
+	...getGameSlugs().map((slug) => ({ path: gamePath(slug), ...GAME_PAGE_ROUTE })),
 ]
 
 /** Localised entries carry the same reciprocal hreflang cluster as the HTML.

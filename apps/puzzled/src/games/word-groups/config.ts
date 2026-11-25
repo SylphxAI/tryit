@@ -58,7 +58,7 @@ export const wordGroupsConfig: GameConfig<
 	ConnectionsGuessResult
 > = {
 	slug: 'word-groups',
-	name: 'Threads',
+	name: 'Quartet',
 	description: 'Group 16 words into 4 categories of 4',
 
 	sortOrder: 2,

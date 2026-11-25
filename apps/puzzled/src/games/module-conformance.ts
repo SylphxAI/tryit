@@ -7,7 +7,7 @@
  */
 
 import { formatRitualShareText, shareTextLooksNonSpoiler } from '@/features/daily/lib/share-text'
-import { canonicalizeGameSlug } from '@/lib/game-slug'
+import { canonicalizeGameSlug, gamePath } from '@/lib/game-slug'
 import { hasPlayableInteraction } from './interaction-slugs'
 import { getGameMetadata, isValidGameSlug } from './registry'
 
@@ -76,7 +76,7 @@ function nonSpoilerResultMaps(slug: string): boolean {
 		shareTextLooksNonSpoiler(text) &&
 		// The share deep link carries the archive mode with the day (G1): a
 		// `?date=` alone used to land the recipient on today's board.
-		text.includes(`/games/${canonical}?mode=archive&date=2026-08-22`) &&
+		text.includes(`${gamePath(canonical)}?mode=archive&date=2026-08-22`) &&
 		!/solution|answer is|the word was/i.test(text)
 	)
 }

@@ -100,11 +100,11 @@
 			],
 			"faq": [
 				{
-					"question": "How many mistakes does Threads allow?",
+					"question": "How many mistakes does Quartet allow?",
 					"answer": "Four. Each rejected group of four costs one mistake, and the round ends when they are gone."
 				},
 				{
-					"question": "What does one away mean in Threads?",
+					"question": "What does one away mean in Quartet?",
 					"answer": "Three of the four words you picked belong to a real thread and one does not, so change a single word."
 				}
 			]
@@ -215,16 +215,16 @@
 			"tips": [
 				"Compare one property at a time, starting with the number of shapes on each card.",
 				"If two cards match on a property, the third card must match them too or the trio fails.",
-				"One card can belong to more than one valid set. Try using cards from sets you’ve already found."
+				"One card can belong to more than one valid trio. Try using cards from trios you’ve already found."
 			],
 			"faq": [
 				{
-					"question": "What makes three cards a set in Match?",
+					"question": "What makes three cards a trio in Match?",
 					"answer": "For all four properties, shape, color, fill and count, the three cards must be either all the same or all different."
 				},
 				{
 					"question": "How long does a Match board take?",
-					"answer": "The estimate is about four minutes, and the board holds twelve cards with several sets hidden among them."
+					"answer": "The estimate is about four minutes, and the board holds twelve cards with several trios hidden among them."
 				}
 			]
 		},

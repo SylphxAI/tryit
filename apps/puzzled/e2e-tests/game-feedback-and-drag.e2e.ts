@@ -220,9 +220,9 @@ test('Ladder focuses the input from the rung and prioritizes the length hint', a
 	await expect(board.getByText(/^Enter a 4-letter word/)).toBeVisible()
 })
 
-test('Match says cards can be reused in different valid sets', async ({ page }) => {
+test('Match says cards can be reused in different valid trios', async ({ page }) => {
 	await page.goto('/en-US/games/pattern-match')
-	await expect(page.getByText(/more than one valid set/i)).toBeVisible()
+	await expect(page.getByText(/more than one valid trio/i)).toBeVisible()
 	await expect(page.getByText(/cards.*are locked/i)).toHaveCount(0)
 })
 

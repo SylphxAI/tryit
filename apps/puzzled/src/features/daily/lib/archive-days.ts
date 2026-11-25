@@ -9,6 +9,7 @@
  */
 
 import { freeGameForDayKey } from '@/lib/free-rotation'
+import { gamePath } from '@/lib/game-slug'
 import { formatDayKey, isValidDayKey, parseDayKey } from '@/lib/product-day'
 
 /** Days of history the archive index lists. */
@@ -55,5 +56,5 @@ export function archiveDays(todayKey: string, count?: number): ArchiveDay[] {
 
 /** Dated archive route in the existing `games/[slug]` shape. */
 export function archivePlayPath(gameSlug: string, dayKey: string): string {
-	return `/games/${gameSlug}?mode=archive&date=${dayKey}`
+	return `${gamePath(gameSlug)}?mode=archive&date=${dayKey}`
 }

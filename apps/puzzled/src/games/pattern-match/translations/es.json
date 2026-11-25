@@ -1,36 +1,36 @@
 {
 	"name": "Tríos",
-	"tagline": "12 cartas • Encuentra sets",
-	"highlight": "Buscador de sets",
-	"description": "Encuentra sets de 3 cartas con patrones que coinciden",
+	"tagline": "12 cartas • Encuentra tríos",
+	"highlight": "Busca tríos",
+	"description": "Encuentra tríos de cartas con patrones que coinciden.",
 	"howToPlay": "Cómo jugar",
 	"rules": {
 		"title": "Cómo jugar",
-		"rule1": "Encuentra sets de 3 cartas en los que cada propiedad sea toda igual O toda distinta",
+		"rule1": "Busca tres cartas. Cada característica debe ser igual en las tres o distinta en cada una.",
 		"rule2": "Cada carta tiene 4 propiedades: forma, color, relleno y cantidad",
-		"rule3": "Selecciona 3 cartas que formen un set válido"
+		"rule3": "Selecciona tres cartas que formen un trío válido."
 	},
 	"startGame": "Empezar partida",
-	"setsFound": "sets encontrados",
+	"setsFound": "tríos encontrados",
 	"clear": "Borrar",
 	"giveUp": "Rendirse",
-	"hint": "Selecciona 3 cartas para comprobar si forman un set válido",
-	"complete": "¡Todos los sets encontrados!",
+	"hint": "Elige tres cartas para ver si forman un trío válido.",
+	"complete": "¡Ya encontraste todos los tríos!",
 	"card": {
 		"label": "{count}, {color}, {shape}, {fill}",
-		"diamond": "rombo",
-		"oval": "óvalo",
-		"squiggle": "onda",
-		"red": "rojo",
-		"green": "verde",
-		"purple": "morado",
-		"solid": "relleno",
-		"striped": "rayado",
-		"empty": "sin relleno"
+		"circle": "círculo",
+		"triangle": "triángulo",
+		"hexagon": "hexágono",
+		"coral": "coral",
+		"teal": "verde azulado",
+		"indigo": "índigo",
+		"solid": "relleno sólido",
+		"dotted": "con puntos",
+		"outline": "solo contorno"
 	},
 	"messages": {
-		"correct": "¡Set válido!",
-		"notASet": "No es un set válido",
-		"alreadyFound": "Set ya encontrado"
+		"correct": "¡Trío válido!",
+		"notASet": "No es un trío válido",
+		"alreadyFound": "Ya encontraste este trío"
 	}
 }

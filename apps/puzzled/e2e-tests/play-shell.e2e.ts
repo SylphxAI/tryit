@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
+import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
 import { capture } from './google-tag-support'
 
@@ -74,7 +75,7 @@ async function openBoard(page: Page, slug: string, locale = 'en-US') {
 	)
 	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 	const query = hasLevels.has(slug) ? 'difficulty=medium&start=1' : 'start=1'
-	await page.goto(`/${locale}/games/${slug}?${query}#play`)
+	await page.goto(`/${locale}${gamePath(slug)}?${query}#play`)
 	await expect(page.locator(stage), slug).toBeVisible()
 }
 
@@ -124,6 +125,12 @@ async function canvasGeometry(page: Page) {
 		)
 		const bad = controls.flatMap((el) => {
 			const r = el.getBoundingClientRect()
+			const quote = el.closest('[data-cipher-quote]')
+			if (quote && quote.scrollHeight > quote.clientHeight) {
+				const scrollport = quote.getBoundingClientRect()
+				// Clipped letters are verified separately by focusing the final tile.
+				if (r.top < scrollport.top || r.bottom > scrollport.bottom) return []
+			}
 			const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
 			return r.bottom <= dockRect.top && el.contains(hit)
 				? []
@@ -190,6 +197,20 @@ for (const [width, height] of layouts) {
 							[0, 0, 0],
 						],
 					})
+					if (slug === 'cryptogram' && width === 390) {
+						const quote = page.locator('[data-cipher-quote]')
+						const keyboard = page.locator('[data-cipher-keyboard]')
+						const last = quote.locator('[data-cipher-letter]').last()
+						await expect(quote.locator('[data-cipher-letter]').first()).toBeInViewport({ ratio: 1 })
+						await expect(last).not.toBeInViewport()
+						await expect(keyboard).toBeInViewport({ ratio: 1 })
+						await last.focus()
+						await expect(last).toBeInViewport({ ratio: 1 })
+						await last.press('Enter')
+						await keyboard.getByRole('button', { name: 'A', exact: true }).click()
+						await expect(last).toContainText('A')
+						await expect(keyboard).toBeInViewport({ ratio: 1 })
+					}
 					if (width >= 1024 && splitGames.includes(slug)) {
 						const board = (await page.locator('.play-board').boundingBox())!
 						const tools = (await page.locator('.play-tools').boundingBox())!
@@ -277,7 +298,7 @@ for (const admitted of [true, false]) {
 				await route.continue().catch(() => undefined) // leaving the first document cancels its scripts
 			})
 			try {
-				await page.goto(`/games/${slug}`, { waitUntil: 'commit' })
+				await page.goto(`${gamePath(slug)}`, { waitUntil: 'commit' })
 				await requested.promise
 				const play = page.getByRole('link', { name: "Play today's puzzle", exact: true }).first()
 				await expect(play).toBeVisible()
@@ -373,7 +394,7 @@ for (const [width, height] of [
 				return { stage: await play.boundingBox(), dock: await dock.boundingBox() }
 			}
 			try {
-				await page.goto(`/games/${slug}?start=1${fresh ? '' : '&difficulty=medium'}#play`)
+				await page.goto(`${gamePath(slug)}?start=1${fresh ? '' : '&difficulty=medium'}#play`)
 				await snapshot.requested
 				await expect(loading).toBeVisible()
 				await expect(dock).toBeVisible()

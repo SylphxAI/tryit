@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { getAllGameMetadata } from '../src/games/registry'
+import { gamePath } from '../src/lib/game-slug'
 
 test('llms.txt stays public plain text even with a remembered locale', async ({ request }) => {
 	const headers = { Cookie: 'NEXT_LOCALE=zh-HK', 'Accept-Language': 'zh-HK' }
@@ -15,12 +16,12 @@ test('llms.txt stays public plain text even with a remembered locale', async ({ 
 	]
 	expect(gameLinks.map((match) => match[2]).sort()).toEqual(
 		getAllGameMetadata()
-			.map((game) => `https://tryit.fun/games/${game.slug}`)
+			.map((game) => `https://tryit.fun${gamePath(game.slug)}`)
 			.sort(),
 	)
 	for (const game of getAllGameMetadata()) {
 		expect(body).toContain(
-			`[${game.name}](https://tryit.fun/games/${game.slug}): ${game.description}`,
+			`[${game.name}](https://tryit.fun${gamePath(game.slug)}): ${game.description}`,
 		)
 	}
 	expect(body.trimEnd().endsWith('Contact: hi@tryit.fun.')).toBe(true)

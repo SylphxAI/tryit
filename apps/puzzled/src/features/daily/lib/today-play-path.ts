@@ -1,5 +1,6 @@
 import { gameSupportsDifficulty } from '@/games/registry'
 import type { PuzzleDifficulty } from '@/games/types'
+import { gamePath } from '@/lib/game-slug'
 import { START_PARAM } from './start-param'
 
 /** The level a one-tap start opens; the player can change it from the board. */
@@ -17,7 +18,7 @@ export function todayPlayPath(
 	const query = gameSupportsDifficulty(gameSlug)
 		? `?difficulty=${difficulty}&${START_PARAM}=1`
 		: `?${START_PARAM}=1`
-	return `/games/${gameSlug}${query}#play`
+	return `${gamePath(gameSlug)}${query}#play`
 }
 
 /**
@@ -26,5 +27,5 @@ export function todayPlayPath(
  * completed ones, rather than dropping the player on an unplayed default board.
  */
 export function todayResultPath(gameSlug: string): string {
-	return gameSupportsDifficulty(gameSlug) ? `/games/${gameSlug}` : todayPlayPath(gameSlug)
+	return gameSupportsDifficulty(gameSlug) ? gamePath(gameSlug) : todayPlayPath(gameSlug)
 }

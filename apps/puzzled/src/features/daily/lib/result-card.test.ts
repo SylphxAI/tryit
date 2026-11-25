@@ -163,7 +163,7 @@ describe('formatCardDayKey', () => {
 	})
 })
 
-describe('Threads wins', () => {
+describe('Quartet wins', () => {
 	test.each([
 		[4, 0],
 		[5, 1],
@@ -171,7 +171,7 @@ describe('Threads wins', () => {
 	])('%i guesses show four completed groups and %i mistakes', (attempts, mistakes) => {
 		for (const stats of [{ attempts, mistakes }, { attempts }]) {
 			const model = buildResultCard(
-				baseInput({ gameSlug: 'word-groups', gameName: 'Threads', maxAttempts: 8, ...stats }),
+				baseInput({ gameSlug: 'word-groups', gameName: 'Quartet', maxAttempts: 8, ...stats }),
 			)
 			expect(resultCardChips(model, STRINGS).slice(0, 2)).toEqual([
 				{ label: 'Groups solved', value: '4/4' },

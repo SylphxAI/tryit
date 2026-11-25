@@ -233,6 +233,17 @@
 	}
 }
 
+/* Long Cipher quotes scroll independently, keeping the keyboard and HUD usable.
+   Leave a scroll fallback for very short viewports and expanded feedback. */
+[data-play-canvas] [data-cryptogram-board] { max-block-size: 100cqh; }
+[data-play-canvas] [data-cryptogram-board] > :not([data-cipher-quote]) { flex-shrink: 0; }
+[data-play-canvas] [data-cipher-quote] {
+	min-block-size: 3rem;
+	overflow-y: auto;
+	overscroll-behavior-y: contain;
+	scroll-padding-block: .25rem;
+}
+
 @media (width < 640px) {
 	[data-play-canvas] [data-quad-board] { --tw-space-y-reverse: 0; }
 	[data-play-canvas] [data-quad-board] > * { margin-block-end: .375rem; }

@@ -118,7 +118,7 @@ export const USE_CASE_SPECS = {
 				groups: [
 					{
 						heading: 'Word (9)',
-						games: 'Five, Threads, Hive, Mini Grid, Rungs, Frame, Quad, Cipher, Hunt.',
+						games: 'Five, Quartet, Hive, Mini Grid, Rungs, Frame, Quad, Cipher, Hunt.',
 					},
 					{
 						heading: 'Logic (4)',

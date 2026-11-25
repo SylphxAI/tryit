@@ -1,36 +1,36 @@
 {
 	"name": "カード合わせ",
-	"tagline": "カード12枚 • セットを探せ",
-	"highlight": "セット探し",
-	"description": "模様が揃う3枚のセットを見つけよう",
+	"tagline": "カード12枚 • 3枚組を探そう",
+	"highlight": "3枚組探し",
+	"description": "特徴を見比べて、条件に合う3枚組を見つけよう。",
 	"howToPlay": "遊び方",
 	"rules": {
 		"title": "遊び方",
-		"rule1": "すべての特徴が「全部同じ」または「全部違う」になる3枚を探します",
+		"rule1": "形、色、塗り、数のそれぞれが「3枚とも同じ」か「3枚とも違う」になる3枚組を探します。",
 		"rule2": "各カードには、形・色・塗り・数の4つの特徴があります",
-		"rule3": "セットになる3枚のカードを選んでください"
+		"rule3": "条件に合う3枚のカードを選びましょう。"
 	},
 	"startGame": "ゲーム開始",
-	"setsFound": "セット発見",
+	"setsFound": "組を発見",
 	"clear": "クリア",
 	"giveUp": "ギブアップ",
-	"hint": "3枚のカードを選ぶと、セットかどうか判定します",
-	"complete": "すべてのセットを発見！",
+	"hint": "3枚のカードを選ぶと、条件に合うか確認できます。",
+	"complete": "すべての3枚組を発見！",
 	"card": {
 		"label": "{shape} {count}個、{color}、{fill}",
-		"diamond": "ひし形",
-		"oval": "楕円",
-		"squiggle": "波形",
-		"red": "赤",
-		"green": "緑",
-		"purple": "紫",
+		"circle": "円",
+		"triangle": "三角形",
+		"hexagon": "六角形",
+		"coral": "コーラル",
+		"teal": "青緑",
+		"indigo": "藍色",
 		"solid": "塗りつぶし",
-		"striped": "しま模様",
-		"empty": "枠のみ"
+		"dotted": "水玉模様",
+		"outline": "枠のみ"
 	},
 	"messages": {
-		"correct": "正しいセットです！",
-		"notASet": "セットではありません",
-		"alreadyFound": "すでに見つけたセットです"
+		"correct": "正しい3枚組です！",
+		"notASet": "条件に合っていません",
+		"alreadyFound": "すでに見つけた3枚組です"
 	}
 }

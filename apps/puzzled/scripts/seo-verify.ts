@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * SEO contract harness: asserts the indexed surface of a *served* build.
  *
@@ -38,6 +39,7 @@ import {
 	PUBLIC_ROUTES,
 	robotsDisallowPaths,
 } from '@/lib/seo/routes'
+import { gamePath } from '../src/lib/game-slug'
 import { readSitemap } from './sitemap-documents'
 
 const args = process.argv.slice(2)
@@ -286,7 +288,7 @@ async function main(): Promise<void> {
 	await check('sitemap lists exactly the expected public path set', async () => {
 		const expectedPaths = [...PUBLIC_ROUTES.map((route) => route.path)]
 		for (const slug of getGameSlugs()) {
-			expectedPaths.push(`/games/${slug}`)
+			expectedPaths.push(gamePath(slug))
 		}
 		const servedPaths = new Set(locs.map(localeAgnosticPath))
 		const missing = expectedPaths.filter((path) => !servedPaths.has(path))

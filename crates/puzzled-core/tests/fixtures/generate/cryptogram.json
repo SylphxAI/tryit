@@ -3,14 +3,14 @@
 		"seed": 20250101,
 		"difficulty": null,
 		"puzzleData": {
-			"encryptedText": "XB FVR EXWWSR NJ WXJJXDTSFC SXRK NIINZFTBXFC.",
-			"author": "Albert Einstein",
-			"category": "Inspiration",
-			"uniqueLetters": 16,
+			"encryptedText": "Q GNBWRZJTS JQDF FN ZRJSRDF TINB, FVQF RHRZC VTEQB DZRQFTZR XK DNBKFXFTFRW FN PR FVQF IZNJNTBW KRDZRF QBW ECKFRZC FN RHRZC NFVRZ.",
+			"author": "Charles Dickens",
+			"category": "Literature",
+			"uniqueLetters": 20,
 			"maxHints": 3
 		},
 		"solution": {
-			"originalText": "IN THE MIDDLE OF DIFFICULTY LIES OPPORTUNITY.",
+			"originalText": "A WONDERFUL FACT TO REFLECT UPON, THAT EVERY HUMAN CREATURE IS CONSTITUTED TO BE THAT PROFOUND SECRET AND MYSTERY TO EVERY OTHER.",
 			"cipher": {
 				"A": "Q",
 				"B": "P",
@@ -73,14 +73,14 @@
 		"seed": 20260226,
 		"difficulty": null,
 		"puzzleData": {
-			"encryptedText": "B ZDKH GOF IDBEHX. B ZDKH VQJF IOQGX FHG FZOQJDGX TDNJ FZDF TBEE GOF TOPY.",
-			"author": "Thomas Edison",
-			"category": "Success",
-			"uniqueLetters": 18,
+			"encryptedText": "B TDGF FO XO JOWHFZBGR JAEHGXBX SHIOPH B RO BGFO WN UDJFEH, JOWHFZBGR ZHPOBU OP TOGXHPIQE FZDF TOG'F SH IOPROFFHG DIFHP B'W XHDX.",
+			"author": "Louisa May Alcott",
+			"category": "Life",
+			"uniqueLetters": 20,
 			"maxHints": 3
 		},
 		"solution": {
-			"originalText": "I HAVE NOT FAILED. I HAVE JUST FOUND TEN THOUSAND WAYS THAT WILL NOT WORK.",
+			"originalText": "I WANT TO DO SOMETHING SPLENDID BEFORE I GO INTO MY CASTLE, SOMETHING HEROIC OR WONDERFUL THAT WON'T BE FORGOTTEN AFTER I'M DEAD.",
 			"cipher": {
 				"A": "D",
 				"B": "S",
@@ -143,14 +143,14 @@
 		"seed": 20260926,
 		"difficulty": null,
 		"puzzleData": {
-			"encryptedText": "Q KIVJ TZO WIQCJX. Q KIVJ NLYO WZLTX OJT OKZLYITX FIAY OKIO FQCC TZO FZRD.",
-			"author": "Thomas Edison",
-			"category": "Success",
-			"uniqueLetters": 18,
+			"encryptedText": "Q FITO OZ XZ YZPJOKQTM YHCJTXQX SJWZRJ Q MZ QTOZ PA GIYOCJ, YZPJOKQTM KJRZQG ZR FZTXJRWLC OKIO FZT'O SJ WZRMZOOJT IWOJR Q'P XJIX.",
+			"author": "Louisa May Alcott",
+			"category": "Life",
+			"uniqueLetters": 20,
 			"maxHints": 3
 		},
 		"solution": {
-			"originalText": "I HAVE NOT FAILED. I HAVE JUST FOUND TEN THOUSAND WAYS THAT WILL NOT WORK.",
+			"originalText": "I WANT TO DO SOMETHING SPLENDID BEFORE I GO INTO MY CASTLE, SOMETHING HEROIC OR WONDERFUL THAT WON'T BE FORGOTTEN AFTER I'M DEAD.",
 			"cipher": {
 				"A": "I",
 				"B": "S",
@@ -213,14 +213,14 @@
 		"seed": 20261001,
 		"difficulty": null,
 		"puzzleData": {
-			"encryptedText": "PI HQF APXXTF BZ XPZZPKVTHM TPFN BJJBWHVIPHM.",
-			"author": "Albert Einstein",
-			"category": "Inspiration",
-			"uniqueLetters": 16,
+			"encryptedText": "U GBIXFWZVT ZUKH HB WFZTFKH VJBI, HQUH FYFWM QVAUI KWFUHVWF PN KBINHPHVHFX HB CF HQUH JWBZBVIX NFKWFH UIX AMNHFWM HB FYFWM BHQFW.",
+			"author": "Charles Dickens",
+			"category": "Literature",
+			"uniqueLetters": 20,
 			"maxHints": 3
 		},
 		"solution": {
-			"originalText": "IN THE MIDDLE OF DIFFICULTY LIES OPPORTUNITY.",
+			"originalText": "A WONDERFUL FACT TO REFLECT UPON, THAT EVERY HUMAN CREATURE IS CONSTITUTED TO BE THAT PROFOUND SECRET AND MYSTERY TO EVERY OTHER.",
 			"cipher": {
 				"A": "U",
 				"B": "C",
@@ -283,14 +283,14 @@
 		"seed": 20261231,
 		"difficulty": null,
 		"puzzleData": {
-			"encryptedText": "YNH QNSHM HKHUG VM QOHZYSBSYG SF DVVI FHKFH.",
-			"author": "Pablo Picasso",
-			"category": "Creativity",
-			"uniqueLetters": 16,
+			"encryptedText": "S ZU FSQC YV IHZYN VM QRHBHOKHFF. HBHOGJVIG SF QRHBHO KVAZIZGF.",
+			"author": "Oscar Wilde",
+			"category": "Humor",
+			"uniqueLetters": 19,
 			"maxHints": 3
 		},
 		"solution": {
-			"originalText": "THE CHIEF ENEMY OF CREATIVITY IS GOOD SENSE.",
+			"originalText": "I AM SICK TO DEATH OF CLEVERNESS. EVERYBODY IS CLEVER NOWADAYS.",
 			"cipher": {
 				"A": "Z",
 				"B": "J",

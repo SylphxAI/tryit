@@ -152,7 +152,7 @@ mod tests {
     fn letters_not_in_the_quote_are_not_graded() {
         let solution = fixture();
         let letters = encrypted_letters(&solution).unwrap_or_default();
-        let puzzle_letters: BTreeSet<String> = "XB FVR EXWWSR NJ WXJJXDTSFC SXRK NIINZFTBXFC."
+        let puzzle_letters: BTreeSet<String> = "Q GNBWRZJTS JQDF FN ZRJSRDF TINB, FVQF RHRZC VTEQB DZRQFTZR XK DNBKFXFTFRW FN PR FVQF IZNJNTBW KRDZRF QBW ECKFRZC FN RHRZC NFVRZ."
             .chars()
             .filter(char::is_ascii_uppercase)
             .map(|c| c.to_string())

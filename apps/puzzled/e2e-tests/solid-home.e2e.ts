@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
 
 test('home serves the localized daily lineup, canonical metadata and FAQ without JavaScript', async ({
@@ -32,11 +33,11 @@ test('home serves the localized daily lineup, canonical metadata and FAQ without
 			await expect(lineup).toHaveCount(18)
 			const featured = page.locator('[data-home-featured]')
 			const slug = await featured.getAttribute('data-home-featured')
-			expect(slug).toBeTruthy()
+			if (!slug) throw new Error('Featured tile is missing its game slug')
 			await expect(lineup.and(page.locator(`[data-home-game="${slug}"]`))).toHaveCount(0)
 			const href = await featured.getAttribute('href')
 			const game = new URL(href ?? '', 'https://tryit.fun')
-			expect(game.pathname).toBe(`${path === '/' ? '' : path}/games/${slug}`)
+			expect(game.pathname).toBe(`${path === '/' ? '' : path}${gamePath(slug)}`)
 			expect(game.searchParams.get('start')).toBe('1')
 			expect(game.hash).toBe('#play')
 			const faq = page.locator('#home-faq')

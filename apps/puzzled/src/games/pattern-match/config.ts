@@ -49,7 +49,7 @@ export const patternMatchConfig: GameConfig<
 > = {
 	slug: 'pattern-match',
 	name: 'Match',
-	description: 'Find sets of 3 cards with matching patterns',
+	description: 'Find card trios with all-matching or all-different features.',
 
 	sortOrder: 9,
 	category: 'spatial',

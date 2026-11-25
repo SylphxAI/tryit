@@ -9,6 +9,8 @@
 
 import { type GameMetadata, type GameSlug, getGameMetadata } from '@/games/registry'
 
+import { gameSlugFromPage } from '@/lib/game-slug'
+
 export type ResolvedGamePage = {
 	/** Canonical registry slug: inbound aliases resolve to their module. */
 	slug: GameSlug
@@ -16,7 +18,7 @@ export type ResolvedGamePage = {
 }
 
 export function resolveGamePage(slug: string): ResolvedGamePage | null {
-	const metadata = getGameMetadata(slug)
+	const metadata = getGameMetadata(gameSlugFromPage(slug))
 	if (!metadata) return null
 	// The registry maps the canonical slug to this config, so the config's own
 	// slug is the registered key.
