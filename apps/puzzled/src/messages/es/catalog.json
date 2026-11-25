@@ -57,6 +57,10 @@
 	},
 	"breadcrumbLabel": "Ruta de navegación",
 	"gamePage": {
+		"freeAccessFaq": {
+			"question": "¿Puedo jugar gratis al reto diario de {game} sin una cuenta?",
+			"answer": "Sí. Cada día puedes elegir {count} de los {total} retos diarios de Tryit y jugarlos gratis, sin crear una cuenta. Hay un nuevo reto de {game} cada día a las 16:00 UTC."
+		},
 		"playCta": "Jugar el puzzle de hoy",
 		"guestNote": "No necesitas cuenta para jugar.",
 		"guestSignIn": "Guarda tu racha",
