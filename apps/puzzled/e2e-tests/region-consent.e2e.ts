@@ -25,6 +25,73 @@ const settings = async (page: Page) => {
 	return dialog
 }
 
+const landingQuery = '?email=private%40example.test&gclid=fixture-g#fixture-fragment'
+const scriptUrl = `https://www.googletagmanager.com/gtag/js?id=${id}`
+const isConversion = ([command, name]: unknown[]) =>
+	command === 'event' && (name === 'conversion' || name === 'purchase')
+
+async function expectGoogleBlocked(page: Page, requests: string[]) {
+	const data = await commands(page)
+	expect(data.some(([command, name]) => command === 'config' && name === adsId)).toBe(false)
+	expect(data.some(isConversion)).toBe(false)
+	expect(requests).toEqual([])
+	expect(
+		(await page.context().cookies()).filter(({ name }) =>
+			/^(_ga|_gid|_gcl_|_gat|_gac_|__gads|__gpi)/.test(name),
+		),
+	).toEqual([])
+}
+
+async function captureCspViolations(page: Page) {
+	const violations: string[] = []
+	await page.exposeFunction('captureCspViolation', (uri: string) => violations.push(uri))
+	await page.addInitScript(() => {
+		document.addEventListener('securitypolicyviolation', (event) => {
+			void Reflect.get(window, 'captureCspViolation')(event.blockedURI)
+		})
+	})
+	return violations
+}
+
+async function expectLandingPageView(page: Page, path: string) {
+	const pageLocation = `${new URL(page.url()).origin}${path}`
+	await expect
+		.poll(() => commands(page))
+		.toContainEqual([
+			'event',
+			'page_view',
+			expect.objectContaining({ send_to: id, page_location: pageLocation, page_referrer: '' }),
+		])
+	const data = await commands(page)
+	expect(data).toContainEqual(['consent', 'update', full])
+	expect(data).toContainEqual([
+		'config',
+		adsId,
+		{
+			allow_google_signals: false,
+			allow_ad_personalization_signals: false,
+			allow_enhanced_conversions: false,
+		},
+	])
+	expect(data.some(isConversion)).toBe(false)
+	expect(JSON.stringify(data)).not.toMatch(/private%40|example\.test|fixture-g|fixture-fragment/)
+}
+
+async function setGpc(page: Page, signal: 'header' | 'browser') {
+	await page.setExtraHTTPHeaders({
+		'CF-IPCountry': 'HK',
+		...(signal === 'header' ? { 'Sec-GPC': '1' } : {}),
+	})
+	await page.addInitScript(
+		({ key, signal }) => {
+			localStorage.setItem(key, 'granted')
+			if (signal === 'browser')
+				Object.defineProperty(navigator, 'globalPrivacyControl', { value: true })
+		},
+		{ key, signal },
+	)
+}
+
 for (const viewport of [
 	{ width: 1440, height: 900 },
 	{ width: 390, height: 844 },
@@ -34,28 +101,16 @@ for (const viewport of [
 
 		test('EEA keeps all Google signals denied until Accept; equal actions and clear CTA/footer', async ({
 			page,
-			context,
 			googleRequests: requests,
 		}) => {
 			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-			const violations: string[] = []
-			await page.exposeFunction('captureCspViolation', (uri: string) => violations.push(uri))
-			await page.addInitScript(() => {
-				document.addEventListener('securitypolicyviolation', (event) => {
-					void Reflect.get(window, 'captureCspViolation')(event.blockedURI)
-				})
-			})
+			const violations = await captureCspViolations(page)
 			await page.goto(
 				'/?email=private%40example.test&gclid=fixture-g&gbraid=fixture-gb&wbraid=fixture-wb',
 			)
 			await expect(banner(page)).toBeVisible()
 			await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
-			expect(requests).toHaveLength(0)
-			expect(
-				(await context.cookies())
-					.map(({ name }) => name)
-					.filter((name) => /^(_ga|_gid|_gcl_|_gat|_gac_|__gads|__gpi)/.test(name)),
-			).toEqual([])
+			await expectGoogleBlocked(page, requests)
 			expect(await page.evaluate(() => localStorage.getItem('puzzled:signal.touch'))).toBeNull()
 			await expect(page.locator('head link[rel="manifest"]')).toHaveAttribute(
 				'href',
@@ -118,19 +173,10 @@ for (const viewport of [
 			)
 			await banner(page).getByRole('button', { name: 'Accept', exact: true }).click()
 			expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('granted')
-			await expect.poll(() => requests.length).toBe(1)
+			await expect.poll(() => requests).toEqual([scriptUrl])
 			await expect(banner(page)).toBeHidden()
+			await expectLandingPageView(page, '/')
 			const data = await commands(page)
-			expect(data).toContainEqual(['consent', 'update', full])
-			expect(data).toContainEqual([
-				'config',
-				adsId,
-				{
-					allow_google_signals: false,
-					allow_ad_personalization_signals: false,
-					allow_enhanced_conversions: false,
-				},
-			])
 			expect(violations).toEqual([])
 			expect(data).toContainEqual([
 				'event',
@@ -143,10 +189,16 @@ for (const viewport of [
 				},
 			])
 			expect(JSON.stringify(data)).not.toContain('private')
-			await page.goto('/games/sudoku?gameId=secret')
+			const share = await page.goto('/r/abc123?gameId=secret')
+			expect(share?.status()).toBe(200)
+			await expect(page).toHaveURL(/\/r\/abc123\?gameId=secret$/)
 			await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
-			expect(requests).toHaveLength(1)
-			expect(JSON.stringify(await commands(page))).not.toContain('sudoku')
+			expect(requests).toEqual([scriptUrl])
+			const privateCommands = await commands(page)
+			expect(privateCommands.some(([command]) => command === 'config' || command === 'event')).toBe(
+				false,
+			)
+			expect(JSON.stringify(privateCommands)).not.toMatch(/abc123|secret/)
 		})
 
 		test('non-EEA defaults to analytics and advertising; withdrawal stops the tag and persists in either region', async ({
@@ -185,18 +237,7 @@ for (const viewport of [
 				page,
 				googleRequests: requests,
 			}) => {
-				await page.setExtraHTTPHeaders({
-					'CF-IPCountry': 'HK',
-					...(signal === 'header' ? { 'Sec-GPC': '1' } : {}),
-				})
-				await page.addInitScript(
-					({ key, signal }) => {
-						localStorage.setItem(key, 'granted')
-						if (signal === 'browser')
-							Object.defineProperty(navigator, 'globalPrivacyControl', { value: true })
-					},
-					{ key, signal },
-				)
+				await setGpc(page, signal)
 				await page.goto('/')
 				await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
 				await expect(banner(page)).toBeHidden()
@@ -206,6 +247,64 @@ for (const viewport of [
 				)
 				await expect(dialog.getByRole('button', { name: 'Accept', exact: true })).toHaveCount(0)
 				expect(requests).toHaveLength(0)
+			})
+		}
+	})
+}
+
+for (const path of ['/games/sudoku', '/games/word-guess']) {
+	test.describe(`direct entry at ${path}`, () => {
+		test('EEA Accept loads the tag and sends a clean landing page view', async ({
+			page,
+			googleRequests: requests,
+		}) => {
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			const violations = await captureCspViolations(page)
+			await page.goto(path + landingQuery)
+			await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+			await expectGoogleBlocked(page, requests)
+			await banner(page).getByRole('button', { name: 'Accept', exact: true }).click()
+			await expect.poll(() => requests).toEqual([scriptUrl])
+			await expectLandingPageView(page, path)
+			expect(violations).toEqual([])
+		})
+
+		test('EEA Decline suppresses Google and persists after reload', async ({
+			page,
+			googleRequests: requests,
+		}) => {
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			await page.goto(path + landingQuery)
+			await banner(page).getByRole('button', { name: 'Decline', exact: true }).click()
+			for (const reload of [false, true]) {
+				if (reload) await page.reload()
+				await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+				await expect(banner(page)).toBeHidden()
+				expect(await page.evaluate((name) => localStorage.getItem(name), key)).toBe('denied')
+				for (const destination of [id, adsId]) {
+					expect(
+						await page.evaluate((id) => Reflect.get(window, `ga-disable-${id}`), destination),
+					).toBe(true)
+				}
+				await expectGoogleBlocked(page, requests)
+			}
+		})
+
+		for (const signal of ['header', 'browser'] as const) {
+			test(`${signal} GPC suppresses Google despite a stored grant`, async ({
+				page,
+				googleRequests: requests,
+			}) => {
+				await setGpc(page, signal)
+				await page.goto(path + landingQuery)
+				await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+				await expect(banner(page)).toBeHidden()
+				const dialog = await settings(page)
+				await expect(dialog.getByRole('status')).toContainText(
+					'Global Privacy Control (GPC) is active',
+				)
+				await expect(dialog.getByRole('button', { name: 'Accept', exact: true })).toHaveCount(0)
+				await expectGoogleBlocked(page, requests)
 			})
 		}
 	})

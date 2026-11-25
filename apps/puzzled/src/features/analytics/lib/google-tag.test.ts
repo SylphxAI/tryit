@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { resolveEffectiveConsent, type SignalConsent } from '@sylphx/sdk/signal'
 import { reportCheckoutReturn } from '@/features/plus/lib/checkout-return'
+import { getGameSlugs } from '@/games/registry'
+import { gamePath } from '@/lib/game-slug'
 import { CONSENT_KEY } from '@/lib/storage-keys'
 import { CHECKOUT_QUOTE_KEY, cookieConsent, setConsentContext } from './consent'
 import {
@@ -160,10 +162,16 @@ describe('page views and addresses', () => {
 		expect(trackablePath('/en-GB/pricing')).toBe('/pricing')
 		expect(trackablePath('/delete-account')).toBe('/delete-account')
 		expect(trackablePath('/zh-HK/')).toBe('/')
-		expect(trackablePath('/games/sudoku')).toBeNull()
-		expect(trackablePath('/share/abc123')).toBeNull()
-		expect(trackablePath('/settings/subscription')).toBeNull()
-		expect(trackablePath('/daily/2026-10-01')).toBeNull()
+		expect(trackablePath('/games/')).toBe('/games')
+		expect(trackablePath('/games/sudoku')).toBe('/games/sudoku')
+		expect(trackablePath('/en-GB/games/word-guess/?email=private%40example.test#secret')).toBe(
+			'/games/word-guess',
+		)
+		for (const slug of getGameSlugs()) {
+			const landing = gamePath(slug)
+			expect(trackablePath(landing)).toBe(landing)
+		}
+		expect(trackablePath('/games/quartet')).toBe('/games/quartet')
 	})
 
 	test('a private route sends nothing and resets the address', () => {
@@ -173,17 +181,50 @@ describe('page views and addresses', () => {
 		expect(h.tag.pageView('/en-GB/pricing', null)).toBe(false)
 		expect(h.tag.pageView('/en-GB/pricing', 'Pricing | Tryit')).toBe(true)
 		expect(h.tag.pageView('/en-GB/pricing', 'Updated Pricing | Tryit')).toBe(false)
-		expect(h.tag.pageView('/games/sudoku?id=secret', 'Private game title')).toBe(false)
+		expect(
+			h.tag.pageView(
+				'/en-GB/games/word-guess/?email=private%40example.test#secret',
+				'Five | Tryit',
+			),
+		).toBe(true)
+		for (const path of [
+			'/games/not-a-game',
+			'/games/sudoku/foo',
+			'/games/constructor',
+			'/games/queens',
+			'/games/word-groups',
+			'/share/abc123',
+			'/settings',
+			'/settings/subscription',
+			'/profile',
+			'/stats',
+			'/archive',
+			'/daily/2026-10-01',
+			'/family/join',
+			'/admin',
+		]) {
+			expect(trackablePath(path)).toBeNull()
+			expect(h.tag.pageView(`${path}?id=secret`, 'Private game title')).toBe(false)
+			expect(h.calls.at(-1)).toEqual([
+				'set',
+				{ page_location: 'https://tryit.fun/', page_referrer: '', page_title: 'Tryit' },
+			])
+		}
 		const events = h.calls.filter((c) => c[0] === 'event')
-		expect(events).toHaveLength(1)
+		expect(events).toHaveLength(2)
 		expect(events[0]?.[2]).toMatchObject({
 			page_location: 'https://tryit.fun/en-GB/pricing',
 			page_title: 'Pricing | Tryit',
 			page_referrer: '',
 		})
-		const sets = h.calls.filter((c) => c[0] === 'set')
-		expect(sets[sets.length - 1]?.[1]).toMatchObject({ page_location: 'https://tryit.fun/' })
-		expect(JSON.stringify(h.calls)).not.toMatch(/secret|Private game title/)
+		expect(events[1]?.[2]).toMatchObject({
+			page_location: 'https://tryit.fun/en-GB/games/word-guess',
+			page_title: 'Five | Tryit',
+			page_referrer: '',
+		})
+		expect(JSON.stringify(h.calls)).not.toMatch(
+			/private%40|example\.test|secret|Private game title/,
+		)
 	})
 })
 
