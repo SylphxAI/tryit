@@ -5,11 +5,12 @@
  * remote code. Signal resolves the regional defaults and stored choices.
  *
  * The page address and title sent to Google are limited to an
- * allowlist of public marketing paths; a game, share or account URL never
- * reaches Google. With no ids configured the whole module is inert.
+ * allowlist of public marketing and game landing paths; private routes and
+ * URL parameters never reach Google. With no ids configured the module is inert.
  */
 
 import { resolveEffectiveConsent, type SignalConsent } from '@sylphx/sdk/signal'
+import { gamePath, gameSlugFromPage, PLAYER_TITLE } from '@/lib/game-slug'
 import { CHECKOUT_QUOTE_KEY } from './consent'
 
 export type GoogleTagIds = {
@@ -50,6 +51,7 @@ const SITE_TITLE = 'Tryit'
 const LOCALE_PREFIX = /^\/(en-GB|zh-HK|zh-CN|zh-TW|ja|es|pt-BR)(?=\/|$)/
 const PUBLIC_PATHS = new Set([
 	'/',
+	'/games',
 	'/pricing',
 	'/privacy',
 	'/terms',
@@ -58,11 +60,17 @@ const PUBLIC_PATHS = new Set([
 	'/sign-in',
 ])
 
-/** The path Google may see for this route, or null for any other route. */
+function cleanPath(pathname: string): string {
+	return pathname.split(/[?#]/, 1)[0]?.replace(/\/+$/, '') || '/'
+}
+
+/** The unlocalized public path, or null for any other route. */
 export function trackablePath(pathname: string): string | null {
-	const stripped = pathname.replace(LOCALE_PREFIX, '') || '/'
-	const path = stripped.length > 1 ? stripped.replace(/\/+$/, '') : stripped
-	return PUBLIC_PATHS.has(path) ? path : null
+	const path = cleanPath(pathname).replace(LOCALE_PREFIX, '') || '/'
+	if (PUBLIC_PATHS.has(path)) return path
+	if (!path.startsWith('/games/')) return null
+	const slug = gameSlugFromPage(path.slice('/games/'.length))
+	return Object.hasOwn(PLAYER_TITLE, slug) && gamePath(slug) === path ? path : null
 }
 
 const GOOGLE_COOKIE =
@@ -266,7 +274,7 @@ export function createGoogleTag(input: {
 		},
 		pageView(pathname, title) {
 			// Preserve the locale of a public URL, but never include a query or fragment.
-			const path = trackablePath(pathname) !== null ? pathname.replace(/\/+$/, '') || '/' : null
+			const path = trackablePath(pathname) !== null ? cleanPath(pathname) : null
 			const page = {
 				page_location: path && title ? `${win.location.origin}${path}` : base,
 				page_referrer: '',
