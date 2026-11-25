@@ -5,10 +5,11 @@ import { trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
 import { getAllGameMetadata } from '@/games/registry'
-import { currencyForLocale, formatPrice } from '@/lib/billing/plus'
+import { currencyForLocale, formatMonthlyEquivalentPrice, formatPrice } from '@/lib/billing/plus'
 import { getTodayProgress } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
+import { ARCHIVE_WINDOW_DAYS } from '../lib/archive-days'
 import {
 	claimedDailyPicks,
 	DAILY_FREE_PICKS,
@@ -62,7 +63,8 @@ export function DailyUnlock(props: {
 	)
 	const [prices] = createResource(
 		() => !archive && ready(),
-		() => readUnlockPrices(locale).catch(() => []),
+		() =>
+			readUnlockPrices(locale).catch(() => ({ cards: [], currency: currencyForLocale(locale) })),
 		{ initialValue: null },
 	)
 	let reported = false
@@ -85,7 +87,7 @@ export function DailyUnlock(props: {
 			surface: archive ? 'archive_lock' : '4th_game_lock',
 			game_slug: props.data.slug,
 			picks_used,
-			currency: prices.latest?.[0]?.currency ?? currencyForLocale(locale),
+			currency: prices.latest?.currency ?? currencyForLocale(locale),
 			is_guest,
 		})
 	})
@@ -137,22 +139,58 @@ export function DailyUnlock(props: {
 					{t('common.retry')}
 				</a>
 			</Show>
+			<Show when={!archive && remaining() !== 0}>
+				<p class="text-sm text-muted-foreground">
+					{t('plus.unlock.benefits', {
+						count: getAllGameMetadata().length,
+						days: ARCHIVE_WINDOW_DAYS,
+					})}
+				</p>
+			</Show>
 			<Show
-				when={prices.latest?.length}
+				when={prices.latest?.cards.length}
 				fallback={
 					<Show when={prices.latest}>
 						<p class="text-sm text-muted-foreground">{t('plus.pricing.unavailableTitle')}</p>
 					</Show>
 				}
 			>
-				<dl class="grid gap-1 rounded-xl bg-muted p-3 text-sm">
-					<For each={prices.latest}>
+				<dl class="grid gap-1 rounded-xl bg-muted p-2 text-sm">
+					<For each={prices.latest?.cards}>
 						{(card) => (
-							<div class="flex justify-between gap-3" data-unlock-plan={card.id}>
-								<dt>
-									{card.interval === 'once'
-										? t('plus.pricing.weekendPass', { days: card.accessDays })
-										: t(card.interval === 'year' ? 'plus.pricing.yearly' : 'plus.pricing.monthly')}
+							<div
+								class="flex items-start justify-between gap-3 rounded-lg px-2 py-1.5"
+								classList={{ 'border border-border bg-card': card.interval === 'year' }}
+								data-unlock-plan={card.id}
+							>
+								<dt class="min-w-0">
+									<span class="flex flex-wrap items-center gap-x-2 font-semibold">
+										{card.interval === 'once'
+											? t('plus.pricing.weekendPass', { days: card.accessDays })
+											: t(
+													card.interval === 'year' ? 'plus.pricing.yearly' : 'plus.pricing.monthly',
+												)}
+										<Show when={card.savingPercent} keyed>
+											{(percent) => (
+												<span class="chip bg-success/15 text-success">
+													{t('plus.pricing.saving', { percent })}
+												</span>
+											)}
+										</Show>
+									</span>
+									<Show when={card.interval !== 'month'}>
+										<span class="block text-xs text-muted-foreground tnum">
+											{card.interval === 'once'
+												? t('plus.pricing.oneTime')
+												: t('plus.pricing.monthlyEquivalent', {
+														price: formatMonthlyEquivalentPrice(
+															card.amountMinor,
+															card.currency,
+															locale,
+														),
+													})}
+										</span>
+									</Show>
 								</dt>
 								<dd class="text-end font-semibold tnum">
 									{formatPrice(card.amountMinor, card.currency, locale)}

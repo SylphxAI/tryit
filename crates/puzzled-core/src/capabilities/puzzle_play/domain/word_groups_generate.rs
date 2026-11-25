@@ -1,9 +1,7 @@
-//! Deterministic word-groups generator (free-floor fallback).
+//! Deterministic word-groups generator.
 //!
-//! Mirrors `apps/puzzled/src/games/word-groups/config.ts#generatePuzzle`
-//! (curated original bank + frozen LCG shuffle). Used when the content
-//! store has no `daily_puzzles` row for the product day — same pattern as
-//! sudoku and crossword (RITUAL-AND-MODULE-PROTOCOL allowed fallback).
+//! The curated bank and frozen LCG shuffle are the server's sole Word Groups
+//! generation path.
 //!
 //! Client payload is the shuffled word list only. Category groupings stay
 //! in the server solution and are checked by SubmitGuess.
@@ -1015,6 +1013,8 @@ pub fn generate_word_groups_puzzle(seed: i64) -> (Value, Value) {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -1055,7 +1055,28 @@ mod tests {
     }
 
     #[test]
-    fn bank_covers_forty_original_puzzles() {
+    fn bank_contains_forty_well_formed_puzzles() {
         assert_eq!(BANK.len(), 40);
+        for (puzzle_index, puzzle) in BANK.iter().enumerate() {
+            assert_eq!(puzzle.categories.len(), 4, "puzzle {puzzle_index}");
+            let mut words = HashSet::new();
+            for category in &puzzle.categories {
+                assert!(!category.name.trim().is_empty(), "puzzle {puzzle_index}");
+                assert_eq!(category.words.len(), 4, "category {}", category.name);
+                assert!(
+                    (0..=3).contains(&category.level),
+                    "category {}",
+                    category.name
+                );
+                for word in category.words {
+                    assert!(!word.trim().is_empty(), "category {}", category.name);
+                    assert!(
+                        words.insert(word),
+                        "puzzle {puzzle_index}: duplicate word {word}"
+                    );
+                }
+            }
+            assert_eq!(words.len(), 16, "puzzle {puzzle_index}");
+        }
     }
 }

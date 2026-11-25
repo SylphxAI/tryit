@@ -18,6 +18,7 @@
 		"individualBody": "For one player.",
 		"family": "Tryit Family",
 		"familyBody": "Up to {count} people, each with their own stats and streaks.",
+		"familyMonthlyPerPerson": "About {price} per person per month with all {count} seats filled",
 		"monthly": "Monthly",
 		"yearly": "Yearly",
 		"weekendPass": "{days}-day pass",
@@ -30,6 +31,8 @@
 		"includesAllGames": "All {count} games, every day",
 		"includesArchive": "Puzzles from the past {days} days",
 		"includesStats": "Stats and streaks for every game",
+		"includesAdFree": "Completely ad-free",
+		"includesSync": "Syncs across phone & desktop",
 		"includesFamily": "Share with up to {count} people",
 		"trialLine": "Free for {days} days, then {price} a year, first charged on {date}. Cancel any time in Settings, in one step.",
 		"startTrial": "Start {days}-day free trial",
@@ -54,7 +57,26 @@
 		"notNowPlayFree": "Not now — play 3 free puzzles of 19 daily",
 		"choosePlus": "Choose Tryit Plus",
 		"signInToGetPlus": "Sign in to get Plus",
-		"signInToStartFamily": "Sign in to start Family"
+		"signInToStartFamily": "Sign in to start Family",
+		"faq": {
+			"title": "Questions about Tryit Plus",
+			"pass": {
+				"question": "How does the {passDays}-day pass work?",
+				"answer": "One payment gives you {passDays} days of access to all {count} daily games and puzzles from the past {days} days. The pass doesn’t renew automatically."
+			},
+			"cancel": {
+				"question": "Can I cancel my subscription?",
+				"answer": "In Settings, choose Cancel subscription and confirm. You keep your completed puzzles, streaks, and stats. Once your paid period ends, you can still pick 3 free games every day."
+			},
+			"ads": {
+				"question": "Will ads interrupt my games?",
+				"answer": "Ads never interrupt play, whether you play for free or pay. With Tryit Plus, every screen is ad-free."
+			},
+			"family": {
+				"question": "How does the family plan work?",
+				"answer": "Up to {count} people can share the family plan. Each member has their own account, streaks, and stats."
+			}
+		}
 	},
 	"trial": {
 		"endsOn": "Your free week of Tryit Plus ends on {date}. Nothing is charged, and everything you finished stays in your stats.",
@@ -64,6 +86,7 @@
 		"title": "You've played today's 3 free games",
 		"archiveTitle": "Past days are part of Tryit Plus",
 		"body": "Any 3 of {count} puzzles are free every day (today's pick: {game}). Tryit Plus opens all {count} games and every past day.",
+		"benefits": "All {count} daily games + puzzles from the past {days} days, completely ad-free",
 		"cta": "See Tryit Plus",
 		"signIn": "Sign in",
 		"playFree": "Play {game} free",

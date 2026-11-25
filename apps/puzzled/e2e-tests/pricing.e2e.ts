@@ -834,3 +834,59 @@ for (const [locale, copy] of Object.entries(archiveWindowCopy)) {
 		)
 	})
 }
+
+for (const viewport of [
+	{ width: 390, height: 844 },
+	{ width: 1440, height: 900 },
+]) {
+	test(`buyer FAQ and live offers match rendered pricing at ${viewport.width}×${viewport.height}`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport)
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'GB' })
+		await openPricing(page)
+		const decline = page.getByRole('button', { name: 'Decline', exact: true })
+		if (await decline.isVisible()) await decline.click()
+		const plus = page.locator('#plus')
+		await expect(plus.getByText('Completely ad-free', { exact: true })).toBeVisible()
+		await expect(plus.getByText('Syncs across phone & desktop', { exact: true })).toBeVisible()
+		await expect(page.locator('#family')).toContainText(
+			'£1 per person per month with all 4 seats filled',
+		)
+		const scripts = await page.locator('script[type="application/ld+json"]').allTextContents()
+		const schemas = scripts.map((script) => JSON.parse(script))
+		const canonical = await page.locator('link[rel="canonical"]').getAttribute('href')
+		const image = await page.locator('meta[property="og:image"]').getAttribute('content')
+		const products = schemas.filter((schema) => schema['@type'] === 'Product')
+		expect(products).toHaveLength(1)
+		expect(products[0]).toMatchObject({
+			name: 'Tryit Plus',
+			url: canonical,
+			image,
+			offers: [
+				...['3.99', '29.99', '5.99', '47.99', '2.99'].map((price) =>
+					expect.objectContaining({ price, priceCurrency: 'GBP' }),
+				),
+			],
+		})
+		const faq = page.getByRole('region', { name: 'Questions about Tryit Plus' })
+		const rows = faq.locator('details')
+		await expect(rows).toHaveCount(4)
+		const mainEntity = []
+		for (const row of await rows.all()) {
+			const summary = row.locator('summary')
+			await summary.focus()
+			await page.keyboard.press('Enter')
+			await expect(row.locator('p')).toBeVisible()
+			mainEntity.push({
+				'@type': 'Question',
+				name: await summary.textContent(),
+				acceptedAnswer: { '@type': 'Answer', text: await row.locator('p').textContent() },
+			})
+		}
+		expect(schemas.filter((schema) => schema['@type'] === 'FAQPage')).toEqual([
+			{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity },
+		])
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
+	})
+}

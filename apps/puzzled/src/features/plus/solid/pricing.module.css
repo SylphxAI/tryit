@@ -290,7 +290,8 @@
 	--pricing-gold-tint: #302619;
 }
 
-.page > section:global(#plans) > div {
+.page > section:global(#plans) > div,
+.faq > div {
 	max-width: 69rem;
 }
 

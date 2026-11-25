@@ -9,7 +9,7 @@
  *                    src/shared (hardcoded game screens, settings and
  *                    notification copy, home-page title maps, layout metadata)
  *  5. game metadata: game `config.ts` `name` / `description` fields
- *  6. game data:     game `puzzles.ts` string literals
+ *  6. game data:     Quartet’s Rust bank (player-visible tiles and category names)
  *  7. achievements:  src/features/gamification/lib/achievements.ts name/description
  *
  * Extraction rules (documented so this oracle is not over-trusted):
@@ -59,6 +59,10 @@ import { createTranslator } from './i18n/translate'
 import { legacyPageRedirect } from './legacy-page-redirect'
 
 const APP_ROOT = join(import.meta.dir, '..', '..')
+const WORD_GROUPS_BANK = join(
+	APP_ROOT,
+	'../../crates/puzzled-core/src/capabilities/puzzle_play/domain/word_groups_generate.rs',
+)
 const legacyMatchWording = /\bsets?\b|セット|\bconjuntos?\b/i
 
 type ForbiddenMark = {
@@ -332,14 +336,12 @@ function buildCorpus(): CorpusString[] {
 		})
 	}
 
-	for (const file of collectFiles(join(APP_ROOT, 'src/games'), (path) =>
-		path.endsWith('/puzzles.ts'),
-	)) {
-		const code = stripComments(readFileSync(file, 'utf8'))
-		stringLiterals(code).forEach((value, index) => {
-			entries.push({ surface: relativeSurface(file, `#data[${index}]`), value })
-		})
-	}
+	const bankSource = stripComments(readFileSync(WORD_GROUPS_BANK, 'utf8'))
+	const bank = bankSource.match(/^const BANK: [^\n]+ = &\[([\s\S]*?)^\];/m)?.[1]
+	if (!bank) throw new Error('Missing Quartet bank in Rust generator')
+	stringLiterals(bank).forEach((value, index) => {
+		entries.push({ surface: relativeSurface(WORD_GROUPS_BANK, `#data[${index}]`), value })
+	})
 
 	const achievementsFile = join(APP_ROOT, 'src/features/gamification/lib/achievements.ts')
 	achievementCopy(readFileSync(achievementsFile, 'utf8')).forEach((value, index) => {
@@ -395,7 +397,9 @@ describe('player-facing mark corpus', () => {
 			'src/games/cryptogram/solid-board.tsx',
 			'src/games/word-search/solid-board.tsx',
 			'src/games/crossword/config.ts',
-			'src/games/word-groups/puzzles.ts',
+			'src/games/word-groups/solid-board.tsx',
+			'src/games/word-groups/translations/en.json',
+			relative(APP_ROOT, WORD_GROUPS_BANK),
 			'src/features/gamification/lib/achievements.ts',
 		]) {
 			expect(entries.some((entry) => entry.surface.startsWith(surface))).toBe(true)
