@@ -204,13 +204,63 @@ message StartDailyResponse {
   GetDailyResponse daily = 1;
 }
 
+// Practice is independent of daily picks, progress and streaks.
+message GetPracticePuzzleRequest {
+  string game_slug = 1;
+  // Zero asks the server to choose a fresh positive seed.
+  int64 practice_seed = 2;
+  string difficulty = 3;
+}
+
+message GetPracticePuzzleResponse {
+  string game_slug = 1;
+  int64 practice_seed = 2;
+  string difficulty = 3;
+  string puzzle_data_json = 4;
+}
+
+message CheckPracticeGuessRequest {
+  string game_slug = 1;
+  int64 practice_seed = 2;
+  string difficulty = 3;
+  string guess_json = 4;
+}
+
+message SubmitPracticeRequest {
+  string game_slug = 1;
+  int64 practice_seed = 2;
+  string difficulty = 3;
+  string status = 4;
+  uint32 attempts = 5;
+  uint64 time_spent_ms = 6;
+  string submission_json = 7;
+}
+
+message SubmitPracticeResponse {
+  bool valid = 1;
+  string status = 2;
+  uint32 score = 3 [features.field_presence = EXPLICIT];
+  string game_slug = 4;
+  string error = 5 [features.field_presence = EXPLICIT];
+  // Present only when the server accepts the terminal win or loss.
+  string reveal_json = 6 [features.field_presence = EXPLICIT];
+}
+
 service PuzzleService {
+  rpc GetPracticePuzzle(GetPracticePuzzleRequest) returns (GetPracticePuzzleResponse);
+  // Graded word games only, subject to the game's guess limit.
+  // Practice and daily guesses deliberately return the same grading envelope.
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc CheckPracticeGuess(CheckPracticeGuessRequest) returns (CheckGuessResponse);
+  rpc SubmitPractice(SubmitPracticeRequest) returns (SubmitPracticeResponse);
   // Same-origin, credential-bound, deduplicated; never counts as a finish.
   rpc RecordShareLanding(RecordShareLandingRequest) returns (RecordShareLandingResponse);
   rpc GetPuzzle(GetPuzzleRequest) returns (GetPuzzleResponse);
   rpc GetDaily(GetDailyRequest) returns (GetDailyResponse);
   rpc GetTodayProgress(GetTodayProgressRequest) returns (GetTodayProgressResponse);
   rpc SubmitGuess(SubmitGuessRequest) returns (SubmitGuessResponse);
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc CheckGuess(CheckGuessRequest) returns (CheckGuessResponse);
   rpc ShareResult(ShareResultRequest) returns (ShareResultResponse);
   rpc GetSharedResult(GetSharedResultRequest) returns (GetSharedResultResponse);

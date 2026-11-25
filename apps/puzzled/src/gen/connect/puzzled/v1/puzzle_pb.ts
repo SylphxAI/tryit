@@ -19,7 +19,7 @@ import { file_google_protobuf_cpp_features } from '@bufbuild/protobuf/wkt'
 export const file_puzzled_v1_puzzle: GenFile =
 	/*@__PURE__*/
 	fileDesc(
-		'ChdwdXp6bGVkL3YxL3B1enpsZS5wcm90bxIKcHV6emxlZC52MSJHChBHZXRQdXp6bGVSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIMCgRzZWVkGAIgASgDEhIKCmRpZmZpY3VsdHkYAyABKAkidwoRR2V0UHV6emxlUmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEgwKBHNlZWQYAiABKAMSEgoKZGlmZmljdWx0eRgDIAEoCRIYChBwdXp6bGVfZGF0YV9qc29uGAQgASgJEg0KBXNsaWNlGAYgASgJSgQIBRAGInQKD0dldERhaWx5UmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgCIAEoCRIYCglwdXp6bGVfaWQYAyABKAlCBaoBAggBEhoKC3B1enpsZV9kYXRlGAUgASgJQgWqAQIIAUoECAQQBSKpAQoPRGFpbHlDb21wbGV0aW9uEg4KBnN0YXR1cxgBIAEoCRIUCgVzY29yZRgCIAEoDUIFqgECCAESFwoIYXR0ZW1wdHMYAyABKA1CBaoBAggBEh4KD2NvbXBsZXRlZF9hdF9tcxgEIAEoA0IFqgECCAESGQoKZGlmZmljdWx0eRgFIAEoCUIFqgECCAESHAoNdGltZV9zcGVudF9tcxgGIAEoBEIFqgECCAEivQIKEEdldERhaWx5UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhUKDXB1enpsZV9udW1iZXIYAiABKA0SEwoLcHV6emxlX2RhdGUYAyABKAkSGAoJcHV6emxlX2lkGAQgASgJQgWqAQIIARISCgpkaWZmaWN1bHR5GAUgASgJEhUKDWhhc19jb21wbGV0ZWQYBiABKAgSEAoIY2FuX3BsYXkYByABKAgSDAoEbW9kZRgIIAEoCRINCgVzbGljZRgJIAEoCRIMCgRzdHViGAogASgIEhgKEHB1enpsZV9kYXRhX2pzb24YCyABKAkSNgoRY29tcGxldGVkX3Nlc3Npb24YDCABKAsyGy5wdXp6bGVkLnYxLkRhaWx5Q29tcGxldGlvbhIWCg5yZXF1aXJlc19zdGFydBgNIAEoCCItChdHZXRUb2RheVByb2dyZXNzUmVxdWVzdBISCgpnYW1lX3NsdWdzGAEgAygJInAKDEdhbWVQcm9ncmVzcxIRCglnYW1lX3NsdWcYASABKAkSFQoNaGFzX2NvbXBsZXRlZBgCIAEoCBI2ChFjb21wbGV0ZWRfc2Vzc2lvbhgDIAEoCzIbLnB1enpsZWQudjEuRGFpbHlDb21wbGV0aW9uIoQBChhHZXRUb2RheVByb2dyZXNzUmVzcG9uc2USDwoHZGF5X2tleRgBIAEoCRInCgVnYW1lcxgCIAMoCzIYLnB1enpsZWQudjEuR2FtZVByb2dyZXNzEi4KCmZyZWVfcGlja3MYAyABKAsyGi5wdXp6bGVkLnYxLlRvZGF5RnJlZVBpY2tzIiQKDlRvZGF5RnJlZVBpY2tzEhIKCmdhbWVfc2x1Z3MYASADKAkiyQEKElN1Ym1pdEd1ZXNzUmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSEAoIYXR0ZW1wdHMYBSABKA0SFQoNdGltZV9zcGVudF9tcxgGIAEoBBIXCg9zdWJtaXNzaW9uX2pzb24YByABKAkSGAoJcHV6emxlX2lkGAggASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgJIAEoCUIFqgECCAFKBAgCEAMipAEKE1N1Ym1pdEd1ZXNzUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDgoGc3RhdHVzGAIgASgJEhQKBXNjb3JlGAMgASgNQgWqAQIIARIRCglnYW1lX3NsdWcYBCABKAkSFAoFZXJyb3IYBiABKAlCBaoBAggBEg0KBXNsaWNlGAcgASgJEhoKC3JldmVhbF9qc29uGAggASgJQgWqAQIIAUoECAUQBiKEAQoRQ2hlY2tHdWVzc1JlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSGAoJcHV6emxlX2lkGAMgASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgEIAEoCUIFqgECCAESEgoKZ3Vlc3NfanNvbhgFIAEoCSIpChJDaGVja0d1ZXNzUmVzcG9uc2USEwoLcmVzdWx0X2pzb24YASABKAkiUAoSU2hhcmVSZXN1bHRSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIaCgtwdXp6bGVfZGF0ZRgCIAEoCUIFqgECCAESCwoDdGFwGAMgASgIIicKE1NoYXJlUmVzdWx0UmVzcG9uc2USEAoIc2hhcmVfaWQYASABKAkiKgoWR2V0U2hhcmVkUmVzdWx0UmVxdWVzdBIQCghzaGFyZV9pZBgBIAEoCSLCAQoXR2V0U2hhcmVkUmVzdWx0UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhMKC3B1enpsZV9kYXRlGAIgASgJEhIKCmRpZmZpY3VsdHkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhAKCGF0dGVtcHRzGAUgASgNEhQKBXNjb3JlGAYgASgNQgWqAQIIARIcCg10aW1lX3NwZW50X21zGAcgASgEQgWqAQIIARIVCgZzdHJlYWsYCCABKA1CBaoBAggBIkgKGVJlY29yZFNoYXJlTGFuZGluZ1JlcXVlc3QSEAoIc2hhcmVfaWQYASABKAkSGQoRYW5hbHl0aWNzX2NvbnNlbnQYAiABKAgiHAoaUmVjb3JkU2hhcmVMYW5kaW5nUmVzcG9uc2UiTwoRU3RhcnREYWlseVJlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSEwoLcHV6emxlX2RhdGUYAyABKAkiQQoSU3RhcnREYWlseVJlc3BvbnNlEisKBWRhaWx5GAEgASgLMhwucHV6emxlZC52MS5HZXREYWlseVJlc3BvbnNlMvoFCg1QdXp6bGVTZXJ2aWNlEmMKElJlY29yZFNoYXJlTGFuZGluZxIlLnB1enpsZWQudjEuUmVjb3JkU2hhcmVMYW5kaW5nUmVxdWVzdBomLnB1enpsZWQudjEuUmVjb3JkU2hhcmVMYW5kaW5nUmVzcG9uc2USSAoJR2V0UHV6emxlEhwucHV6emxlZC52MS5HZXRQdXp6bGVSZXF1ZXN0Gh0ucHV6emxlZC52MS5HZXRQdXp6bGVSZXNwb25zZRJFCghHZXREYWlseRIbLnB1enpsZWQudjEuR2V0RGFpbHlSZXF1ZXN0GhwucHV6emxlZC52MS5HZXREYWlseVJlc3BvbnNlEl0KEEdldFRvZGF5UHJvZ3Jlc3MSIy5wdXp6bGVkLnYxLkdldFRvZGF5UHJvZ3Jlc3NSZXF1ZXN0GiQucHV6emxlZC52MS5HZXRUb2RheVByb2dyZXNzUmVzcG9uc2USTgoLU3VibWl0R3Vlc3MSHi5wdXp6bGVkLnYxLlN1Ym1pdEd1ZXNzUmVxdWVzdBofLnB1enpsZWQudjEuU3VibWl0R3Vlc3NSZXNwb25zZRJLCgpDaGVja0d1ZXNzEh0ucHV6emxlZC52MS5DaGVja0d1ZXNzUmVxdWVzdBoeLnB1enpsZWQudjEuQ2hlY2tHdWVzc1Jlc3BvbnNlEk4KC1NoYXJlUmVzdWx0Eh4ucHV6emxlZC52MS5TaGFyZVJlc3VsdFJlcXVlc3QaHy5wdXp6bGVkLnYxLlNoYXJlUmVzdWx0UmVzcG9uc2USWgoPR2V0U2hhcmVkUmVzdWx0EiIucHV6emxlZC52MS5HZXRTaGFyZWRSZXN1bHRSZXF1ZXN0GiMucHV6emxlZC52MS5HZXRTaGFyZWRSZXN1bHRSZXNwb25zZRJLCgpTdGFydERhaWx5Eh0ucHV6emxlZC52MS5TdGFydERhaWx5UmVxdWVzdBoeLnB1enpsZWQudjEuU3RhcnREYWlseVJlc3BvbnNlQhSSAxEIAhABGAEgAigBMAHCPgIQA2IIZWRpdGlvbnNw6Qc',
+		'ChdwdXp6bGVkL3YxL3B1enpsZS5wcm90bxIKcHV6emxlZC52MSJHChBHZXRQdXp6bGVSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIMCgRzZWVkGAIgASgDEhIKCmRpZmZpY3VsdHkYAyABKAkidwoRR2V0UHV6emxlUmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEgwKBHNlZWQYAiABKAMSEgoKZGlmZmljdWx0eRgDIAEoCRIYChBwdXp6bGVfZGF0YV9qc29uGAQgASgJEg0KBXNsaWNlGAYgASgJSgQIBRAGInQKD0dldERhaWx5UmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgCIAEoCRIYCglwdXp6bGVfaWQYAyABKAlCBaoBAggBEhoKC3B1enpsZV9kYXRlGAUgASgJQgWqAQIIAUoECAQQBSKpAQoPRGFpbHlDb21wbGV0aW9uEg4KBnN0YXR1cxgBIAEoCRIUCgVzY29yZRgCIAEoDUIFqgECCAESFwoIYXR0ZW1wdHMYAyABKA1CBaoBAggBEh4KD2NvbXBsZXRlZF9hdF9tcxgEIAEoA0IFqgECCAESGQoKZGlmZmljdWx0eRgFIAEoCUIFqgECCAESHAoNdGltZV9zcGVudF9tcxgGIAEoBEIFqgECCAEivQIKEEdldERhaWx5UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhUKDXB1enpsZV9udW1iZXIYAiABKA0SEwoLcHV6emxlX2RhdGUYAyABKAkSGAoJcHV6emxlX2lkGAQgASgJQgWqAQIIARISCgpkaWZmaWN1bHR5GAUgASgJEhUKDWhhc19jb21wbGV0ZWQYBiABKAgSEAoIY2FuX3BsYXkYByABKAgSDAoEbW9kZRgIIAEoCRINCgVzbGljZRgJIAEoCRIMCgRzdHViGAogASgIEhgKEHB1enpsZV9kYXRhX2pzb24YCyABKAkSNgoRY29tcGxldGVkX3Nlc3Npb24YDCABKAsyGy5wdXp6bGVkLnYxLkRhaWx5Q29tcGxldGlvbhIWCg5yZXF1aXJlc19zdGFydBgNIAEoCCItChdHZXRUb2RheVByb2dyZXNzUmVxdWVzdBISCgpnYW1lX3NsdWdzGAEgAygJInAKDEdhbWVQcm9ncmVzcxIRCglnYW1lX3NsdWcYASABKAkSFQoNaGFzX2NvbXBsZXRlZBgCIAEoCBI2ChFjb21wbGV0ZWRfc2Vzc2lvbhgDIAEoCzIbLnB1enpsZWQudjEuRGFpbHlDb21wbGV0aW9uIoQBChhHZXRUb2RheVByb2dyZXNzUmVzcG9uc2USDwoHZGF5X2tleRgBIAEoCRInCgVnYW1lcxgCIAMoCzIYLnB1enpsZWQudjEuR2FtZVByb2dyZXNzEi4KCmZyZWVfcGlja3MYAyABKAsyGi5wdXp6bGVkLnYxLlRvZGF5RnJlZVBpY2tzIiQKDlRvZGF5RnJlZVBpY2tzEhIKCmdhbWVfc2x1Z3MYASADKAkiyQEKElN1Ym1pdEd1ZXNzUmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSEgoKZGlmZmljdWx0eRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSEAoIYXR0ZW1wdHMYBSABKA0SFQoNdGltZV9zcGVudF9tcxgGIAEoBBIXCg9zdWJtaXNzaW9uX2pzb24YByABKAkSGAoJcHV6emxlX2lkGAggASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgJIAEoCUIFqgECCAFKBAgCEAMipAEKE1N1Ym1pdEd1ZXNzUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDgoGc3RhdHVzGAIgASgJEhQKBXNjb3JlGAMgASgNQgWqAQIIARIRCglnYW1lX3NsdWcYBCABKAkSFAoFZXJyb3IYBiABKAlCBaoBAggBEg0KBXNsaWNlGAcgASgJEhoKC3JldmVhbF9qc29uGAggASgJQgWqAQIIAUoECAUQBiKEAQoRQ2hlY2tHdWVzc1JlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSGAoJcHV6emxlX2lkGAMgASgJQgWqAQIIARIaCgtwdXp6bGVfZGF0ZRgEIAEoCUIFqgECCAESEgoKZ3Vlc3NfanNvbhgFIAEoCSIpChJDaGVja0d1ZXNzUmVzcG9uc2USEwoLcmVzdWx0X2pzb24YASABKAkiUAoSU2hhcmVSZXN1bHRSZXF1ZXN0EhEKCWdhbWVfc2x1ZxgBIAEoCRIaCgtwdXp6bGVfZGF0ZRgCIAEoCUIFqgECCAESCwoDdGFwGAMgASgIIicKE1NoYXJlUmVzdWx0UmVzcG9uc2USEAoIc2hhcmVfaWQYASABKAkiKgoWR2V0U2hhcmVkUmVzdWx0UmVxdWVzdBIQCghzaGFyZV9pZBgBIAEoCSLCAQoXR2V0U2hhcmVkUmVzdWx0UmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhMKC3B1enpsZV9kYXRlGAIgASgJEhIKCmRpZmZpY3VsdHkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhAKCGF0dGVtcHRzGAUgASgNEhQKBXNjb3JlGAYgASgNQgWqAQIIARIcCg10aW1lX3NwZW50X21zGAcgASgEQgWqAQIIARIVCgZzdHJlYWsYCCABKA1CBaoBAggBIkgKGVJlY29yZFNoYXJlTGFuZGluZ1JlcXVlc3QSEAoIc2hhcmVfaWQYASABKAkSGQoRYW5hbHl0aWNzX2NvbnNlbnQYAiABKAgiHAoaUmVjb3JkU2hhcmVMYW5kaW5nUmVzcG9uc2UiTwoRU3RhcnREYWlseVJlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhIKCmRpZmZpY3VsdHkYAiABKAkSEwoLcHV6emxlX2RhdGUYAyABKAkiQQoSU3RhcnREYWlseVJlc3BvbnNlEisKBWRhaWx5GAEgASgLMhwucHV6emxlZC52MS5HZXREYWlseVJlc3BvbnNlIlgKGEdldFByYWN0aWNlUHV6emxlUmVxdWVzdBIRCglnYW1lX3NsdWcYASABKAkSFQoNcHJhY3RpY2Vfc2VlZBgCIAEoAxISCgpkaWZmaWN1bHR5GAMgASgJInMKGUdldFByYWN0aWNlUHV6emxlUmVzcG9uc2USEQoJZ2FtZV9zbHVnGAEgASgJEhUKDXByYWN0aWNlX3NlZWQYAiABKAMSEgoKZGlmZmljdWx0eRgDIAEoCRIYChBwdXp6bGVfZGF0YV9qc29uGAQgASgJIm0KGUNoZWNrUHJhY3RpY2VHdWVzc1JlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhUKDXByYWN0aWNlX3NlZWQYAiABKAMSEgoKZGlmZmljdWx0eRgDIAEoCRISCgpndWVzc19qc29uGAQgASgJIqcBChVTdWJtaXRQcmFjdGljZVJlcXVlc3QSEQoJZ2FtZV9zbHVnGAEgASgJEhUKDXByYWN0aWNlX3NlZWQYAiABKAMSEgoKZGlmZmljdWx0eRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSEAoIYXR0ZW1wdHMYBSABKA0SFQoNdGltZV9zcGVudF9tcxgGIAEoBBIXCg9zdWJtaXNzaW9uX2pzb24YByABKAkikgEKFlN1Ym1pdFByYWN0aWNlUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDgoGc3RhdHVzGAIgASgJEhQKBXNjb3JlGAMgASgNQgWqAQIIARIRCglnYW1lX3NsdWcYBCABKAkSFAoFZXJyb3IYBSABKAlCBaoBAggBEhoKC3JldmVhbF9qc29uGAYgASgJQgWqAQIIATKSCAoNUHV6emxlU2VydmljZRJgChFHZXRQcmFjdGljZVB1enpsZRIkLnB1enpsZWQudjEuR2V0UHJhY3RpY2VQdXp6bGVSZXF1ZXN0GiUucHV6emxlZC52MS5HZXRQcmFjdGljZVB1enpsZVJlc3BvbnNlElsKEkNoZWNrUHJhY3RpY2VHdWVzcxIlLnB1enpsZWQudjEuQ2hlY2tQcmFjdGljZUd1ZXNzUmVxdWVzdBoeLnB1enpsZWQudjEuQ2hlY2tHdWVzc1Jlc3BvbnNlElcKDlN1Ym1pdFByYWN0aWNlEiEucHV6emxlZC52MS5TdWJtaXRQcmFjdGljZVJlcXVlc3QaIi5wdXp6bGVkLnYxLlN1Ym1pdFByYWN0aWNlUmVzcG9uc2USYwoSUmVjb3JkU2hhcmVMYW5kaW5nEiUucHV6emxlZC52MS5SZWNvcmRTaGFyZUxhbmRpbmdSZXF1ZXN0GiYucHV6emxlZC52MS5SZWNvcmRTaGFyZUxhbmRpbmdSZXNwb25zZRJICglHZXRQdXp6bGUSHC5wdXp6bGVkLnYxLkdldFB1enpsZVJlcXVlc3QaHS5wdXp6bGVkLnYxLkdldFB1enpsZVJlc3BvbnNlEkUKCEdldERhaWx5EhsucHV6emxlZC52MS5HZXREYWlseVJlcXVlc3QaHC5wdXp6bGVkLnYxLkdldERhaWx5UmVzcG9uc2USXQoQR2V0VG9kYXlQcm9ncmVzcxIjLnB1enpsZWQudjEuR2V0VG9kYXlQcm9ncmVzc1JlcXVlc3QaJC5wdXp6bGVkLnYxLkdldFRvZGF5UHJvZ3Jlc3NSZXNwb25zZRJOCgtTdWJtaXRHdWVzcxIeLnB1enpsZWQudjEuU3VibWl0R3Vlc3NSZXF1ZXN0Gh8ucHV6emxlZC52MS5TdWJtaXRHdWVzc1Jlc3BvbnNlEksKCkNoZWNrR3Vlc3MSHS5wdXp6bGVkLnYxLkNoZWNrR3Vlc3NSZXF1ZXN0Gh4ucHV6emxlZC52MS5DaGVja0d1ZXNzUmVzcG9uc2USTgoLU2hhcmVSZXN1bHQSHi5wdXp6bGVkLnYxLlNoYXJlUmVzdWx0UmVxdWVzdBofLnB1enpsZWQudjEuU2hhcmVSZXN1bHRSZXNwb25zZRJaCg9HZXRTaGFyZWRSZXN1bHQSIi5wdXp6bGVkLnYxLkdldFNoYXJlZFJlc3VsdFJlcXVlc3QaIy5wdXp6bGVkLnYxLkdldFNoYXJlZFJlc3VsdFJlc3BvbnNlEksKClN0YXJ0RGFpbHkSHS5wdXp6bGVkLnYxLlN0YXJ0RGFpbHlSZXF1ZXN0Gh4ucHV6emxlZC52MS5TdGFydERhaWx5UmVzcG9uc2VCFJIDEQgCEAEYASACKAEwAcI+AhADYghlZGl0aW9uc3DpBw',
 		[file_google_protobuf_cpp_features],
 	)
 
@@ -756,9 +756,229 @@ export const StartDailyResponseSchema: GenMessage<StartDailyResponse> =
 	messageDesc(file_puzzled_v1_puzzle, 20)
 
 /**
+ * Practice is independent of daily picks, progress and streaks.
+ *
+ * @generated from message puzzled.v1.GetPracticePuzzleRequest
+ */
+export type GetPracticePuzzleRequest = Message<'puzzled.v1.GetPracticePuzzleRequest'> & {
+	/**
+	 * @generated from field: string game_slug = 1;
+	 */
+	gameSlug: string
+
+	/**
+	 * Zero asks the server to choose a fresh positive seed.
+	 *
+	 * @generated from field: int64 practice_seed = 2;
+	 */
+	practiceSeed: bigint
+
+	/**
+	 * @generated from field: string difficulty = 3;
+	 */
+	difficulty: string
+}
+
+/**
+ * Describes the message puzzled.v1.GetPracticePuzzleRequest.
+ * Use `create(GetPracticePuzzleRequestSchema)` to create a new message.
+ */
+export const GetPracticePuzzleRequestSchema: GenMessage<GetPracticePuzzleRequest> =
+	/*@__PURE__*/
+	messageDesc(file_puzzled_v1_puzzle, 21)
+
+/**
+ * @generated from message puzzled.v1.GetPracticePuzzleResponse
+ */
+export type GetPracticePuzzleResponse = Message<'puzzled.v1.GetPracticePuzzleResponse'> & {
+	/**
+	 * @generated from field: string game_slug = 1;
+	 */
+	gameSlug: string
+
+	/**
+	 * @generated from field: int64 practice_seed = 2;
+	 */
+	practiceSeed: bigint
+
+	/**
+	 * @generated from field: string difficulty = 3;
+	 */
+	difficulty: string
+
+	/**
+	 * @generated from field: string puzzle_data_json = 4;
+	 */
+	puzzleDataJson: string
+}
+
+/**
+ * Describes the message puzzled.v1.GetPracticePuzzleResponse.
+ * Use `create(GetPracticePuzzleResponseSchema)` to create a new message.
+ */
+export const GetPracticePuzzleResponseSchema: GenMessage<GetPracticePuzzleResponse> =
+	/*@__PURE__*/
+	messageDesc(file_puzzled_v1_puzzle, 22)
+
+/**
+ * @generated from message puzzled.v1.CheckPracticeGuessRequest
+ */
+export type CheckPracticeGuessRequest = Message<'puzzled.v1.CheckPracticeGuessRequest'> & {
+	/**
+	 * @generated from field: string game_slug = 1;
+	 */
+	gameSlug: string
+
+	/**
+	 * @generated from field: int64 practice_seed = 2;
+	 */
+	practiceSeed: bigint
+
+	/**
+	 * @generated from field: string difficulty = 3;
+	 */
+	difficulty: string
+
+	/**
+	 * @generated from field: string guess_json = 4;
+	 */
+	guessJson: string
+}
+
+/**
+ * Describes the message puzzled.v1.CheckPracticeGuessRequest.
+ * Use `create(CheckPracticeGuessRequestSchema)` to create a new message.
+ */
+export const CheckPracticeGuessRequestSchema: GenMessage<CheckPracticeGuessRequest> =
+	/*@__PURE__*/
+	messageDesc(file_puzzled_v1_puzzle, 23)
+
+/**
+ * @generated from message puzzled.v1.SubmitPracticeRequest
+ */
+export type SubmitPracticeRequest = Message<'puzzled.v1.SubmitPracticeRequest'> & {
+	/**
+	 * @generated from field: string game_slug = 1;
+	 */
+	gameSlug: string
+
+	/**
+	 * @generated from field: int64 practice_seed = 2;
+	 */
+	practiceSeed: bigint
+
+	/**
+	 * @generated from field: string difficulty = 3;
+	 */
+	difficulty: string
+
+	/**
+	 * @generated from field: string status = 4;
+	 */
+	status: string
+
+	/**
+	 * @generated from field: uint32 attempts = 5;
+	 */
+	attempts: number
+
+	/**
+	 * @generated from field: uint64 time_spent_ms = 6;
+	 */
+	timeSpentMs: bigint
+
+	/**
+	 * @generated from field: string submission_json = 7;
+	 */
+	submissionJson: string
+}
+
+/**
+ * Describes the message puzzled.v1.SubmitPracticeRequest.
+ * Use `create(SubmitPracticeRequestSchema)` to create a new message.
+ */
+export const SubmitPracticeRequestSchema: GenMessage<SubmitPracticeRequest> =
+	/*@__PURE__*/
+	messageDesc(file_puzzled_v1_puzzle, 24)
+
+/**
+ * @generated from message puzzled.v1.SubmitPracticeResponse
+ */
+export type SubmitPracticeResponse = Message<'puzzled.v1.SubmitPracticeResponse'> & {
+	/**
+	 * @generated from field: bool valid = 1;
+	 */
+	valid: boolean
+
+	/**
+	 * @generated from field: string status = 2;
+	 */
+	status: string
+
+	/**
+	 * @generated from field: uint32 score = 3 [features.field_presence = EXPLICIT];
+	 */
+	score: number
+
+	/**
+	 * @generated from field: string game_slug = 4;
+	 */
+	gameSlug: string
+
+	/**
+	 * @generated from field: string error = 5 [features.field_presence = EXPLICIT];
+	 */
+	error: string
+
+	/**
+	 * Present only when the server accepts the terminal win or loss.
+	 *
+	 * @generated from field: string reveal_json = 6 [features.field_presence = EXPLICIT];
+	 */
+	revealJson: string
+}
+
+/**
+ * Describes the message puzzled.v1.SubmitPracticeResponse.
+ * Use `create(SubmitPracticeResponseSchema)` to create a new message.
+ */
+export const SubmitPracticeResponseSchema: GenMessage<SubmitPracticeResponse> =
+	/*@__PURE__*/
+	messageDesc(file_puzzled_v1_puzzle, 25)
+
+/**
  * @generated from service puzzled.v1.PuzzleService
  */
 export const PuzzleService: GenService<{
+	/**
+	 * @generated from rpc puzzled.v1.PuzzleService.GetPracticePuzzle
+	 */
+	getPracticePuzzle: {
+		methodKind: 'unary'
+		input: typeof GetPracticePuzzleRequestSchema
+		output: typeof GetPracticePuzzleResponseSchema
+	}
+	/**
+	 * Graded word games only, subject to the game's guess limit.
+	 * Practice and daily guesses deliberately return the same grading envelope.
+	 * buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	 * buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+	 *
+	 * @generated from rpc puzzled.v1.PuzzleService.CheckPracticeGuess
+	 */
+	checkPracticeGuess: {
+		methodKind: 'unary'
+		input: typeof CheckPracticeGuessRequestSchema
+		output: typeof CheckGuessResponseSchema
+	}
+	/**
+	 * @generated from rpc puzzled.v1.PuzzleService.SubmitPractice
+	 */
+	submitPractice: {
+		methodKind: 'unary'
+		input: typeof SubmitPracticeRequestSchema
+		output: typeof SubmitPracticeResponseSchema
+	}
 	/**
 	 * Same-origin, credential-bound, deduplicated; never counts as a finish.
 	 *
@@ -802,6 +1022,8 @@ export const PuzzleService: GenService<{
 		output: typeof SubmitGuessResponseSchema
 	}
 	/**
+	 * buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	 *
 	 * @generated from rpc puzzled.v1.PuzzleService.CheckGuess
 	 */
 	checkGuess: {

@@ -6,7 +6,7 @@ use sqlx::PgPool;
 
 use crate::capabilities::identity_access::adapters::auth_erasure::AuthErasure;
 use crate::capabilities::identity_access::adapters::auth_session::AuthSessions;
-use crate::capabilities::money::{pricing, Money};
+use crate::capabilities::money::{pricing, Money, MoneyError};
 use crate::capabilities::preferences::unsubscribe::UnsubscribeTokens;
 use crate::capabilities::tryit_conversions::TryitReporter;
 use sylphx::auth::verify::CALLBACK_RECEIPT_JWKS_URL;
@@ -84,16 +84,22 @@ impl AppState {
     /// least one Puzzled plan. A catalogue read that fails counts as not on
     /// sale: nothing is locked and no purchase is offered until Money answers.
     pub async fn sales_open(&self) -> bool {
-        let (Some(_), Some(money)) = (&self.pool, &self.money) else {
-            return false;
-        };
-        match money.catalog().await {
-            Ok(catalog) => !pricing::plans(&catalog).is_empty(),
+        match self.try_sales_open().await {
+            Ok(open) => open,
             Err(error) => {
                 tracing::warn!(%error, "Money catalogue read failed; treating Plus as not on sale");
                 false
             }
         }
+    }
+
+    /// Distinguish a closed catalogue from an unreadable one for paid-only play.
+    pub(super) async fn try_sales_open(&self) -> Result<bool, MoneyError> {
+        let (Some(_), Some(money)) = (&self.pool, &self.money) else {
+            return Ok(false);
+        };
+        let catalog = money.catalog().await?;
+        Ok(!pricing::plans(&catalog).is_empty())
     }
 
     #[must_use]

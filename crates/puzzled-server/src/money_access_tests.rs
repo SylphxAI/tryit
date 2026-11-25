@@ -22,6 +22,9 @@ const PAID: &str = "0b6f7d3e-1111-4a4a-9c9c-0000000000b1";
 const UNPAID: &str = "0b6f7d3e-1111-4a4a-9c9c-0000000000b2";
 const OUTAGE: &str = "0b6f7d3e-1111-4a4a-9c9c-0000000000b3";
 
+#[path = "practice_rpc_tests.rs"]
+mod practice_rpc_tests;
+
 #[derive(Default)]
 struct FakeMoney {
     /// Subjects that hold `plus`.

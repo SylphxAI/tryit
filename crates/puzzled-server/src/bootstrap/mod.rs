@@ -7,6 +7,7 @@ mod connect_billing;
 mod connect_gamification;
 mod connect_health;
 mod connect_jobs;
+mod connect_practice;
 mod connect_preferences;
 mod connect_puzzle;
 mod connect_stats;
