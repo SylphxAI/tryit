@@ -325,10 +325,6 @@
 		}
 	},
 	"gamePage": {
-		"freeAccessFaq": {
-			"question": "不用帳號，也能免費玩每日 {game} 嗎？",
-			"answer": "可以。每天都能從 Tryit 的 {total} 款每日謎題中任選 {count} 款免費玩，不用帳號。{game} 每天 16:00 UTC 更新題目。"
-		},
 		"metaDescription": "{game}是每日{genre}謎題。{rule}每日更新一道新題，每天任選 3 款遊戲免費，無須帳號。",
 		"playCta": "開始今天的謎題",
 		"guestNote": "遊玩無需帳號。"

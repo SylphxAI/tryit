@@ -57,10 +57,6 @@
 	},
 	"breadcrumbLabel": "Breadcrumb",
 	"gamePage": {
-		"freeAccessFaq": {
-			"question": "Can I play daily {game} free without an account?",
-			"answer": "Yes. Pick any {count} of Tryit’s {total} daily puzzles to play free every day — no account needed. A new {game} puzzle is available daily at 16:00 UTC."
-		},
 		"playCta": "Play today's puzzle",
 		"guestNote": "No account needed to play.",
 		"guestSignIn": "Save your streak",

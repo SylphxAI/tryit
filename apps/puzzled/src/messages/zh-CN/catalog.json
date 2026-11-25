@@ -57,10 +57,6 @@
 	},
 	"breadcrumbLabel": "浏览路径",
 	"gamePage": {
-		"freeAccessFaq": {
-			"question": "没有账号，也能免费玩每日 {game} 吗？",
-			"answer": "可以。每天都能从 Tryit 的 {total} 款每日谜题中任选 {count} 款免费玩，无需账号。{game} 每天 16:00 UTC 更新题目。"
-		},
 		"playCta": "开始今日谜题",
 		"guestNote": "游玩无需账户。",
 		"guestSignIn": "保留你的连续记录",

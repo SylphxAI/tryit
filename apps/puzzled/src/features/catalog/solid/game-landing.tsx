@@ -237,7 +237,7 @@ export function GameLanding(
 					</section>
 				</Show>
 				<Show when={d().faq.length}>
-					<section id="game-faq" class="section-block pt-0">
+					<section class="section-block pt-0">
 						<div class="page-shell">
 							<h2 class="font-display text-[1.625rem]">{t().faqTitle}</h2>
 							<div class="mt-3 border-t border-border">

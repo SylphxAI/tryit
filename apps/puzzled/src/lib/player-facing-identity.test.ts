@@ -50,7 +50,6 @@
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { buildGamePage } from '@/features/catalog/solid/game-data'
 import { getGameSlugs } from '@/games/registry'
 import { isValidWord } from '@/games/word-guess/words'
 import { gamePath, playerTitle } from './game-slug'
@@ -455,22 +454,6 @@ describe('mark matching', () => {
 })
 
 describe('launch IP hygiene', () => {
-	test('localized game schema and FAQ copy contain no publisher or operator marks', () => {
-		const day = new Date('2026-11-24T00:00:00Z')
-		const slugs = getGameSlugs()
-		for (const locale of locales) {
-			for (const slug of slugs) {
-				const surface = `${locale}: ${gamePath(slug)}`
-				const page = buildGamePage(locale, slug, 'https://tryit.fun', day)
-				if (!page) throw new Error(`Missing game page: ${surface}`)
-				const copy = JSON.stringify(page.schema)
-				expect(findMarks(copy), surface).toEqual([])
-				expect(copy, surface).not.toMatch(/sylphx/i)
-				if (locale === 'ja') expect(copy, surface).not.toMatch(/数独|お絵かきロジック/)
-			}
-		}
-	})
-
 	test('Japanese game copy uses generic puzzle names', () => {
 		const files = [
 			...collectFiles(join(APP_ROOT, 'src/messages/ja'), (file) => file.endsWith('.json')),

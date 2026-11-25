@@ -57,10 +57,6 @@
 	},
 	"breadcrumbLabel": "Trilha de navegação",
 	"gamePage": {
-		"freeAccessFaq": {
-			"question": "Posso jogar de graça o desafio diário de {game} sem criar uma conta?",
-			"answer": "Sim. Todo dia, você pode escolher {count} dos {total} desafios diários do Tryit e jogar de graça, sem criar uma conta. Um novo desafio de {game} sai todos os dias às 16:00 UTC."
-		},
 		"playCta": "Jogar o desafio de hoje",
 		"guestNote": "Não precisa de conta para jogar.",
 		"guestSignIn": "Salve sua sequência",

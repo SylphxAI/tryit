@@ -57,10 +57,6 @@
 	},
 	"breadcrumbLabel": "瀏覽路徑",
 	"gamePage": {
-		"freeAccessFaq": {
-			"question": "每日嘅 {game} 可唔可以唔開帳戶就免費玩？",
-			"answer": "可以。每日可以喺 Tryit 嘅 {total} 款每日謎題中任揀 {count} 款免費玩，唔使開帳戶。{game} 每日 16:00 UTC 換新題。"
-		},
 		"playCta": "開始今日謎題",
 		"guestNote": "遊玩無需帳戶。",
 		"guestSignIn": "保留你的連續紀錄",
