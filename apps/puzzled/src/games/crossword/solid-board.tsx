@@ -13,6 +13,7 @@ import {
 	inClue,
 } from './board-state'
 import { incorrectCells } from './check-feedback'
+import styles from './crossword.module.css'
 import { parseCrosswordClientPayload } from './parse-client'
 import {
 	type CrosswordClue,
@@ -25,8 +26,8 @@ import {
 const keyboard = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM⌫']
 const directions = ['across', 'down'] as const
 const clueControl =
-	'rounded-lg enabled:hover:bg-background enabled:active:bg-primary/15 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground disabled:opacity-45'
-const clueArrow = `grid min-h-11 min-w-11 shrink-0 place-items-center bg-background ${clueControl}`
+	'rounded-lg enabled:hover:bg-accent-warm-soft enabled:active:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground disabled:opacity-45'
+const clueArrow = `grid min-h-11 min-w-11 shrink-0 place-items-center bg-card ${clueControl}`
 const cellBit = (row: number, col: number) => 1 << (row * GRID_SIZE + col)
 
 export default function CrosswordBoard(props: DailyBoardProps) {
@@ -50,6 +51,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 	const data = props.data
 	const acrossOnly = !hasDownClues(data.clues)
 	const clueCount = data.clues.across.length + data.clues.down.length
+	const total = data.grid.flat().filter((cell) => cell !== null).length
 	const [feedback, setFeedback] = createSignal<'incomplete' | 'incorrect'>()
 	const [wrongCells, setWrongCells] = createSignal(0)
 	const finish = createBoardFinish(props, 'crossword', {
@@ -60,6 +62,8 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 	})
 	const [state, setState] = finish.draft.signal('state', createInitialState(data))
 	const playing = () => finish.state() === 'playing'
+	const filled = createMemo(() => state().userGrid.flat().filter(Boolean).length)
+	const incomplete = t('games.crossword.messages.incomplete')
 	const cells: Record<string, HTMLButtonElement> = {}
 	const numbers = new Map(
 		[...data.clues.across, ...data.clues.down].map((clue) => [
@@ -184,12 +188,19 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 			class="play-split mx-auto flex w-full max-w-md flex-col gap-2 md:gap-4"
 			data-crossword-board
 		>
-			<div class="play-meta flex flex-wrap items-center justify-between gap-x-3 text-sm">
-				<p>{acrossOnly ? t('games.crossword.acrossOnly') : t('games.crossword.name')}</p>
+			<div
+				class={`play-meta flex flex-wrap items-center justify-between gap-x-3 pb-1 text-sm font-semibold text-muted-foreground ${styles.meta}`}
+			>
+				<Show when={!acrossOnly} fallback={<span>{t('games.crossword.acrossOnly')}</span>}>
+					<span class="tabular-nums" dir="ltr">
+						{filled()} / {total}
+					</span>
+					<span>{directionName(state().direction)}</span>
+				</Show>
 			</div>
 
 			<fieldset
-				class="play-board mx-auto grid w-full max-w-64 grid-cols-5 gap-1 rounded-xl border border-border bg-border p-1 md:max-w-xs"
+				class="play-board mx-auto grid w-full max-w-64 grid-cols-5 gap-1 rounded-xl border-2 border-foreground/85 bg-border p-1 shadow-sm md:max-w-xs dark:border-foreground/60"
 				aria-label={t('games.crossword.name')}
 				dir="ltr"
 			>
@@ -199,7 +210,10 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 							{(cell, c) => {
 								if (cell === null)
 									return (
-										<span class="aspect-square rounded-sm bg-foreground/85" aria-hidden="true" />
+										<span
+											class="aspect-square rounded-sm border border-border bg-ink"
+											aria-hidden="true"
+										/>
 									)
 								const selected = () =>
 									state().selectedCell?.row === r() && state().selectedCell?.col === c()
@@ -225,7 +239,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 										]
 											.filter(Boolean)
 											.join(', ')}
-										class="relative grid aspect-square place-items-center rounded-sm bg-background font-display text-xl font-bold data-word:bg-primary/15 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-invalid:ring-2 aria-invalid:ring-inset aria-invalid:ring-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+										class={`relative grid aspect-square place-items-center rounded-sm bg-card font-display text-xl font-bold text-foreground data-word:bg-accent-warm-soft aria-pressed:bg-accent-warm aria-pressed:text-on-accent focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-info ${styles.cell}`}
 										data-word={(!selected() && highlighted()) || undefined}
 										aria-invalid={Boolean(wrongCells() & cellBit(r(), c())) || undefined}
 										data-crossword-cell={token(r(), c())}
@@ -234,7 +248,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 										<Show when={number}>
 											<span
 												aria-hidden="true"
-												class="absolute top-0.5 left-1 font-sans text-[0.625rem] leading-none"
+												class="absolute top-1 left-1.5 font-sans text-[0.625rem] leading-none tabular-nums"
 											>
 												{number}
 											</span>
@@ -248,7 +262,10 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 				</For>
 			</fieldset>
 			<div class="play-tools flex flex-col gap-2">
-				<div class="flex items-center gap-1 rounded-xl bg-muted p-1" data-crossword-clue-bar>
+				<div
+					class="flex items-center gap-1 rounded-xl border border-border bg-accent-warm-soft p-1"
+					data-crossword-clue-bar
+				>
 					<button
 						type="button"
 						class={clueArrow}
@@ -293,7 +310,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 						<ChevronRight size={20} aria-hidden="true" />
 					</button>
 				</div>
-				<Show when={playing()}>
+				<Show when={playing() || finish.state() === 'pending'}>
 					<div class="flex flex-col gap-1" dir="ltr">
 						<For each={keyboard}>
 							{(row) => (
@@ -303,7 +320,8 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 											<button
 												type="button"
 												aria-label={key === '⌫' ? t('games.wordGuess.keyboard.delete') : key}
-												class="min-h-11 w-[9.5%] rounded-lg border border-border bg-muted font-semibold hover:bg-primary/15"
+												disabled={!playing()}
+												class="min-h-11 w-[9.5%] min-w-0 rounded-lg border border-border bg-card font-semibold inset-shadow-[0_-2px_var(--color-border)] enabled:hover:bg-accent-warm-soft enabled:active:bg-accent-warm enabled:active:text-on-accent enabled:active:inset-shadow-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-info"
 												onClick={() => enter(key)}
 											>
 												{key}
@@ -314,14 +332,22 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 							)}
 						</For>
 					</div>
-					<button type="button" class={playButton} onClick={check}>
+					<button type="button" class={playButton} disabled={!playing()} onClick={check}>
 						{t('games.crossword.check')}
 					</button>
-					<Show when={feedback()}>
-						<p role="alert" class="text-sm text-destructive">
-							{t(`games.crossword.messages.${feedback()}`)}
+					{/* Reserve the wrapped height of the longest message without announcing it. */}
+					<div class="grid min-h-6 text-sm text-destructive">
+						<span aria-hidden="true" class="invisible col-start-1 row-start-1">
+							{incomplete}
+						</span>
+						<p role="alert" class="col-start-1 row-start-1">
+							{feedback() === 'incomplete'
+								? incomplete
+								: feedback()
+									? t('games.crossword.messages.incorrect')
+									: ''}
 						</p>
-					</Show>
+					</div>
 				</Show>
 				<BoardFinish
 					finish={finish}
@@ -346,7 +372,7 @@ function Crossword(props: DailyBoardProps & { data: CrosswordPuzzleClientData })
 														type="button"
 														disabled={!playing()}
 														aria-current={activeClue() === clue ? 'true' : undefined}
-														class="min-h-11 w-full rounded-lg px-2 text-start text-sm aria-current:bg-primary/15"
+														class="min-h-11 w-full rounded-lg px-2 text-start text-sm wrap-anywhere enabled:hover:bg-muted aria-current:bg-accent-warm-soft aria-current:font-semibold aria-current:enabled:hover:bg-accent-warm-soft"
 														onClick={() => selectClue(clue, direction)}
 													>
 														<strong>{clue.number}.</strong> {clue.clue}

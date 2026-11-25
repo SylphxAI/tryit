@@ -1,0 +1,33 @@
+/* The old play canvas hides the repeated game title at this width. Keep the
+   progress and direction row visible without changing the shared canvas. */
+@media (width < 640px) {
+	:global([data-play-canvas] [data-crossword-board] .play-meta).meta {
+		display: flex;
+	}
+}
+
+.cell[aria-pressed='true'] {
+	box-shadow: inset 0 0 0 2px var(--color-on-accent);
+}
+
+.cell[aria-invalid='true'] {
+	box-shadow: inset 0 0 0 3px var(--color-destructive);
+}
+
+/* Ink separates the red stroke from the amber fill, including in dark mode. */
+.cell[aria-pressed='true'][aria-invalid='true'] {
+	box-shadow:
+		inset 0 0 0 1px var(--color-on-accent),
+		inset 0 0 0 3px var(--color-destructive),
+		inset 0 0 0 4px var(--color-on-accent);
+}
+
+@media (forced-colors: active) {
+	.cell[aria-pressed='true'] {
+		border: 2px solid ButtonText;
+	}
+
+	.cell[aria-invalid='true'] {
+		border: 2px dashed ButtonText;
+	}
+}

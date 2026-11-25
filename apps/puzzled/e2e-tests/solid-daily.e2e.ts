@@ -48,6 +48,17 @@ async function mount(
 		const request = r.request()
 		const body = request.postDataJSON()
 		switch (new URL(request.url()).pathname.split('/').pop()) {
+			case 'GetTodayProgress':
+				return r.fulfill({
+					json: {
+						dayKey: date,
+						games: (body.gameSlugs ?? []).map((slug: string) => ({
+							gameSlug: slug,
+							hasCompleted: completed && slug === gameSlug,
+						})),
+						freePicks: { gameSlugs: starts ? [gameSlug] : [] },
+					},
+				})
 			case 'GetDaily':
 				return r.fulfill({
 					json: completed
@@ -1112,7 +1123,9 @@ test('Mini Grid lets a player correct a rejected filled grid without losing entr
 		if (!clue) throw new Error(`Missing Across clue for row ${row}`)
 		return board.getByRole('button', { name: `${clue.number}. ${clue.clue}`, exact: true })
 	}
-	await expect(check).toBeDisabled()
+	await check.click()
+	await expect(board.getByRole('alert')).toHaveText('Fill every square before checking.')
+	expect(submits).toHaveLength(0)
 	await expect(board.getByText('Gem weight unit', { exact: false }).first()).toBeVisible()
 	await board.getByText('Clues', { exact: true }).click()
 	for (const [row, letters] of fixture.solution.grid.entries()) {
