@@ -4,12 +4,19 @@
 	"highlight": "每次猜测 • 四个词",
 	"description": "同时猜出 4 个隐藏词语",
 	"clearGuess": "清除输入",
+	"board": "棋盘 {number}",
+	"keyboard": {
+		"correct": "正确",
+		"present": "位置不对",
+		"absent": "词中没有"
+	},
 	"howToPlay": "玩法",
 	"rules": {
 		"title": "玩法",
 		"rule1": "在 9 次机会内猜出全部 4 个词",
 		"rule2": "每次猜测同时套用到 4 个棋盘",
-		"rule3": "绿色 = 正确，黄色 = 位置不对，灰色 = 词中没有"
+		"rule3": "绿色 = 正确，黄色 = 位置不对，灰色 = 词中没有",
+		"rule4": "每个按键分成四角，各自对应一个棋盘"
 	},
 	"startGame": "开始游戏",
 	"complete": "谜题完成！",

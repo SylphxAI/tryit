@@ -4,12 +4,19 @@
 	"highlight": "每次猜測 • 四個詞",
 	"description": "同時猜出 4 個隱藏詞語",
 	"clearGuess": "清除輸入",
+	"board": "棋盤 {number}",
+	"keyboard": {
+		"correct": "正確",
+		"present": "位置不對",
+		"absent": "詞中沒有"
+	},
 	"howToPlay": "玩法",
 	"rules": {
 		"title": "玩法",
 		"rule1": "在 9 次機會內猜出全部 4 個詞",
 		"rule2": "每次猜測同時套用到 4 個棋盤",
-		"rule3": "綠色 = 正確，黃色 = 位置不對，灰色 = 詞中沒有"
+		"rule3": "綠色 = 正確，黃色 = 位置不對，灰色 = 詞中沒有",
+		"rule4": "每個按鍵分成四角，各自對應一個棋盤"
 	},
 	"startGame": "開始遊戲",
 	"complete": "謎題完成！",

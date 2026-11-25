@@ -4,12 +4,19 @@
 	"highlight": "Cada intento juega las cuatro palabras",
 	"description": "Resuelve 4 palabras ocultas a la vez",
 	"clearGuess": "Borrar intento",
+	"board": "Tablero {number}",
+	"keyboard": {
+		"correct": "correcta",
+		"present": "posición incorrecta",
+		"absent": "no está en la palabra"
+	},
 	"howToPlay": "Cómo jugar",
 	"rules": {
 		"title": "Cómo jugar",
 		"rule1": "Adivina las 4 palabras ocultas en 9 intentos",
 		"rule2": "Cada intento se aplica a los 4 tableros",
-		"rule3": "Verde = correcta, amarillo = posición incorrecta, gris = no está en la palabra"
+		"rule3": "Verde = correcta, amarillo = posición incorrecta, gris = no está en la palabra",
+		"rule4": "Cada tecla se divide en cuatro esquinas, una por tablero"
 	},
 	"startGame": "Empezar partida",
 	"complete": "¡Puzle completado!",

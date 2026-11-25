@@ -4,12 +4,19 @@
 	"highlight": "Cada palpite vale para as quatro palavras",
 	"description": "Resolva 4 palavras ocultas ao mesmo tempo",
 	"clearGuess": "Limpar palpite",
+	"board": "Tabuleiro {number}",
+	"keyboard": {
+		"correct": "certa",
+		"present": "posição errada",
+		"absent": "não está na palavra"
+	},
 	"howToPlay": "Como jogar",
 	"rules": {
 		"title": "Como jogar",
 		"rule1": "Descubra as 4 palavras ocultas em 9 tentativas",
 		"rule2": "Cada palpite vale para os 4 tabuleiros",
-		"rule3": "Verde = certa, Amarelo = posição errada, Cinza = não está na palavra"
+		"rule3": "Verde = certa, Amarelo = posição errada, Cinza = não está na palavra",
+		"rule4": "Cada tecla se divide em quatro cantos, um para cada tabuleiro"
 	},
 	"startGame": "Começar jogo",
 	"complete": "Desafio concluído!",

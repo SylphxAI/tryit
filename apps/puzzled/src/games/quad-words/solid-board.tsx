@@ -6,6 +6,7 @@ import { isValidWord } from '@/games/word-guess/words'
 import { checkGuess } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
+import { boardLetterStatuses, gradeCodes, liveBoards, sharedStatus, UNTRIED } from './board-letters'
 import { createInitialState, quordleReducer } from './play-state'
 import { readQuadGrade } from './read-grade'
 import { type LetterStatus, MAX_GUESSES } from './types'
@@ -17,7 +18,7 @@ const keys = [
 	['Enter', ...'ZXCVBNM'.split(''), 'Backspace'],
 ]
 const boards = [0, 1, 2, 3] as const
-const rows = [0, 1, 2, 3, 4]
+const rows = [0, 1, 2, 3, 4, 5]
 const cols = [0, 1, 2, 3, 4]
 const tones: Record<LetterStatus, string> = {
 	correct: 'bg-correct text-[#1a1712] underline decoration-2 underline-offset-2',
@@ -25,6 +26,17 @@ const tones: Record<LetterStatus, string> = {
 	absent: 'bg-muted text-muted-foreground',
 	empty: 'bg-background',
 }
+/* One key corner per board, laid out like the boards. The marks repeat the tile
+   language so no state rests on colour alone: correct carries a solid ink bar
+   on its outer edge, present a dotted one. A solved board's corners fade. */
+const bar = 'after:absolute after:inset-x-1 after:border-t-2 after:border-[#1a1712]'
+const corners: Record<LetterStatus, string> = {
+	correct: `bg-correct ${bar}`,
+	present: `bg-present ${bar} after:border-dotted`,
+	absent: 'bg-absent',
+	empty: 'bg-muted',
+}
+const cornerBars = ['after:top-1', 'after:top-1', 'after:bottom-1', 'after:bottom-1']
 
 export default function QuadWordsBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -151,18 +163,45 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 	})
 
 	const feedback = (status: LetterStatus | undefined) =>
-		status && status !== 'empty' ? t(`games.wordGuess.rules.${status}`) : undefined
+		status && status !== 'empty' ? t(`games.quadWords.keyboard.${status}`) : undefined
+	const boardName = (index: number) => t('games.quadWords.board', { number: index + 1 })
+	const letterStatuses = createMemo(() => boardLetterStatuses(state().boards))
 
 	return (
 		<div class="play-split mx-auto w-full max-w-[30rem] space-y-3" data-quad-board>
-			<div class="play-meta flex flex-wrap items-center justify-between gap-x-3 text-sm">
-				<p role="status" class="tabular-nums text-muted-foreground">
-					{solvedCount()}/4 · {t('gameResult.attempts')} {state().guessHistory.length}/{MAX_GUESSES}
-				</p>
+			<div class="play-meta flex items-center justify-between gap-x-3 text-sm">
+				{/* A notice takes the progress line's place, so the boards and keys never move. */}
+				<div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 leading-5">
+					<p
+						role="status"
+						class="tabular-nums text-muted-foreground"
+						classList={{ 'sr-only': Boolean(error()) }}
+					>
+						{solvedCount()}/4 · {t('gameResult.attempts')} {state().guessHistory.length}/
+						{MAX_GUESSES}
+					</p>
+					<Show when={error()}>
+						<p role="alert" class="font-semibold text-destructive">
+							{error() === 'length'
+								? t('games.quadWords.messages.notEnoughLetters')
+								: error() === 'notInWordList'
+									? t('games.wordGuess.messages.notInWordList')
+									: t('common.error')}
+						</p>
+					</Show>
+					<Show when={state().grading}>
+						<p role="status">{t('common.syncing')}</p>
+					</Show>
+				</div>
+				<Show when={error() === 'grade'}>
+					<button type="button" class="min-h-12 shrink-0 font-semibold underline" onClick={submit}>
+						{t('common.retry')}
+					</button>
+				</Show>
 				{/* CheckGuess caps the served puzzle at nine; only ungraded input can be cleared. */}
 				<button
 					type="button"
-					class="min-h-12 font-semibold underline disabled:opacity-50"
+					class="min-h-12 shrink-0 font-semibold underline disabled:opacity-50"
 					disabled={!canPlay() || !state().currentGuess}
 					onClick={() => {
 						if (!canPlay()) return
@@ -172,27 +211,6 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 				>
 					{t('games.quadWords.clearGuess')}
 				</button>
-			</div>
-			<div class="quad-status flex min-h-11 items-center gap-2">
-				<Show when={error()}>
-					<p role="alert" class="text-sm text-destructive">
-						{error() === 'length'
-							? t('games.quadWords.messages.notEnoughLetters')
-							: error() === 'notInWordList'
-								? t('games.wordGuess.messages.notInWordList')
-								: t('common.error')}{' '}
-						<Show when={error() === 'grade'}>
-							<button type="button" class="min-h-10 font-semibold underline" onClick={submit}>
-								{t('common.retry')}
-							</button>
-						</Show>
-					</p>
-				</Show>
-				<Show when={state().grading}>
-					<p role="status" class="text-sm">
-						{t('common.syncing')}
-					</p>
-				</Show>
 			</div>
 			<div class="play-board grid w-full grid-cols-2 gap-2" dir="ltr">
 				<For each={boards}>
@@ -208,7 +226,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 							>
 								<table class="w-full table-fixed border-separate border-spacing-0.5" lang="en">
 									<caption class="pb-0.5 text-xs font-semibold tabular-nums" lang={props.locale}>
-										{t('games.quadWords.name')} {index + 1}
+										{boardName(index)}
 										{board().solved ? ' ✓' : ''}
 									</caption>
 									<tbody>
@@ -256,7 +274,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 			</div>
 			<Show when={state().gameStatus === 'playing'}>
 				<div
-					class="play-tools mx-auto grid w-full max-w-md gap-1"
+					class="play-tools mx-auto grid w-full max-w-md gap-1 pt-1.5 sm:pt-0"
 					aria-busy={state().grading}
 					dir="ltr"
 				>
@@ -265,6 +283,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 							<div class="flex justify-center gap-0.5 sm:gap-1">
 								<For each={row}>
 									{(key) => {
+										const letter = key.length === 1
 										const label =
 											key === 'Backspace'
 												? t('games.wordGuess.keyboard.delete')
@@ -272,17 +291,73 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 													? t('games.wordGuess.keyboard.enter')
 													: key
 										const status = () => state().keyboardStatus.get(key)
+										const grades = () => letterStatuses().get(key) ?? UNTRIED
+										const graded = () => sharedStatus(grades()) !== 'empty'
+										const live = () => liveBoards(grades())
+										const solved = (index: number) => state().boards[index]?.solved ?? false
+										/* Nothing left to learn from this letter on the boards still open. */
+										const spent = () => graded() && live().every(solved)
+										/* "C, Board 2 wrong position, Board 3 correct": only the boards the letter
+										   is still in, and one phrase when every board agrees. */
+										const name = () => {
+											if (!graded()) return label
+											const shared = live().length ? sharedStatus(grades()) : 'absent'
+											if (shared) return `${label}, ${feedback(shared)}`
+											return [
+												label,
+												...live().map(
+													(index) => `${boardName(index)} ${feedback(grades()[index])}`,
+												),
+											].join(', ')
+										}
 										return (
 											<button
 												type="button"
 												onClick={() => press(key)}
 												aria-disabled={state().grading}
-												aria-label={status() ? `${label}, ${feedback(status())}` : label}
+												aria-label={letter ? name() : label}
 												data-grade={status()}
+												data-quad-grades={letter ? gradeCodes(grades()) : undefined}
 												data-key={key}
-												class={`grid min-h-12 min-w-0 place-items-center rounded-lg px-0.5 text-xs font-bold aria-disabled:opacity-60 sm:text-sm ${key.length === 1 ? 'max-w-10 flex-1' : 'min-w-12 px-1'} ${tones[status() ?? 'empty']} ${status() ? '' : '!bg-muted'}`}
+												class={`relative grid min-h-12 min-w-0 touch-manipulation place-items-center overflow-hidden rounded-lg text-xs font-bold aria-disabled:opacity-60 sm:text-sm ${letter ? 'max-w-10 flex-1' : 'min-w-12 px-1'}`}
+												classList={{ 'bg-muted': !graded(), 'bg-background': graded() }}
 											>
-												{key === 'Backspace' ? <Delete aria-hidden="true" class="size-4" /> : label}
+												<Show
+													when={letter}
+													fallback={
+														key === 'Backspace' ? (
+															<Delete aria-hidden="true" class="size-4" />
+														) : (
+															label
+														)
+													}
+												>
+													<Show when={graded()}>
+														<span
+															aria-hidden="true"
+															class="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px"
+														>
+															<For each={boards}>
+																{(index) => (
+																	<span
+																		class={`relative ${corners[grades()[index]]} ${cornerBars[index]}`}
+																		classList={{ 'opacity-40': solved(index) }}
+																	/>
+																)}
+															</For>
+														</span>
+													</Show>
+													{/* The cap face keeps the letter on one ground whatever the corners show. */}
+													<span
+														class="relative grid size-5 place-items-center rounded"
+														classList={{
+															'bg-card': graded(),
+															'text-muted-foreground': spent(),
+														}}
+													>
+														{label}
+													</span>
+												</Show>
 											</button>
 										)
 									}}
