@@ -247,6 +247,22 @@ describe('shareResultText decision table', () => {
 		expect(seen).toEqual({ text: 'hello' })
 	})
 
+	test('an explicit copy skips the share sheet when clipboard access works', async () => {
+		const writes: string[] = []
+		const nativeShares: ShareData[] = []
+		const nav = navWith(
+			async (data) => {
+				nativeShares.push(data)
+			},
+			async (text) => {
+				writes.push(text)
+			},
+		)
+		expect(await shareResultText('hello', { navigator: nav, preferClipboard: true })).toBe('copied')
+		expect(writes).toEqual(['hello'])
+		expect(nativeShares).toEqual([])
+	})
+
 	test('a cancelled share sheet stays silent (no clipboard write)', async () => {
 		let copied = false
 		const abort = Object.assign(new Error('abort'), { name: 'AbortError' })

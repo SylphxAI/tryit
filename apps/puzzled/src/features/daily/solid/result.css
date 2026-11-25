@@ -87,6 +87,13 @@
 
 .result-button:hover,
 .result-close:hover { background: #ebe8e0; }
+.result-button.result-copy {
+	border-color: var(--result-ink);
+	background: var(--result-ink);
+	color: var(--result-paper);
+}
+.result-button.result-copy:hover { opacity: .9; }
+
 .result-button:active { translate: 0 1px; box-shadow: none; }
 .result-button[aria-disabled="true"] { opacity: .72; cursor: wait; }
 
@@ -185,6 +192,31 @@
 }
 
 
+.result-preview {
+	display: grid;
+	gap: .1875rem;
+	margin-block-end: .625rem;
+}
+
+.result-preview-row { display: flex; gap: .1875rem; }
+.result-preview-row > span {
+	inline-size: .9375rem;
+	aspect-ratio: 1;
+	border-radius: .1875rem;
+	background: #403d4c;
+}
+.result-preview-row > [data-tile="hit"] { background: var(--result-hit, #4a9a5c); }
+.result-preview-row > [data-tile="near"] { background: var(--result-near, #d4a21f); }
+.result-dialog .result-preview-row > span { inline-size: 1.25rem; }
+
+.result-percentile {
+	margin-block-end: .625rem;
+	color: var(--result-quiet);
+	font-size: .8125rem;
+	font-weight: 650;
+	line-height: 1.4;
+}
+
 .result-comparison {
 	margin-block-start: .75rem;
 	padding: .625rem;
@@ -264,7 +296,7 @@
 	--result-mark-bg: #20392b;
 	--result-mark-ink: #abdfbb;
 }
-.dark :is(.result-button:not(.result-next), .result-close):hover { background: #34312b; }
+.dark :is(.result-button:not(.result-next, .result-copy), .result-close):hover { background: #34312b; }
 .result-current-streak { display: flex; align-items: center; gap: .375rem; margin-block-end: .5rem; font-size: .875rem; font-weight: 750; }
 .result-current-streak svg { color: var(--result-mark-ink); }
 .result-install {

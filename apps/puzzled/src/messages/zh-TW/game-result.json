@@ -4,6 +4,8 @@
 	"missedCategories": "你錯過了：",
 	"finishedTitle": "《{game}》遊玩結果",
 	"shareResult": "分享結果",
+	"challengeCopied": "挑戰已複製",
+	"todayPercentile": "你超越了今天 {percent} 的玩家",
 	"savePng": "下載 PNG",
 	"saveFailed": "無法儲存圖片，請再試一次。",
 	"freeFinished": "今天的免費謎題全數完成，玩得漂亮！",

@@ -16,8 +16,16 @@ const sudokuPuzzle = {
 	difficulty: 'easy',
 }
 
-async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
+const fiveGrid = '🟪🟧⬛⬛⬛\n🟪🟪🟪🟪🟪'
+
+async function playFixture(page: Page, slug: 'number-path' | 'sudoku' | 'word-guess') {
 	const isPath = slug === 'number-path'
+	const isFive = slug === 'word-guess'
+	const puzzleData = isFive
+		? { wordLength: 5, maxAttempts: 6 }
+		: isPath
+			? pathPuzzle.puzzleData
+			: sudokuPuzzle
 	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 	await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
 	await page.route('**/puzzled.v1.BillingService/GetSubscription', (route) =>
@@ -34,7 +42,7 @@ async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
 							gameSlug: slug,
 							canPlay: true,
 							puzzleDate: dayKey,
-							puzzleDataJson: JSON.stringify(isPath ? pathPuzzle.puzzleData : sudokuPuzzle),
+							puzzleDataJson: JSON.stringify(puzzleData),
 						},
 		}),
 	)
@@ -57,6 +65,33 @@ async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
 			},
 		}),
 	)
+	if (isFive) {
+		await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => {
+			const input = route.request().postDataJSON()
+			expect(input).toMatchObject({ gameSlug: slug, puzzleDate: dayKey })
+			const { word } = JSON.parse(input.guessJson)
+			expect(['charm', 'couch']).toContain(word)
+			const tiles =
+				word === 'couch'
+					? ['correct', 'correct', 'correct', 'correct', 'correct']
+					: ['correct', 'present', 'absent', 'absent', 'absent']
+			return route.fulfill({ json: { resultJson: JSON.stringify({ tiles }) } })
+		})
+	}
+	await page.route('**/puzzled.v1.StatsService/GetTodayPercentile', (route) => {
+		expect(route.request().postDataJSON()).toEqual({ gameSlug: slug, dayKey })
+		return route.fulfill({
+			json: isFive
+				? {
+						gameSlug: slug,
+						dayKey,
+						percentile: 73,
+						totalPlayers: 15,
+						dispatch: 'product_db_sessions',
+					}
+				: { gameSlug: slug, dayKey, totalPlayers: 3, dispatch: 'insufficient_cohort' },
+		})
+	})
 	await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) =>
 		route.fulfill({ json: { gameSlug: slug, valid: true, status: 'won', score: 487 } }),
 	)
@@ -70,11 +105,13 @@ async function playFixture(page: Page, slug: 'number-path' | 'sudoku') {
 		await consent.promise
 		await route.continue()
 	})
-	const board = page.locator('[data-play-canvas] .play-board')
+	const board = isFive
+		? page.getByRole('table', { name: 'Five', exact: true })
+		: page.locator('[data-play-canvas] .play-board')
 	const dock = page.locator('[data-consent-banner]')
 	let firstWidth: number
 	try {
-		await page.goto(`/games/${slug}?${isPath ? '' : 'difficulty=easy&'}start=1#play`)
+		await page.goto(`/games/${slug}?${slug === 'sudoku' ? 'difficulty=easy&' : ''}start=1#play`)
 		await expect(board).toBeVisible()
 		await expect(dock).toBeHidden()
 		firstWidth = await board.evaluate((el) => el.getBoundingClientRect().width)
@@ -149,6 +186,123 @@ for (const viewport of [
 	const mobile = viewport.width === 390
 	test.describe(viewport.width + '×' + viewport.height, () => {
 		test.use({ viewport, isMobile: mobile, hasTouch: mobile })
+		if (viewport.width !== 1280) {
+			test('Five shares a spoiler-free challenge and saves its PNG separately', async ({
+				page,
+				context,
+				baseURL,
+			}, info) => {
+				const origin = new URL(baseURL ?? 'http://localhost:3000').origin
+				if (!['localhost', '127.0.0.1'].includes(new URL(origin).hostname)) {
+					throw new Error('Completion checks require a loopback fixture')
+				}
+				await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
+				await page.emulateMedia({ reducedMotion: 'reduce' })
+				const { board } = await playFixture(page, 'word-guess')
+				const keyboard = page
+					.locator('fieldset')
+					.filter({ has: page.getByRole('button', { name: 'Enter', exact: true }) })
+				for (const word of ['charm', 'couch']) {
+					for (const key of word.toUpperCase()) {
+						const button = keyboard.getByRole('button', { name: key, exact: true })
+						if (mobile) await button.tap()
+						else await button.click()
+					}
+					const enter = keyboard.getByRole('button', { name: 'Enter', exact: true })
+					if (mobile) await enter.tap()
+					else await enter.click()
+					await expect(
+						board
+							.locator('tr')
+							.nth(word === 'charm' ? 0 : 1)
+							.locator('td')
+							.first(),
+					).toHaveAttribute('data-grade', 'correct')
+				}
+
+				const card = page.locator('[data-board-finished]')
+				const patternName = 'Pattern: 6 hit / 1 near / 3 miss'
+				const expectedRows = [['hit', 'near', 'miss', 'miss', 'miss'], Array(5).fill('hit')]
+				const expectPattern = async (panel: typeof card) => {
+					const grid = panel.getByRole('img', { name: patternName })
+					await expect(grid).toBeVisible()
+					expect(
+						await grid
+							.locator('.result-preview-row')
+							.evaluateAll((rows) =>
+								rows.map((row) =>
+									Array.from(row.children, (cell) => cell.getAttribute('data-tile')),
+								),
+							),
+					).toEqual(expectedRows)
+					await expect(grid).toHaveText('')
+				}
+				await expectPattern(card)
+				await expect(card.locator('[data-result-percentile]')).toHaveText(
+					'You placed ahead of 73% of today’s players',
+				)
+				const assertNoOverflow = async () => {
+					const overflow = await page.evaluate(() =>
+						[
+							document.documentElement,
+							...document.querySelectorAll(
+								'.play-body, [data-board-finished], .result-dialog[open]',
+							),
+						]
+							.map((el) => [el.className, el.scrollWidth - el.clientWidth])
+							.filter(([, overflow]) => overflow !== 0),
+					)
+					expect(overflow).toEqual([])
+				}
+				await assertNoOverflow()
+				await page.screenshot({ path: info.outputPath('five-win.png') })
+
+				const downloads: string[] = []
+				page.on('download', (download) => downloads.push(download.suggestedFilename()))
+				const readClipboard = () => page.evaluate(() => navigator.clipboard.readText())
+				const railCopy = card.getByRole('button', { name: 'Copy challenge', exact: true })
+				await railCopy.click()
+				await expect(card.getByText('Challenge copied', { exact: true })).toBeVisible()
+				const caption = await readClipboard()
+				expect(caption).toContain(fiveGrid)
+				const link = new URL(caption.split(' ').at(-1) ?? '')
+				expect(link.pathname + link.search).toBe('/r/' + fixtureShareId + '?utm_source=share')
+				expect(caption).not.toMatch(/charm|couch|placed ahead/i)
+				expect(downloads).toEqual([])
+
+				await card.getByRole('button', { name: 'See your result' }).click()
+				const dialog = page.getByRole('dialog', { name: 'Five Complete' })
+				await expectPattern(dialog)
+				await assertNoOverflow()
+				await page.screenshot({ path: info.outputPath('five-details.png') })
+				const copy = dialog.getByRole('button', { name: 'Copy challenge', exact: true })
+				const save = dialog.getByRole('button', { name: 'Save PNG', exact: true })
+				for (const action of [railCopy, copy, save]) {
+					const box = (await action.boundingBox())!
+					expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44)
+				}
+				await expect(copy).toHaveCSS('background-color', 'rgb(32, 30, 26)')
+				await expect(save).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+				const saved = page.waitForEvent('download')
+				await save.click()
+				const download = await saved
+				expect(download.suggestedFilename()).toMatch(/^tryit-result-word-guess-.*.png$/)
+				const png = await readFile((await download.path())!)
+				const pixels = await paintedPixels(page, png, [
+					{ x: 340, y: 780 },
+					{ x: 440, y: 780 },
+					{ x: 540, y: 780 },
+					{ x: 540, y: 880 },
+				])
+				expect(pixels).toEqual([
+					[139, 85, 197],
+					[237, 154, 66],
+					[64, 61, 76],
+					[139, 85, 197],
+				])
+				expect(await readClipboard()).toBe(caption)
+			})
+		}
 		for (const slug of ['number-path', 'sudoku'] as const) {
 			test(
 				slug + ' finishes in place with consent open',
@@ -161,6 +315,9 @@ for (const viewport of [
 					await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin })
 					const { board, next, firstWidth } = await playFixture(page, slug)
 					const elapsed = page.waitForRequest((request) => request.url().endsWith('/SubmitGuess'))
+					const percentile = page.waitForResponse((response) =>
+						response.url().endsWith('/GetTodayPercentile'),
+					)
 					const before = await canvasGeometry(page)
 					// Both boards fit the width on this phone and the board column on
 					// these desktops, including at first render with the dock held back.
@@ -225,6 +382,7 @@ for (const viewport of [
 					if (slug === 'number-path')
 						await page.screenshot({ path: info.outputPath('path-solved.png') })
 
+					expect(await (await percentile).json()).not.toHaveProperty('percentile')
 					const trigger = card.getByRole('button', { name: 'See your result' })
 					const dialog = page.getByRole('dialog', {
 						name: slug === 'number-path' ? 'Path Complete' : 'Sudoku Complete',
@@ -306,7 +464,7 @@ for (const viewport of [
 							.analyze()
 						expect(axe.violations).toEqual([])
 					}
-					const share = dialog.getByRole('button', { name: 'Share Result' })
+					const share = dialog.getByRole('button', { name: 'Copy challenge' })
 					const save = dialog.getByRole('button', { name: 'Save PNG' })
 					const close = dialog.getByRole('button', { name: 'Dismiss' })
 					for (const action of [playNext, share, save, close]) {
@@ -321,10 +479,8 @@ for (const viewport of [
 							}),
 						).toBe(true)
 					}
-					// No native file sharing in headless Chromium: share downloads and copies.
-					const shareDownload = page.waitForEvent('download')
 					await share.click()
-					expect((await shareDownload).suggestedFilename()).toMatch(/^tryit-result-.*\.png$/)
+					await expect(dialog.getByRole('status')).toHaveText('Challenge copied')
 					await expect
 						.poll(() => page.evaluate(() => navigator.clipboard.readText()))
 						.toContain(`/r/${fixtureShareId}?utm_source=share`)
@@ -339,6 +495,7 @@ for (const viewport of [
 					await close.click()
 					await expect(trigger).toBeFocused()
 					await expect(card).toHaveCSS('opacity', '1')
+					await expect(card.locator('[data-result-percentile]')).toHaveCount(0)
 					expect((await canvasGeometry(page)).board).toEqual(after.board)
 					if (openScrim) {
 						const dismissed = await page.screenshot({

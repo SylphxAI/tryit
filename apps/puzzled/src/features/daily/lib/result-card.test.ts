@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test'
+import { locales } from '@/lib/i18n/config'
+import { createTranslator } from '@/lib/i18n/translate'
 import {
 	buildResultCard,
 	formatCardDayKey,
+	parseResultPattern,
 	RESULT_CARD_PATTERN_MAX_COLS,
 	RESULT_CARD_PATTERN_MAX_ROWS,
 	type ResultCardInput,
@@ -10,6 +13,7 @@ import {
 	resultCardChips,
 	resultCardTextAlternative,
 	resultCardTimeBand,
+	resultPercentileLabel,
 } from './result-card'
 
 const STRINGS: ResultCardStrings = {
@@ -55,6 +59,41 @@ function baseInput(overrides: Partial<ResultCardInput> = {}): ResultCardInput {
 		...overrides,
 	}
 }
+
+test('parses the Five share grid without admitting letters or other text', () => {
+	const pattern = parseResultPattern('🟪🟧⬛⬛🟧\n🟪🟪🟪🟪🟪')
+	const card = buildResultCard(baseInput({ pattern }))
+	expect(card.pattern).toEqual([
+		['hit', 'near', 'miss', 'miss', 'near'],
+		['hit', 'hit', 'hit', 'hit', 'hit'],
+	])
+	expect(resultCardTextAlternative(card, STRINGS)).toContain('Pattern: 6 hit / 2 near / 2 miss')
+	expect(parseResultPattern('🟩🟨⬜')).toEqual([['hit', 'near', 'miss']])
+	expect(parseResultPattern('🟪🟧⬛\nCRANE')).toBeNull()
+	expect(parseResultPattern('')).toBeNull()
+})
+
+test('formats the server percentile without inverting it, including zero', () => {
+	const t = createTranslator('en-US')
+	const format = (percent: string) => t('gameResult.todayPercentile', { percent })
+	expect(resultPercentileLabel(73, 'en-US', format)).toBe(
+		'You placed ahead of 73% of today’s players',
+	)
+	expect(resultPercentileLabel(0, 'en-US', format)).toBe(
+		'You placed ahead of 0% of today’s players',
+	)
+	expect(resultPercentileLabel(undefined, 'en-US', format)).toBeNull()
+})
+
+test.each(locales)('%s has the result comparison and copy labels', (locale) => {
+	const t = createTranslator(locale)
+	const label = resultPercentileLabel(73, locale, (percent) =>
+		t('gameResult.todayPercentile', { percent }),
+	)!
+	expect(label).toContain('73')
+	expect(t.has('gameResult.copyChallenge')).toBe(true)
+	expect(t.has('gameResult.challengeCopied')).toBe(true)
+})
 
 describe('buildResultCard', () => {
 	test('labels the day, the module and a dated deep link', () => {

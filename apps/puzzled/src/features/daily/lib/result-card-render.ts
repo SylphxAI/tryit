@@ -17,7 +17,12 @@
  */
 import { type GameColorTheme, getGameColors } from '@/games/theme-colors'
 import { PRODUCTION_SITE_ORIGIN } from '@/lib/site-origin'
-import { type ResultCardModel, type ResultCardStrings, resultCardChips } from './result-card'
+import {
+	FIVE_RESULT_TILE_COLORS,
+	type ResultCardModel,
+	type ResultCardStrings,
+	resultCardChips,
+} from './result-card'
 
 export const RESULT_CARD_SIZE = 1080
 const BRAND_HOST = new URL(PRODUCTION_SITE_ORIGIN).hostname
@@ -230,6 +235,10 @@ export function paintResultCard(
 
 	// Pattern: hit / near / miss tiles, capped by the model (12x12).
 	if (model.pattern) {
+		const tileColors =
+			model.gameSlug === 'word-guess'
+				? FIVE_RESULT_TILE_COLORS
+				: { hit: palette.tileHit, near: palette.tileNear, miss: palette.tileMiss }
 		const rows = model.pattern.length
 		let cols = 0
 		for (const row of model.pattern) cols = Math.max(cols, row.length)
@@ -249,8 +258,7 @@ export function paintResultCard(
 		for (let r = 0; r < rows; r += 1) {
 			const row = model.pattern[r]
 			if (!row) continue
-			for (let c = 0; c < row.length; c += 1) {
-				const value = row[c]
+			for (const [c, value] of row.entries()) {
 				roundedRect(
 					ctx,
 					startX + c * (tile + gap),
@@ -259,8 +267,7 @@ export function paintResultCard(
 					tile,
 					tile * 0.2,
 				)
-				ctx.fillStyle =
-					value === 'hit' ? palette.tileHit : value === 'near' ? palette.tileNear : palette.tileMiss
+				ctx.fillStyle = tileColors[value]
 				ctx.fill()
 			}
 		}

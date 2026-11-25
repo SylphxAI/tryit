@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { productDayKey } from '../src/lib/product-day'
 
-test('sharing a PNG without clipboard permission offers a selectable caption, without claiming it copied', async ({
+test('copying a challenge without clipboard permission offers a selectable caption', async ({
 	page,
 }) => {
 	await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
@@ -30,13 +30,9 @@ test('sharing a PNG without clipboard permission offers a selectable caption, wi
 		origin: new URL(page.url()).origin,
 		browserContextId: targetInfo.browserContextId,
 	})
-	const download = page.waitForEvent('download')
-	await dialog.getByRole('button', { name: 'Share Result', exact: true }).click()
-	expect((await download).suggestedFilename()).toMatch(
-		/^tryit-result-sudoku-\d{4}-\d{2}-\d{2}\.png$/,
-	)
-	await expect(dialog.getByRole('status')).toHaveText('Card image saved.')
-	await expect(dialog.getByText(/caption copied/i)).toHaveCount(0)
+	await dialog.getByRole('button', { name: 'Copy challenge', exact: true }).click()
+	await expect(dialog.getByRole('status')).toHaveText('Could not share automatically.')
+	await expect(dialog.getByText('Challenge copied')).toHaveCount(0)
 	const caption = dialog.getByRole('textbox', { name: 'Result caption' })
 	const value = await caption.inputValue()
 	expect(value).toContain('/games/sudoku')
@@ -67,9 +63,16 @@ for (const historical of [false, true]) {
 				},
 			}),
 		)
-		// Keep the prefetch and tap unresolved until the fallback caption is captured.
+		// No challenge ID is available; capture the fallback link from the native share sheet.
 		await page.route(`${service}ShareResult`, (route) => route.abort())
 		await page.addInitScript(() => {
+			Object.defineProperty(navigator, 'clipboard', {
+				value: {
+					writeText: async () => {
+						throw new DOMException('Denied', 'NotAllowedError')
+					},
+				},
+			})
 			Object.defineProperty(navigator, 'share', {
 				value: async ({ text }: ShareData) => Reflect.set(window, 'sharedCaption', text),
 			})
@@ -79,7 +82,7 @@ for (const historical of [false, true]) {
 		await page.goto(
 			`/games/sudoku?difficulty=medium&start=1${historical ? `&mode=archive&date=${day}` : ''}#play`,
 		)
-		await page.getByRole('button', { name: 'Share', exact: true }).click()
+		await page.getByRole('button', { name: 'Copy challenge', exact: true }).click()
 		const caption = () =>
 			page.evaluate(() => Reflect.get(window, 'sharedCaption') as string | undefined)
 		const gameLink = /https?:\/\/[^\s]+\/games\/sudoku\?[^\s]+/

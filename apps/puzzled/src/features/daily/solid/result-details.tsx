@@ -13,9 +13,11 @@ import { Portal } from 'solid-js/web'
 import { recallChallenge, sharedResultCard, toSharedResult } from '@/features/daily/lib/challenge'
 import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
 import {
+	FIVE_RESULT_TILE_COLORS,
 	type ResultCardModel,
 	type ResultCardStrings,
 	resultCardChips,
+	resultPatternSummary,
 } from '@/features/daily/lib/result-card'
 import { formatResultElapsed, type resultRitual } from '@/features/daily/lib/result-ritual'
 import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
@@ -26,6 +28,40 @@ import { localizedPath } from '@/lib/seo/urls'
 
 import { DailyPickCount } from './daily-pick-count'
 import { DailyNextLink, DailyPickSteps } from './daily-pick-ui'
+
+export function ResultPattern(props: { model: ResultCardModel; strings: ResultCardStrings }) {
+	return (
+		<Show when={props.model.pattern}>
+			{(pattern) => (
+				<div
+					class="result-preview"
+					role="img"
+					aria-label={resultPatternSummary(pattern(), props.strings)}
+				>
+					<For each={pattern()}>
+						{(row) => (
+							<div class="result-preview-row" aria-hidden="true">
+								<For each={row}>
+									{(tile) => (
+										<span
+											data-tile={tile}
+											style={{
+												'background-color':
+													props.model.gameSlug === 'word-guess'
+														? FIVE_RESULT_TILE_COLORS[tile]
+														: undefined,
+											}}
+										/>
+									)}
+								</For>
+							</div>
+						)}
+					</For>
+				</div>
+			)}
+		</Show>
+	)
+}
 
 export function ResultDetails(props: {
 	model: ResultCardModel
@@ -143,6 +179,7 @@ export function ResultDetails(props: {
 					</Show>
 				</header>
 				{chips(props.model, formatResultElapsed(props.timeSpentMs))}
+				<ResultPattern model={props.model} strings={props.strings} />
 				<Show when={opened()}>
 					<Show when={props.ritual}>
 						{(today) => (

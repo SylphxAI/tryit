@@ -67,6 +67,8 @@ export function buildResultShareText(
 export interface ShareTextDeps {
 	/** Defaults to globalThis.navigator; pass null to model a platform without one. */
 	navigator?: Navigator | null
+	/** An explicit copy action prefers the clipboard over the share sheet. */
+	preferClipboard?: boolean
 }
 
 function isAbort(error: unknown): boolean {
@@ -78,9 +80,9 @@ function isAbort(error: unknown): boolean {
 }
 
 /**
- * Share one prepared text: the share sheet when the platform has one, the
- * clipboard otherwise (including after a share failure that is not a user
- * cancel). Never throws; the caller decides its own feedback from the outcome.
+ * Share one prepared text. Use the share sheet first unless the action is
+ * explicitly a copy. If the preferred path fails, try the other; cancellation
+ * of the share sheet always ends the action.
  */
 export async function shareResultText(
 	text: string,
@@ -92,6 +94,16 @@ export async function shareResultText(
 			: typeof globalThis.navigator === 'undefined'
 				? null
 				: globalThis.navigator
+	const copy = async () => {
+		try {
+			if (!text || !nav?.clipboard) return false
+			await nav.clipboard.writeText(text)
+			return true
+		} catch {
+			return false
+		}
+	}
+	if (deps.preferClipboard && (await copy())) return 'copied'
 	if (nav && typeof nav.share === 'function') {
 		try {
 			await nav.share({ text })
@@ -102,14 +114,6 @@ export async function shareResultText(
 			// the clipboard so the tap still lands.
 		}
 	}
-	const clipboard = nav?.clipboard
-	if (text.length > 0 && clipboard && typeof clipboard.writeText === 'function') {
-		try {
-			await clipboard.writeText(text)
-			return 'copied'
-		} catch {
-			// Fall through to unavailable.
-		}
-	}
+	if (!deps.preferClipboard && (await copy())) return 'copied'
 	return 'unavailable'
 }
