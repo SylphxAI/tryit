@@ -1,0 +1,13 @@
+{
+	"label": "練習",
+	"another": "もう1問練習する",
+	"newPuzzle": "新しいパズル",
+	"newAfterFinish": "新しい練習パズル",
+	"backToToday": "今日のパズルに戻る",
+	"unlockTitle": "Tryit Plusでもっと遊ぶ",
+	"unlockBody": "広告なしで、好きなだけ練習パズルを遊べます。今日のパズルや連続記録には影響しません。",
+	"unavailable": "練習パズルを読み込めませんでした。",
+	"loading": "練習パズルを読み込み中…",
+	"won": "練習パズルをクリア",
+	"lost": "練習パズルが終了しました"
+}

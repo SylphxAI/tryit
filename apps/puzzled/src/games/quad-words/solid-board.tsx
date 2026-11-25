@@ -2,8 +2,8 @@
 import { Delete } from 'lucide-solid'
 import { batch, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
+import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
 import { isValidWord } from '@/games/word-guess/words'
-import { checkGuess } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { boardLetterStatuses, gradeCodes, liveBoards, sharedStatus, UNTRIED } from './board-letters'
@@ -84,13 +84,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 		dispatch({ type: 'GRADING', grading: true })
 		triggerHaptic('submit')
 		try {
-			const result = await checkGuess({
-				gameSlug: slug,
-				puzzleId: props.puzzle.puzzleId,
-				puzzleDate: props.puzzle.puzzleDate,
-				difficulty: props.difficulty,
-				guess: { word },
-			})
+			const result = await gradeBoardGuess(props, slug, { word })
 			if (disposed) return
 			const results = readQuadGrade(result)
 			if (!results) throw new Error('invalid_quad_grade')

@@ -3,7 +3,10 @@ import { ChevronDown, Clock, Lightbulb, Play } from 'lucide-solid'
 import { For, type ParentProps, Show } from 'solid-js'
 import { getRequestEvent, isServer, NoHydration } from 'solid-js/web'
 import { markStartIntent, START_INTENT_ATTRIBUTE } from '@/features/daily/lib/start-intent'
+import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import { getGameColors } from '@/games/theme-colors'
+import type { PuzzleDifficulty } from '@/games/types'
+import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { START_INTENT_KEY } from '@/lib/storage-keys'
 import { JsonLd } from '@/shared/solid/json-ld'
@@ -30,6 +33,8 @@ export function GameLanding(
 		locked: boolean
 		playHref: string
 		daily: boolean
+		practice?: boolean
+		difficulty?: PuzzleDifficulty
 		isGuest: boolean
 	}>,
 ) {
@@ -49,7 +54,6 @@ export function GameLanding(
 		</h1>
 	)
 	const motif = () => (
-		// biome-ignore lint/performance/noImgElement: decorative static SVG
 		<img
 			src={`/motifs/${d().slug}.svg`}
 			alt=""
@@ -78,7 +82,7 @@ export function GameLanding(
 		</ul>
 	)
 	const featured = () => (
-		<Show when={d().featured}>
+		<Show when={d().featured && !props.practice}>
 			<span class="inline-flex rounded-full bg-foreground px-2.5 py-1 text-xs font-semibold text-background">
 				{t().featured}
 			</span>
@@ -149,27 +153,37 @@ export function GameLanding(
 										{d().description}
 									</p>
 									<div class="mt-4">{facts()}</div>
-									<Show when={!props.locked}>
-										<a
-											href={props.playHref}
-											data-start-intent={props.daily ? d().slug : undefined}
-											class={`mt-6 ${playButton}`}
-											onClick={(event) => {
-												if (
-													props.daily &&
-													!event.defaultPrevented &&
-													!event.metaKey &&
-													!event.ctrlKey &&
-													!event.altKey &&
-													!event.shiftKey
-												)
-													markStartIntent(d().slug)
-											}}
-										>
-											<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
-											{t().play}
-										</a>
-									</Show>
+									<div class="flex flex-wrap items-center gap-x-4 gap-y-2 empty:hidden mt-6">
+										<Show when={!props.locked}>
+											<a
+												href={props.playHref}
+												data-start-intent={props.daily ? d().slug : undefined}
+												class={playButton}
+												onClick={(event) => {
+													if (
+														props.daily &&
+														!event.defaultPrevented &&
+														!event.metaKey &&
+														!event.ctrlKey &&
+														!event.altKey &&
+														!event.shiftKey
+													)
+														markStartIntent(d().slug)
+												}}
+											>
+												<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
+												{t().play}
+											</a>
+										</Show>
+										<Show when={props.daily && isPracticeSupported(d().slug)}>
+											<a
+												class="chrome-control min-h-12 font-semibold underline"
+												href={practicePath(d().canonicalPath, props.difficulty)}
+											>
+												{createTranslator(d().locale)('practice.label')}
+											</a>
+										</Show>
+									</div>
 									<Show when={props.isGuest}>
 										<p class="mt-2 text-sm text-muted-foreground">
 											{t().guest}{' '}

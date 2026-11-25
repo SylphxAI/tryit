@@ -1,4 +1,4 @@
-import { type Accessor, createSignal, onCleanup, onMount, untrack } from 'solid-js'
+import { type Accessor, createSignal, onCleanup, onMount, type Setter, untrack } from 'solid-js'
 import { DAILY_PLAY_DRAFT_PREFIX } from '@/lib/storage-keys'
 
 const MAX_DRAFT_CHARS = 512 * 1024
@@ -19,6 +19,27 @@ function decode(value: unknown): unknown {
 		if ('$map' in value && Array.isArray(value.$map)) return new Map(value.$map)
 	}
 	return value
+}
+
+function updateSignal<T>(get: Accessor<T>, set: Setter<T>, onChange: () => void) {
+	return (value: T | ((previous: T) => T)): T => {
+		const previous = untrack(get)
+		const next = typeof value === 'function' ? (value as (previous: T) => T)(previous) : value
+		if (next !== previous) onChange()
+		return set(() => next)
+	}
+}
+
+export function createTransientDraft(onChange: () => void): ReturnType<typeof createPlayDraft> {
+	const openedAt = Date.now()
+	return {
+		elapsedMs: () => Math.max(0, Date.now() - openedAt),
+		discard() {},
+		signal<T>(_name: string, initial: T) {
+			const [get, set] = createSignal(initial)
+			return [get, updateSignal(get, set, onChange)] as const
+		},
+	}
 }
 
 /** A tab-local draft of the admitted daily board. Never used to open a board or accept a finish. */
@@ -124,14 +145,11 @@ export function createPlayDraft(
 					}
 				})
 			}
-			const update = (value: T | ((previous: T) => T)): T => {
-				const previous = untrack(get)
-				const next = typeof value === 'function' ? (value as (previous: T) => T)(previous) : value
-				if (next !== previous) onChange?.()
-				if (key && next !== previous) {
+			const update = updateSignal(get, set, () => {
+				onChange?.()
+				if (key) {
 					changed = true
-					// Coalesce the fields changed by one move; a terminal submission wins
-					// over the draft and leaves the last nonterminal snapshot on failure.
+					// Coalesce changes from one move; a terminal submission wins over the draft.
 					if (!queued) {
 						queued = true
 						queueMicrotask(() => {
@@ -140,8 +158,7 @@ export function createPlayDraft(
 						})
 					}
 				}
-				return set(() => next)
-			}
+			})
 			return [get, update] as const
 		},
 	}

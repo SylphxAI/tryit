@@ -220,6 +220,7 @@ fn allowed_surface(value: &str) -> bool {
                 | "pricing_family_card"
                 | "game_unlock"
                 | "game_unlock_archive"
+                | "practice_upsell"
                 | "archive_banner"
                 | "result_card"
                 | "result_card_picks_exhausted"
@@ -245,7 +246,12 @@ mod tests {
 
     #[test]
     fn entry_surface_enum_drops_even_token_shaped_private_values() {
-        for value in ["pricing_card", "seo_vs-nyt-games", "stats_banner"] {
+        for value in [
+            "pricing_card",
+            "seo_vs-nyt-games",
+            "stats_banner",
+            "practice_upsell",
+        ] {
             assert!(allowed_surface(value));
         }
         for value in [

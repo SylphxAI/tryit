@@ -17,6 +17,9 @@ test('the five level boards pass the played level to the shared finish intent', 
 		const source = readFileSync(join(import.meta.dir, dir, 'solid-board.tsx'), 'utf8')
 		expect(source).toContain('createBoardFinish(props,')
 	}
-	const finish = readFileSync(join(import.meta.dir, 'shared/solid/finish.tsx'), 'utf8')
+	const finish = readFileSync(
+		join(import.meta.dir, 'shared/solid/board-finish-controller.ts'),
+		'utf8',
+	)
 	expect(finish).toContain('difficulty: options?.difficulty ?? props.difficulty')
 })

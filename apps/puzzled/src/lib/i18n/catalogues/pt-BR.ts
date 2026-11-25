@@ -34,6 +34,7 @@ import ptBRNav from '@/messages/pt-BR/nav.json'
 import ptBROnboarding from '@/messages/pt-BR/onboarding.json'
 import ptBRPagination from '@/messages/pt-BR/pagination.json'
 import ptBRPlus from '@/messages/pt-BR/plus.json'
+import ptBRPractice from '@/messages/pt-BR/practice.json'
 import ptBRPwa from '@/messages/pt-BR/pwa.json'
 import ptBRShare from '@/messages/pt-BR/share.json'
 import ptBRStreak from '@/messages/pt-BR/streak.json'
@@ -48,6 +49,7 @@ export const messages = {
 	consent: ptBRConsent,
 	crossPromo: ptBRCrossPromo,
 	daily: ptBRDaily,
+	practice: ptBRPractice,
 	footer: ptBRFooter,
 	gameResult: ptBRGameResult,
 	home: ptBRHome,

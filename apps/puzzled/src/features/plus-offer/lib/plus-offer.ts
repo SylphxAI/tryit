@@ -5,6 +5,7 @@
  */
 
 import { parseDismissed } from '@/features/announcements/lib/dismissed'
+import { PRACTICE_UPSELL } from '@/features/practice/lib/practice'
 import { formatPrice, OPEN_ACCESS, type PlanCard, type PlusAccess } from '@/lib/billing/plus'
 
 /** Distinct play days at which a returning member is offered Plus, once each. */
@@ -16,6 +17,7 @@ export const PAYWALL_CHECKOUT_TRIGGERS = new Set([
 	'pricing_family_card',
 	'game_unlock',
 	'game_unlock_archive',
+	PRACTICE_UPSELL,
 	'archive_banner',
 	'result_card',
 	'result_card_picks_exhausted',

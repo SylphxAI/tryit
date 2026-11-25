@@ -29,6 +29,7 @@ import zhTWModes from '@/messages/zh-TW/modes.json'
 import zhTWNav from '@/messages/zh-TW/nav.json'
 import zhTWOnboarding from '@/messages/zh-TW/onboarding.json'
 import zhTWPlus from '@/messages/zh-TW/plus.json'
+import zhTWPractice from '@/messages/zh-TW/practice.json'
 import zhTWShare from '@/messages/zh-TW/share.json'
 import zhTWStreak from '@/messages/zh-TW/streak.json'
 
@@ -41,6 +42,7 @@ export const messages = {
 	catalog: zhTWCatalog,
 	consent: zhTWConsent,
 	daily: zhTWDaily,
+	practice: zhTWPractice,
 	footer: zhTWFooter,
 	share: zhTWShare,
 	streak: zhTWStreak,

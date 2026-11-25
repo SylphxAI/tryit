@@ -1,0 +1,13 @@
+{
+	"label": "Practice",
+	"another": "Practice another",
+	"newPuzzle": "New puzzle",
+	"newAfterFinish": "New practice puzzle",
+	"backToToday": "Back to today’s puzzle",
+	"unlockTitle": "Play more with Tryit Plus",
+	"unlockBody": "Play as many practice puzzles as you like, ad-free. Today's puzzle and your streak stay separate.",
+	"unavailable": "Practice couldn’t load.",
+	"loading": "Getting your practice puzzle…",
+	"won": "Practice puzzle solved",
+	"lost": "Practice puzzle ended"
+}

@@ -34,6 +34,7 @@ import esNav from '@/messages/es/nav.json'
 import esOnboarding from '@/messages/es/onboarding.json'
 import esPagination from '@/messages/es/pagination.json'
 import esPlus from '@/messages/es/plus.json'
+import esPractice from '@/messages/es/practice.json'
 import esPwa from '@/messages/es/pwa.json'
 import esShare from '@/messages/es/share.json'
 import esStreak from '@/messages/es/streak.json'
@@ -48,6 +49,7 @@ export const messages = {
 	consent: esConsent,
 	crossPromo: esCrossPromo,
 	daily: esDaily,
+	practice: esPractice,
 	footer: esFooter,
 	gameResult: esGameResult,
 	home: esHome,

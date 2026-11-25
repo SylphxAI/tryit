@@ -3,16 +3,18 @@ import { isFieldSet } from '@bufbuild/protobuf'
 import { ChartNoAxesColumnIncreasing, Copy, Download, Flame, Share2, Snowflake } from 'lucide-solid'
 import { createMemo, createResource, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { type ShareAction, trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
+import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import { getAllGameMetadata, getGameMetadata } from '@/games/registry'
 import { GetTodayPercentileResponseSchema } from '@/gen/connect/puzzled/v1/stats_pb'
 import { createGamificationServiceClient } from '@/lib/connect/gamification-client'
 import { getTodayProgress, shareResult } from '@/lib/connect/puzzle-client'
 import { getTodayPercentile } from '@/lib/connect/stats-client'
 import { freeGameForDayKey } from '@/lib/free-rotation'
-import { slugToCamelCase } from '@/lib/game-slug'
+import { gamePath, slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
+import { asDifficulty } from '../lib/difficulty-completion'
 import { deriveHomeExposure } from '../lib/home-exposure'
 import {
 	buildResultCard,
@@ -309,6 +311,17 @@ export function ResultActions(props: {
 			</Show>
 			<div class="result-action-row">
 				{copyButton('rail')}
+				<Show when={props.facts.mode === 'daily' && isPracticeSupported(props.facts.gameSlug)}>
+					<a
+						class="result-button"
+						href={practicePath(
+							localizedPath(props.locale, gamePath(props.facts.gameSlug)),
+							asDifficulty(props.facts.difficulty ?? undefined),
+						)}
+					>
+						{t('practice.another')}
+					</a>
+				</Show>
 				<ResultDetails
 					locale={props.locale}
 					onOpenChange={props.onDetailsOpenChange}

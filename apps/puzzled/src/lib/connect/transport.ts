@@ -129,6 +129,16 @@ export function ensureGuestSession(base = resolveConnectBaseUrl()): Promise<Gues
 	return pending
 }
 
+// These requests use credentials already present. Practice never creates a guest
+// session or claims legacy daily state; only an account can be admitted.
+const noGuestBootstrap = new Set([
+	'GetDaily',
+	'GetTodayProgress',
+	'GetPracticePuzzle',
+	'CheckPracticeGuess',
+	'SubmitPractice',
+])
+
 let cachedBase: string | null = null
 let cachedTransport: Transport | null = null
 
@@ -141,9 +151,7 @@ export function getConnectTransport(baseUrl?: string): Transport {
 		useBinaryFormat: false, // browserDefaultEncoding: protojson
 		interceptors: [
 			((next) => async (req) => {
-				// A passive daily read forwards cookies already present; it never
-				// bootstraps a new guest or claims legacy state on arrival.
-				if (req.method.name !== 'GetDaily' && req.method.name !== 'GetTodayProgress') {
+				if (!noGuestBootstrap.has(req.method.name)) {
 					await ensureGuestSession(base).catch(() => undefined)
 				}
 				return next(req)

@@ -34,6 +34,7 @@ import jaNav from '@/messages/ja/nav.json'
 import jaOnboarding from '@/messages/ja/onboarding.json'
 import jaPagination from '@/messages/ja/pagination.json'
 import jaPlus from '@/messages/ja/plus.json'
+import jaPractice from '@/messages/ja/practice.json'
 import jaPwa from '@/messages/ja/pwa.json'
 import jaShare from '@/messages/ja/share.json'
 import jaStreak from '@/messages/ja/streak.json'
@@ -48,6 +49,7 @@ export const messages = {
 	consent: jaConsent,
 	crossPromo: jaCrossPromo,
 	daily: jaDaily,
+	practice: jaPractice,
 	footer: jaFooter,
 	gameResult: jaGameResult,
 	home: jaHome,

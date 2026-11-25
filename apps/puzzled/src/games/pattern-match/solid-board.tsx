@@ -69,6 +69,28 @@ function cardLabel(card: Card, t: Translate) {
 	})
 }
 
+/** Only the accepted practice loss may reveal the missing trios. */
+function missingTrios(reveal: string | undefined, cards: readonly Card[], seen: readonly Trio[]) {
+	if (!reveal) return []
+	try {
+		const ids: unknown = JSON.parse(reveal)?.validSets
+		if (!Array.isArray(ids)) return []
+		const byId = new Map(cards.map((card) => [card.id, card]))
+		return ids.flatMap((trio: unknown) => {
+			if (
+				!Array.isArray(trio) ||
+				trio.length !== 3 ||
+				seen.some((set) => trio.every((id) => set.includes(id)))
+			)
+				return []
+			const trioCards = trio.map((id) => byId.get(id))
+			return trioCards.every((card) => card !== undefined) ? [trioCards] : []
+		})
+	} catch {
+		return []
+	}
+}
+
 export default function MatchBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
 	const puzzle = createMemo(() => {
@@ -94,6 +116,9 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 	const [foundSets, setFoundSets] = finish.draft.signal<Trio[]>('foundSets', [])
 	const [mistakes, setMistakes] = finish.draft.signal('mistakes', 0)
 	const [message, setMessage] = createSignal<'correct' | 'notASet' | 'alreadyFound'>()
+	const missed = createMemo(() =>
+		props.mode === 'practice' ? missingTrios(finish.revealJson(), cards, foundSets()) : [],
+	)
 	const locked = () => finish.state() !== 'playing'
 	const complete = () => foundSets().length === totalSets
 	const clear = () => {
@@ -194,6 +219,27 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 				finish={finish}
 				locale={props.locale}
 				message={complete() ? mt('complete') : t('gameResult.gameOver')}
+				practiceReveal={
+					<Show when={missed().length}>
+						<p class="text-sm font-semibold">{t('gameResult.missedCategories')}</p>
+						<ul class="mt-2 grid gap-2" data-practice-reveal>
+							<For each={missed()}>
+								{(trio) => (
+									<li class="grid grid-cols-3 gap-2 rounded-xl bg-muted p-2">
+										<For each={trio}>
+											{(card) => (
+												<div class="grid min-w-0 place-items-center rounded-lg bg-background p-1">
+													<span class="sr-only">{cardLabel(card, t)}</span>
+													<CardFace card={card} />
+												</div>
+											)}
+										</For>
+									</li>
+								)}
+							</For>
+						</ul>
+					</Show>
+				}
 			/>
 		</div>
 	)

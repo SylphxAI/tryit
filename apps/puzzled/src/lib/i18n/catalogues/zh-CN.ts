@@ -34,6 +34,7 @@ import zhCNNav from '@/messages/zh-CN/nav.json'
 import zhCNOnboarding from '@/messages/zh-CN/onboarding.json'
 import zhCNPagination from '@/messages/zh-CN/pagination.json'
 import zhCNPlus from '@/messages/zh-CN/plus.json'
+import zhCNPractice from '@/messages/zh-CN/practice.json'
 import zhCNPwa from '@/messages/zh-CN/pwa.json'
 import zhCNShare from '@/messages/zh-CN/share.json'
 import zhCNStreak from '@/messages/zh-CN/streak.json'
@@ -52,6 +53,7 @@ export const messages = {
 	consent: zhCNConsent,
 	crossPromo: zhCNCrossPromo,
 	daily: zhCNDaily,
+	practice: zhCNPractice,
 	footer: zhCNFooter,
 	gameResult: zhCNGameResult,
 	modes: zhCNModes,
