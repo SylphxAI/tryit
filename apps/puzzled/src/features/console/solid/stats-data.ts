@@ -10,7 +10,7 @@ import { StatsService } from '@/gen/connect/puzzled/v1/stats_pb'
 import { isEmptyGuestRecord, isNoIdentityError } from '@/lib/api/no-identity'
 import { requestBilling } from '@/lib/api/request-billing'
 import {
-	hasAccountSessionCookie,
+	hasPlayAccountCookie,
 	hasProgressCookie,
 	requestConnectTransport,
 } from '@/lib/api/request-connect'
@@ -106,7 +106,7 @@ export async function readStats(locale: Locale, request: Request) {
 	})
 	const transport = requestConnectTransport(request.headers)
 	const stats = createClient(StatsService, transport)
-	const memberSession = hasAccountSessionCookie(request.headers)
+	const memberSession = hasPlayAccountCookie(request.headers)
 	const hasIdentity = hasProgressCookie(request.headers)
 	const [user, counts, sessions, streakResult, completedSlugs, offerPrices] = await Promise.all([
 		withPresentationDeadline(requestUser(request), null),

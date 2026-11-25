@@ -57,7 +57,7 @@ export function SupportPage() {
 			{(data) => (
 				<>
 					<PageMeta value={data.meta} />
-					<SiteShell data={data.shell}>
+					<SiteShell data={data.shell} signedIn={data.signedIn}>
 						<SupportContent locale={data.locale} />
 					</SiteShell>
 				</>

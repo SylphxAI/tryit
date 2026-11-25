@@ -1,6 +1,5 @@
 /** @jsxImportSource solid-js */
 import { createAsync, query, type RouteDefinition, useParams } from '@solidjs/router'
-import { HttpHeader } from '@solidjs/start'
 import { Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
 import { isComparisonSlug } from '@/features/marketing/components/comparison-slugs'
@@ -14,17 +13,25 @@ import { SiteShell } from '@/shared/solid/site-shell'
 
 const getComparisonPage = query(async (localeParam: string, rival: string) => {
 	'use server'
-	const request = getRequestEvent()?.request
-	if (!request) throw new Error('Comparison page requires a request')
+	const event = getRequestEvent()
+	if (!event) throw new Error('Comparison page requires a request')
+	const { request } = event
+	event.response.headers.set('Cache-Control', 'private, no-store')
 	if (!isComparisonSlug(rival)) return null
 	const locale = isValidLocale(localeParam) ? localeParam : defaultLocale
 	const { readComparisonPricing } = await import(
 		'@/features/marketing/solid/comparison-pricing-data'
 	)
 	const { editorialPageData } = await import('@/features/marketing/solid/editorial-page-data')
+	const { readSignedIn } = await import('@/lib/identity/signed-in')
+	const [pricing, signedIn] = await Promise.all([
+		readComparisonPricing(request.headers, locale),
+		readSignedIn(request),
+	])
 	return {
 		...editorialPageData(request, locale, `/vs/${rival}`),
-		...(await readComparisonPricing(request.headers, locale)),
+		...pricing,
+		signedIn,
 	}
 }, 'comparison-page')
 
@@ -47,7 +54,6 @@ export default function Page() {
 				<Show when={page()} keyed>
 					{(data) => (
 						<>
-							<HttpHeader name="Cache-Control" value="private, no-store" />
 							<EditorialMeta
 								spec={value}
 								imageSubtitle={value.facts.join(' · ')}
@@ -55,7 +61,7 @@ export default function Page() {
 								locale={data.locale}
 								type="article"
 							/>
-							<SiteShell data={data.shell}>
+							<SiteShell data={data.shell} signedIn={data.signedIn}>
 								<ComparisonLanding
 									spec={value}
 									origin={data.origin}

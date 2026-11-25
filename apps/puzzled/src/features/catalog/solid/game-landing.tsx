@@ -35,7 +35,7 @@ export function GameLanding(
 		daily: boolean
 		practice?: boolean
 		difficulty?: PuzzleDifficulty
-		isGuest: boolean
+		signedIn: boolean
 	}>,
 ) {
 	const nonce = isServer ? getRequestEvent()?.locals.cspNonce : undefined
@@ -90,7 +90,7 @@ export function GameLanding(
 	)
 
 	return (
-		<SiteShell data={d().shell}>
+		<SiteShell data={d().shell} signedIn={props.signedIn}>
 			<PageMeta value={d().meta} />
 			<main id="main-content" tabIndex={-1} class="game-page flex-1">
 				<NoHydration>
@@ -184,7 +184,7 @@ export function GameLanding(
 											</a>
 										</Show>
 									</div>
-									<Show when={props.isGuest}>
+									<Show when={!props.signedIn}>
 										<p class="mt-2 text-sm text-muted-foreground">
 											{t().guest}{' '}
 											<a

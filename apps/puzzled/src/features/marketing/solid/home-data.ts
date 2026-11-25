@@ -18,7 +18,7 @@ import { StatsService } from '@/gen/connect/puzzled/v1/stats_pb'
 import { mapTodayProgress } from '@/lib/api/domain/daily'
 import { requestBilling } from '@/lib/api/request-billing'
 import {
-	hasAccountSessionCookie,
+	hasPlayAccountCookie,
 	hasProgressCookie,
 	requestConnectTransport,
 } from '@/lib/api/request-connect'
@@ -26,7 +26,7 @@ import { getTodaysFreeGame, getTomorrowsFreeGame } from '@/lib/free-rotation'
 import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
-import { requestUser } from '@/lib/identity/request-identity'
+import { readSignedIn } from '@/lib/identity/signed-in'
 import { withPresentationDeadline } from '@/lib/presentation-document'
 import { nextProductDayStart, productDayKey } from '@/lib/product-day'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
@@ -91,12 +91,12 @@ export function homeDocument(locale: Locale, baseUrl: string, now: Date) {
 
 export async function readHomeFacts(request: Request, dayKey: string) {
 	const hasIdentity = hasProgressCookie(request.headers)
-	const hasSession = hasAccountSessionCookie(request.headers)
+	const hasSession = hasPlayAccountCookie(request.headers)
 	const publicTransport = requestConnectTransport()
 	const viewerTransport = requestConnectTransport(request.headers)
 	const now = new Date()
 	const [member, daily, streak, playerCount, subscription, notices] = await Promise.all([
-		hasSession ? withPresentationDeadline(requestUser(request).then(Boolean), false) : false,
+		readSignedIn(request),
 		hasIdentity
 			? withPresentationDeadline(
 					createClient(PuzzleService, viewerTransport).getTodayProgress({

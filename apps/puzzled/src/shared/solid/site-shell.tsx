@@ -76,7 +76,7 @@ export function SiteShell(props: ParentProps<{ data: SiteShellData; signedIn?: b
 						>
 							<a
 								href={props.data.tabs[4]?.href}
-								class="pressable hidden min-h-11 min-w-11 items-center justify-center rounded-lg md:flex"
+								class="pressable flex min-h-11 min-w-11 items-center justify-center rounded-lg"
 								aria-label={props.data.tabs[4]?.title}
 							>
 								<CircleUserRound size={22} aria-hidden="true" />

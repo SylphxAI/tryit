@@ -7,14 +7,18 @@ import { siteShellData } from '@/shared/solid/site-shell-data'
 
 export const readSupport = query(async (localeParam: string) => {
 	'use server'
-	const request = getRequestEvent()?.request
-	if (!request) throw new Error('Support page needs a request')
+	const event = getRequestEvent()
+	if (!event) throw new Error('Support page needs a request')
+	const { request } = event
+	event.response.headers.set('Cache-Control', 'private, no-store')
 	const { canonicalSiteOrigin } = await import('@/lib/site-origin-request')
+	const { readSignedIn } = await import('@/lib/identity/signed-in')
 	const locale = isValidLocale(localeParam) ? localeParam : defaultLocale
 	const t = createTranslator(locale)
 	const title = t('support.title')
 	return {
 		locale,
+		signedIn: await readSignedIn(request),
 		shell: siteShellData(locale, '/support', t, new Date()),
 		meta: pageMetadata({
 			locale,

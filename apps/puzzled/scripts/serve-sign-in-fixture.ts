@@ -135,6 +135,7 @@ Bun.serve({
 			auth === `Bearer ${fixtureToken}` &&
 			request.headers.get('x-sylphx-caller-key') === publishable
 		) {
+			if (mode === 'slow-session') await Bun.sleep(1250)
 			return response({
 				principal: user,
 				session: browserSession('this-browser', 'Fixture Chromium'),

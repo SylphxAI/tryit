@@ -6,6 +6,6 @@ export async function readPlayGuestStatus(): Promise<boolean | undefined> {
 	const event = getRequestEvent()
 	if (!event) return undefined
 	event.response.headers.set('Cache-Control', 'private, no-store')
-	const { hasAccountSessionCookie } = await import('@/lib/api/request-connect')
-	return !hasAccountSessionCookie(event.request.headers)
+	const { hasPlayAccountCookie } = await import('@/lib/api/request-connect')
+	return !hasPlayAccountCookie(event.request.headers)
 }
