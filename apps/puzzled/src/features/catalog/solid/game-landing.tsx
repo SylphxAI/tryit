@@ -33,6 +33,7 @@ export function GameLanding(
 		locked: boolean
 		playHref: string
 		daily: boolean
+		practice?: boolean
 		difficulty?: PuzzleDifficulty
 		isGuest: boolean
 	}>,
@@ -81,7 +82,7 @@ export function GameLanding(
 		</ul>
 	)
 	const featured = () => (
-		<Show when={d().featured}>
+		<Show when={d().featured && !props.practice}>
 			<span class="inline-flex rounded-full bg-foreground px-2.5 py-1 text-xs font-semibold text-background">
 				{t().featured}
 			</span>

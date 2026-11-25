@@ -1,14 +1,11 @@
 /** @jsxImportSource solid-js */
 import { Lock } from 'lucide-solid'
 import { createEffect, createResource, createSignal, onMount, Show } from 'solid-js'
-import { trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { UnlockPlanList } from '@/features/daily/solid/unlock-plan-list'
 import { readUnlockPrices } from '@/features/daily/solid/unlock-prices'
-import { currencyForLocale } from '@/lib/billing/plus'
 import { createTranslator } from '@/lib/i18n/translate'
-import { localizedPath } from '@/lib/seo/urls'
-import { PRACTICE_UPSELL } from '../lib/practice'
+import { practiceImpression, practicePricingHref } from '../lib/practice-impression'
 import { readPracticePicks } from './practice-picks'
 
 export function PracticeUnlock(props: { data: GamePageData; isGuest: boolean }) {
@@ -22,19 +19,9 @@ export function PracticeUnlock(props: { data: GamePageData; isGuest: boolean }) 
 	const [picks] = createResource(mounted, () =>
 		readPracticePicks(props.isGuest).catch(() => undefined),
 	)
-	let reported = false
+	const recordImpression = practiceImpression(slug, locale, props.isGuest)
 	createEffect(() => {
-		const picksUsed = picks.latest
-		if (reported || prices.loading || picksUsed === undefined) return
-		reported = true
-		trackBehavioralEvent({
-			event: 'paywall_hit',
-			surface: PRACTICE_UPSELL,
-			game_slug: slug,
-			picks_used: picksUsed,
-			currency: prices.latest?.currency ?? currencyForLocale(locale),
-			is_guest: props.isGuest,
-		})
+		if (!prices.loading) recordImpression(picks.latest, prices.latest?.currency)
 	})
 	return (
 		<div
@@ -55,7 +42,7 @@ export function PracticeUnlock(props: { data: GamePageData; isGuest: boolean }) 
 			<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
 				<a
 					class="chrome-control chrome-primary min-h-12 px-5 font-bold"
-					href={localizedPath(locale, `/pricing?trigger=${PRACTICE_UPSELL}`)}
+					href={practicePricingHref(locale)}
 				>
 					{t('plus.unlock.cta')}
 				</a>

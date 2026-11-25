@@ -3,7 +3,7 @@ import {
 	checkPracticeGuess,
 	type PracticePuzzleInput,
 } from '@/lib/connect/puzzle-client'
-import type { DailyBoardProps } from './finish'
+import type { DailyBoardProps } from './board-finish-controller'
 
 export function practicePuzzleInput(
 	props: Pick<DailyBoardProps, 'practiceSeed' | 'difficulty'>,

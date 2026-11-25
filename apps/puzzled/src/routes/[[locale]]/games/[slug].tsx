@@ -122,6 +122,7 @@ export default function GamePage() {
 						data={page().data}
 						locked={page().initialDaily?.kind === 'locked' || lockedKey() === playKey()}
 						stage={page().practice || (page().day.mode === 'daily' && page().started)}
+						practice={page().practice}
 						daily={!page().practice && page().day.mode === 'daily'}
 						difficulty={page().difficulty}
 						isGuest={page().isGuest}

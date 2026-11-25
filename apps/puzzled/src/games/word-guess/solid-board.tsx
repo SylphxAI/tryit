@@ -327,6 +327,7 @@ export default function WordGuessBoard(props: DailyBoardProps) {
 					finish={finish}
 					locale={props.locale}
 					message={result()}
+					practiceReveal={<p>{result()}</p>}
 					shareTitle={t('games.wordGuess.name')}
 					shareText={shareText()}
 				/>

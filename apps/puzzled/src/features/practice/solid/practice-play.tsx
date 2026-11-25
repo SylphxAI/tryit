@@ -57,7 +57,7 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 		</p>
 	)
 	return (
-		<div class="mx-auto grid w-full min-w-0 max-w-xl gap-4" data-practice-play>
+		<div class="group/practice mx-auto grid w-full min-w-0 max-w-xl gap-4" data-practice-play>
 			<header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
 				<h2 class="inline-flex items-center rounded-full bg-muted px-3 py-1 font-display text-sm font-bold text-foreground">
 					{t('practice.label')}
@@ -65,7 +65,7 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 				<Show when={value()}>
 					<div class="flex flex-wrap items-center gap-2">
 						<a
-							class="chrome-control min-h-12 px-2 text-sm underline"
+							class="chrome-control min-h-12 px-2 text-sm underline group-has-[[data-practice-finish]]/practice:hidden"
 							href={`${canonicalPath}#play`}
 						>
 							{t('practice.backToToday')}
@@ -74,7 +74,6 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 							<select
 								class="min-h-12 max-w-full rounded-xl border border-border bg-background px-2 text-sm font-semibold"
 								aria-label={t('common.difficulty.selectDifficulty')}
-								value={level}
 								onChange={(event) => {
 									const next = asDifficulty(event.currentTarget.value)
 									if (next && next !== level)
@@ -82,7 +81,11 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 								}}
 							>
 								<For each={difficultyLevels}>
-									{({ level, label }) => <option value={level}>{label}</option>}
+									{({ level: currentLevel, label }) => (
+										<option value={currentLevel} selected={currentLevel === level}>
+											{label}
+										</option>
+									)}
 								</For>
 							</select>
 						</Show>

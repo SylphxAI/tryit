@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { Show } from 'solid-js'
+import { type JSX, Show } from 'solid-js'
 import { gamePath } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -10,16 +10,14 @@ export function PracticeFinishActions(props: {
 	gameSlug: string
 	attempts: number
 	score?: number
-	reveal?: string
+	reveal?: JSX.Element
 	onNewPractice?: () => void
 }) {
 	const t = createTranslator(props.locale)
 	const number = new Intl.NumberFormat(props.locale)
 	return (
 		<div class="mt-3 grid gap-3" data-practice-finish>
-			<Show when={props.reveal}>
-				<p>{props.reveal}</p>
-			</Show>
+			<Show when={props.reveal}>{props.reveal}</Show>
 			<dl class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
 				<div class="flex gap-2">
 					<dt>{t('gameResult.attempts')}</dt>
