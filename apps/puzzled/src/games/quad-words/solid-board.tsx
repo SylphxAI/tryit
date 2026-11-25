@@ -235,10 +235,17 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 														<For each={cols}>
 															{(col) => {
 																const tile = () => board().results[i()]?.[col]
+																const activeSlot = () =>
+																	current() && canPlay() && col === word().length
+																const appearance = () =>
+																	activeSlot()
+																		? 'border-accent-warm bg-accent-warm-soft inset-ring-1 inset-ring-accent-warm/45'
+																		: `${tones[tile() ?? 'empty']} ${current() && word()[col] ? 'border-muted-foreground' : 'border-transparent'}`
 																return (
 																	<td
 																		data-grade={tile()}
-																		class={`h-6 rounded border border-transparent text-center font-display text-xs font-bold sm:h-8 sm:text-sm ${tones[tile() ?? 'empty']} ${current() ? '!border-foreground' : ''}`}
+																		data-active-slot={activeSlot() ? 'true' : undefined}
+																		class={`h-6 rounded border text-center font-display text-xs font-bold sm:h-8 sm:text-sm ${appearance()}`}
 																	>
 																		{word()[col]}
 																		<Show when={tile()}>

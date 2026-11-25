@@ -884,18 +884,21 @@ test('Five uses six real keyboard guesses and reveals only on an accepted loss',
 	const retry = board.getByRole('button', { name: 'Try again' })
 	await expect(retry).toBeVisible()
 	await expect(board.getByRole('button', { name: 'Enter' })).toHaveCount(0)
-	await expect(board.getByText('The word was FORTY')).toHaveCount(0)
+	await expect(table.locator('[data-active-slot]')).toHaveCount(0)
+	const reveal = board.getByText(`The word was ${fixture.solution.word}`)
+	await expect(reveal).toHaveCount(0)
 	expect(submits[0].body).toMatchObject({ puzzleId, puzzleDate: date, status: 'lost', attempts: 6 })
 	expect(JSON.parse(String(submits[0].body.submissionJson))).toEqual({ guesses })
 	await retry.click()
-	await expect(board.getByText('The word was FORTY')).toBeVisible()
+	await expect(reveal).toBeVisible()
 	expect(submits).toEqual([submits[0], submits[0]])
 	await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
 	await board.getByRole('button', { name: 'Copy challenge' }).click()
 	const share = await page.evaluate(() => navigator.clipboard.readText())
 	expect(share).toContain(Array(6).fill('⬛⬛⬛⬛⬛').join('\n'))
 	expect(share).toContain('/r/fixture-share?utm_source=share')
-	expect(share).not.toMatch(/forty|crane/i)
+	expect(share.toUpperCase()).not.toContain(fixture.solution.word)
+	expect(share.toLowerCase()).not.toContain(guesses[0])
 })
 
 test('Cipher checks full substitutions and only celebrates a saved finish', async ({ page }) => {
@@ -1202,10 +1205,26 @@ test('Quad preserves graded guesses and saves only the four-board result', async
 	})
 	const native = board.locator('[data-quad-board]')
 	const enter = native.locator('[data-key="Enter"]')
+	const cursor = '[data-active-slot="true"]'
+	const tables = native.getByRole('table')
 	for (const [index, word] of words.entries()) {
 		await page.keyboard.type(word)
 		await enter.click()
 		await expect(native.getByText(`${index + 1}/4`, { exact: false }).first()).toBeVisible()
+		await expect(native.locator(cursor)).toHaveCount(3 - index)
+		for (let i = 0; i < 4; i++) {
+			const table = tables.nth(i)
+			if (i <= index) await expect(table.locator(cursor)).toHaveCount(0)
+			else {
+				await expect(
+					table
+						.getByRole('row')
+						.nth(index + 1)
+						.getByRole('cell')
+						.first(),
+				).toHaveAttribute('data-active-slot', 'true')
+			}
+		}
 		if (index < 3) expect(submits).toHaveLength(0)
 	}
 	await expect(native.getByText('Puzzle Complete!', { exact: true })).toBeVisible()
