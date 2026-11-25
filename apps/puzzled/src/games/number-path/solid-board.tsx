@@ -30,7 +30,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 	const locked = () => finish.state() !== 'playing'
 	const finish = createBoardFinish(props, 'number-path')
 	const [path, setPath] = finish.draft.signal<Cell[]>('path', [])
-	const [hint, setHint] = createSignal('')
+	const [hint, setHint] = createSignal<{ text: string; wrongClue?: true }>()
 	const visits = createMemo(() => new Map(path().map((cell, step) => [cellKey(cell), step + 1])))
 	const points = () =>
 		path()
@@ -43,18 +43,24 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 		const result = visitCell(props.data, path(), cell)
 		switch (result.kind) {
 			case 'startAtOne':
-				setHint(t('games.numberPath.startAtOne'))
+				setHint({ text: t('games.numberPath.startAtOne') })
 				return false
 			case 'nextSquare':
-				setHint(t('games.numberPath.nextSquare', { number: path().length }))
+				setHint({ text: t('games.numberPath.nextSquare', { number: path().length }) })
+				return false
+			case 'wrongClue':
+				setHint({
+					text: t('games.numberPath.wrongClue', { clue: result.clue, expected: result.expected }),
+					wrongClue: true,
+				})
 				return false
 			case 'outside':
 				return false
 			case 'head':
-				setHint('')
+				setHint(undefined)
 				return true
 			case 'move':
-				setHint('')
+				setHint(undefined)
 				setPath(result.path)
 				if (isSolved(result.path, clues)) finish.finish({ path: result.path })
 				return true
@@ -192,8 +198,15 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 				</div>
 			</fieldset>
 			<div class="play-tools space-y-3">
-				<p role="status" class="min-h-5 text-sm text-muted-foreground">
-					{hint()}
+				<p
+					role="status"
+					class="min-h-5 text-sm"
+					classList={{
+						'text-muted-foreground': !hint()?.wrongClue,
+						'text-destructive': hint()?.wrongClue,
+					}}
+				>
+					{hint()?.text}
 				</p>
 				<Show when={!locked()}>
 					<div class="flex flex-wrap items-center gap-3">
@@ -202,7 +215,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 							class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
 							disabled={!path().length}
 							onClick={() => {
-								setHint('')
+								setHint(undefined)
 								setPath((steps) => steps.slice(0, -1))
 							}}
 						>
@@ -213,7 +226,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 							class="min-h-12 rounded-xl border border-border px-4 disabled:opacity-50"
 							disabled={!path().length}
 							onClick={() => {
-								setHint('')
+								setHint(undefined)
 								setPath([])
 							}}
 						>

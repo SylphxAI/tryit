@@ -2,6 +2,7 @@ import { type Cell, cellsEqual, isOrthogonalNeighbor, type NumberPathPuzzleData 
 
 type VisitResult =
 	| { kind: 'move'; path: Cell[] }
+	| { kind: 'wrongClue'; clue: number; expected: number }
 	| { kind: 'head' | 'outside' | 'startAtOne' | 'nextSquare' }
 
 /** A previously visited tile rewinds the path; a new tile must be a legal next step. */
@@ -19,6 +20,7 @@ export function visitCell(puzzle: NumberPathPuzzleData, path: Cell[], cell: Cell
 	if (previous === path.length - 1) return { kind: 'head' }
 	if (previous >= 0) return { kind: 'move', path: path.slice(0, previous + 1) }
 	if (!isOrthogonalNeighbor(path[path.length - 1], cell)) return { kind: 'nextSquare' }
-	if (clue !== null && clue !== path.length + 1) return { kind: 'nextSquare' }
+	const expected = path.length + 1
+	if (clue !== null && clue !== expected) return { kind: 'wrongClue', clue, expected }
 	return { kind: 'move', path: [...path, cell] }
 }

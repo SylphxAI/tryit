@@ -60,8 +60,10 @@ async function touchDrag(page: Page, from: Locator, to: Locator) {
 test('Path highlights clue 1, explains blocked moves, then advances by taps and drag', async ({
 	page,
 }) => {
+	await page.setViewportSize({ width: 1440, height: 900 })
 	await page.emulateMedia({ reducedMotion: 'no-preference' })
 	const board = await open(page, 'number-path')
+	const status = board.locator('.play-tools').getByRole('status')
 	const cell = (row: number, col: number) =>
 		board.getByRole('button', { name: new RegExp(`^Row ${row}, Column ${col}(?:,|$)`) })
 	const first = cell(4, 4)
@@ -70,24 +72,50 @@ test('Path highlights clue 1, explains blocked moves, then advances by taps and 
 	await expect(progress).toHaveText('0/36')
 	await expect(startHighlight).toHaveCSS('animation-name', 'pulse')
 	await cell(1, 1).click()
-	await expect(board.getByText('Start at 1', { exact: true })).toBeVisible()
+	await expect(status).toHaveText('Start at 1')
 	await expect(progress).toHaveText('0/36')
 	await first.click()
 	await expect(progress).toHaveText('1/36')
 	await expect(startHighlight).toHaveCount(0)
-	for (const wrong of [cell(1, 1), cell(4, 5)]) {
-		await wrong.click()
-		await expect(board.getByText('Tap or drag to a square next to 1')).toBeVisible()
-		await expect(progress).toHaveText('1/36')
-	}
+	await cell(4, 5).click()
+	await expect(status).toHaveText('That square is 8 — step 2 comes next.')
+	await expect(status).toHaveClass(/text-destructive/)
+	await expect(progress).toHaveText('1/36')
+	await expectNoPageOverflow(page)
+	await cell(1, 1).click()
+	await expect(status).toHaveText('Tap or drag to a square next to 1')
+	await expect(status).not.toHaveClass(/text-destructive/)
+	await expect(progress).toHaveText('1/36')
 	await cell(5, 4).click()
 	await expect(progress).toHaveText('2/36')
+	await expect(status).toBeEmpty()
+	await cell(5, 5).click()
+	await expect(status).toHaveText('That square is 7 — step 3 comes next.')
 	await mouseDrag(page, cell(5, 4), cell(6, 4))
 	await expect(progress).toHaveText('3/36')
+	await expect(status).toBeEmpty()
+	await expect(status).not.toHaveClass(/text-destructive/)
+	await cell(6, 3).click()
+	await expect(status).toHaveText('That square is 24 — step 4 comes next.')
+	await board.getByRole('button', { name: 'Undo', exact: true }).click()
+	await expect(progress).toHaveText('2/36')
+	await expect(status).toBeEmpty()
+	await expect(status).not.toHaveClass(/text-destructive/)
+	await cell(5, 5).click()
+	await expect(status).toHaveText('That square is 7 — step 3 comes next.')
 	await board.getByRole('button', { name: 'Start over', exact: true }).click()
 	await expect(progress).toHaveText('0/36')
+	await expect(status).toBeEmpty()
+	await expect(status).not.toHaveClass(/text-destructive/)
 	await expect(startHighlight).toBeVisible()
 })
+
+async function expectNoPageOverflow(page: Page) {
+	const overflow = await page.evaluate(
+		() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+	)
+	expect(overflow).toBe(0)
+}
 
 const paintCell = (board: Locator, row: number, col: number) =>
 	board.locator(`[data-paint-row="${row}"][data-paint-col="${col}"]`)
@@ -265,7 +293,14 @@ test.describe('phone touch input', () => {
 			board.getByRole('button', { name: /^Row 4, Column 4,/ }),
 			board.getByRole('button', { name: /^Row 6, Column 4(?:,|$)/ }),
 		)
-		await expect(board.locator('output')).toHaveText('3/36')
+		const progress = board.locator('output')
+		await expect(progress).toHaveText('3/36')
+		await board.getByRole('button', { name: /^Row 6, Column 3, Clue 24$/ }).tap()
+		await expect(board.locator('.play-tools').getByRole('status')).toHaveText(
+			'That square is 24 — step 4 comes next.',
+		)
+		await expect(progress).toHaveText('3/36')
+		await expectNoPageOverflow(page)
 	})
 
 	test('Hunt explains a non-word and Reset works on the first tap after a drag', async ({

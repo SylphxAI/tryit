@@ -16,5 +16,6 @@
 	"cellClue": "ヒント {number}",
 	"cellStep": "{number} 手目",
 	"startAtOne": "1 から始めてください",
-	"nextSquare": "{number} の隣のマスをタップするか、そこまでドラッグしてください"
+	"nextSquare": "{number} の隣のマスをタップするか、そこまでドラッグしてください",
+	"wrongClue": "このマスは {clue}。次は {expected} 手目です。"
 }

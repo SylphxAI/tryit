@@ -16,5 +16,6 @@
 	"cellClue": "Pista {number}",
 	"cellStep": "Paso {number}",
 	"startAtOne": "Empieza en el 1",
-	"nextSquare": "Toca o arrastra hasta una casilla junto al {number}"
+	"nextSquare": "Toca o arrastra hasta una casilla junto al {number}",
+	"wrongClue": "Esa casilla tiene un {clue}. Ahora toca el paso {expected}."
 }
