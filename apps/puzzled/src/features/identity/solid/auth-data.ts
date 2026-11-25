@@ -7,7 +7,7 @@ import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 
 export const authPages = {
-	'sign-in': ['signInTitle', 'signInDescription'],
+	'sign-in': ['signInTitle', 'brandPanel.saveStats'],
 	'reset-password': ['resetPasswordTitle', 'resetPasswordDescription'],
 	'verify-email': ['confirmEmailTitle', 'verifiedSignInGuidance'],
 } as const

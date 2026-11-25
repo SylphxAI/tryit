@@ -89,7 +89,7 @@ export const USE_CASE_SPECS = {
 		metaDescription: `Play ${TOTAL_GAMES} daily word, logic, number, and spatial puzzles in one clean web suite. Pick any 3 to play free every day with no account; unlock all ${TOTAL_GAMES} games and the full archive with a ${PASS} 3-Day Pass or from ${PLUS_MONTH}/mo.`,
 		eyebrow: `${TOTAL_GAMES} daily puzzles · Fresh set every day`,
 		h1: 'One daily puzzle habit—word, logic, number, and spatial games under one roof.',
-		heroSubhead: `Instead of hopping across five cluttered puzzle sites, play ${TOTAL_GAMES} handcrafted daily games in one fast web app. Everyone gets the same daily puzzle set at 16:00 UTC, you pick any 3 of today's ${TOTAL_GAMES} games to play free with no account, and every finished solve is server-verified so streaks and leaderboards stay honest.`,
+		heroSubhead: `Instead of hopping across five cluttered puzzle sites, play ${TOTAL_GAMES} handcrafted daily games in one fast web app. Everyone gets the same daily puzzle set at 16:00 UTC, you pick any 3 of today's ${TOTAL_GAMES} games to play free with no account, and every finished solve is server-verified so streaks and personal stats stay accurate.`,
 		facts: [
 			`${TOTAL_GAMES} handcrafted daily games`,
 			'Any 3 games free every day, no account needed',
@@ -165,7 +165,7 @@ export const USE_CASE_SPECS = {
 				],
 			},
 			{
-				feature: 'Leaderboard integrity',
+				feature: 'Verified results',
 				columns: [
 					'Client-side scores easily faked',
 					'Basic completion ticks',

@@ -51,7 +51,6 @@ Prices include VAT.
 - [All games](https://tryit.fun/games): Browse the ${total}-game puzzle catalogue.
 - [Pricing & Tryit Plus](https://tryit.fun/pricing): Individual, Family (${FAMILY_SEATS} seats), and 3-Day Pass plans.
 ${games}
-- [Leaderboard](https://tryit.fun/leaderboard): Daily results and rankings.
 
 ## Use Cases
 - [Daily word & logic puzzles online](https://tryit.fun/use-cases/daily-word-and-logic-puzzles-online): ${total} daily games, any 3 free each day, a daily reset at 16:00 UTC, and full archive access with Plus.

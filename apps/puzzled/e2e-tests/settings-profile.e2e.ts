@@ -31,7 +31,6 @@ test.describe('Profile Settings - Username', () => {
 		test('should display username section', async ({ page }) => {
 			// Username section should be visible
 			await expect(page.getByText('Username')).toBeVisible()
-			await expect(page.getByText(/For leaderboards and public profile/i)).toBeVisible()
 		})
 
 		test('should show edit button for username', async ({ page }) => {

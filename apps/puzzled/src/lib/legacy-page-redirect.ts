@@ -3,8 +3,8 @@ import { defaultLocale } from '@/lib/i18n/config'
 import { localeFromPathname } from '@/lib/i18n/page-locale'
 import { localizedPath } from '@/lib/seo/urls'
 
-// These are historical public URLs, not aliases for gameplay or API slugs.
-const LEGACY_PAGES = new Map<string, `/games/${GameSlug}` | '/games/quartet' | '/vs'>([
+// These are historical page URLs, not aliases for gameplay or API slugs.
+const LEGACY_PAGES = new Map<string, `/games/${GameSlug}` | '/games/quartet' | '/vs' | '/stats'>([
 	['/games/threads', '/games/quartet'],
 	['/games/word-groups', '/games/quartet'],
 	['/games/tango', '/games/duo'],
@@ -26,6 +26,7 @@ const LEGACY_PAGES = new Map<string, `/games/${GameSlug}` | '/games/quartet' | '
 	['/games/spellbee', '/games/word-hive'],
 	['/games/mini', '/games/crossword'],
 	['/compare', '/vs'],
+	['/leaderboard', '/stats'],
 ])
 
 // Match whole, retired namespaces without turning arbitrary 404s into redirects.

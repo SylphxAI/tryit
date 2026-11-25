@@ -10,6 +10,7 @@ test('llms.txt stays public plain text even with a remembered locale', async ({ 
 	const body = await response.text()
 	expect(body).toMatch(/^# Tryit\n/)
 	expect(body).toContain('published by Sylphx')
+	expect(body).not.toContain('https://tryit.fun/leaderboard')
 	expect(body).not.toMatch(/Sylphx Tryit|<html|<script/i)
 	const gameLinks = [
 		...body.matchAll(/^- \[([^\]]+)\]\((https:\/\/tryit\.fun\/games\/[^)]+)\): (.+)$/gm),

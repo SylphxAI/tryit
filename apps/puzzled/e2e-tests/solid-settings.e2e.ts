@@ -64,13 +64,7 @@ test.describe('Solid signed-in settings', () => {
 		context,
 		baseURL,
 	}) => {
-		const publicMemberAwarePaths = [
-			'/delete-account',
-			'/stats',
-			'/family/join',
-			'/leaderboard',
-			'/archive',
-		]
+		const publicMemberAwarePaths = ['/delete-account', '/stats', '/family/join', '/archive']
 		const header = page.locator('header').first()
 		const signIn = header.getByRole('link', { name: 'Sign in', exact: true })
 		const account = header.getByRole('link', { name: 'Account', exact: true })
@@ -121,7 +115,7 @@ test.describe('Solid signed-in settings', () => {
 		const response = await page.goto('/es/settings/privacy')
 		expect(response?.headers()['cache-control']).toBe('private, no-store')
 		await expect(page.locator('main a[href="/es/support"]')).toBeVisible()
-		await expect(page.locator('main a[href="/es/leaderboard"]')).toBeVisible()
+		await expect(page.locator('a[href*="leaderboard"]')).toHaveCount(0)
 		expect(await response?.text()).not.toContain('synthetic@example.test')
 	})
 

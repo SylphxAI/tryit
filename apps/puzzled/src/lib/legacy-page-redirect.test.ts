@@ -26,6 +26,7 @@ describe('legacy public page redirects', () => {
 		['/games/spellbee', '/games/word-hive'],
 		['/games/mini', '/games/crossword'],
 		['/compare', '/vs'],
+		['/leaderboard', '/stats'],
 	])('permanently redirects %s to %s', (path, target) => {
 		const response = legacyPageRedirect(new Request(origin + path))
 		expect(response?.status).toBe(301)
@@ -45,6 +46,7 @@ describe('legacy public page redirects', () => {
 		for (const [path, canonical] of [
 			['/games/threads/', '/games/quartet'],
 			['/compare/', '/vs'],
+			['/leaderboard/', '/stats'],
 		]) {
 			const response = legacyPageRedirect(new Request(origin + prefix + path, { method: 'HEAD' }))
 			expect(response?.status).toBe(301)
@@ -77,6 +79,8 @@ describe('legacy public page redirects', () => {
 		'/vs',
 		'/compare/wordle',
 		'/de/compare',
+		'/de/leaderboard',
+		'/leaderboard/archive',
 		'/api/games/threads',
 		'//example.invalid/compare',
 		'/en-US//compare',

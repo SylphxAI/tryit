@@ -10,12 +10,10 @@ import { expect, test } from '@playwright/test'
  * - Achievement display
  */
 
-const LOCALE = 'en'
-
 test.describe('Stats Page', () => {
 	test.describe('Unauthenticated Users', () => {
 		test('should show stats page content', async ({ page }) => {
-			await page.goto(`/${LOCALE}/stats`)
+			await page.goto('/stats')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// Should show some stats content or login prompt
@@ -34,7 +32,7 @@ test.describe('Stats Page', () => {
 		})
 
 		test('should have stats page elements visible', async ({ page }) => {
-			await page.goto(`/${LOCALE}/stats`)
+			await page.goto('/stats')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// Page should have some content
@@ -43,7 +41,7 @@ test.describe('Stats Page', () => {
 		})
 
 		test('should have login option on stats page', async ({ page }) => {
-			await page.goto(`/${LOCALE}/stats`)
+			await page.goto('/stats')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// Look for sign in button or link
@@ -77,7 +75,7 @@ test.describe('Stats Page', () => {
 					},
 				])
 			}
-			await page.goto(`/${LOCALE}/stats`)
+			await page.goto('/stats')
 		})
 
 		test('should display stats page content', async ({ page }) => {
@@ -156,7 +154,7 @@ test.describe('Stats Page', () => {
 		})
 
 		test('should display guess distribution chart for word games', async ({ page }) => {
-			await page.goto(`/${LOCALE}/stats`)
+			await page.goto('/stats')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// If user has word game stats, should show distribution
@@ -165,7 +163,7 @@ test.describe('Stats Page', () => {
 		})
 
 		test('should display overall statistics', async ({ page }) => {
-			await page.goto(`/${LOCALE}/stats`)
+			await page.goto('/stats')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// Overall stats section
@@ -178,7 +176,7 @@ test.describe('Stats Page', () => {
 test.describe('Streak Tracking', () => {
 	test.describe('Home Page Streak Display', () => {
 		test('should show streak counter on home page', async ({ page }) => {
-			await page.goto(`/${LOCALE}`)
+			await page.goto('/')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// Streak indicator should be visible (usually with flame icon)
@@ -187,7 +185,7 @@ test.describe('Streak Tracking', () => {
 		})
 
 		test('should show streak warning when at risk', async ({ page }) => {
-			await page.goto(`/${LOCALE}`)
+			await page.goto('/')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// Streak warning might be visible for users who haven't played today
@@ -215,38 +213,12 @@ test.describe('Streak Tracking', () => {
 				])
 			}
 
-			await page.goto(`/${LOCALE}`)
+			await page.goto('/')
 			await page.waitForSelector('main', { timeout: 10000 })
 
 			// Milestone celebration might be visible for users at 7, 30, 50, 100, 365 day streaks
 			const _milestone = page.getByText(/milestone|congratulations|days/i)
 			// This is conditional on user's streak count
 		})
-	})
-})
-
-test.describe('Leaderboard', () => {
-	test('should load leaderboard page', async ({ page }) => {
-		const response = await page.goto(`/${LOCALE}/leaderboard`)
-		// Page should load (might redirect or show content)
-		expect(response?.status()).toBeLessThan(500)
-
-		// Wait for some content
-		await page.waitForSelector('main, body', { timeout: 10000 })
-	})
-
-	test('should display leaderboard content or redirect', async ({ page }) => {
-		await page.goto(`/${LOCALE}/leaderboard`)
-		await page.waitForTimeout(2000) // Wait for any redirects
-
-		// Should show some content (might be login, leaderboard, or coming soon)
-		const mainContent = page.locator('main, body')
-		await expect(mainContent.first()).toBeVisible()
-	})
-
-	test('should handle leaderboard navigation', async ({ page }) => {
-		const response = await page.goto(`/${LOCALE}/leaderboard`)
-		// Just verify page loads without server error
-		expect(response?.status()).toBeLessThan(500)
 	})
 })

@@ -101,15 +101,6 @@ export function StatsConsole({ data }: { data: StatsPageData }) {
 							) : null}
 						</>
 					}
-					actions={
-						<a
-							href={link('/leaderboard')}
-							class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-						>
-							<Trophy class="h-4 w-4" aria-hidden="true" />
-							{t('viewLeaderboard')}
-						</a>
-					}
 				/>
 
 				{everythingUnreadable ? (
