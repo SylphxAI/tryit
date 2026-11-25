@@ -8,7 +8,7 @@ script or host.
 | Source | Path | Code |
 | --- | --- | --- |
 | Browser (uncaught errors, rejections, error boundaries, media failures, ineffective clicks and [CSP violations](reference/csp.md)) | same-origin `POST /api/observability/errors`; captured server side | `lib/observability/browser.ts`, `lib/observability/relay.ts` |
-| Rust api (every 5xx, every panic) | axum middleware and panic hook | `crates/puzzled-server/src/observability.rs` (`sylphx` crate) |
+| Rust api (every 5xx, every panic) | axum middleware and panic hook | `crates/puzzled-server/src/observability/mod.rs` (`sylphx` crate) |
 
 ## Key and SDK route
 
@@ -38,7 +38,7 @@ stacks.
 
 ## Api reporter
 
-`crates/puzzled-server/src/observability.rs`. Each event carries service
+`crates/puzzled-server/src/observability/mod.rs`. Each event carries service
 (`SYLPHX_SERVICE_NAME`, default `api`), release (`SYLPHX_GIT_COMMIT_SHA`),
 environment (`SYLPHX_ENVIRONMENT_TYPE`, as tag `environment`), the route
 template as tag `route` (`unmatched` when no route matched; never the raw
