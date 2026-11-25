@@ -57,6 +57,10 @@
 	},
 	"breadcrumbLabel": "パンくずリスト",
 	"gamePage": {
+		"freeAccessFaq": {
+			"question": "毎日の{game}はアカウントなしで無料で遊べますか？",
+			"answer": "はい。Tryitのデイリーパズル全{total}種類から、毎日好きな{count}種類をアカウントなしで無料で遊べます。{game}の新しい問題は毎日16:00 UTCに公開されます。"
+		},
 		"playCta": "今日のパズルをプレイ",
 		"guestNote": "プレイにアカウントは不要です。",
 		"guestSignIn": "連続記録を保存する",
