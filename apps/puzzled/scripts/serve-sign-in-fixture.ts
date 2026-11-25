@@ -1,6 +1,7 @@
 /** Local only: Auth response fixture for the real SolidStart routes. No credentials, email or accounts. */
 import { readFileSync } from 'node:fs'
 import { POLICY_ACCEPTANCE } from '../src/lib/identity/policy-consent'
+import { policyAcceptancePurpose } from '../src/lib/identity/policy-consent-server'
 import { fixtureToken } from './auth-fixture-facts'
 
 export const org = 'organization-00000000-0000-4000-8000-000000000123'
@@ -59,6 +60,8 @@ Bun.serve({
 			return response({ calls })
 		}
 		calls.push({ path, body })
+		// This fixture exposes no routes in the retired Auth namespace.
+		if (path.startsWith('/v1/auth/')) return response({ code: 'not_found' }, 404)
 		const enabled = !['legacy', 'off'].includes(mode)
 		const pk = auth === `Bearer ${publishable}`
 		if (path === '/v1/client/config') {
@@ -168,25 +171,27 @@ Bun.serve({
 		if (auth === `Bearer ${fixtureToken}` && path === '/v1/client/sign-out') {
 			return response({})
 		}
-		if (
-			path === '/v1/auth/consent:accept' &&
-			auth === `Bearer ${fixtureToken}` &&
-			request.headers.get('x-sylphx-organization') === org
-		) {
+		if (path === '/v1/consents' && request.method === 'POST') {
+			if (auth !== `Bearer ${secret}`) return response({ code: 'unauthorized' }, 401)
+			const timestamp = body?.occurred_at_unix_seconds
 			if (
-				mode === 'refuse-consent' ||
-				!Object.entries(POLICY_ACCEPTANCE).every(([k, v]) => body?.[k] === v)
+				!body ||
+				Object.keys(body).length !== 7 ||
+				typeof body.idempotency_key !== 'string' ||
+				!/^[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/.test(
+					body.idempotency_key,
+				) ||
+				body.project_id !== org ||
+				body.principal_id !== user.principal_id ||
+				body.purpose !== policyAcceptancePurpose(POLICY_ACCEPTANCE) ||
+				body.state !== 'granted' ||
+				body.legal_basis !== 'consent' ||
+				!Number.isInteger(timestamp) ||
+				Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 10
 			)
-				return response({}, 403)
-			return response({
-				user_id: user.principal_id,
-				current_terms_version: body.terms_version,
-				current_privacy_version: body.privacy_version,
-				accepted_terms_version: body.terms_version,
-				accepted_privacy_version: body.privacy_version,
-				accepted_at: new Date().toISOString(),
-				needs_reconsent: false,
-			})
+				return response({ code: 'invalid_consent' }, 400)
+			if (mode === 'refuse-consent') return response({ code: 'forbidden' }, 403)
+			return response({ consent: { consent_id: 'fixture-consent', fact: body } }, 201)
 		}
 		if (
 			path === '/v1/signup/email-verification/complete' &&
