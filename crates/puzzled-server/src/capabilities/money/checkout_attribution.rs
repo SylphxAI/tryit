@@ -1,10 +1,10 @@
 //! Rust transport boundary for the browser Signal SDK snapshot. No geo policy
 //! here; validate the allowed snapshots and independently respect Sec-GPC.
 use axum::http::HeaderMap;
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use puzzled_core::attribution::{Attribution, clean_value, click_id};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use puzzled_core::attribution::{clean_value, click_id, Attribution};
 use reqwest::Url;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum Consent {
