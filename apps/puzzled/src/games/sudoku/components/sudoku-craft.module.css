@@ -78,7 +78,7 @@
 	box-shadow: inset 0 -2px 0 var(--color-border);
 }
 
-.cell[data-matching]::after {
+.cell[data-matching]:not([data-conflict])::after {
 	content: '';
 	position: absolute;
 	bottom: 3px;
@@ -103,7 +103,7 @@
 	line-height: 1;
 }
 
-.cell:not([data-given])[data-filled] .value {
+.cell:where(:not([data-given])[data-filled]) .value {
 	color: var(--color-info);
 	font-weight: 500;
 	text-decoration: underline;
@@ -111,19 +111,34 @@
 	text-underline-offset: 4px;
 }
 
-.cell[data-conflict] .value {
-	color: var(--color-destructive);
-	text-decoration-style: wavy;
-}
-
 .cell[data-selected] .value {
 	color: inherit;
 }
 
+/* Conflict takes precedence over related, hover and amber selection surfaces. */
+.cell[data-conflict],
+.cell[data-conflict]:not([data-selected]):hover {
+	background: color-mix(in srgb, var(--color-destructive) 12%, var(--color-card));
+	color: var(--color-destructive);
+	box-shadow: inset 0 0 0 2px var(--color-destructive);
+}
+
+.cell[data-selected][data-conflict] {
+	background: color-mix(in srgb, var(--color-destructive) 18%, var(--color-card));
+	box-shadow: inset 0 0 0 3px var(--color-destructive);
+}
+
+.cell[data-conflict] .value {
+	color: inherit;
+	text-decoration: underline wavy;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 4px;
+}
+
 .conflictMark {
 	position: absolute;
-	top: 2px;
-	right: 3px;
+	top: 4px;
+	right: 5px;
 	font: 700 10px/1 var(--font-sans);
 	color: var(--color-destructive);
 }
@@ -229,6 +244,10 @@
 	z-index: 2;
 	outline: 3px solid var(--color-ring);
 	outline-offset: -3px;
+}
+
+.cell[data-conflict]:focus-visible {
+	outline-offset: 0;
 }
 
 .key:focus-visible {

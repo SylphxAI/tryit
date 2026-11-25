@@ -235,3 +235,127 @@ test('Undo keyboard shortcut leaves text-field editing to the browser', async ({
 	await page.keyboard.press('Meta+z')
 	await expect(cell(board, 1, 1)).toHaveAttribute('aria-label', 'Row 1, Column 1')
 })
+
+for (const viewport of [
+	{ width: 1440, height: 900 },
+	{ width: 390, height: 844 },
+]) {
+	for (const colorScheme of ['light', 'dark'] as const) {
+		const hasTouch = viewport.width === 390
+		test.describe(`Sudoku duplicate feedback at ${viewport.width}px in ${colorScheme} mode`, () => {
+			test.use({ viewport, colorScheme, hasTouch })
+
+			test('marks and clears every conflicting cell, including given clues', async ({ page }) => {
+				const grid = Array.from({ length: 9 }, () => Array<number | null>(9).fill(null))
+				grid[0][0] = grid[5][2] = grid[7][7] = 8
+				await page.route('**/v1/guest/session', (route) =>
+					route.fulfill({ json: { issued: false } }),
+				)
+				await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+					route.fulfill({
+						json: {
+							gameSlug: 'sudoku',
+							difficulty: 'easy',
+							canPlay: true,
+							puzzleDate: today,
+							puzzleDataJson: JSON.stringify({ grid, difficulty: 'easy' }),
+						},
+					}),
+				)
+				await page.goto('/games/sudoku?difficulty=easy&start=1#play')
+				const board = page.getByRole('group', { name: 'Sudoku', exact: true })
+				await expect(board.getByRole('button')).toHaveCount(81)
+				const status = page.getByRole('status').getByText('Duplicate number in row, column, or box')
+				const red = colorScheme === 'dark' ? 'rgb(242, 123, 112)' : 'rgb(168, 43, 35)'
+				const press = (button: Locator) => (hasTouch ? button.tap() : button.click())
+				const key = (name: string) => page.getByRole('button', { name, exact: true })
+				async function expectConflict(square: Locator, digit: string, selected: boolean) {
+					await expect(square).toHaveAttribute('data-conflict', 'true')
+					await expect(square).toHaveAttribute('aria-invalid', 'true')
+					const value = square.getByText(digit, { exact: true })
+					await expect(value).toHaveCSS('color', red)
+					await expect(value).toHaveCSS('text-decoration-line', 'underline')
+					await expect(value).toHaveCSS('text-decoration-style', 'wavy')
+					await expect(square).toHaveCSS(
+						'box-shadow',
+						`${red} 0px 0px 0px ${selected ? 3 : 2}px inset`,
+					)
+					const mark = square.getByText('!', { exact: true })
+					await expect(mark).toBeVisible()
+					await expect(mark).toHaveCSS('color', red)
+					// Resolve the painted tint (CSS color-mix) to sRGB before measuring WCAG contrast.
+					await expect
+						.poll(() =>
+							square.evaluate((button) => {
+								const ctx = document.createElement('canvas').getContext('2d')
+								if (!ctx) throw new Error('Cannot measure Sudoku conflict contrast')
+								const { color, backgroundColor } = getComputedStyle(button)
+								const luminance = (cssColor: string) => {
+									ctx.clearRect(0, 0, 1, 1)
+									ctx.fillStyle = cssColor
+									ctx.fillRect(0, 0, 1, 1)
+									const channels = ctx.getImageData(0, 0, 1, 1).data
+									return [0.2126, 0.7152, 0.0722].reduce((sum, weight, i) => {
+										const s = channels[i] / 255
+										return sum + weight * (s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4)
+									}, 0)
+								}
+								const fg = luminance(color)
+								const bg = luminance(backgroundColor)
+								return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05)
+							}),
+						)
+						.toBeGreaterThanOrEqual(4.5)
+				}
+				async function expectNoConflicts() {
+					await expect(board.locator('[data-conflict], [aria-invalid]')).toHaveCount(0)
+					await expect(board.getByText('!', { exact: true })).toHaveCount(0)
+					await expect(status).toHaveCount(0)
+				}
+
+				await expectNoConflicts()
+				const player = cell(board, 1, 3)
+				await press(player)
+				await press(key('8'))
+				const rowClue = cell(board, 1, 1)
+				const columnClue = cell(board, 6, 3)
+				await expect(rowClue).toHaveAttribute('data-given', 'true')
+				await expect(columnClue).toHaveAttribute('data-given', 'true')
+				await expectConflict(player, '8', true)
+				await expectConflict(rowClue, '8', false)
+				await expectConflict(columnClue, '8', false)
+				await expect(cell(board, 8, 8)).not.toHaveAttribute('data-conflict')
+				await expect(board.locator('[data-conflict="true"]')).toHaveCount(3)
+				await expect(status).toBeVisible()
+				if (!hasTouch) {
+					await rowClue.hover()
+					await expectConflict(rowClue, '8', false)
+				}
+				await press(key('Clear'))
+				await expectNoConflicts()
+
+				const first = cell(board, 1, 5)
+				const second = cell(board, 1, 6)
+				await press(first)
+				await press(key('4'))
+				await expectNoConflicts()
+				await press(second)
+				await press(key('4'))
+				await expectConflict(first, '4', false)
+				await expectConflict(second, '4', true)
+				await expect(board.locator('[data-conflict="true"]')).toHaveCount(2)
+				await expect(status).toBeVisible()
+				await press(key('Undo'))
+				await expectNoConflicts()
+				await expect(first).toHaveAccessibleName('Row 1, Column 5, 4')
+
+				await press(player)
+				await press(key('8'))
+				await expect(board.locator('[data-conflict="true"]')).toHaveCount(3)
+				page.once('dialog', (dialog) => dialog.accept())
+				await press(key('Start over'))
+				await expectNoConflicts()
+			})
+		})
+	}
+}

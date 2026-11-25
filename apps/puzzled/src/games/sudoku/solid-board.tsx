@@ -6,7 +6,7 @@ import { createTranslator } from '@/lib/i18n/translate'
 import styles from './components/sudoku-craft.module.css'
 import { parseSudokuClientPayload } from './parse-client'
 import { createInitialState, type SudokuAction, sudokuReducer } from './state'
-import { BOX_SIZE, isValidPlacement, type SudokuPuzzleClientData } from './types'
+import { BOX_SIZE, hasCellConflict, type SudokuPuzzleClientData } from './types'
 
 const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const coords = [0, 1, 2]
@@ -85,12 +85,9 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 		onCleanup(() => window.removeEventListener('keydown', keydown))
 	})
 
-	const hasConflict = (row: number, col: number) => {
-		const cell = state().userGrid[row][col]
-		return !cell.isGiven && cell.value !== null && !isValidPlacement(values(), row, col, cell.value)
-	}
+	const hasConflict = (row: number, col: number) => hasCellConflict(values(), row, col)
 	const duplicates = createMemo(() =>
-		state().userGrid.some((row, r) => row.some((_, c) => hasConflict(r, c))),
+		values().some((row, r) => row.some((_, c) => hasConflict(r, c))),
 	)
 
 	const cellAt = (row: number, col: number) => {
