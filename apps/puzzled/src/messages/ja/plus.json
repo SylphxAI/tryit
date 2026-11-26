@@ -41,7 +41,7 @@
 		"subscribing": "お支払い画面を開いています...",
 		"currentPlan": "Tryit Plusをご利用中です",
 		"manage": "サブスクリプションを管理",
-		"legal": "表示価格にはVATが含まれます。販売元：Sylphx Limited（イングランド・ウェールズ登録）。サブスクリプションは、設定で解約するまで自動的に更新されます。",
+		"sellerNote": "表示価格にはVATが含まれます。販売元：Sylphx Limited（イングランド・ウェールズ登録）。",
 		"checkoutCancelled": "お支払いはキャンセルされました。料金は請求されていません。",
 		"alreadySubscribed": "すでにTryit Plusをご利用中です。",
 		"immediateSupplyConsent": "すぐに利用を開始したいため、14日間の解約権を失うことを理解しました。",

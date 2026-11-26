@@ -41,7 +41,7 @@
 		"subscribing": "Abrindo o pagamento...",
 		"currentPlan": "Você tem o Tryit Plus",
 		"manage": "Gerenciar sua assinatura",
-		"legal": "Os preços incluem impostos (VAT). Vendido pela Sylphx Limited, registrada na Inglaterra e no País de Gales. Sua assinatura é renovada automaticamente até você cancelá-la em Configurações.",
+		"sellerNote": "Os preços incluem impostos (VAT). Vendido pela Sylphx Limited, registrada na Inglaterra e no País de Gales.",
 		"checkoutCancelled": "O pagamento foi cancelado. Você não foi cobrado.",
 		"alreadySubscribed": "Você já tem o Tryit Plus.",
 		"immediateSupplyConsent": "Quero acesso imediato e entendo que perco o direito de arrependimento de 14 dias.",

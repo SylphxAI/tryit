@@ -274,7 +274,9 @@ function PricingBody({ data }: { data: PricingData }) {
 					</div>
 					<p class="shrink-0 font-display text-3xl tnum">{formatPrice(0, currency, locale)}</p>
 				</div>
-				<p class="mt-6 max-w-3xl text-xs leading-relaxed text-muted-foreground">{t('legal')}</p>
+				<p class="mt-6 max-w-3xl text-xs leading-relaxed text-muted-foreground">
+					{t('sellerNote')}
+				</p>
 				<a
 					href={href('/terms#subscriptions')}
 					class="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-foreground hover:text-accent-warm-foreground"
