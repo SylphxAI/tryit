@@ -81,7 +81,7 @@ export function createResultDailyContext(
 		{ initialValue: null },
 	)
 	const [streak] = createResource(
-		() => won() && ritualDay(),
+		() => (won() || props.isGuest === true) && ritualDay(),
 		async () => {
 			try {
 				const response = await createGamificationServiceClient().getStreakInfo({})

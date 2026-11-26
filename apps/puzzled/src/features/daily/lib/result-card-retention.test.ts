@@ -31,13 +31,32 @@ test('freeze reassurance needs a daily win and the explicit server flag', () => 
 	expect(resultCardRetention(win, null, true).freezeSaved).toBe(false)
 })
 
-test('account capture is only for a confirmed guest on a daily win, even without streak data', () => {
-	expect(resultCardRetention(win, null, true).captureGuest).toBe(true)
-	expect(resultCardRetention(win, null, false).captureGuest).toBe(false)
-	expect(resultCardRetention(win, null, undefined).captureGuest).toBe(false)
-	expect(resultCardRetention(loss, null, true).captureGuest).toBe(false)
-	expect(resultCardRetention(archive, null, true).captureGuest).toBe(false)
-})
+for (const mode of ['daily', 'practice', 'archive'] as const) {
+	for (const status of ['won', 'lost'] as const) {
+		for (const [identity, isGuest] of [
+			['guest', true],
+			['account', false],
+		] as const) {
+			test.each([0, 1, 2])(`save-streak offer: ${mode} ${status}, ${identity}, %i days`, (days) => {
+				const streak = { currentStreak: days, freezeUsedYesterday: false }
+				const retention = resultCardRetention({ mode, status }, streak, isGuest)
+				expect(retention.captureGuest).toBe(mode === 'daily' && isGuest && days > 0)
+				if (retention.captureGuest) expect(retention.days).toBe(days)
+			})
+		}
+	}
+}
+
+test.each([win, loss])(
+	'save-streak requires both a server streak and a confirmed guest (%j)',
+	(card) => {
+		expect(resultCardRetention(card, null, true).captureGuest).toBe(false)
+		expect(
+			resultCardRetention(card, { currentStreak: 1, freezeUsedYesterday: false }, undefined)
+				.captureGuest,
+		).toBe(false)
+	},
+)
 
 test.each(locales)('%s has usable milestone, freeze, and account copy', (locale) => {
 	const t = createTranslator(locale)
