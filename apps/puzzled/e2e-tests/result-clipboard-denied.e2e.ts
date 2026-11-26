@@ -28,6 +28,10 @@ test('copying a challenge without clipboard permission offers a selectable capti
 	await page.goto('/games/sudoku?difficulty=easy&start=1#play')
 	await page.getByRole('button', { name: 'See your result' }).click()
 	const dialog = page.getByRole('dialog', { name: 'Sudoku Complete' })
+	const status = dialog.getByRole('status')
+	await expect(status).toHaveCount(1)
+	await expect(status).toBeEmpty()
+	const statusBeforeCopy = await status.elementHandle()
 	const cdp = await page.context().newCDPSession(page)
 	const { targetInfo } = await cdp.send('Target.getTargetInfo')
 	await cdp.send('Browser.setPermission', {
@@ -48,7 +52,8 @@ test('copying a challenge without clipboard permission offers a selectable capti
 		action: 'copy_challenge',
 		hasPercentile: false,
 	})
-	await expect(dialog.getByRole('status')).toHaveText('Could not share automatically.')
+	await expect(status).toHaveText('Could not share automatically.')
+	expect(await status.evaluate((node, before) => node === before, statusBeforeCopy)).toBe(true)
 	await expect(dialog.getByText('Challenge copied')).toHaveCount(0)
 	const caption = dialog.getByRole('textbox', { name: 'Result caption' })
 	const value = await caption.inputValue()
