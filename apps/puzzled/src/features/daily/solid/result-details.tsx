@@ -1,67 +1,15 @@
 /** @jsxImportSource solid-js */
-import { Check, Minus, X } from 'lucide-solid'
-import {
-	createResource,
-	createSignal,
-	createUniqueId,
-	For,
-	type JSX,
-	onCleanup,
-	Show,
-} from 'solid-js'
+import { createResource, createSignal, createUniqueId, type JSX, onCleanup } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { recallChallenge, sharedResultCard, toSharedResult } from '@/features/daily/lib/challenge'
-import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
-import {
-	FIVE_RESULT_TILE_COLORS,
-	type ResultCardModel,
-	type ResultCardStrings,
-	resultCardChips,
-	resultPatternSummary,
-} from '@/features/daily/lib/result-card'
-import { formatResultElapsed, type resultRitual } from '@/features/daily/lib/result-ritual'
-import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
+import type { ResultCardModel, ResultCardStrings } from '@/features/daily/lib/result-card'
+import type { resultRitual } from '@/features/daily/lib/result-ritual'
 import { getSharedResult } from '@/lib/connect/puzzle-client'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
-import { localizedPath } from '@/lib/seo/urls'
+import { ResultDetailsBody } from './result-details-body'
 
-import { DailyPickCount } from './daily-pick-count'
-import { DailyNextLink, DailyPickSteps } from './daily-pick-ui'
-
-export function ResultPattern(props: { model: ResultCardModel; strings: ResultCardStrings }) {
-	return (
-		<Show when={props.model.pattern}>
-			{(pattern) => (
-				<div
-					class="result-preview"
-					role="img"
-					aria-label={resultPatternSummary(pattern(), props.strings)}
-				>
-					<For each={pattern()}>
-						{(row) => (
-							<div class="result-preview-row" aria-hidden="true">
-								<For each={row}>
-									{(tile) => (
-										<span
-											data-tile={tile}
-											style={{
-												'background-color':
-													props.model.gameSlug === 'word-guess'
-														? FIVE_RESULT_TILE_COLORS[tile]
-														: undefined,
-											}}
-										/>
-									)}
-								</For>
-							</div>
-						)}
-					</For>
-				</div>
-			)}
-		</Show>
-	)
-}
+export { ResultPattern } from './result-pattern'
 
 export function ResultDetails(props: {
 	model: ResultCardModel
@@ -109,29 +57,6 @@ export function ResultDetails(props: {
 			return null
 		}
 	})
-	const chips = (model: ResultCardModel, exactTime?: string | null) => (
-		<dl class="result-stats">
-			<For
-				each={
-					exactTime === undefined
-						? resultCardChips(model, props.strings)
-						: [
-								...resultCardChips({ ...model, timeBand: null }, props.strings),
-								...(exactTime === null
-									? []
-									: [{ label: props.strings.timeLabel, value: exactTime }]),
-							]
-				}
-			>
-				{(chip) => (
-					<div>
-						<dt>{chip.label}</dt>
-						<dd data-time={chip.label === props.strings.timeLabel || undefined}>{chip.value}</dd>
-					</div>
-				)}
-			</For>
-		</dl>
-	)
 	// Mount outside the completion card: the rail becomes transparent while
 	// the dialog is open, and must not participate in compositing the dialog.
 	const overlay = () => (
@@ -147,84 +72,24 @@ export function ResultDetails(props: {
 				// Board shortcuts live on window and must not consume dialog input (including Escape).
 				on:keydown={(event) => event.stopPropagation()}
 			>
-				<header class="result-dialog-header" data-outcome={props.model.status}>
-					<button
-						type="button"
-						class="result-close"
-						aria-label={t('common.dismiss')}
-						onClick={dismiss}
-					>
-						<X size={21} aria-hidden="true" />
-					</button>
-					<span class="completion-mark" aria-hidden="true">
-						{props.model.status === 'won' ? <Check size={23} /> : <Minus size={23} />}
-					</span>
-					<h2 ref={heading} id={title} tabIndex={-1} class="result-dialog-title font-display">
-						{t(
-							props.model.status === 'won' ? 'gameResult.solvedTitle' : 'gameResult.finishedTitle',
-							{
-								game: props.model.gameName,
-							},
-						)}
-					</h2>
-					<Show when={props.model.dayDisplay || props.difficulty}>
-						<p class="result-date">
-							<Show when={props.model.dayDisplay}>
-								<time datetime={props.model.dayKey ?? undefined}>{props.model.dayDisplay}</time>
-							</Show>
-							<Show when={props.difficulty}>
-								<span>{t(`common.difficulty.${props.difficulty}`)}</span>
-							</Show>
-						</p>
-					</Show>
-				</header>
-				{chips(props.model, formatResultElapsed(props.timeSpentMs))}
-				<ResultPattern model={props.model} strings={props.strings} />
-				<Show when={opened()}>
-					<Show when={props.ritual}>
-						{(today) => (
-							<div class="result-ritual" data-ritual-completed={today().completed}>
-								<div class="result-ritual-head">
-									<DailyPickCount locale={props.locale} count={today().used} />
-									<DailyPickSteps class="result-steps" count={today().used} />
-								</div>
-								<Show when={today().completed === DAILY_FREE_PICKS}>
-									<p class="result-ritual-warm">{t('gameResult.freeFinished')}</p>
-									<FinishPassLink locale={props.locale} />
-								</Show>
-							</div>
-						)}
-					</Show>
-					<Show when={theirCard.latest}>
-						{(theirs) => (
-							<section class="result-comparison" aria-label={t('share.challenge.title')}>
-								<h3>{t('share.challenge.title')}</h3>
-								<p>
-									{t('share.challenge.theirs')} ·{' '}
-									{theirs().status === 'won' ? props.strings.statusWon : props.strings.statusLost}
-								</p>
-								{chips(theirs())}
-							</section>
-						)}
-					</Show>
-				</Show>
-				<div class="result-dialog-actions">
-					<Show when={opened() && props.ritual?.next}>
-						{(slug) => (
-							<DailyNextLink
-								class="result-button result-next"
-								slug={slug()}
-								dayKey={props.model.dayKey ?? ''}
-								locale={props.locale}
-								resume={props.ritual?.resume === true}
-							/>
-						)}
-					</Show>
+				<ResultDetailsBody
+					model={props.model}
+					strings={props.strings}
+					timeSpentMs={props.timeSpentMs}
+					difficulty={props.difficulty}
+					ritual={props.ritual}
+					locale={props.locale}
+					t={t}
+					title={title}
+					headingRef={(element) => {
+						heading = element
+					}}
+					opened={opened()}
+					theirCard={theirCard.latest}
+					dismiss={dismiss}
+				>
 					{props.children}
-					<a class="result-catalog-link" href={localizedPath(props.locale, '/games')}>
-						{t('catalog.title')}
-					</a>
-				</div>
+				</ResultDetailsBody>
 			</dialog>
 		</Portal>
 	)
