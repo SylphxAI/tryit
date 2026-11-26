@@ -13,6 +13,8 @@
 	"startGame": "Empezar partida",
 	"fillMode": "Rellenar",
 	"markMode": "Marcar",
+	"fillCue": "Casillas de la imagen",
+	"markCue": "Casillas que quedan vacías",
 	"errors": "{count} errores",
 	"complete": "¡Imagen completada!",
 	"messages": {

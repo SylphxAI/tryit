@@ -13,6 +13,8 @@
 	"startGame": "開始遊戲",
 	"fillMode": "填色",
 	"markMode": "標記",
+	"fillCue": "構成圖案的格子",
+	"markCue": "要留空的格子",
 	"errors": "{count} 個錯誤",
 	"complete": "圖案完成！",
 	"messages": {

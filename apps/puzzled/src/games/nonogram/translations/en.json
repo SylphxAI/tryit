@@ -13,6 +13,8 @@
 	"startGame": "Start Game",
 	"fillMode": "Fill",
 	"markMode": "Mark",
+	"fillCue": "Squares in the picture",
+	"markCue": "Squares to leave empty",
 	"errors": "{count} errors",
 	"complete": "Picture Complete!",
 	"messages": {
