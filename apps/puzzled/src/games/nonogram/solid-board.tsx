@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { Paintbrush, X } from 'lucide-solid'
-import { createMemo, For, onCleanup, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
 import { puzzleThemeLabel } from '@/games/shared/puzzle-theme-label'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -32,6 +32,8 @@ export default function NonogramBoard(props: DailyBoardProps) {
 	)
 }
 
+const arrowMoves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }
+
 function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const { width, height, rowClues, colClues, theme } = props.data
@@ -43,6 +45,13 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 	const [history, setHistory] = finish.draft.signal<CellState[][][]>('history', [])
 	const [mode, setMode] = finish.draft.signal<'filled' | 'marked'>('mode', 'filled')
 	const locked = () => finish.state() !== 'playing'
+	const [active, setActive] = createSignal<Cell | null>(null, {
+		equals: (previous, next) => previous?.row === next?.row && previous?.col === next?.col,
+	})
+	const buttons: HTMLButtonElement[] = []
+	createEffect(() => {
+		if (locked()) setActive(null)
+	})
 	let stroke:
 		| {
 				owner: HTMLDivElement
@@ -103,10 +112,36 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 		return { row: Number(cell.dataset.paintRow), col: Number(cell.dataset.paintCol) }
 	}
 
+	function activate(cell: Cell | null) {
+		if (!locked()) setActive(cell)
+	}
+
+	function moveFocus(event: KeyboardEvent, row: number, col: number) {
+		if (locked() || !Object.hasOwn(arrowMoves, event.key)) return
+		event.preventDefault()
+		const [dr, dc] = arrowMoves[event.key as keyof typeof arrowMoves]
+		const nextRow = Math.max(0, Math.min(height - 1, row + dr))
+		const nextCol = Math.max(0, Math.min(width - 1, col + dc))
+		if (nextRow === row && nextCol === col) setActive({ row, col })
+		else buttons[nextRow * width + nextCol]?.focus({ preventScroll: true })
+	}
+
+	function restoreFocusedCell(board: HTMLDivElement) {
+		activate(cellAt(board, board.ownerDocument.activeElement) ?? null)
+	}
+
 	function extendStroke(event: PointerEvent) {
 		if (locked() || stroke?.id !== event.pointerId) return
-		const cell = cellAt(stroke.owner, document.elementFromPoint(event.clientX, event.clientY))
-		if (cell) applyBrush(strokeCells(stroke.last ?? cell, cell), stroke.brush)
+		const { owner } = stroke
+		const hit = owner.ownerDocument.elementFromPoint(event.clientX, event.clientY)
+		const cell = cellAt(owner, hit)
+		if (cell) {
+			setActive(cell)
+			applyBrush(strokeCells(stroke.last ?? cell, cell), stroke.brush)
+		} else if (!owner.contains(hit)) {
+			// Pointer capture can delay pointerleave until the stroke ends.
+			restoreFocusedCell(owner)
+		}
 		stroke.last = cell
 	}
 
@@ -149,7 +184,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 			: ''
 	})
 	const clueClass =
-		'group rounded text-[clamp(.55rem,2.5vw,.875rem)] tabular-nums hover:bg-background focus-visible:z-10 aria-pressed:text-muted-foreground data-conflict:text-destructive data-conflict:inset-ring-2 data-conflict:inset-ring-destructive [&[aria-pressed=true]:not([data-conflict])>span:not([aria-hidden])]:line-through'
+		'group rounded text-[clamp(.55rem,2.5vw,.875rem)] tabular-nums hover:bg-background focus-visible:z-10 aria-pressed:text-muted-foreground data-active:bg-accent-warm-soft not-data-conflict:data-active:text-foreground data-conflict:text-destructive data-conflict:inset-ring-2 data-conflict:inset-ring-destructive [&[aria-pressed=true]:not([data-conflict])>span:not([aria-hidden])]:line-through'
 	// Reserve space for the cue in both states, so the grid tracks never resize.
 	const conflictCueClass = 'invisible font-bold group-data-conflict:visible'
 	const label = (axis: 'Row' | 'Column', index: number, clues: number[]) =>
@@ -173,6 +208,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 					if (locked() || stroke || !event.isPrimary || (!alternate && event.button !== 0)) return
 					const cell = cellAt(event.currentTarget, event.target)
 					if (!cell) return
+					setActive(cell)
 					const selected = mode()
 					const ink = alternate ? (selected === 'filled' ? 'marked' : 'filled') : selected
 					const brush = createBrush(grid()[cell.row][cell.col], ink, alternate)
@@ -185,6 +221,10 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 					}
 					event.currentTarget.setPointerCapture(event.pointerId)
 					applyBrush([cell], brush)
+				}}
+				onPointerLeave={(event) => restoreFocusedCell(event.currentTarget)}
+				onFocusOut={(event) => {
+					if (!cellAt(event.currentTarget, event.relatedTarget)) setActive(null)
 				}}
 				onPointerMove={extendStroke}
 				onPointerUp={(event) => endStroke(event, true)}
@@ -203,6 +243,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 							id={`paint-col-${col()}`}
 							aria-label={label('Column', col(), clues)}
 							aria-invalid={colConflict(col())}
+							data-active={active()?.col === col() || undefined}
 							data-conflict={colConflict(col())}
 							class={`flex flex-col items-center justify-end pb-1 leading-tight ${clueClass}`}
 							aria-pressed={clueDimmed(
@@ -230,6 +271,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 								id={`paint-row-${row}`}
 								aria-label={label('Row', row, rowClues[row])}
 								aria-invalid={rowConflict(row)}
+								data-active={active()?.row === row || undefined}
 								data-conflict={rowConflict(row)}
 								class={`flex items-center justify-end gap-0.5 px-1 ${clueClass}`}
 								aria-pressed={clueDimmed(`paint-row-${row}`, isRowClueMet(grid(), props.data, row))}
@@ -248,7 +290,8 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 								{(col) => (
 									<button
 										type="button"
-										class="flex aspect-square min-w-0 touch-none select-none items-center justify-center border border-border bg-background text-muted-foreground focus-visible:z-10 data-filled:bg-foreground data-divider-col:border-r-foreground/50 data-divider-row:border-b-foreground/50"
+										ref={(button) => (buttons[row * width + col] = button)}
+										class="flex aspect-square min-w-0 touch-none select-none items-center justify-center border border-border bg-background text-muted-foreground focus-visible:z-10 data-filled:bg-foreground not-data-filled:data-crosshair:bg-accent-warm-soft/60 data-divider-col:border-r-foreground/50 data-divider-row:border-b-foreground/50"
 										aria-label={`${t('common.cellRow', { index: row + 1 })}, ${t('common.cellColumn', { index: col + 1 })}`}
 										aria-describedby={`paint-row-${row} paint-col-${col}`}
 										data-paint-row={row}
@@ -260,11 +303,15 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 													? 'mixed'
 													: false
 										}
+										data-crosshair={active()?.row === row || active()?.col === col || undefined}
 										data-filled={grid()[row][col] === 'filled' || undefined}
 										data-marked={grid()[row][col] === 'marked' || undefined}
 										data-divider-col={(col % 5 === 4 && col + 1 < width) || undefined}
 										data-divider-row={(row % 5 === 4 && row + 1 < height) || undefined}
 										disabled={locked()}
+										onPointerEnter={() => activate({ row, col })}
+										onFocus={() => activate({ row, col })}
+										onKeyDown={(event) => moveFocus(event, row, col)}
 										onClick={(event) => {
 											if (event.detail !== 0 || locked() || stroke) return
 											const before = grid()
