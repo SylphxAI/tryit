@@ -29,6 +29,7 @@
 		"perYear": "每年",
 		"saving": "節省 {percent}%",
 		"includesAllGames": "每天可玩全部 {count} 款遊戲",
+		"includesPractice": "{practiceCount} 款遊戲，想練幾多次都得",
 		"includesArchive": "過去 {days} 日的題目",
 		"includesStats": "每款遊戲的統計和連續紀錄",
 		"includesAdFree": "完全無廣告",

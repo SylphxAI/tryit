@@ -29,6 +29,7 @@
 		"perYear": "年あたり",
 		"saving": "{percent}%お得",
 		"includesAllGames": "毎日、全{count}ゲームが遊べます",
+		"includesPractice": "{practiceCount}種類のゲームで何度でも練習",
 		"includesArchive": "過去{days}日分のパズル",
 		"includesStats": "すべてのゲームの統計と連続記録",
 		"includesAdFree": "広告は一切なし",
