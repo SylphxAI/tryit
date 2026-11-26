@@ -131,7 +131,12 @@ describe('self-hosted CI contract', () => {
 		expect(verify).toContain("grep -Eq '[0-9]+ skipped'")
 		expect(verify).toContain('"salesOpen":true')
 		// phone-first runs the iPhone 13 profile, which Playwright drives on WebKit.
-		expect(verify).toContain('playwright install --with-deps chromium webkit')
+		const install = workflow('verify').jobs.craft.steps?.find(
+			(step) => step.name === 'Install Playwright Chromium and WebKit',
+		)
+		expect(install).toMatchObject({ env: { PLAYWRIGHT_INSTALL_BROWSERS: 'chromium webkit' } })
+		expect(install?.run).toContain(`bunx playwright install "\${browsers[@]}"`)
+		expect(install?.run).toContain(`bunx playwright install-deps "\${browsers[@]}"`)
 	})
 
 	test('browser installs are job-isolated and Lighthouse resolves the package revision', () => {

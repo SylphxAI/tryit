@@ -383,7 +383,43 @@ jobs:
       # assumed. Pinned by the @playwright/test version in bun.lock.
       - name: Install Playwright Chromium
         working-directory: apps/puzzled
-        run: bunx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_INSTALL_BROWSERS: chromium
+        run: &install-playwright-browsers |
+          set -euo pipefail
+          read -r -a browsers <<< "$PLAYWRIGHT_INSTALL_BROWSERS"
+          bunx playwright install "${browsers[@]}"
+
+          probe_browsers() {
+            node - "$@" <<'NODE'
+          const playwright = require('playwright')
+          async function probe() {
+            for (const name of process.argv.slice(2)) {
+              const engine = playwright[name]
+              // Lighthouse consumes the full pinned binary, not Chromium headless shell.
+              const executablePath = process.env.PLAYWRIGHT_FULL_CHROMIUM === '1' && name === 'chromium'
+                ? engine.executablePath() : undefined
+              const browser = await engine.launch({ executablePath, timeout: 10_000 })
+              try {
+                const page = await browser.newPage()
+                await page.setContent('<title>Playwright launch check</title>', { timeout: 5_000 })
+                console.log('Playwright '+name+' launch check passed')
+              } finally {
+                await browser.close()
+              }
+            }
+          }
+          probe().catch((error) => { console.error(error); process.exitCode = 1 })
+          NODE
+          }
+
+          if probe_browsers "${browsers[@]}"; then
+            echo "Browser dependencies already present; skipping apt"
+          else
+            echo "Browser launch failed; installing system dependencies and checking again"
+            bunx playwright install-deps "${browsers[@]}"
+            probe_browsers "${browsers[@]}"
+          fi
 
       - name: run-store get web-build
         uses: SylphxAI/.github/.github/actions/run-store@90d88da2d60dcd6a3884899c273dd3a7f975be17
@@ -533,7 +569,10 @@ jobs:
       # bun.lock instead of by whatever the runner happens to ship.
       - name: Install Chromium for Lighthouse
         working-directory: apps/puzzled
-        run: bunx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_INSTALL_BROWSERS: chromium
+          PLAYWRIGHT_FULL_CHROMIUM: '1'
+        run: *install-playwright-browsers
 
       - name: Point CHROME_PATH at that Chromium
         run: |
@@ -715,7 +754,9 @@ jobs:
       # job installs both engines.
       - name: Install Playwright Chromium and WebKit
         working-directory: apps/puzzled
-        run: bunx playwright install --with-deps chromium webkit
+        env:
+          PLAYWRIGHT_INSTALL_BROWSERS: chromium webkit
+        run: *install-playwright-browsers
 
       - name: run-store get web-build
         uses: SylphxAI/.github/.github/actions/run-store@90d88da2d60dcd6a3884899c273dd3a7f975be17
