@@ -475,7 +475,3 @@
 		min-block-size: 2.75rem;
 	}
 }
-
-@media (width < 640px) {
-	[data-play-canvas] .completion-card[data-board-finished]:not(:has(.result-install)) .result-guest-link { max-inline-size: none; }
-}
