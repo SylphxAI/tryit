@@ -31,6 +31,8 @@
 	"notReadyCta": "Ver los puzzles gratis de hoy",
 	"startUsesPick": "Empezar usa una de tus 3 elecciones gratis de hoy. El juego que empieces queda abierto todo el día.",
 	"englishWordPuzzle": "Juego de palabras en inglés",
+	"cageSudokuCornerTotal": "La cifra en la esquina suma toda la zona punteada.",
+	"cageSudokuExample": "Ejemplo (otro tablero): 3 + 5 da 8 en la esquina.",
 	"firstAction": {
 		"sudoku": "Toca una casilla vacía y elige un número del 1 al 9.",
 		"nonogram": "Usa las pistas numéricas para pintar una casilla.",
@@ -40,7 +42,7 @@
 		"duo": "Toca una casilla vacía para poner un sol o una luna.",
 		"numberPath": "Empieza en 1 y recorre las casillas vecinas en orden.",
 		"wordGroups": "Toca cuatro palabras que tengan algo en común.",
-		"killerSudoku": "Elige un dígito con ayuda de la suma de su zona.",
+		"killerSudoku": "Elige una casilla vacía y escribe un dígito.",
 		"wordLadder": "Cambia una letra para formar otra palabra.",
 		"wordGuess": "Escribe una palabra de cinco letras para obtener pistas.",
 		"cryptogram": "Toca una letra cifrada y adivina cuál representa.",

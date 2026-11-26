@@ -285,7 +285,7 @@ for (const [width, height] of layouts) {
 		test.use({ viewport: { width, height }, hasTouch: width === 390, isMobile: width === 390 })
 		for (const [locale, slugs] of [
 			['en-US', [...wordGames, ...otherGames]],
-			['zh-TW', ['nonogram', 'number-path', 'quad-words', 'block-slide']],
+			['zh-TW', ['nonogram', 'number-path', 'quad-words', 'block-slide', 'killer-sudoku']],
 		] as const) {
 			for (const slug of slugs) {
 				test(slug + ' fits the frameless play canvas (' + locale + ')', async ({ page }) => {
@@ -406,13 +406,37 @@ for (const [width, height] of layouts) {
 					if (width >= 1024 && splitGames.includes(slug)) {
 						const instruction = await page.locator(cue).evaluate((el) => {
 							const range = document.createRange()
-							range.selectNodeContents(el)
-							const lines = new Set(Array.from(range.getClientRects(), (rect) => rect.top))
+							const nodes = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+							const lines = new Set<number>()
+							while (nodes.nextNode()) {
+								range.selectNodeContents(nodes.currentNode)
+								for (const rect of range.getClientRects()) {
+									if (rect.width > 0) lines.add(rect.top)
+								}
+							}
 							return { width: el.getBoundingClientRect().width, lines: lines.size }
 						})
 						expect(instruction.width).toBeGreaterThanOrEqual(220)
 						expect(instruction.lines).toBeGreaterThan(0)
 						expect(instruction.lines).toBeLessThanOrEqual(2)
+					}
+					if (slug === 'killer-sudoku') {
+						const instruction = page.locator(cue)
+						await expect(instruction).toContainText(
+							locale === 'en-US'
+								? 'Select an empty square, then enter a digit.'
+								: '先選一個空格，再輸入數字。',
+						)
+						await expect(instruction).toContainText(
+							locale === 'en-US'
+								? 'Small corner number = sum of digits in the dashed cage.'
+								: '角落小數字是虛線框內數字的總和。',
+						)
+						await expect(instruction).toContainText(
+							locale === 'en-US'
+								? 'Example (not this puzzle): 3 + 5 gives a corner total of 8.'
+								: '範例（不是本局）：框內 3 + 5，角落就是 8。',
+						)
 					}
 					if (width >= 1024 && slug === 'killer-sudoku') {
 						const dockTop = (await dock.boundingBox())!.y
