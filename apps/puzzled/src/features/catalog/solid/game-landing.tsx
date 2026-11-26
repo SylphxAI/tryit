@@ -1,21 +1,20 @@
 /** @jsxImportSource solid-js */
-import { ChevronDown, Clock, Lightbulb, Play } from 'lucide-solid'
-import { For, type ParentProps, Show } from 'solid-js'
+import { For, type ParentProps } from 'solid-js'
 import { getRequestEvent, isServer, NoHydration } from 'solid-js/web'
-import { markStartIntent, START_INTENT_ATTRIBUTE } from '@/features/daily/lib/start-intent'
-import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
-import { getGameColors } from '@/games/theme-colors'
-import type { PuzzleDifficulty } from '@/games/types'
-import { createTranslator } from '@/lib/i18n/translate'
-import { localizedPath } from '@/lib/seo/urls'
+import { START_INTENT_ATTRIBUTE } from '@/features/daily/lib/start-intent'
 import { START_INTENT_KEY } from '@/lib/storage-keys'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
-import { CatalogTile } from './catalog-page'
-import type { GamePageData } from './game-data'
+import {
+	renderGameFaq,
+	renderGameRules,
+	renderGameTips,
+	renderRelatedGameTiles,
+} from './game-landing-editorial'
+import { type GameLandingHeroProps, renderGameLandingHeroBody } from './game-landing-hero'
 
-export const playButton = 'chrome-control chrome-primary min-h-12 gap-2 px-7 text-base font-bold'
+export { playButton } from './game-landing-actions'
 
 // Capture an explicit Play tap even before Solid installs its click handler.
 // Do not turn a shared or pasted URL into permission to spend a daily pick.
@@ -26,68 +25,11 @@ const captureEarlyPlay = `document.addEventListener('click',function(e){
   try{sessionStorage.setItem('${START_INTENT_KEY}',JSON.stringify({slug:link.getAttribute('${START_INTENT_ATTRIBUTE}'),at:Date.now()}))}catch{}
 },true)`
 
-export function GameLanding(
-	props: ParentProps<{
-		data: GamePageData
-		stage: boolean
-		locked: boolean
-		playHref: string
-		daily: boolean
-		practice?: boolean
-		difficulty?: PuzzleDifficulty
-		signedIn: boolean
-	}>,
-) {
+// Render helpers keep the existing Solid hydration scope and dynamic slots.
+export function GameLanding(props: ParentProps<GameLandingHeroProps>) {
 	const nonce = isServer ? getRequestEvent()?.locals.cspNonce : undefined
 	const d = () => props.data
 	const t = () => d().labels
-	const color = () => getGameColors(d().theme).bg
-	const title = () => (
-		<h1
-			class={
-				props.stage
-					? 'font-display text-2xl leading-tight md:text-[1.75rem]'
-					: 'font-display text-[2.5rem] leading-[1.02] text-balance md:text-6xl'
-			}
-		>
-			{d().name}
-		</h1>
-	)
-	const motif = () => (
-		<img
-			src={`/motifs/${d().slug}.svg`}
-			alt=""
-			width="160"
-			height="100"
-			class="h-full w-full object-contain"
-		/>
-	)
-	const facts = () => (
-		<ul class="flex flex-wrap items-center gap-1.5 text-xs font-medium">
-			<li class="tag-chip numeral">
-				<Clock class="h-3 w-3" aria-hidden="true" />
-				{d().duration}
-			</li>
-			<li class="tag-chip">{d().category}</li>
-			<Show when={d().highlight}>
-				<li class="tag-chip">{d().highlight}</li>
-			</Show>
-			<Show when={d().difficultyLevels.length}>
-				<li class="tag-chip">
-					{d()
-						.difficultyLevels.map(({ label }) => label)
-						.join(' / ')}
-				</li>
-			</Show>
-		</ul>
-	)
-	const featured = () => (
-		<Show when={d().featured && !props.practice}>
-			<span class="inline-flex rounded-full bg-foreground px-2.5 py-1 text-xs font-semibold text-background">
-				{t().featured}
-			</span>
-		</Show>
-	)
 
 	return (
 		<SiteShell data={d().shell} signedIn={props.signedIn}>
@@ -128,153 +70,15 @@ export function GameLanding(
 								</li>
 							</ol>
 						</nav>
-						<Show
-							when={!props.stage}
-							fallback={
-								<div class="flex flex-wrap items-center gap-3">
-									{title()}
-									{featured()}
-									<div class="hidden md:block">{facts()}</div>
-								</div>
-							}
-						>
-							<div class="mt-1 grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
-								<div class="min-w-0">
-									{featured()}
-									<div class="mt-3 flex items-center justify-between gap-4">
-										{title()}
-										<div
-											class={`editorial-surface h-16 w-[6.25rem] shrink-0 overflow-hidden rounded-xl p-1 md:hidden ${color()}`}
-										>
-											{motif()}
-										</div>
-									</div>
-									<p class="mt-3 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-										{d().description}
-									</p>
-									<div class="mt-4">{facts()}</div>
-									<div class="flex flex-wrap items-center gap-x-4 gap-y-2 empty:hidden mt-6">
-										<Show when={!props.locked}>
-											<a
-												href={props.playHref}
-												data-start-intent={props.daily ? d().slug : undefined}
-												class={playButton}
-												onClick={(event) => {
-													if (
-														props.daily &&
-														!event.defaultPrevented &&
-														!event.metaKey &&
-														!event.ctrlKey &&
-														!event.altKey &&
-														!event.shiftKey
-													)
-														markStartIntent(d().slug)
-												}}
-											>
-												<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
-												{t().play}
-											</a>
-										</Show>
-										<Show when={props.daily && isPracticeSupported(d().slug)}>
-											<a
-												class="chrome-control min-h-12 font-semibold underline"
-												href={practicePath(d().canonicalPath, props.difficulty)}
-											>
-												{createTranslator(d().locale)('practice.label')}
-											</a>
-										</Show>
-									</div>
-									<Show when={!props.signedIn}>
-										<p class="mt-2 text-sm text-muted-foreground">
-											{t().guest}{' '}
-											<a
-												class="chrome-control text-foreground"
-												href={localizedPath(
-													d().locale,
-													`/sign-in?${new URLSearchParams({ callbackUrl: d().canonicalPath })}`,
-												)}
-											>
-												{t().signup}
-											</a>
-										</p>
-									</Show>
-								</div>
-								<div
-									class={`editorial-surface hidden aspect-[16/10] rounded-3xl overflow-hidden p-4 md:block ${color()}`}
-								>
-									{motif()}
-								</div>
-							</div>
-						</Show>
+						{renderGameLandingHeroBody(props)}
 					</div>
 				</section>
 				<section id="play" tabIndex={-1} class="page-shell scroll-mt-16 py-3" aria-label={t().play}>
 					{props.children}
 				</section>
-				<Show when={d().rules.length}>
-					<section id="rules" class="section-block">
-						<div class="page-shell">
-							<h2 class="font-display text-[1.625rem]">{t().rulesTitle}</h2>
-							<ol class="mt-5 space-y-2.5">
-								<For each={d().rules}>
-									{(rule, index) => (
-										<li class="flex gap-3.5 text-sm leading-relaxed">
-											<span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold numeral">
-												{index() + 1}
-											</span>
-											<span class="pt-0.5">{rule}</span>
-										</li>
-									)}
-								</For>
-							</ol>
-						</div>
-					</section>
-				</Show>
-				<Show when={d().tips.length}>
-					<section class="section-block pt-0">
-						<div class="page-shell">
-							<h2 class="font-display text-[1.625rem]">{t().tipsTitle}</h2>
-							<ul class="mt-3 border-t border-border">
-								<For each={d().tips}>
-									{(tip) => (
-										<li class="flex gap-3.5 border-b border-border py-3.5 text-[15px] leading-relaxed">
-											<Lightbulb
-												class="mt-1 h-4 w-4 shrink-0 text-muted-foreground"
-												aria-hidden="true"
-											/>
-											{tip}
-										</li>
-									)}
-								</For>
-							</ul>
-						</div>
-					</section>
-				</Show>
-				<Show when={d().faq.length}>
-					<section id="game-faq" class="section-block pt-0">
-						<div class="page-shell">
-							<h2 class="font-display text-[1.625rem]">{t().faqTitle}</h2>
-							<div class="mt-3 border-t border-border">
-								<For each={d().faq}>
-									{(item) => (
-										<details class="group border-b border-border">
-											<summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 py-3.5 text-[15px] font-semibold marker:content-none">
-												{item.question}
-												<ChevronDown
-													class="h-4 w-4 shrink-0 transition-transform group-open:rotate-180"
-													aria-hidden="true"
-												/>
-											</summary>
-											<p class="pb-4 pr-8 text-[15px] leading-relaxed text-muted-foreground">
-												{item.answer}
-											</p>
-										</details>
-									)}
-								</For>
-							</div>
-						</div>
-					</section>
-				</Show>
+				{renderGameRules(d)}
+				{renderGameTips(d)}
+				{renderGameFaq(d)}
 				<section class="section-block pt-0">
 					<div class="page-shell">
 						<div class="flex flex-wrap items-center justify-between gap-2">
@@ -283,15 +87,7 @@ export function GameLanding(
 								{t().relatedAll}
 							</a>
 						</div>
-						<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-							<For each={d().related}>
-								{(entry) => (
-									<li>
-										<CatalogTile entry={entry} labels={d().tileLabels} />
-									</li>
-								)}
-							</For>
-						</ul>
+						<ul class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{renderRelatedGameTiles(d)}</ul>
 					</div>
 				</section>
 				<For each={d().schema}>{(schema) => <JsonLd value={schema} />}</For>
