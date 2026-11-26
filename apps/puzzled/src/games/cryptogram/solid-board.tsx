@@ -1,23 +1,13 @@
 /** @jsxImportSource solid-js */
 import { Lightbulb, RotateCcw } from 'lucide-solid'
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
-import { trackHintUsed } from '@/features/analytics/lib/behavioral-events'
+import { createMemo, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
-import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
-import { isAlreadyPlayedError } from '@/lib/connect/already-played'
 import { createTranslator } from '@/lib/i18n/translate'
-import { triggerHaptic } from '@/shared/hooks/use-haptic'
+import { type CryptogramCopy, createCryptogramPlay, cryptogramSlug } from './create-cryptogram-play'
+import { CryptogramKeyRows, mountCryptogramKeyboard } from './cryptogram-keyboard'
+import { CryptogramQuoteWords } from './cryptogram-quote'
 import { parseCryptogramClientPayload } from './parse-client'
-import {
-	type CryptogramAction,
-	createCryptogramState,
-	cryptogramReducer,
-	isFullyFilled,
-} from './state'
 import type { CryptogramPuzzleData } from './types'
-
-const slug = 'cryptogram'
-const keyboardRows = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'] as const
 
 export default function CryptogramBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -37,177 +27,26 @@ export default function CryptogramBoard(props: DailyBoardProps) {
 
 function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 	const t = createTranslator(props.locale)
-	const copy = (key: string, values?: Record<string, string | number>) =>
-		t(`games.cryptogram.${key}`, values)
-	const finish = createBoardFinish(props, slug)
-	const [state, setState] = finish.draft.signal('state', createCryptogramState(props.data))
-	const [hintPending, setHintPending] = createSignal(false)
-	const [gradePending, setGradePending] = createSignal(false)
-	const [gradeFailed, setGradeFailed] = createSignal(false)
-	const [hintFailed, setHintFailed] = createSignal(false)
-	const [notice, setNotice] = createSignal('')
-	const [retryCount, retryGrade] = createSignal(0)
-	const dispatch = (action: CryptogramAction) =>
-		setState((previous) => cryptogramReducer(previous, action, props.data))
-	const guesses = createMemo(() => state().guesses)
-	const playing = createMemo(() => state().gameStatus === 'playing' && finish.state() === 'playing')
-	const editable = () => playing() && !hintPending()
-	let hintVersion = 0
-	let noticeTimer: ReturnType<typeof setTimeout> | undefined
-	onCleanup(() => {
-		hintVersion++
-		clearTimeout(noticeTimer)
-	})
-	const grade = (guess: unknown) => gradeBoardGuess(props, slug, guess)
-	function gradeError(cause: unknown, fail: () => void) {
-		if (props.mode !== 'practice' && isAlreadyPlayedError(cause)) props.onAlreadyPlayed()
-		else fail()
-	}
-
-	createEffect(() => {
-		retryCount()
-		const submitted = guesses()
-		setGradeFailed(false)
-		if (!editable() || !isFullyFilled(submitted)) {
-			setGradePending(false)
-			return
-		}
-		setGradePending(true)
-		let stale = false
-		onCleanup(() => {
-			stale = true
-		})
-		void grade({ guesses: submitted }).then(
-			(answer) => {
-				if (stale || guesses() !== submitted || !editable()) return
-				setGradePending(false)
-				const solved = (answer as { solved?: unknown } | null)?.solved
-				if (typeof solved !== 'boolean') {
-					setGradeFailed(true)
-					return
-				}
-				if (solved) finish.finish({ guesses: submitted, hintsUsed: state().hintsUsed })
-				dispatch({ type: 'CHECKED', guesses: submitted, solved })
-			},
-			(cause) => {
-				if (stale) return
-				setGradePending(false)
-				gradeError(cause, () => setGradeFailed(true))
-			},
-		)
-	})
-
-	async function hint() {
-		if (!canHint()) return
-		const version = ++hintVersion
-		setHintPending(true)
-		setHintFailed(false)
-		try {
-			const answer = (await grade({
-				hint: true,
-				guesses: guesses(),
-				revealed: state().revealedLetters,
-			})) as { encrypted?: unknown; letter?: unknown } | null
-			if (version !== hintVersion || !playing()) return
-			if (typeof answer?.encrypted === 'string' && typeof answer.letter === 'string') {
-				const used = state().hintsUsed
-				dispatch({ type: 'REVEAL', encryptedLetter: answer.encrypted, letter: answer.letter })
-				const hintCount = state().hintsUsed
-				setHintFailed(used === hintCount)
-				if (hintCount > used) {
-					reportProgress()
-					trackHintUsed(slug, props.mode ?? 'daily', hintCount)
-				}
-			} else setHintFailed(true)
-		} catch (cause) {
-			if (version === hintVersion) gradeError(cause, () => setHintFailed(true))
-		} finally {
-			if (version === hintVersion) setHintPending(false)
-		}
-	}
-
-	const filled = createMemo(() => Object.values(guesses()).filter(Boolean).length)
-	const remaining = () => props.data.maxHints - state().hintsUsed
-	const canHint = () => editable() && !gradePending() && remaining() > 0
-	const reportProgress = () =>
-		finish.recordProgress((100 * filled()) / Math.max(1, Object.keys(guesses()).length))
-	const selected = () => state().selectedLetter
-	const isRevealed = (letter: string) => state().revealedLetters.includes(letter)
-	const canType = () => {
-		const letter = selected()
-		return editable() && letter !== null && !isRevealed(letter)
-	}
-	function showNotice(message = '') {
-		clearTimeout(noticeTimer)
-		setNotice(message)
-		if (message) noticeTimer = setTimeout(() => setNotice(''), 2500)
-	}
-	function select(letter: string | null) {
-		showNotice()
-		dispatch({ type: 'SELECT_LETTER', encryptedLetter: letter })
-	}
-	function typeLetter(letter: string) {
-		if (!editable()) return
-		const target = selected()
-		if (!target) {
-			showNotice(copy('selectFirst'))
-			return
-		}
-		if (!canType()) return
-		const previous = state()
-		const from = Object.keys(previous.guesses).find(
-			(key) => key !== target && previous.guesses[key] === letter,
-		)
-		const next = dispatch({ type: 'SET_GUESS', encryptedLetter: target, guessedLetter: letter })
-		if (next === previous) return
-		reportProgress()
-		showNotice(from ? copy('letterMoved', { letter, from, to: target }) : '')
-		triggerHaptic('light')
-	}
-	function clear() {
-		const target = selected()
-		if (target && canType()) {
-			showNotice()
-			dispatch({ type: 'CLEAR_GUESS', encryptedLetter: target })
-			reportProgress()
-		}
-	}
-	function reset() {
-		if (!playing()) return
-		hintVersion++
-		setHintPending(false)
-		setHintFailed(false)
-		showNotice()
-		dispatch({ type: 'RESET' })
-		reportProgress()
-	}
-	onMount(() => {
-		select(
-			Array.from(props.data.encryptedText).find(
-				(letter) => /^[A-Z]$/.test(letter) && !isRevealed(letter),
-			) ?? null,
-		)
-		const handleKey = (event: KeyboardEvent) => {
-			if (
-				event.defaultPrevented ||
-				event.altKey ||
-				event.ctrlKey ||
-				event.metaKey ||
-				event.isComposing ||
-				(event.target instanceof Element &&
-					event.target.closest('input, textarea, select, [contenteditable], [role="dialog"]'))
-			)
-				return
-			if (event.key === 'Escape' && selected()) {
-				select(null)
-			} else if (canType() && (event.key === 'Backspace' || event.key === 'Delete')) clear()
-			else if (editable() && /^[a-z]$/i.test(event.key)) typeLetter(event.key.toUpperCase())
-			else return
-			event.preventDefault()
-		}
-		window.addEventListener('keydown', handleKey)
-		onCleanup(() => window.removeEventListener('keydown', handleKey))
-	})
+	const copy: CryptogramCopy = (key, values) => t(`games.cryptogram.${key}`, values)
+	const finish = createBoardFinish(props, cryptogramSlug)
+	const play = createCryptogramPlay(props, finish, copy)
+	const {
+		filled,
+		guesses,
+		canHint,
+		hint,
+		remaining,
+		playing,
+		reset,
+		state,
+		gradeFailed,
+		retry,
+		hintFailed,
+		gradePending,
+		hintPending,
+		notice,
+	} = play
+	mountCryptogramKeyboard(() => props.data, play)
 
 	return (
 		<section class="flex w-full flex-col gap-3" aria-label={copy('name')} data-cryptogram-board>
@@ -243,37 +82,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 			</Show>
 			<fieldset class="min-w-0" aria-label={copy('highlight')} data-cipher-quote dir="ltr">
 				<div class="flex flex-wrap justify-center gap-x-3 gap-y-2 p-0.5">
-					<For each={props.data.encryptedText.split(/\s+/)}>
-						{(word) => (
-							<div class="flex max-w-full flex-wrap gap-0.5">
-								<For each={Array.from(word)}>
-									{(char) => (
-										<Show
-											when={/^[A-Z]$/.test(char)}
-											fallback={<span class="self-center">{char}</span>}
-										>
-											<button
-												type="button"
-												class="flex h-12 min-w-9 flex-col items-center justify-center rounded-md border border-border bg-background hover:not-aria-pressed:bg-muted aria-pressed:border-accent-warm aria-pressed:bg-accent-warm-soft aria-pressed:ring-2 aria-pressed:ring-accent-warm/45 data-revealed:not-aria-pressed:bg-muted"
-												aria-label={copy('cipherLetter', {
-													cipher: char,
-													guess: guesses()[char] || copy('blank'),
-												})}
-												aria-pressed={selected() === char}
-												data-cipher-letter={char}
-												data-revealed={isRevealed(char) || undefined}
-												disabled={!editable() || isRevealed(char)}
-												onClick={() => select(char)}
-											>
-												<span class="font-bold">{guesses()[char] || '_'}</span>
-												<span class="text-xs text-muted-foreground">{char}</span>
-											</button>
-										</Show>
-									)}
-								</For>
-							</div>
-						)}
-					</For>
+					<CryptogramQuoteWords encryptedText={props.data.encryptedText} play={play} copy={copy} />
 				</div>
 			</fieldset>
 			<Show when={state().lastCheckWrong}>
@@ -284,7 +93,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 			<Show when={gradeFailed()}>
 				<p role="alert" class="text-sm">
 					{t('common.error')}{' '}
-					<button type="button" class="min-h-11 underline" onClick={() => retryGrade((n) => n + 1)}>
+					<button type="button" class="min-h-11 underline" onClick={retry}>
 						{t('common.retry')}
 					</button>
 				</p>
@@ -300,40 +109,7 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 			</p>
 			{/* Ten equal columns on each row; Clear occupies the last three on the bottom. */}
 			<div class="mx-auto grid w-full max-w-lg gap-1" dir="ltr" data-cipher-keyboard>
-				<For each={keyboardRows}>
-					{(row, index) => (
-						<div class="grid auto-cols-[calc((100%-2.25rem)/10)] grid-flow-col justify-center gap-1">
-							<For each={Array.from(row)}>
-								{(letter) => (
-									<button
-										type="button"
-										class="min-h-11! min-w-0! touch-manipulation rounded-md border border-border bg-background font-semibold hover:bg-muted disabled:opacity-50 data-used:bg-muted"
-										data-used={Object.values(guesses()).includes(letter) || undefined}
-										disabled={
-											!editable() ||
-											(selected() !== null &&
-												(!canType() ||
-													state().revealedLetters.some((key) => guesses()[key] === letter)))
-										}
-										onClick={() => typeLetter(letter)}
-									>
-										{letter}
-									</button>
-								)}
-							</For>
-							<Show when={index() === keyboardRows.length - 1}>
-								<button
-									type="button"
-									class="col-span-3 min-h-11! min-w-0! touch-manipulation rounded-md border border-border bg-muted px-1 text-xs font-semibold hover:bg-background disabled:opacity-50 sm:text-sm"
-									disabled={!canType()}
-									onClick={clear}
-								>
-									{copy('clear')}
-								</button>
-							</Show>
-						</div>
-					)}
-				</For>
+				<CryptogramKeyRows play={play} copy={copy} />
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={copy('complete')} />
 		</section>
