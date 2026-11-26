@@ -230,11 +230,8 @@ pub async fn admitted_request_identities(
         }
     }
     if let (Some(player), Some(hash)) = (candidate, hash) {
-        let live: Option<uuid::Uuid> = sqlx::query_scalar("SELECT user_id FROM guest_credentials WHERE user_id = $1 AND token_hash = $2 AND revoked_at IS NULL AND adopted_user_id IS NULL FOR SHARE")
-            .bind(player).bind(hash).fetch_optional(&mut *tx).await.map_err(|_| internal())?;
-        if live == Some(player)
-            && account != Some(player)
-            && !guest_credentials::account_backed(&mut tx, player)
+        if account != Some(player)
+            && guest_credentials::validate_locked(&mut tx, player, hash)
                 .await
                 .map_err(|_| internal())?
         {

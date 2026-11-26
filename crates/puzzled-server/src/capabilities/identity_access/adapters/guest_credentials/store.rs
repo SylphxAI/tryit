@@ -3,13 +3,32 @@ use sha2::{Digest, Sha256};
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
-use super::{ACCOUNT_BACKED_SQL, COOKIE};
+use std::fmt::Write as _;
+use std::sync::LazyLock;
+
+use crate::capabilities::preferences::adapters::account_deletion::USER_KEYED_COLUMNS;
+
+use super::{ACCOUNT_BACKED, COOKIE};
+
+static ACCOUNT_BACKED_SQL: LazyLock<String> = LazyLock::new(|| format!("SELECT {ACCOUNT_BACKED}"));
+static UNUSED_PLAYER_SQL: LazyLock<String> = LazyLock::new(|| {
+    let mut sql = format!("SELECT NOT ({ACCOUNT_BACKED}");
+    for (table, column, _) in USER_KEYED_COLUMNS {
+        // Identifiers are compile-time inventory entries, never request input.
+        let _ = write!(
+            sql,
+            r#" OR EXISTS (SELECT 1 FROM "{table}" WHERE "{column}" = $1)"#
+        );
+    }
+    sql.push(')');
+    sql
+});
 
 pub async fn account_backed(
     connection: &mut PgConnection,
     player: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar(ACCOUNT_BACKED_SQL)
+    sqlx::query_scalar(sqlx::AssertSqlSafe(ACCOUNT_BACKED_SQL.as_str()))
         .bind(player)
         .fetch_one(connection)
         .await
@@ -20,6 +39,15 @@ pub async fn lock_players(
     connection: &mut PgConnection,
     mut players: Vec<Uuid>,
 ) -> Result<(), sqlx::Error> {
+    // Most requests lock exactly one player. Keep the same hash and lock as
+    // the sorted multi-player case, without a separate lookup round trip.
+    if players.len() == 1 {
+        sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended('puzzled:erasure:' || $1::uuid::text, 0))")
+            .bind(players[0])
+            .execute(connection)
+            .await?;
+        return Ok(());
+    }
     players.sort_unstable();
     players.dedup();
     let mut keys = Vec::new();
@@ -51,14 +79,23 @@ pub async fn lookup_hash(pool: &PgPool, hash: &str) -> Result<Option<Uuid>, sqlx
         .bind(hash).fetch_optional(pool).await
 }
 
+static VALIDATE_LOCKED_SQL: LazyLock<String> = LazyLock::new(|| {
+    format!("SELECT NOT ({ACCOUNT_BACKED}) FROM guest_credentials WHERE user_id = $1 AND token_hash = $2 AND adopted_user_id IS NULL AND revoked_at IS NULL FOR SHARE")
+});
+
 pub async fn validate_locked(
     connection: &mut PgConnection,
     player: Uuid,
     hash: &str,
 ) -> Result<bool, sqlx::Error> {
-    let live: Option<Uuid> = sqlx::query_scalar("SELECT user_id FROM guest_credentials WHERE user_id = $1 AND token_hash = $2 AND adopted_user_id IS NULL AND revoked_at IS NULL FOR SHARE")
-        .bind(player).bind(hash).fetch_optional(&mut *connection).await?;
-    Ok(live == Some(player) && !account_backed(connection, player).await?)
+    Ok(
+        sqlx::query_scalar(sqlx::AssertSqlSafe(VALIDATE_LOCKED_SQL.as_str()))
+            .bind(player)
+            .bind(hash)
+            .fetch_optional(connection)
+            .await?
+            .unwrap_or(false),
+    )
 }
 
 pub fn mint_cookie(existing: Option<&str>) -> Result<String, sqlx::Error> {
@@ -80,23 +117,10 @@ pub async fn unused_player(
     connection: &mut PgConnection,
     player: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    if account_backed(connection, player).await? {
-        return Ok(false);
-    }
-    for (table, column, _) in
-        crate::capabilities::preferences::adapters::account_deletion::USER_KEYED_COLUMNS
-    {
-        let statement =
-            format!("SELECT EXISTS (SELECT 1 FROM \"{table}\" WHERE \"{column}\" = $1)");
-        let exists: bool = sqlx::query_scalar(sqlx::AssertSqlSafe(statement))
-            .bind(player)
-            .fetch_one(&mut *connection)
-            .await?;
-        if exists {
-            return Ok(false);
-        }
-    }
-    Ok(true)
+    sqlx::query_scalar(sqlx::AssertSqlSafe(UNUSED_PLAYER_SQL.as_str()))
+        .bind(player)
+        .fetch_one(connection)
+        .await
 }
 
 /// Test fixture that performs a first guest write's allocation. Production
