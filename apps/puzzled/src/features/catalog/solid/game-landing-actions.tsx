@@ -2,6 +2,7 @@
 import { Play } from 'lucide-solid'
 import { Show } from 'solid-js'
 import { markStartIntent } from '@/features/daily/lib/start-intent'
+import { DEFAULT_DAILY_DIFFICULTY, todayPlayPath } from '@/features/daily/lib/today-play-path'
 import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import type { PuzzleDifficulty } from '@/games/types'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -19,32 +20,80 @@ export type GameLandingActionsProps = {
 	signedIn: boolean
 }
 
-export function renderPlayLink(
-	props: Pick<GameLandingActionsProps, 'data' | 'locked' | 'playHref' | 'daily'>,
-) {
+function LandingPlayLink(props: {
+	slug: string
+	href: string
+	label: string
+	class: string
+	daily: boolean
+}) {
+	return (
+		<a
+			href={props.href}
+			data-start-intent={props.daily ? props.slug : undefined}
+			class={props.class}
+			onClick={(event) => {
+				if (
+					props.daily &&
+					!event.defaultPrevented &&
+					!event.metaKey &&
+					!event.ctrlKey &&
+					!event.altKey &&
+					!event.shiftKey
+				)
+					markStartIntent(props.slug)
+			}}
+		>
+			<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
+			{props.label}
+		</a>
+	)
+}
+
+export function renderPlayLink(props: GameLandingActionsProps) {
 	const d = () => props.data
-	const t = () => d().labels
+	const sudokuChoices = () => {
+		if (!props.daily || props.difficulty || d().slug !== 'sudoku') return undefined
+		const primary = d().difficultyLevels.find(({ level }) => level === DEFAULT_DAILY_DIFFICULTY)
+		const easy = d().difficultyLevels.find(({ level }) => level === 'easy')
+		return primary && easy ? { primary, easy } : undefined
+	}
 	return (
 		<Show when={!props.locked}>
-			<a
-				href={props.playHref}
-				data-start-intent={props.daily ? d().slug : undefined}
-				class={playButton}
-				onClick={(event) => {
-					if (
-						props.daily &&
-						!event.defaultPrevented &&
-						!event.metaKey &&
-						!event.ctrlKey &&
-						!event.altKey &&
-						!event.shiftKey
-					)
-						markStartIntent(d().slug)
-				}}
+			<Show
+				when={sudokuChoices()}
+				fallback={
+					<LandingPlayLink
+						slug={d().slug}
+						href={props.playHref}
+						label={d().labels.play}
+						class={playButton}
+						daily={props.daily}
+					/>
+				}
 			>
-				<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
-				{t().play}
-			</a>
+				{(choices) => (
+					<fieldset class="min-w-0">
+						<legend class="mb-2 text-sm font-semibold">{d().labels.play}</legend>
+						<div class="flex flex-wrap items-center gap-2">
+							<LandingPlayLink
+								slug={d().slug}
+								href={props.playHref}
+								label={choices().primary.label}
+								class="chrome-control chrome-primary min-h-14 gap-2 px-5 text-base font-bold"
+								daily
+							/>
+							<LandingPlayLink
+								slug={d().slug}
+								href={localizedPath(d().locale, todayPlayPath(d().slug, choices().easy.level))}
+								label={choices().easy.label}
+								class="chrome-control min-h-12 gap-2 bg-foreground px-4 text-base font-bold text-background hover:bg-foreground/85"
+								daily
+							/>
+						</div>
+					</fieldset>
+				)}
+			</Show>
 		</Show>
 	)
 }

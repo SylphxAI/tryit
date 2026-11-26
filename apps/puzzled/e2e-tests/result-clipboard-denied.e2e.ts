@@ -159,7 +159,10 @@ for (const historical of [false, true]) {
 					expect.objectContaining({ gameSlug: 'sudoku', puzzleDate: day }),
 				)
 			} else {
-				await friend.getByRole('link', { name: "Play today's puzzle", exact: true }).first().click()
+				await friend
+					.getByRole('group', { name: "Play today's puzzle", exact: true })
+					.getByRole('link', { name: 'Medium', exact: true })
+					.click()
 				await expect(friend.getByRole('group', { name: 'Sudoku', exact: true })).toBeVisible()
 				await expect(friend.locator('[data-unlock-panel]')).toHaveCount(0)
 				expect(dailyRequests.length).toBeGreaterThan(0)
