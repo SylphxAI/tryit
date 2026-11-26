@@ -94,7 +94,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 												data-changed={
 													(index() > 0 && path()[index() - 1][col()] !== letter) || undefined
 												}
-												class="grid size-8 place-items-center rounded-md data-changed:bg-muted data-changed:underline data-changed:underline-offset-4"
+												class="grid size-8 place-items-center rounded-md border border-transparent data-changed:border-accent-warm data-changed:bg-accent-warm-soft data-changed:font-bold data-changed:underline data-changed:underline-offset-4"
 											>
 												{letter}
 											</span>
@@ -114,7 +114,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 					<input
 						ref={field}
 						id={inputId}
-						class="min-h-12 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-base font-bold uppercase aria-invalid:border-destructive"
+						class="min-h-12 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-base font-bold uppercase focus-visible:border-accent-warm aria-invalid:border-destructive aria-invalid:focus-visible:border-destructive"
 						aria-label={t('games.wordLadder.enterWord')}
 						aria-invalid={error() ? true : undefined}
 						aria-describedby={error() ? 'ladder-error' : undefined}
