@@ -1,7 +1,7 @@
 /** @jsxImportSource solid-js */
 import { createMemo, createSignal, For, Show } from 'solid-js'
 import { formatTimer } from '@/games/shared/format'
-import { BoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
+import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { createSlidePlay } from './create-slide-play'
 import { parseBlockSlideClientPayload } from './parse-client'
@@ -46,7 +46,8 @@ function Slides(
 	const { gridWidth, gridHeight, exitX, minMoves } = props.data
 	const target = props.data.blocks.find((block) => block.isTarget)
 	const ids = props.data.blocks.map((block) => block.id)
-	const play = createSlidePlay(props, props.data)
+	const finish = createBoardFinish(props, 'block-slide')
+	const play = createSlidePlay(props.data, finish)
 	const moveLabel = () => t('games.blockSlide.moveCount', { count: play.moves() })
 
 	return (
@@ -123,7 +124,7 @@ function Slides(
 						undo={play.undo}
 						wasReset={props.wasReset}
 						reset={() => {
-							play.finish.draft.discard()
+							finish.draft.discard()
 							props.reset()
 						}}
 						giveUp={play.giveUp}
@@ -132,7 +133,7 @@ function Slides(
 			</div>
 			<div class="play-result" classList={{ 'mt-6': !play.playing() }}>
 				<BoardFinish
-					finish={play.finish}
+					finish={finish}
 					locale={props.locale}
 					message={t(
 						play.outcome() === 'won' ? 'gameResult.congratulations' : 'gameResult.gameOver',

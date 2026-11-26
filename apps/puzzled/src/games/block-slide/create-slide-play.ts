@@ -1,5 +1,5 @@
 import { createSignal, onCleanup, onMount } from 'solid-js'
-import { createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
+import type { createBoardFinish } from '@/games/shared/solid/finish'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { slide, undoSlide } from './move-history'
 import { type BlockSlidePuzzle, canMove, type Direction, isWin } from './types'
@@ -15,9 +15,11 @@ const shortcuts: Record<string, Direction> = {
 	d: 'right',
 }
 
-export function createSlidePlay(props: DailyBoardProps, data: BlockSlidePuzzle) {
+export function createSlidePlay(
+	data: BlockSlidePuzzle,
+	finish: ReturnType<typeof createBoardFinish>,
+) {
 	const { gridWidth, gridHeight, exitX, exitY } = data
-	const finish = createBoardFinish(props, 'block-slide')
 	const [history, setHistory] = finish.draft.signal('history', [data.blocks])
 	const blocks = () => history()[history().length - 1]
 	const moves = () => history().length - 1
@@ -104,7 +106,6 @@ export function createSlidePlay(props: DailyBoardProps, data: BlockSlidePuzzle) 
 		outcome,
 		elapsed,
 		playing,
-		finish,
 		canMoveSelected,
 		move,
 		undo,
