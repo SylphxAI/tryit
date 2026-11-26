@@ -456,9 +456,10 @@
 		overflow-wrap: break-word;
 	}
 
-	/* Keep the account action beside its copy even when no install offer renders. */
-	[data-play-canvas] .completion-card[data-board-finished] > .result-guest-capture,
-	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) > .result-install {
+	/* Keep each prompt on one row, including without an install offer. */
+	[data-play-canvas] .completion-card[data-board-finished]:not(:has(> .result-install)) > .result-guest-capture,
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install)
+		> :is(.result-guest-capture, .result-install) {
 		grid-column: 1 / -1;
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
