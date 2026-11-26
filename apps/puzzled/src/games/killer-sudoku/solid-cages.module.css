@@ -29,3 +29,7 @@
 	font-size: clamp(16px, 4.5vw, 23px);
 	transform: translateY(2px);
 }
+
+.cell[data-selected]:not([data-conflict]) .edge {
+	color: inherit;
+}
