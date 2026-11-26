@@ -512,20 +512,16 @@ for (const viewport of [
 				await expect(card.locator('.completion-heading')).toHaveAttribute('data-outcome', outcome)
 				const guest = card.locator('[data-result-guest-capture]')
 				const nudge = card.locator('[data-install-nudge]')
-				await expect(guest).toHaveCount(outcome === 'won' ? 1 : 0)
+				await expect(guest).toBeVisible()
 				await expect(nudge).toHaveCount(install ? 1 : 0)
 				const actions = card.locator(
-					'.result-next, .result-action-row :is(a, button), .result-guest-link, [data-install-nudge] button',
+					'.result-next, .result-action-row :is(a, button), .result-guest-link, [data-result-guest-capture] button, [data-install-nudge] button',
 				)
 				await expect(actions).toHaveCount(
-					1 +
-						(slug === 'crossword' ? 2 : 3) +
-						(outcome === 'won' ? 1 : 0) +
-						(install ? (viewport.width === 390 ? 1 : 2) : 0),
+					1 + (slug === 'crossword' ? 2 : 3) + 2 + (install ? (viewport.width === 390 ? 1 : 2) : 0),
 				)
 				const visibleActions = await actions.all()
-				const prompts =
-					outcome === 'won' ? [guest.locator('p').first(), ...(install ? [nudge] : [])] : []
+				const prompts = [guest.locator('p').first(), ...(install ? [nudge] : [])]
 				await expect(card.locator('[data-result-percentile]')).toHaveCount(
 					outcome === 'won' ? 1 : 0,
 				)
