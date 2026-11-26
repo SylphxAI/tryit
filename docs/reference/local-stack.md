@@ -86,21 +86,8 @@ origin resolver. A production build ignores a loopback
 
 `SubmitGuess` → `200 valid=true status=lost` (a give-up is a terminal,
 not an "Invalid win claim"), `GetDaily` re-read → `hasCompleted=true` with the
-completed session, and a second terminal → `409 already_played`. The row the
-run writes is a qualifying ritual finish, so the North Star recipe is
-recomputable against it:
-
-```sql
--- daily puzzle completers for one product day (Asia/Hong_Kong day key)
-SELECT COUNT(DISTINCT user_id)::bigint AS daily_puzzle_completers
-FROM game_sessions
-WHERE day_key = 'YYYY-MM-DD'
-  AND is_ritual = true
-  AND module_class = 'puzzle_ritual'
-  AND status IN ('won', 'lost');
-```
-
-The same statement is published in Rust as
-`crates/puzzled-core/.../ritual_completion.rs` (`DRC_RECOMPUTE_SQL`) and
-asserted by `crates/puzzled-server` tests, so the local run closes the loop
-from client submission to the metric definition.
+completed session, and a second terminal → `409 already_played`. The harness
+writes a real ritual finish but marks it as verification traffic, so it does
+not contribute to [daily puzzle completers](../metrics.md#recomputing-it). The
+migrated database tests check the North Star against both marked and unmarked
+finishes.
