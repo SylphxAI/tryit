@@ -32,7 +32,7 @@ const hasLevels = new Set(['sudoku', 'nonogram', 'block-slide', 'crowns', 'kille
 const stage = '[data-game-stage="board"]'
 const cue = '[data-first-action]'
 
-function playable(slug: string) {
+function playable(slug: string, difficulty = 'medium') {
 	const snapshot = {
 		gameSlug: slug,
 		puzzleDate: productDayKey(),
@@ -61,7 +61,7 @@ function playable(slug: string) {
 	)
 	const entry = cases.find(
 		(c: { difficulty: string | null; puzzleData?: unknown }) =>
-			c.puzzleData !== undefined && (!hasLevels.has(slug) || c.difficulty === 'medium'),
+			c.puzzleData !== undefined && (!hasLevels.has(slug) || c.difficulty === difficulty),
 	)
 	const puzzleData =
 		slug === 'word-search' ? { ...entry.puzzleData, words: entry.solution.words } : entry.puzzleData
@@ -894,3 +894,72 @@ test('Path restores only the same viewer and served puzzle', async ({ page, cont
 	await page.reload()
 	await expect(clue).toHaveAttribute('aria-pressed', 'false')
 })
+
+for (const { width, height, difficulty } of [
+	{ width: 390, height: 844, difficulty: 'easy' },
+	{ width: 1440, height: 900, difficulty: 'medium' },
+]) {
+	test.describe(`Sudoku daily choice on ${width}×${height}`, () => {
+		const touch = width === 390
+		test.use({ viewport: { width, height }, isMobile: touch, hasTouch: touch })
+
+		test(`groups both direct starts and opens ${difficulty} in one action`, async ({ page }) => {
+			// The browser wiring is real; the Rust pick cap and replay are covered by DB tests.
+			const slug = 'sudoku'
+			const puzzleDate = productDayKey()
+			const starts: unknown[] = []
+			await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+			await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+				route.fulfill({
+					json: { gameSlug: slug, puzzleDate, canPlay: true, requiresStart: true },
+				}),
+			)
+			await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) => {
+				starts.push(route.request().postDataJSON())
+				return route.fulfill({ json: { daily: playable(slug, difficulty) } })
+			})
+			await page.goto('/games/sudoku')
+			const choices = page.getByRole('group', { name: "Play today's puzzle", exact: true })
+			const medium = choices.getByRole('link', { name: 'Medium', exact: true })
+			const easy = choices.getByRole('link', { name: 'Easy', exact: true })
+			await expect(medium).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
+			await expect(easy).toHaveAttribute('href', '/games/sudoku?difficulty=easy&start=1#play')
+			for (const link of [medium, easy]) {
+				await expect(link).toBeInViewport({ ratio: 1 })
+				expect(
+					await link.evaluate((element) => {
+						const { x, y, width, height } = element.getBoundingClientRect()
+						return (
+							width >= 48 &&
+							height >= 48 &&
+							element.contains(document.elementFromPoint(x + width / 2, y + height / 2))
+						)
+					}),
+				).toBe(true)
+			}
+			await expect(page.locator('#play').getByRole('link', { name: /^Hard/ })).toHaveAttribute(
+				'href',
+				'/games/sudoku?difficulty=hard&start=1#play',
+			)
+			expect(starts).toEqual([])
+			if (touch) {
+				await easy.tap()
+			} else {
+				await page
+					.getByRole('navigation', { name: 'Breadcrumb' })
+					.getByRole('link', { name: 'All games' })
+					.focus()
+				await page.keyboard.press('Tab')
+				await expect(medium).toBeFocused()
+				await expect(medium).toHaveCSS('outline-width', '2px')
+				await page.keyboard.press('Enter')
+			}
+			await expect(
+				page.locator(stage).getByRole('group', { name: 'Sudoku', exact: true }),
+			).toBeVisible()
+			await expect(page.locator('[data-game-stage="start"] button')).toHaveCount(0)
+			await expect(page.getByRole('heading', { name: 'Select Difficulty' })).toHaveCount(0)
+			expect(starts).toEqual([{ gameSlug: slug, difficulty, puzzleDate }])
+		})
+	})
+}
