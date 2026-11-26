@@ -309,6 +309,67 @@ for (const { route, localTheme, englishTheme } of [
 	})
 }
 
+function overlaps(a: DOMRect, b: DOMRect) {
+	return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+}
+
+async function expectFinishTypography(card: Locator, hasPractice: boolean, phone: boolean) {
+	const next = card.getByRole('link', { name: /^Play next:/ })
+	const secondary = card.locator('.result-action-row').locator('a, button')
+	await expect(secondary).toHaveCount(hasPractice ? 3 : 2)
+	const controls = [
+		next,
+		...(await secondary.all()),
+		card.getByRole('link', { name: 'Create a free account', exact: true }),
+		card.locator('[data-install-nudge]').getByRole('button', { name: 'Dismiss', exact: true }),
+	]
+	const elements = [
+		card.locator('.completion-heading h2'),
+		card.locator('[data-result-percentile]'),
+		card.locator('[data-result-milestone="7"]'),
+		...controls,
+	]
+	const boxes = await Promise.all(
+		elements.map((locator) =>
+			locator.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect),
+		),
+	)
+	for (const [index, box] of boxes.entries()) {
+		for (const other of boxes.slice(index + 1)) expect(overlaps(box, other)).toBe(false)
+	}
+
+	for (const action of controls) {
+		const words = await action.evaluate((el) => {
+			const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+			const range = document.createRange()
+			const layout: { word: string; lines: number[] }[] = []
+			for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+				for (const match of (node.textContent ?? '').matchAll(/\S+/g)) {
+					range.setStart(node, match.index)
+					range.setEnd(node, match.index + match[0].length)
+					const lines = Array.from(range.getClientRects(), (rect) => Math.round(rect.top))
+					if (lines.length) layout.push({ word: match[0], lines: [...new Set(lines)] })
+				}
+			}
+			return layout
+		})
+		// An icon-only Dismiss has no visible text. Each other label must occupy
+		// no more lines than it has words, and no individual word can split.
+		if ((await action.getAttribute('aria-label')) === 'Dismiss') continue
+		expect(words.length).toBeGreaterThan(0)
+		expect(new Set(words.flatMap(({ lines }) => lines)).size).toBeLessThanOrEqual(words.length)
+		for (const { word, lines } of words) expect(lines, word).toHaveLength(1)
+	}
+
+	if (phone) {
+		const contentWidth = await card.evaluate((el) => {
+			const { paddingLeft, paddingRight } = getComputedStyle(el)
+			return el.clientWidth - parseFloat(paddingLeft) - parseFloat(paddingRight)
+		})
+		expect((await next.boundingBox())!.width).toBeGreaterThanOrEqual(contentWidth * 0.9)
+	}
+}
+
 for (const viewport of [
 	{ width: 1440, height: 900 },
 	{ width: 390, height: 844 },
@@ -455,9 +516,14 @@ for (const viewport of [
 				for (const key of ['x', 'y', 'width', 'height'] as const) {
 					expect(Math.abs(after[key] - before[key])).toBeLessThanOrEqual(1)
 				}
-				expect(
-					panel.top >= after.bottom || panel.left >= after.right || panel.right <= after.left,
-				).toBe(true)
+				const played = board.locator('tr').filter({ has: page.locator('[data-grade]') })
+				let protectedBoard = after
+				if (slug === 'word-guess' && viewport.width === 390) {
+					await expect(played).toHaveCount(2)
+					protectedBoard = await bounds(played.last())
+				}
+				expect(overlaps(panel, protectedBoard)).toBe(false)
+				await expectFinishTypography(card, slug !== 'crossword', viewport.width === 390)
 				for (const locator of [board, card, ...actions]) {
 					const rect = await bounds(locator)
 					expect(rect.top).toBeGreaterThanOrEqual(0)
