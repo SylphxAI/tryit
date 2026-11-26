@@ -50,7 +50,8 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 		},
 	)
 	const loading = () => read.loading || !read.latest
-	const value = () => !loading() && read.latest?.kind === 'ready' && read.latest
+	const ready = () => read.latest?.kind === 'ready' && read.latest
+	const value = () => !loading() && ready()
 	const loadingNote = () => (
 		<p class="text-center text-muted-foreground" role="status">
 			{t('practice.loading')}
@@ -62,10 +63,11 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 				<h2 class="inline-flex items-center rounded-full bg-muted px-3 py-1 font-display text-sm font-bold text-foreground">
 					{t('practice.label')}
 				</h2>
-				<Show when={value()}>
+				<Show when={ready()}>
 					<div class="flex flex-wrap items-center gap-2">
+						{/* Keep the link’s space when the finish card takes over navigation. */}
 						<a
-							class="chrome-control min-h-12 px-2 text-sm underline group-has-[[data-practice-finish]]/practice:hidden"
+							class="chrome-control min-h-12 px-2 text-sm underline group-has-[[data-practice-finish]]/practice:invisible"
 							href={`${canonicalPath}#play`}
 						>
 							{t('practice.backToToday')}
@@ -74,6 +76,7 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 							<select
 								class="min-h-12 max-w-full rounded-xl border border-border bg-background px-2 text-sm font-semibold"
 								aria-label={t('common.difficulty.selectDifficulty')}
+								disabled={loading()}
 								onChange={(event) => {
 									const next = asDifficulty(event.currentTarget.value)
 									if (next && next !== level)
@@ -92,6 +95,7 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 						<button
 							type="button"
 							class="chrome-control min-h-12 gap-2 rounded-xl border border-border px-3 text-sm font-bold"
+							disabled={loading()}
 							onClick={newPuzzle}
 						>
 							<RotateCw size={16} aria-hidden="true" />
@@ -151,7 +155,7 @@ export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDif
 					</div>
 				</Match>
 			</Switch>
-			<Show when={read.latest?.kind !== 'locked' && !value()}>
+			<Show when={read.latest?.kind !== 'locked' && !ready()}>
 				<a
 					class="chrome-control min-h-12 justify-self-start underline"
 					href={`${canonicalPath}#play`}
