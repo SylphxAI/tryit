@@ -381,17 +381,30 @@
 	}
 }
 
+/* Reserve space for the validated answer below each Quad grid on a loss. */
+@container (height >= 26rem) {
+	[data-play-canvas] [data-quad-board] .play-board > div {
+		display: grid;
+		grid-template-rows: auto 1.25rem;
+	}
+	[data-play-canvas] [data-quad-board] .play-board > div > p { line-height: 1.25rem; }
+}
+
 @media (width < 640px) {
 	@container (height >= 26rem) {
 		/* Size the board's slot before play, not when the result arrives. */
-		[data-play-canvas] :is([data-nonogram-board], [data-number-path-board], [data-killer-sudoku-board]) .play-board {
+		[data-play-canvas] :is([data-nonogram-board], [data-killer-sudoku-board]) .play-board {
 			max-inline-size: min(100%, clamp(16rem, calc(100cqh - 23rem), 19rem));
 			margin-inline: auto;
 		}
-		[data-play-canvas]:is([data-game-slug="crowns"], [data-game-slug="duo"], [data-game-slug="word-search"]) .play-body fieldset {
-			inline-size: min(100%, clamp(15rem, calc(100cqh - 26rem), 18rem));
+		[data-play-canvas]:is([data-game-slug="crowns"], [data-game-slug="duo"]) .play-body > div > fieldset {
+			inline-size: min(100%, clamp(15.25rem, calc(100cqh - 26rem), 18rem));
 			margin-inline: auto;
 		}
+		[data-play-canvas] [data-number-path-board] { display: flex; flex-direction: column; }
+		[data-play-canvas] [data-number-path-board] > * { margin-block: 0; }
+		[data-play-canvas] [data-number-path-board] .play-meta { order: 1; }
+		[data-play-canvas] [data-number-path-board]:has([data-board-finished]) .play-meta { display: none; }
 		[data-play-canvas] [data-block-slide-board] { row-gap: 0; }
 		[data-play-canvas] [data-block-slide-board] .play-board {
 			width: min(100%, clamp(12rem, calc((100cqh - 22rem) * .8), 17rem));
@@ -399,11 +412,11 @@
 		[data-play-canvas] [data-pip-place-board] .pip-actions { order: 1; }
 		[data-play-canvas] [data-pip-place-board] { row-gap: 0; }
 		[data-play-canvas] [data-pip-place-board] .play-board { margin-block: .75rem; }
-		[data-play-canvas] [data-word-box-board]:has([data-board-finished]) :is(fieldset > form, fieldset > :has(> input), #frame-next-letter, ol + button) { display: none; }
+		[data-play-canvas] [data-word-box-board]:has([data-board-finished]) :is(fieldset > form, #frame-next-letter, ol + button) { display: none; }
 		[data-play-canvas] [data-arithmo-board]:has([data-board-finished]) [data-arithmo-keypad] { display: none; }
 		[data-play-canvas] [data-hive-board]:has([data-board-finished]) :is([data-hive-draft], [data-hive-feedback]) { visibility: hidden; }
 		[data-play-canvas] [data-hive-board]:has([data-board-finished]) .hive-comb + div { display: none; }
-		[data-play-canvas][data-game-slug="word-search"] .play-body fieldset {
+		[data-play-canvas][data-game-slug="word-search"] .play-body > div > fieldset {
 			inline-size: min(100%, clamp(13rem, calc(100cqh - 29rem), 15rem));
 		}
 		[data-play-canvas] [data-ladder-path] { gap: .25rem; padding: .5rem; }
@@ -415,18 +428,15 @@
 		[data-play-canvas] [data-quad-board] .play-meta { order: 1; }
 		[data-play-canvas] [data-quad-board] .play-tools { order: 2; }
 		[data-play-canvas] [data-quad-board]:has([data-board-finished]) .play-meta { display: none; }
-		[data-play-canvas] [data-quad-board] td { height: 1.375rem; }
-		[data-play-canvas] [data-quad-board] .play-board > div {
-			display: grid;
-			grid-template-rows: auto 1.25rem;
-			padding-block: .25rem;
-		}
-		[data-play-canvas] [data-quad-board] .play-board > div > p { line-height: 1.25rem; }
+		[data-play-canvas] [data-quad-board] td { height: 1.125rem; line-height: 1; }
+		[data-play-canvas] [data-quad-board] .play-board > div { padding-block: .25rem; }
 		[data-play-canvas] [data-hive-board] :is([data-hive-draft], [data-hive-feedback]) { block-size: 1.875rem; }
 		[data-play-canvas] [data-hive-board] [data-hive-draft] > div { padding-block: 0; line-height: 1.75rem; }
 		[data-play-canvas] [data-hive-board] .hive-comb { max-inline-size: 10.75rem; }
-		[data-play-canvas] [data-hive-board] > * { margin-block-end: .25rem; }
+		[data-play-canvas] [data-hive-board] > * { margin-block: 0; }
+		[data-play-canvas] [data-hive-board] { gap: .25rem; }
 		[data-play-canvas] [data-hive-board]:has([data-board-finished]) details { order: 1; }
 		[data-play-canvas] [data-hive-board] { display: flex; flex-direction: column; }
+		[data-play-canvas] [data-hive-board] > :first-child { min-block-size: 5.75rem; padding-block: .25rem; }
 	}
 }

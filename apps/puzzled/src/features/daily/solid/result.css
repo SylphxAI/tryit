@@ -456,7 +456,8 @@
 		overflow-wrap: break-word;
 	}
 
-	/* Each prompt uses the full line for its copy and action together. */
+	/* Keep each prompt on one row, including without an install offer. */
+	[data-play-canvas] .completion-card[data-board-finished]:not(:has(> .result-install)) > .result-guest-capture,
 	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install)
 		> :is(.result-guest-capture, .result-install) {
 		grid-column: 1 / -1;
