@@ -304,7 +304,7 @@ export const guestFinishFixtures = {
 		},
 	},
 	'quad-words': {
-		reveal: { answers: quadAnswers },
+		reveal: { words: quadAnswers },
 		lose: async (page, stage) => {
 			for (const [i, word] of [
 				'CRANE',
