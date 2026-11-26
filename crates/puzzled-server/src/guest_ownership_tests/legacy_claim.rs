@@ -50,8 +50,7 @@ async fn player_of(pool: &sqlx::PgPool, pair: &str) -> Option<Uuid> {
     g::lookup_hash(pool, &hash).await.unwrap()
 }
 
-#[tokio::test]
-async fn legacy_claim_keeps_streak_and_history_and_leaves_nothing_under_legacy() {
+pub(super) async fn legacy_claim_keeps_streak_and_history_and_leaves_nothing_under_legacy() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -91,8 +90,7 @@ async fn legacy_claim_keeps_streak_and_history_and_leaves_nothing_under_legacy()
     pool.close().await;
 }
 
-#[tokio::test]
-async fn replaying_the_legacy_id_with_another_token_claims_nothing() {
+pub(super) async fn replaying_the_legacy_id_with_another_token_claims_nothing() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -115,8 +113,7 @@ async fn replaying_the_legacy_id_with_another_token_claims_nothing() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn account_backed_or_registered_legacy_id_is_refused() {
+pub(super) async fn account_backed_or_registered_legacy_id_is_refused() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -147,8 +144,7 @@ async fn account_backed_or_registered_legacy_id_is_refused() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn two_concurrent_legacy_claims_have_exactly_one_winner() {
+pub(super) async fn two_concurrent_legacy_claims_have_exactly_one_winner() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -176,8 +172,7 @@ async fn two_concurrent_legacy_claims_have_exactly_one_winner() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn wrong_origin_legacy_claim_is_forbidden_without_database_effect() {
+pub(super) async fn wrong_origin_legacy_claim_is_forbidden_without_database_effect() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -202,8 +197,7 @@ async fn wrong_origin_legacy_claim_is_forbidden_without_database_effect() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn signed_in_player_with_legacy_id_ends_with_history_on_the_account() {
+pub(super) async fn signed_in_player_with_legacy_id_ends_with_history_on_the_account() {
     let Some(pool) = fresh_database().await else {
         return;
     };

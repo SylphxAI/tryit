@@ -5,8 +5,8 @@ use axum::http::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
 
-#[tokio::test]
-async fn issued_cookie_is_fresh_host_only_and_progress_adopts_without_deleting_collisions() {
+pub(super) async fn issued_cookie_is_fresh_host_only_and_progress_adopts_without_deleting_collisions(
+) {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {
         return;
@@ -135,8 +135,7 @@ async fn issued_cookie_is_fresh_host_only_and_progress_adopts_without_deleting_c
     pool.close().await;
 }
 
-#[tokio::test]
-async fn freeze_failure_rolls_back_adoption_and_keeps_credential_live() {
+pub(super) async fn freeze_failure_rolls_back_adoption_and_keeps_credential_live() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {
         return;
@@ -195,8 +194,7 @@ async fn freeze_failure_rolls_back_adoption_and_keeps_credential_live() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn private_access_lease_serializes_adoption_and_revocation() {
+pub(super) async fn private_access_lease_serializes_adoption_and_revocation() {
     use crate::bootstrap::identity::admitted_request_identities;
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {

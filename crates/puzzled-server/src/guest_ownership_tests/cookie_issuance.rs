@@ -7,8 +7,8 @@ use serde_json::{json, Value};
 use tower::ServiceExt;
 use uuid::Uuid;
 
-#[tokio::test]
-async fn production_origins_issue_and_reuse_host_only_cookies_without_database_effects() {
+pub(super) async fn production_origins_issue_and_reuse_host_only_cookies_without_database_effects()
+{
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -69,8 +69,7 @@ async fn production_origins_issue_and_reuse_host_only_cookies_without_database_e
     pool.close().await;
 }
 
-#[tokio::test]
-async fn issuance_rejects_origin_ambiguity_without_database_effects() {
+pub(super) async fn issuance_rejects_origin_ambiguity_without_database_effects() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -129,8 +128,8 @@ async fn issuance_rejects_origin_ambiguity_without_database_effects() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn issuance_header_refusal_precedes_unavailable_database_and_supplied_credentials() {
+pub(super) async fn issuance_header_refusal_precedes_unavailable_database_and_supplied_credentials()
+{
     let pool = sqlx::postgres::PgPoolOptions::new()
         .connect_lazy("postgres://test@127.0.0.1:59987/test")
         .unwrap();
@@ -155,8 +154,7 @@ async fn issuance_header_refusal_precedes_unavailable_database_and_supplied_cred
     assert!(response.headers().get("set-cookie").is_none());
 }
 
-#[tokio::test]
-async fn existing_cookie_parallel_bootstrap_keeps_one_registry_player() {
+pub(super) async fn existing_cookie_parallel_bootstrap_keeps_one_registry_player() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {
         return;
@@ -180,8 +178,7 @@ async fn existing_cookie_parallel_bootstrap_keeps_one_registry_player() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn bootstrap_is_zero_database_and_unknown_read_does_not_allocate() {
+pub(super) async fn bootstrap_is_zero_database_and_unknown_read_does_not_allocate() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let app = router(AppState::new(None));
     let (status, body, cookie) = request(&app, "/v1/guest/session", None, None, None).await;
@@ -255,14 +252,12 @@ async fn bootstrap_without_database(body: Value) -> (StatusCode, Value) {
     )
 }
 
-#[tokio::test]
-async fn legacy_claim_without_database_is_unavailable_so_the_client_keeps_its_key() {
+pub(super) async fn legacy_claim_without_database_is_unavailable_so_the_client_keeps_its_key() {
     let (status, _) = bootstrap_without_database(json!({"legacyGuestId": Uuid::now_v7()})).await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
 }
 
-#[tokio::test]
-async fn plain_bootstrap_without_database_still_issues() {
+pub(super) async fn plain_bootstrap_without_database_still_issues() {
     let (status, body) = bootstrap_without_database(json!({})).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body, json!({"issued": true}));

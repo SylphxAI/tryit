@@ -4,8 +4,7 @@ use crate::{router, AppState};
 use axum::http::StatusCode;
 use uuid::Uuid;
 
-#[tokio::test]
-async fn account_erasure_includes_retained_adopted_guest_collisions_and_provenance() {
+pub(super) async fn account_erasure_includes_retained_adopted_guest_collisions_and_provenance() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     use crate::capabilities::preferences::adapters::account_deletion::{
         delete_account_data, USER_KEYED_COLUMNS,
@@ -77,8 +76,8 @@ async fn account_erasure_includes_retained_adopted_guest_collisions_and_provenan
     pool.close().await;
 }
 
-#[tokio::test]
-async fn raced_adoption_and_erasure_preserve_only_unclaimed_guest_or_erase_linked_sources() {
+pub(super) async fn raced_adoption_and_erasure_preserve_only_unclaimed_guest_or_erase_linked_sources(
+) {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     use crate::capabilities::preferences::adapters::account_deletion::delete_account_data;
     use crate::capabilities::puzzle_play::adapters::game_sessions_db::{

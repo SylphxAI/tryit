@@ -5,8 +5,8 @@ use axum::http::{Request, StatusCode};
 use serde_json::json;
 use tower::ServiceExt;
 
-#[tokio::test]
-async fn four_concurrent_submits_with_two_connections_do_not_hold_pool_during_content_lookup() {
+pub(super) async fn four_concurrent_submits_with_two_connections_do_not_hold_pool_during_content_lookup(
+) {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(admin_pool) = fresh_database().await else {
         return;
@@ -80,8 +80,7 @@ async fn four_concurrent_submits_with_two_connections_do_not_hold_pool_during_co
     admin_pool.close().await;
 }
 
-#[tokio::test]
-async fn fifty_parallel_first_write_pairs_keep_one_winning_namespace_each() {
+pub(super) async fn fifty_parallel_first_write_pairs_keep_one_winning_namespace_each() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {
         return;

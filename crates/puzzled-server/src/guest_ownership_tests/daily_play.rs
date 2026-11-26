@@ -5,8 +5,7 @@ use axum::http::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
 
-#[tokio::test]
-async fn passive_daily_reads_are_boardless_and_concurrent_starts_share_three_picks() {
+pub(super) async fn passive_daily_reads_are_boardless_and_concurrent_starts_share_three_picks() {
     use crate::capabilities::money::Money;
     let Some(pool) = fresh_database().await else {
         return;
@@ -98,8 +97,7 @@ async fn passive_daily_reads_are_boardless_and_concurrent_starts_share_three_pic
     pool.close().await;
 }
 
-#[tokio::test]
-async fn first_graded_guess_claims_a_pick_and_keeps_one_guess_budget() {
+pub(super) async fn first_graded_guess_claims_a_pick_and_keeps_one_guess_budget() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {
         return;
@@ -143,8 +141,7 @@ async fn first_graded_guess_claims_a_pick_and_keeps_one_guess_budget() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn invalid_submit_rolls_back_allocation_and_adoption_until_valid_finish() {
+pub(super) async fn invalid_submit_rolls_back_allocation_and_adoption_until_valid_finish() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {
         return;

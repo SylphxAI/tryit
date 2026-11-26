@@ -7,8 +7,7 @@ use serde_json::json;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-#[tokio::test]
-async fn unsigned_ids_and_forged_internal_headers_cannot_read_or_adopt() {
+pub(super) async fn unsigned_ids_and_forged_internal_headers_cannot_read_or_adopt() {
     let Some(pool) = fresh_database().await else {
         return;
     };
@@ -58,8 +57,7 @@ async fn unsigned_ids_and_forged_internal_headers_cannot_read_or_adopt() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn allocation_collision_never_aliases_existing_account_or_guest() {
+pub(super) async fn allocation_collision_never_aliases_existing_account_or_guest() {
     use crate::capabilities::identity_access::adapters::{auth_subjects, guest_credentials};
     let Some(pool) = fresh_database().await else {
         return;
@@ -95,8 +93,7 @@ async fn allocation_collision_never_aliases_existing_account_or_guest() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn second_guest_cookie_never_reads_or_adopts_a_public_player_id() {
+pub(super) async fn second_guest_cookie_never_reads_or_adopts_a_public_player_id() {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     let Some(pool) = fresh_database().await else {
         return;
@@ -176,8 +173,7 @@ async fn second_guest_cookie_never_reads_or_adopts_a_public_player_id() {
     pool.close().await;
 }
 
-#[tokio::test]
-async fn legacy_guest_write_and_completion_paths_have_no_player_effects() {
+pub(super) async fn legacy_guest_write_and_completion_paths_have_no_player_effects() {
     let Some(pool) = fresh_database().await else {
         return;
     };
