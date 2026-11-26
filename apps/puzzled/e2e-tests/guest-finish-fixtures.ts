@@ -308,14 +308,14 @@ export const guestFinishFixtures = {
 		lose: async (page, stage) => {
 			for (const [i, word] of [
 				'CRANE',
-				'RAISE',
-				'BLUSH',
-				'FLAME',
-				'SUGAR',
-				'LEMON',
-				'TIGER',
-				'BRICK',
-				'PLANT',
+				'SPITE',
+				'LIGHT',
+				'DUMPY',
+				'WACKY',
+				'FJORD',
+				'GHOST',
+				'BLIMP',
+				'VOUCH',
 			].entries()) {
 				await page.keyboard.type(word)
 				await stage.locator('[data-key="Enter"]').click()
