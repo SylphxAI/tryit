@@ -30,6 +30,15 @@ export default function CrownsBoard(props: DailyBoardProps) {
 
 const arrowMoves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }
 
+const cellClass =
+	'relative flex aspect-square min-w-0 items-center justify-center border-r border-b border-[#1a1712]/20 text-[#1a1712] ' +
+	'data-divider-right:border-r-2 data-divider-right:border-r-[#1a1712] data-divider-bottom:border-b-2 data-divider-bottom:border-b-[#1a1712] ' +
+	'focus-visible:z-10 data-active:z-10 data-active:not-data-conflict:inset-ring-2 data-active:not-data-conflict:inset-ring-accent-warm ' +
+	// A dark amber keyline keeps the bright inset ring visible even on the yellow region.
+	'data-active:not-data-conflict:shadow-[inset_0_0_0_3px_var(--brand-color-accent-text)] ' +
+	'data-crosshair:not-data-conflict:inset-ring-1 data-crosshair:not-data-conflict:inset-ring-[color-mix(in_srgb,var(--brand-color-accent-text)_30%,transparent)] ' +
+	'data-conflict:text-[#8c2018] data-conflict:inset-ring-2 data-conflict:inset-ring-[#8c2018]'
+
 function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const { size, regions } = props.data
@@ -37,9 +46,12 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 	const empty = () => regions.map((line) => line.map(() => false))
 	const finish = createBoardFinish(props, 'crowns')
 	const [grid, setGrid] = finish.draft.signal('grid', empty())
-	const [active, setActive] = createSignal(0)
+	const [tabStop, setTabStop] = createSignal(0)
+	const [cursor, setActiveCell] = createSignal<(typeof cells)[number]>()
 	const buttons: HTMLButtonElement[] = []
 	const locked = () => finish.state() !== 'playing'
+	const activeCell = () => (locked() ? undefined : cursor())
+	const clearActiveCell = () => setActiveCell(undefined)
 	const placed = createMemo(() => cells.filter(({ row, col }) => grid()[row][col]))
 	const conflicts = createMemo(() => {
 		const current = grid()
@@ -70,7 +82,9 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 		event.preventDefault()
 		const [dr, dc] = arrowMoves[event.key as keyof typeof arrowMoves]
 		const clamp = (index: number) => Math.max(0, Math.min(size - 1, index))
-		buttons[clamp(row + dr) * size + clamp(col + dc)]?.focus()
+		const next = clamp(row + dr) * size + clamp(col + dc)
+		if (next === row * size + col) setActiveCell(cells[next])
+		else buttons[next]?.focus()
 	}
 	return (
 		<div class="mx-auto w-full max-w-[30rem] space-y-3">
@@ -87,19 +101,26 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 				<div
 					class="grid overflow-hidden rounded-lg border-2 border-[#1a1712] dark:border-border"
 					style={{ 'grid-template-columns': `repeat(${size}, minmax(0, 1fr))` }}
+					onPointerLeave={clearActiveCell}
 				>
 					<For each={cells}>
 						{(cell, index) => {
 							const { row, col, region } = cell
 							const pressed = () => grid()[row][col]
 							const conflict = () => !!conflicts().get(cell)?.size
+							const crosshair = () => {
+								const active = activeCell()
+								return active && active !== cell && (active.row === row || active.col === col)
+							}
 							return (
 								<button
 									ref={(button) => {
 										buttons[index()] = button
 									}}
 									type="button"
-									class={`relative flex aspect-square min-w-0 items-center justify-center border-r border-b border-[#1a1712]/20 text-[#1a1712] data-divider-right:border-r-2 data-divider-right:border-r-[#1a1712] data-divider-bottom:border-b-2 data-divider-bottom:border-b-[#1a1712] data-conflict:text-[#8c2018] data-conflict:ring-2 data-conflict:ring-inset data-conflict:ring-[#8c2018] focus-visible:z-10 ${REGION_COLORS[region % REGION_COLORS.length]}`}
+									class={`${cellClass} ${REGION_COLORS[region % REGION_COLORS.length]}`}
+									data-active={activeCell() === cell || undefined}
+									data-crosshair={crosshair() || undefined}
 									data-conflict={conflict() || undefined}
 									data-divider-right={
 										(col < size - 1 && regions[row][col + 1] !== region) || undefined
@@ -114,8 +135,15 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 									].join(', ')}
 									aria-pressed={pressed()}
 									aria-invalid={conflict() || undefined}
-									tabIndex={active() === index() ? 0 : -1}
-									onFocus={() => setActive(index())}
+									tabIndex={tabStop() === index() ? 0 : -1}
+									onPointerEnter={(event) => {
+										if (!locked() && event.pointerType !== 'touch') setActiveCell(cell)
+									}}
+									onFocus={() => {
+										setTabStop(index())
+										setActiveCell(cell)
+									}}
+									onBlur={clearActiveCell}
 									onKeyDown={(event) => onKey(event, row, col)}
 									onClick={() => change(row, col, !pressed())}
 								>
