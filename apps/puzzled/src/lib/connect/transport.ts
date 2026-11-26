@@ -90,12 +90,20 @@ export function ensureGuestSession(base = resolveConnectBaseUrl()): Promise<Gues
 	const bootstrap = async (): Promise<GuestSessionResult> => {
 		// Old progress lives under a raw id; the server claims it once into the new namespace.
 		const legacy = getOrCreateGuestDayId()
-		const response = await fetch(url, {
-			method: 'POST',
-			credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(legacy ? { legacyGuestId: legacy } : {}),
-		})
+		const body = JSON.stringify(legacy ? { legacyGuestId: legacy } : {})
+		const request = async () =>
+			fetch(url, {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body,
+			})
+		let response = await request().catch(() => undefined)
+		if (!response || [0, 502, 503, 504].includes(response.status)) {
+			// Retry only the cookie bootstrap, never the RPC that claims a daily pick.
+			await new Promise<void>((resolve) => setTimeout(resolve, 400))
+			response = await request()
+		}
 		if (!response.ok) throw new Error('guest_session_unavailable')
 		const result: unknown = await response.json()
 		if (
