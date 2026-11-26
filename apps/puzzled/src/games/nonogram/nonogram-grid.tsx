@@ -54,6 +54,10 @@ export function NonogramGrid(props: { data: NonogramPuzzleData; play: GridPlay; 
 		'group rounded text-[clamp(.55rem,2.5vw,.875rem)] tabular-nums hover:bg-background focus-visible:z-10 aria-pressed:text-muted-foreground data-active:bg-accent-warm-soft not-data-conflict:data-active:text-foreground data-conflict:text-destructive data-conflict:inset-ring-2 data-conflict:inset-ring-destructive [&[aria-pressed=true]:not([data-conflict])>span:not([aria-hidden])]:line-through'
 	// Reserve space for the cue in both states, so the grid tracks never resize.
 	const conflictCueClass = 'invisible font-bold group-data-conflict:visible'
+	// Keep the touch gutter inside the clue button so browser hit adjustment
+	// cannot send a tap in dead space to a paint cell. The grid tracks never overlap.
+	const rowClueClass =
+		'flex items-center justify-end gap-0.5 px-1 pointer-coarse:min-w-10.5 pointer-coarse:pe-4.5'
 	const label = (axis: 'Row' | 'Column', index: number, clues: number[]) =>
 		`${t(`common.cell${axis}`, { index: index + 1 })}: ${clues.join(', ') || '0'}`
 	const buttons: HTMLButtonElement[] = []
@@ -116,7 +120,7 @@ export function NonogramGrid(props: { data: NonogramPuzzleData; play: GridPlay; 
 							aria-invalid={rowConflict(row)}
 							data-active={active()?.row === row || undefined}
 							data-conflict={rowConflict(row)}
-							class={`flex items-center justify-end gap-0.5 px-1 ${clueClass}`}
+							class={`${rowClueClass} ${clueClass}`}
 							aria-pressed={clueDimmed(`paint-row-${row}`, isRowClueMet(grid(), props.data, row))}
 							onClick={() => toggleClue(`paint-row-${row}`, isRowClueMet(grid(), props.data, row))}
 						>
