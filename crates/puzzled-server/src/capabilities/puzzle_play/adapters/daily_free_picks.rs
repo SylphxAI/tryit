@@ -4,7 +4,7 @@
 //! guess or a submitted finish) claims one, under the player's lock, so a
 //! glance at a game page never spends a pick.
 use chrono::NaiveDate;
-use puzzled_core::billing_access::policy::free_pick_open;
+use puzzled_core::billing_access::policy::{free_pick_open, DAILY_FREE_PICKS};
 use sqlx::{PgConnection, Row};
 use uuid::Uuid;
 
@@ -38,12 +38,30 @@ where
     if players.is_empty() {
         return Ok(Picks::default());
     }
+    read_for_request(executor, players, None, day, slug).await
+}
+
+/// Read the account/guest union in one snapshot and one checked checkout.
+pub async fn read_for_request<'e, E>(
+    executor: E,
+    players: &[Uuid],
+    guest_hash: Option<&str>,
+    day: NaiveDate,
+    slug: &str,
+) -> Result<Picks, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    if players.is_empty() && guest_hash.is_none() {
+        return Ok(Picks::default());
+    }
     let row = sqlx::query(
-        "SELECT count(DISTINCT game_slug) AS count, coalesce(bool_or(game_slug = $3), false) AS chosen FROM daily_free_picks WHERE user_id = ANY($1) AND day_key = $2",
+        "SELECT count(DISTINCT game_slug) AS count, coalesce(bool_or(game_slug = $3), false) AS chosen          FROM daily_free_picks WHERE day_key = $2 AND (user_id = ANY($1) OR user_id = (             SELECT user_id FROM guest_credentials WHERE token_hash = $4 AND adopted_user_id IS NULL AND revoked_at IS NULL         ))",
     )
     .bind(players)
     .bind(day)
     .bind(slug)
+    .bind(guest_hash)
     .fetch_one(executor)
     .await?;
     Ok(Picks {
@@ -78,22 +96,15 @@ pub async fn claim(
     day: NaiveDate,
     slug: &str,
 ) -> Result<bool, sqlx::Error> {
-    let picks = read(&mut *connection, &[player], day, slug).await?;
-    if picks.chosen {
-        return Ok(true);
-    }
-    if !picks.open() {
-        return Ok(false);
-    }
-    sqlx::query(
-        "INSERT INTO daily_free_picks (user_id, day_key, game_slug) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+    sqlx::query_scalar(
+        "WITH picks AS (           SELECT count(*) AS count, coalesce(bool_or(game_slug = $3), false) AS chosen            FROM daily_free_picks WHERE user_id = $1 AND day_key = $2         ), claimed AS (           INSERT INTO daily_free_picks (user_id, day_key, game_slug)            SELECT $1, $2, $3 FROM picks WHERE NOT chosen AND count < $4            ON CONFLICT DO NOTHING RETURNING 1         )          SELECT chosen OR count < $4 FROM picks",
     )
     .bind(player)
     .bind(day)
     .bind(slug)
-    .execute(connection)
-    .await?;
-    Ok(true)
+    .bind(i64::from(DAILY_FREE_PICKS))
+    .fetch_one(connection)
+    .await
 }
 
 /// Merge the guest's picks into the account: a set union, so neither side
