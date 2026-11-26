@@ -1,5 +1,6 @@
 //! First-party funnel counter. Rows are anonymous (no user id, IP or cookie).
-//! Read them with plain SQL, e.g. `SELECT event, count(*) FROM funnel_events GROUP BY 1`.
+//! Browser events live in `funnel_events`. Daily finishes are read separately
+//! from committed sessions via the operator query `daily_completions.sql`.
 
 mod persistence;
 mod validation;
