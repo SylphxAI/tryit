@@ -117,14 +117,49 @@ The browser posts same-origin ProtoJSON to the native Connect RPC
 rows carry no player id. Web Vitals are document-load metrics, not soft-navigation
 metrics. Only allowlisted public paths are retained, without locale/query/hash;
 game-detail paths use the `/games/:slug` template and private paths are dropped.
-Read it with SQL:
+Read browser events with SQL. This recipe excludes retired browser reports of
+daily finishes, including rows retained across a mixed web/API rollout:
 
 ```sql
 SELECT event, count(*) FROM funnel_events
-WHERE occurred_at > now() - interval '1 day' GROUP BY 1;
+WHERE occurred_at > now() - interval '1 day'
+  AND (event <> 'game_complete' OR params->>'mode' IN ('archive', 'practice'))
+GROUP BY 1;
 SELECT metric, percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75
 FROM funnel_events WHERE event = 'web_vitals' GROUP BY 1;
 ```
+
+### Daily finishes
+
+Run the [daily completion query](../crates/puzzled-server/src/capabilities/funnel/daily_completions.sql)
+using the approved Tryit read-only database connection. It takes one Hong Kong
+product day (`YYYY-MM-DD`). For example, with that connection already selected
+in your PostgreSQL client environment, from the repo root:
+
+```bash
+set -o pipefail
+{
+  echo "BEGIN READ ONLY; SET LOCAL statement_timeout = '5s'; PREPARE daily_finishes(text) AS"
+  cat crates/puzzled-server/src/capabilities/funnel/daily_completions.sql
+  printf "EXECUTE daily_finishes('%s');\nROLLBACK;\n" '2026-11-26'
+} | psql -X -v ON_ERROR_STOP=1
+```
+
+Sum the returned `finishes` for the day, not browser events. Each qualifying
+committed win or loss contributes one; the same player can finish multiple games.
+The output distinguishes puzzle and entertainment ritual classes. It excludes
+registered fixtures (including the recorded guest origin) and verification-marked
+finishes. Archive, practice and the distinct-player [North Star](metrics.md) are
+separate measures. This is a read of current retained sessions, not a new event
+log or an immutable historical total; erasure and provenance changes can affect it.
+
+Identity is derived from existing server evidence at read time, not from a
+browser status lookup. Adoption or legacy-claim provenance proves guest origin
+and takes precedence over the new owner's account mapping. Otherwise, an Auth
+mapping or guest credential already created by the stored finish timestamp
+establishes that bucket if the other is absent. Missing, later-only or conflicting
+evidence remains `unknown` and still counts in the total. No player ID, exact time,
+or pick attribution is returned. Existing consent-gated GA is unchanged.
 
 ## Quality signals
 

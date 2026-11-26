@@ -125,6 +125,11 @@ fn validate_behavior(input: &Incoming) -> Option<Row> {
     // events can reach storage. JSON null is deliberate only for pick_index.
     let (event, game_slug, params) = match input.event.as_str() {
         "game_complete" => {
+            let mode = mode()?;
+            // Older web builds may still report daily finishes; acknowledge without a row.
+            if mode == "daily" {
+                return None;
+            }
             if input.pick_index.is_some_and(|n| !(1..=3).contains(&n)) {
                 return None;
             }
@@ -132,7 +137,7 @@ fn validate_behavior(input: &Incoming) -> Option<Row> {
                 "game_complete",
                 Some(game_slug()?),
                 json!({
-                    "mode": mode()?,
+                    "mode": mode,
                     "status": allowed(input.status.as_deref(), &STATUSES)?,
                     "pick_index": input.pick_index,
                     "time_bucket_s": input.time_bucket_s.filter(|n| TIME_BUCKETS_S.contains(n))?,

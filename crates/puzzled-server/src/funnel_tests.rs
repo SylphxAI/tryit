@@ -1,6 +1,8 @@
 //! Exercise the anonymous funnel through JSON Connect and read back plain SQL.
 //! Needs `PUZZLED_TEST_DATABASE_URL` like the other database tests.
 
+mod daily_completion;
+
 use axum::{
     body::Body,
     http::{Request, StatusCode},
@@ -94,9 +96,9 @@ async fn same_origin_behavioral_events_persist_only_exact_params() {
             json!({"mode":"archive","status":"lost","pick_index":null,"time_bucket_s":0,"is_guest":false}),
         ),
         (
-            json!({"event":"game_complete","gameSlug":"sudoku","mode":"daily","status":"won","pickIndex":3,"timeBucketS":1800,"isGuest":true}),
+            json!({"event":"game_complete","gameSlug":"sudoku","mode":"practice","status":"won","timeBucketS":1800,"isGuest":true}),
             Some("sudoku"),
-            json!({"mode":"daily","status":"won","pick_index":3,"time_bucket_s":1800,"is_guest":true}),
+            json!({"mode":"practice","status":"won","pick_index":null,"time_bucket_s":1800,"is_guest":true}),
         ),
         (
             json!({"event":"game_abandon","gameSlug":"sudoku","mode":"daily","progressPctBucket":0,"isGuest":false}),

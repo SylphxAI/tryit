@@ -15,13 +15,13 @@ const events = [
 		{
 			event: 'game_complete',
 			game_slug: 'sudoku',
-			mode: 'daily',
+			mode: 'archive',
 			status: 'won',
 			pick_index: null,
 			time_bucket_s: 0,
 			is_guest: false,
 		},
-		{ gameSlug: 'sudoku', mode: 'daily', status: 'won', timeBucketS: 0, isGuest: false },
+		{ gameSlug: 'sudoku', mode: 'archive', status: 'won', timeBucketS: 0, isGuest: false },
 	],
 	[
 		{
@@ -175,6 +175,34 @@ test('rejects purchase, arbitrary strings in schema fields, and out-of-range num
 	expect(ga).toHaveLength(0)
 })
 
+for (const consent of ['analytics_only', 'denied'] as const) {
+	test(`daily finish skips the first-party POST and preserves GA with consent ${consent}`, () => {
+		const { posts, ga } = browser(consent)
+		const completed = createGameBehavior('sudoku', 'daily', () => true)
+		completed.complete('lost', 91000, 2)
+		completed.complete('lost', 91000, 2)
+		completed.abandon()
+		const unknown = createGameBehavior('sudoku', 'daily', () => undefined)
+		unknown.complete('won', 0, null)
+		expect(posts).toEqual([])
+		expect(ga).toEqual(
+			consent === 'denied'
+				? []
+				: [
+						{
+							event: 'game_complete',
+							game_slug: 'sudoku',
+							mode: 'daily',
+							status: 'lost',
+							pick_index: 2,
+							time_bucket_s: 60,
+							is_guest: true,
+						},
+					],
+		)
+	})
+}
+
 test('board lifetime records only actual interaction or accepted finish, at most once per event', () => {
 	const { bodies } = browser('denied')
 	const abandoned = createGameBehavior('sudoku', 'daily', () => false)
@@ -183,10 +211,10 @@ test('board lifetime records only actual interaction or accepted finish, at most
 	abandoned.interact(66)
 	abandoned.abandon()
 	abandoned.abandon()
-	const completed = createGameBehavior('sudoku', 'daily', () => true)
+	const completed = createGameBehavior('sudoku', 'practice', () => true)
 	completed.interact()
-	completed.complete('lost', 91000, 2)
-	completed.complete('lost', 91000, 2)
+	completed.complete('lost', 91000, null)
+	completed.complete('lost', 91000, null)
 	completed.abandon()
 	const alreadyPlayed = createGameBehavior('sudoku', 'archive', () => false)
 	alreadyPlayed.interact()
@@ -204,9 +232,8 @@ test('board lifetime records only actual interaction or accepted finish, at most
 		{
 			event: 'game_complete',
 			gameSlug: 'sudoku',
-			mode: 'daily',
+			mode: 'practice',
 			status: 'lost',
-			pickIndex: 2,
 			timeBucketS: 60,
 			isGuest: true,
 		},

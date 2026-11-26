@@ -51,7 +51,7 @@ fn game_start_needs_a_clean_slug() {
 fn behavioral_params_reject_wrong_values_and_missing_required_fields() {
     let cases = [
         (
-            json!({"event":"game_complete","game_slug":"sudoku","mode":"daily","status":"won","time_bucket_s":0,"is_guest":false}),
+            json!({"event":"game_complete","game_slug":"sudoku","mode":"practice","status":"won","time_bucket_s":0,"is_guest":false}),
             &[
                 ("mode", json!("story")),
                 ("status", json!("playing")),

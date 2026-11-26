@@ -176,7 +176,8 @@ export function trackBehavioralEvent(input: BehavioralEvent): void {
 	try {
 		const clean = sanitize(input)
 		if (!clean) return
-		sendFunnel(clean)
+		// Daily first-party finishes come from committed game_sessions, not this callback.
+		if (clean.event !== 'game_complete' || clean.mode !== 'daily') sendFunnel(clean)
 		const { event, ...params } = clean
 		if (hasAnalyticsConsent()) sendGa4Event(event, params)
 	} catch {
