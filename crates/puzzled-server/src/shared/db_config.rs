@@ -13,6 +13,7 @@ pub fn writer_pool_options(options: PgPoolOptions) -> PgPoolOptions {
     let budget = options.get_acquire_timeout();
     options
         .test_before_acquire(false)
+        .acquire_time_level(log::LevelFilter::Debug)
         .after_connect(move |connection, _| Box::pin(probe_writer(connection, budget)))
         .before_acquire(move |connection, _| {
             Box::pin(async move { Ok(probe_writer(connection, budget).await.is_ok()) })

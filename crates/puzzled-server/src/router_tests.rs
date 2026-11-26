@@ -338,3 +338,38 @@ async fn admin_does_not_accept_legacy_platform_jwt_scopes() {
         "legacy admin scope must not grant access: {admin_json}"
     );
 }
+
+#[tokio::test]
+#[allow(clippy::unwrap_used)]
+async fn verification_server_timing_requires_an_exact_opt_in_and_is_not_cacheable() {
+    for (path, flags, want) in [
+        ("/puzzled.v1.HealthService/Health", vec![], false),
+        ("/puzzled.v1.HealthService/Health", vec!["0"], false),
+        ("/puzzled.v1.HealthService/Health", vec!["1", "1"], false),
+        ("/healthz", vec!["1"], false),
+        ("/puzzled.v1.HealthService/Health", vec!["1"], true),
+    ] {
+        let mut req = if path == "/healthz" {
+            build_request(Method::GET, path, Body::empty())
+        } else {
+            build_connect_request(path, Body::from("{}"))
+        };
+        for flag in flags {
+            req.headers_mut().append(
+                "x-puzzled-verification",
+                axum::http::HeaderValue::from_static(flag),
+            );
+        }
+        let response = router(AppState::new(None)).oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let timing = response.headers().get("server-timing");
+        assert_eq!(timing.is_some(), want);
+        if let Some(timing) = timing {
+            let value = timing.to_str().unwrap();
+            assert!(value.starts_with("handler;dur="));
+            assert!(value.contains("round_trips;desc=\"0\""));
+            assert_eq!(response.headers()["cache-control"], "private, no-store");
+            assert_eq!(response.headers()["cdn-cache-control"], "no-store");
+        }
+    }
+}
