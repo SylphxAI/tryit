@@ -1148,7 +1148,10 @@ export const metricAlertOutbox = pgTable(
 
 /** Lookup hints for Money checkout returns; never an ownership or payment record. */
 export const checkoutSessionAliases = pgTable('checkout_session_aliases', {
-	processorSessionId: text('processor_session_id').primaryKey(),
+	id: uuid('id').primaryKey(),
+	processorSessionId: text('processor_session_id')
+		.notNull()
+		.unique('checkout_session_aliases_processor_session_id_key'),
 	moneySessionId: text('money_session_id').notNull(),
 })
 

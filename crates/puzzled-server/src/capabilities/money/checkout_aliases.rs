@@ -16,7 +16,8 @@ pub(super) async fn remember(pool: Option<&PgPool>, processor: &str, canonical: 
     if !processor.starts_with("cs_") || !valid_id(processor) || !valid_id(canonical) {
         return;
     }
-    if sqlx::query("INSERT INTO checkout_session_aliases (processor_session_id, money_session_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+    if sqlx::query("INSERT INTO checkout_session_aliases (id, processor_session_id, money_session_id) VALUES ($1, $2, $3) ON CONFLICT (processor_session_id) DO NOTHING")
+        .bind(uuid::Uuid::now_v7())
         .bind(processor)
         .bind(canonical)
         .execute(pool)
