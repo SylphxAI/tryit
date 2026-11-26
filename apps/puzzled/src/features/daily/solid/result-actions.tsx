@@ -1,11 +1,12 @@
 /** @jsxImportSource solid-js */
-import { ChartNoAxesColumnIncreasing, Flame, Snowflake } from 'lucide-solid'
-import { Show } from 'solid-js'
+import { ChartNoAxesColumnIncreasing, Flame, Snowflake, X } from 'lucide-solid'
+import { createSignal, onMount, Show } from 'solid-js'
 import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import { gamePath } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
+import { SAVE_STREAK_DISMISSED_DAY_KEY } from '@/lib/storage-keys'
 import { asDifficulty } from '../lib/difficulty-completion'
 import { DailyNextLink } from './daily-pick-ui'
 import { PwaInstallNudge } from './pwa-install-nudge'
@@ -37,6 +38,24 @@ export function ResultActions(props: {
 		mounted,
 		t,
 	)
+	const [dismissedDay, setDismissedDay] = createSignal<string | null>()
+	onMount(() => {
+		try {
+			setDismissedDay(localStorage.getItem(SAVE_STREAK_DISMISSED_DAY_KEY))
+		} catch {
+			// Don't show the offer if we can't read a previous dismissal.
+		}
+	})
+	function dismissSaveStreak() {
+		const dayKey = props.facts.todayKey
+		if (!dayKey) return
+		setDismissedDay(dayKey)
+		try {
+			localStorage.setItem(SAVE_STREAK_DISMISSED_DAY_KEY, dayKey)
+		} catch {
+			// Still dismissed for the current view.
+		}
+	}
 	const { copyButton, status, dialogActions } = createResultShareControls(share, t)
 	return (
 		<>
@@ -48,7 +67,9 @@ export function ResultActions(props: {
 					</p>
 				)}
 			</Show>
-			<Show when={retention().days !== null || retention().freezeSaved}>
+			<Show
+				when={model().status === 'won' && (retention().days !== null || retention().freezeSaved)}
+			>
 				<div class="result-streak-notes">
 					<Show when={retention().days !== null}>
 						<p
@@ -114,19 +135,33 @@ export function ResultActions(props: {
 				</ResultDetails>
 			</div>
 			{status('rail')}
-			<Show when={retention().captureGuest}>
+			<Show
+				when={
+					retention().captureGuest &&
+					dismissedDay() !== undefined &&
+					dismissedDay() !== props.facts.todayKey
+				}
+			>
 				<div class="result-guest-capture" data-result-guest-capture>
-					<div>
-						<p>
-							{(retention().days ?? 0) > 0
-								? t('onboarding.keepStreak', { days: retention().days })
-								: t('onboarding.saveStreak')}
-						</p>
-						<p class="result-guest-note">{t('onboarding.saveStreakNote')}</p>
+					<div class="flex flex-wrap items-center gap-x-3">
+						<div class="flex-1 basis-40">
+							<p>{t('onboarding.keepStreak', { days: retention().days })}</p>
+							<Show when={model().status === 'won'}>
+								<p class="result-guest-note">{t('onboarding.saveStreakNote')}</p>
+							</Show>
+						</div>
+						<a class="result-guest-link" href={signIn}>
+							{t('onboarding.createFreeAccount')}
+						</a>
 					</div>
-					<a class="result-guest-link" href={signIn}>
-						{t('onboarding.createFreeAccount')}
-					</a>
+					<button
+						type="button"
+						class="result-button self-start"
+						aria-label={t('common.dismiss')}
+						onClick={dismissSaveStreak}
+					>
+						<X size={16} aria-hidden="true" />
+					</button>
 				</div>
 			</Show>
 			<Show when={props.freshWin && model().status === 'won'}>

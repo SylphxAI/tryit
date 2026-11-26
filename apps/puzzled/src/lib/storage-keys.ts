@@ -28,6 +28,7 @@ export const SOUND_ENABLED_KEY = 'puzzled:sound:enabled'
 // PWA & Prompts
 // ==========================================
 export const PWA_PROMPT_DISMISSED_KEY = 'puzzled:pwa:prompt-dismissed'
+export const SAVE_STREAK_DISMISSED_DAY_KEY = 'puzzled:result:save-streak-dismissed-day'
 
 // ==========================================
 // Daily play continuity
