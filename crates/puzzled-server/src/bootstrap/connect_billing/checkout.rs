@@ -32,7 +32,7 @@ pub(super) async fn create_checkout(
     // recurring subscriptions), omit `subject` so Money allocates
     // `guest:{id}`, and keep the returned single-use `claim_secret`
     // strictly in an HttpOnly cookie.
-    let (_, money) = billing.store()?;
+    let (pool, money) = billing.store()?;
     let measurement = CheckoutAttribution::from_headers(ctx.headers());
     let return_to = ctx
         .headers()
@@ -62,6 +62,7 @@ pub(super) async fn create_checkout(
         return_to.as_deref(),
         consent,
         measurement,
+        Some(pool),
     )
     .await
     .map_err(map_checkout_error)?;
@@ -193,6 +194,7 @@ async fn money_checkout(
         return_to,
         consent,
         measurement,
+        Some(pool),
     )
     .await
 }

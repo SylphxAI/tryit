@@ -314,7 +314,7 @@ describe('conversions', () => {
 		const quote = { plan: 'individual_monthly', value: 4.99, currency: 'GBP' }
 		rememberCheckoutQuote(quote)
 		expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(true)
-		const paid = { sessionId: 'cs_fixture_paid_1', status: 'paid' as const }
+		const paid = { orderId: 'pi_fixture_paid_1', value: 12.34, currency: 'USD' }
 		reportCheckoutReturn(paid)
 		expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(false)
 		rememberCheckoutQuote(quote)
@@ -325,9 +325,9 @@ describe('conversions', () => {
 				'conversion',
 				{
 					send_to: 'AW-123456789/FixturePurchase',
-					value: 4.99,
-					currency: 'GBP',
-					transaction_id: 'cs_fixture_paid_1',
+					value: 12.34,
+					currency: 'USD',
+					transaction_id: 'pi_fixture_paid_1',
 				},
 			],
 		])
@@ -349,7 +349,7 @@ describe('conversions', () => {
 					CHECKOUT_QUOTE_KEY,
 					JSON.stringify({ plan: 'pass', value: 4.99, currency: 'USD' }),
 				)
-				reportCheckoutReturn({ status: 'paid', sessionId: 'cs_fixture_paid_2' })
+				reportCheckoutReturn({ orderId: 'pi_fixture_paid_2', value: 7, currency: 'USD' })
 				expect(sent(h)).toEqual([])
 				expect(items.has(CHECKOUT_QUOTE_KEY)).toBe(false)
 				expect([...items.keys()].some((key) => key.includes('paid:'))).toBe(false)
@@ -398,7 +398,7 @@ describe('conversions', () => {
 		window.localStorage.setItem = () => {
 			throw new Error('storage blocked')
 		}
-		expect(trackCheckoutPurchase({ sessionId: 'cs_fixture' })).toBe(false)
+		expect(trackCheckoutPurchase({ orderId: 'pi_fixture', value: 5, currency: 'USD' })).toBe(false)
 		expect(sent(h)).toEqual([])
 	})
 

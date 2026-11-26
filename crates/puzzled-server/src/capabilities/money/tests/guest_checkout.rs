@@ -256,6 +256,7 @@ async fn guest_checkout_and_claim_work_in_both_webhook_orderings_and_verified_em
         None,
         Consent::for_plan(false, false).unwrap(),
         Default::default(),
+        None,
     )
     .await
     .unwrap();
@@ -333,4 +334,112 @@ async fn guest_checkout_and_claim_work_in_both_webhook_orderings_and_verified_em
         "usr_01verifiedemailuser0000001"
     );
     assert!(is_premium(&money, "usr_01verifiedemailuser0000001").await);
+}
+
+#[tokio::test]
+async fn checkout_receipt_requires_exact_owned_paid_session() {
+    use axum::extract::Path;
+
+    let app = Router::new().route(
+        "/v1/orgs/o/projects/p/envs/e/checkout_sessions/{id}",
+        get(|Path(id): Path<String>| async move {
+            let (canonical, processor) = match id.as_str() {
+                "cs_pass" | "chk_pass" => ("chk_pass", "cs_pass"),
+                "cs_mismatch" => ("chk_other", "cs_other"),
+                _ => ("chk_recurring", id.as_str()),
+            };
+            let mut row = json!({
+                "name": format!("orgs/o/projects/p/envs/e/checkout_sessions/{canonical}"),
+                "processor_session_id": processor,
+                "subject": {"end_user": USER},
+                "state": "complete",
+                "payment_status": "paid",
+                "amount_total": "1299",
+                "currency_code": "usd",
+                "processor_invoice_id": "in_recurring_fixture",
+            });
+            match id.as_str() {
+                "cs_pass" | "chk_pass" => {
+                    row["amount_total"] = json!(300);
+                    row["currency_code"] = json!("JPY");
+                    row["processor_payment_id"] = json!("pi_pass_fixture");
+                    row["processor_invoice_id"] = json!("");
+                }
+                "cs_missing_payment_id" => row["processor_invoice_id"] = json!(""),
+                "cs_pending" => row["state"] = json!("open"),
+                "cs_unpaid" => row["payment_status"] = json!("unpaid"),
+                "cs_trial" => row["payment_status"] = json!("no_payment_required"),
+                "cs_revoked" => row["payment_status"] = json!("revoked"),
+                "cs_denied" => row["denied_reason"] = json!("country_denied"),
+                "cs_other_owner" => row["subject"] = json!({"end_user": "other"}),
+                "cs_guest" => row["subject"] = Value::Null,
+                "cs_bad_amount" => row["amount_total"] = Value::Null,
+                "cs_bad_currency" => row["currency_code"] = json!("USD4"),
+                _ => {}
+            }
+            Json(row)
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    let money = Money::new(
+        &format!("http://{addr}/v1/orgs/o/projects/p/envs/e"),
+        "sk_fixture",
+        "https://tryit.fun",
+    );
+    let subjects = ["alternate_auth_subject".into(), USER.into()];
+    for (session, order, amount, currency) in [
+        ("cs_pass", "pi_pass_fixture", 300, "JPY"),
+        ("chk_pass", "pi_pass_fixture", 300, "JPY"),
+        ("cs_recurring", "in_recurring_fixture", 1299, "USD"),
+        ("cs_missing_payment_id", "chk_recurring", 1299, "USD"),
+    ] {
+        let receipt = money
+            .settled_checkout(session, session, &subjects)
+            .await
+            .unwrap();
+        assert_eq!(receipt.order_id, order);
+        assert_eq!(receipt.amount_minor, amount);
+        assert_eq!(receipt.currency, currency);
+    }
+    if let Some(pool) = crate::test_support::fresh_database().await {
+        use super::super::checkout_aliases::{canonical, remember};
+        assert_eq!(canonical(&pool, "cs_pass").await, None);
+        remember(Some(&pool), "cs_pass", "chk_pass").await;
+        // A duplicate response cannot remap an existing processor id.
+        remember(Some(&pool), "cs_pass", "chk_other").await;
+        assert_eq!(
+            canonical(&pool, "cs_pass").await.as_deref(),
+            Some("chk_pass")
+        );
+    }
+    let via_alias = money
+        .settled_checkout("cs_pass", "chk_pass", &subjects)
+        .await
+        .unwrap();
+    assert_eq!(via_alias.order_id, "pi_pass_fixture");
+    assert!(money
+        .settled_checkout("cs_unrelated", "chk_pass", &subjects)
+        .await
+        .is_none());
+    for session in [
+        "cs_pending",
+        "cs_unpaid",
+        "cs_trial",
+        "cs_revoked",
+        "cs_denied",
+        "cs_other_owner",
+        "cs_guest",
+        "cs_bad_amount",
+        "cs_bad_currency",
+        "cs_mismatch",
+        "cs_bad/id",
+    ] {
+        assert_eq!(
+            money.settled_checkout(session, session, &subjects).await,
+            None,
+            "{session}"
+        );
+    }
 }

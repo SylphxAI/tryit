@@ -267,6 +267,7 @@ pub(crate) async fn create_guest_session(
     return_to: Option<&str>,
     consent: Consent,
     measurement: CheckoutAttribution<'_>,
+    pool: Option<&sqlx::PgPool>,
 ) -> Result<GuestCheckoutSession, CheckoutError> {
     let found_plan = plan(catalog, plan_id).ok_or(CheckoutError::PlanNotOnSale)?;
     let validated_consent =
@@ -289,6 +290,8 @@ pub(crate) async fn create_guest_session(
         .create_checkout_session_full(&body)
         .await
         .map_err(|e: MoneyError| CheckoutError::Failed(e.to_string()))?;
+    super::checkout_aliases::remember(pool, &created.processor_session_id, &created.session_id)
+        .await;
     money
         .bind_checkout_attribution(&created.session_id, &measurement)
         .await;
@@ -315,6 +318,7 @@ pub(crate) async fn create_session(
     return_to: Option<&str>,
     consent: Consent,
     measurement: CheckoutAttribution<'_>,
+    pool: Option<&sqlx::PgPool>,
 ) -> Result<String, CheckoutError> {
     let mut body = prepare_session(
         money,
@@ -333,6 +337,8 @@ pub(crate) async fn create_session(
         .create_checkout_session_full(&body)
         .await
         .map_err(|e: MoneyError| CheckoutError::Failed(e.to_string()))?;
+    super::checkout_aliases::remember(pool, &created.processor_session_id, &created.session_id)
+        .await;
     money
         .bind_checkout_attribution(&created.session_id, &measurement)
         .await;
@@ -379,6 +385,8 @@ pub(crate) async fn create_retained_session(
         .as_str()
         .and_then(|name| name.rsplit('/').next())
     {
+        let processor = session["processor_session_id"].as_str().unwrap_or_default();
+        super::checkout_aliases::remember(Some(pool), processor, id).await;
         money.bind_checkout_attribution(id, &measurement).await;
     }
     session

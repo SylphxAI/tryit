@@ -1146,6 +1146,15 @@ export const metricAlertOutbox = pgTable(
 	(t) => [primaryKey({ name: 'metric_alert_outbox_pkey', columns: [t.dayKey, t.signal] })],
 )
 
+/** Lookup hints for Money checkout returns; never an ownership or payment record. */
+export const checkoutSessionAliases = pgTable('checkout_session_aliases', {
+	id: uuid('id').primaryKey(),
+	processorSessionId: text('processor_session_id')
+		.notNull()
+		.unique('checkout_session_aliases_processor_session_id_key'),
+	moneySessionId: text('money_session_id').notNull(),
+})
+
 /** Retained normal checkout requests; ambiguous calls are recovered by named read. */
 export const checkoutAttempts = pgTable(
 	'checkout_attempts',

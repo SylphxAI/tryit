@@ -94,7 +94,10 @@ test.describe('Solid subscription and family settings', () => {
 				method: 'ClaimCheckout',
 				body: { checkoutSessionId: 'fixture_checkout_delayed', locale: 'en-US' },
 			},
-			{ method: 'GetSubscription', body: { refresh: true } },
+			{
+				method: 'GetSubscription',
+				body: { refresh: true, checkoutSessionId: 'fixture_checkout_delayed' },
+			},
 		])
 	})
 
@@ -151,9 +154,9 @@ test.describe('Solid subscription and family settings', () => {
 				'conversion',
 				{
 					send_to: `${adsId}/${purchaseLabel}`,
-					value: 79.99,
+					value: 59.99,
 					currency: 'GBP',
-					transaction_id: sessionId,
+					transaction_id: 'in_plus_fixture',
 				},
 			],
 		])
@@ -168,6 +171,83 @@ test.describe('Solid subscription and family settings', () => {
 		expect(await conversions()).toEqual([])
 		expect(googleRequests).toHaveLength(2)
 	})
+
+	for (const { name, session, consent, gpc, expected } of [
+		{
+			name: 'Starter Pass without subscription',
+			session: 'fixture_checkout_pass',
+			consent: 'granted',
+			gpc: false,
+			expected: 1,
+		},
+		{
+			name: 'active Plus with a different pending session',
+			session: 'fixture_checkout_pending',
+			consent: 'granted',
+			gpc: false,
+			expected: 0,
+		},
+		{
+			name: 'paid return with denied consent',
+			session: 'fixture_checkout_pass',
+			consent: 'denied',
+			gpc: false,
+			expected: 0,
+		},
+		{
+			name: 'paid return with GPC',
+			session: 'fixture_checkout_pass',
+			consent: 'granted',
+			gpc: true,
+			expected: 0,
+		},
+	]) {
+		test(name, async ({ page, context, baseURL }) => {
+			await context.addCookies([{ url: baseURL!, name: 'puzzled_session', value: fixtureToken }])
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE', ...(gpc ? { 'Sec-GPC': '1' } : {}) })
+			const googleRequests = await capture(page, false)
+			await forwardBilling(page)
+			await page.addInitScript((choice) => {
+				localStorage.setItem('puzzled:signal.consent', choice)
+				localStorage.setItem(
+					'puzzled:ads:checkout-quote',
+					JSON.stringify({ plan: 'bogus', value: 999, currency: 'USD' }),
+				)
+			}, consent)
+			await page.goto(`/settings/subscription?session_id=${session}&callbackUrl=%2Fgames%2Fsudoku`)
+			await expect(page.getByRole('link', { name: 'Return to puzzle' })).toBeVisible()
+			const conversions = async () =>
+				(await commands(page)).filter(([cmd, event]) => cmd === 'event' && event === 'conversion')
+			if (expected) {
+				await expect.poll(conversions).toEqual([
+					[
+						'event',
+						'conversion',
+						{
+							send_to: `${adsId}/${purchaseLabel}`,
+							value: 350,
+							currency: 'JPY',
+							transaction_id: 'pi_starter_fixture',
+						},
+					],
+				])
+			} else if (consent === 'denied' || gpc) {
+				await expect
+					.poll(() => page.evaluate(() => localStorage.getItem('puzzled:ads:checkout-quote')))
+					.toBeNull()
+				expect(googleRequests).toEqual([])
+				expect(await conversions()).toEqual([])
+			} else {
+				await expect.poll(() => googleRequests.length).toBe(1)
+				expect(await conversions()).toEqual([])
+				const calls = await (await fetch(`${fixture}/__fixture`)).json()
+				expect(calls).toContainEqual({
+					method: 'GetSubscription',
+					body: { refresh: true, checkoutSessionId: session },
+				})
+			}
+		})
+	}
 
 	test('owner confirms cancellation, resumes, rotates the invite and removes only the intended member', async ({
 		page,

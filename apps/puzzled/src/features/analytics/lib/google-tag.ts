@@ -28,7 +28,7 @@ type IdSource = {
 const GA_ID = /^G-[A-Z0-9]{4,20}$/
 const ADS_ID = /^AW-\d{6,15}$/
 const ADS_LABEL = /^[A-Za-z0-9_-]{4,64}$/
-const CHECKOUT_SESSION_ID = /^[A-Za-z0-9_-]{6,128}$/
+const PURCHASE_ORDER_ID = /^[A-Za-z0-9_-]{1,128}$/
 
 /** Validated ids, or null when neither is configured (nothing loads). */
 export function googleTagIds(source: IdSource): GoogleTagIds | null {
@@ -305,7 +305,7 @@ export function createGoogleTag(input: {
 		adsPurchase({ value, currency, transactionId }) {
 			if (!canSendAdsPurchase()) return false
 			if (!Number.isFinite(value) || value <= 0 || !/^[A-Za-z]{3}$/.test(currency)) return false
-			if (!CHECKOUT_SESSION_ID.test(transactionId)) return false
+			if (!PURCHASE_ORDER_ID.test(transactionId)) return false
 			gtag('event', 'conversion', {
 				send_to: `${ids.ads}/${ids.adsPurchaseLabel}`,
 				value,
@@ -431,16 +431,14 @@ export function clearCheckoutQuote(): void {
 	}
 }
 
-/** Report Ads attribution only; Money still owns the paid purchase record. */
-export function trackCheckoutPurchase({ sessionId }: { sessionId: string }): boolean {
+export type SettledPurchase = { orderId: string; value: number; currency: string }
+
+/** Report Ads attribution only; use the Money-verified receipt, never the trial quote. */
+export function trackCheckoutPurchase({ orderId, value, currency }: SettledPurchase): boolean {
 	const tag = active
 	const storage = store()
-	if (!tag?.canSendAdsPurchase() || !storage || !CHECKOUT_SESSION_ID.test(sessionId)) return false
-	const quote = readQuote(storage)
-	if (!quote) return false
-	const sent = fireOnce(storage, `paid:${sessionId}`, () =>
-		tag.adsPurchase({ value: quote.value, currency: quote.currency, transactionId: sessionId }),
+	if (!tag?.canSendAdsPurchase() || !storage || !PURCHASE_ORDER_ID.test(orderId)) return false
+	return fireOnce(storage, `paid:${orderId}`, () =>
+		tag.adsPurchase({ value, currency, transactionId: orderId }),
 	)
-	if (sent) clearCheckoutQuote()
-	return sent
 }

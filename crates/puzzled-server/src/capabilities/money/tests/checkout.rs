@@ -20,6 +20,7 @@ async fn checkout_creates_a_money_session_and_returns_its_url() {
         None,
         consent,
         Default::default(),
+        None,
     )
     .await
     .unwrap();
@@ -76,6 +77,7 @@ async fn one_time_pass_requires_reg37_waiver_while_recurring_uses_reg36() {
             None,
             Consent::RecurringSubscription,
             Default::default(),
+            None,
         )
         .await,
         Err(CheckoutError::ConsentRequired)
@@ -95,6 +97,7 @@ async fn one_time_pass_requires_reg37_waiver_while_recurring_uses_reg36() {
         None,
         waiver,
         Default::default(),
+        None,
     )
     .await
     .unwrap();
@@ -123,6 +126,7 @@ async fn checkout_drops_a_currency_money_does_not_price() {
         None,
         consent,
         Default::default(),
+        None,
     )
     .await
     .unwrap();
@@ -169,7 +173,8 @@ async fn checkout_refuses_unknown_archived_and_already_subscribed() {
             None,
             None,
             consent,
-            Default::default()
+            Default::default(),
+            None,
         )
         .await,
         Err(CheckoutError::PlanNotOnSale)
@@ -187,6 +192,7 @@ async fn checkout_refuses_unknown_archived_and_already_subscribed() {
             None,
             consent,
             Default::default(),
+            None,
         )
         .await,
         Err(CheckoutError::PlanNotOnSale)
@@ -205,6 +211,7 @@ async fn checkout_refuses_unknown_archived_and_already_subscribed() {
             None,
             consent,
             Default::default(),
+            None,
         )
         .await,
         Err(CheckoutError::AlreadySubscribed)
