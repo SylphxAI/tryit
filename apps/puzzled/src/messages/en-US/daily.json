@@ -31,6 +31,8 @@
 	"notReadyCta": "Browse today's free puzzles",
 	"startUsesPick": "Starting uses one of today's 3 free picks. A game you start stays open all day.",
 	"englishWordPuzzle": "English word puzzle",
+	"cageSudokuCornerTotal": "Small corner number = sum of digits in the dashed cage.",
+	"cageSudokuExample": "Example (not this puzzle): 3 + 5 gives a corner total of 8.",
 	"firstAction": {
 		"sudoku": "Tap a blank square, then pick a number 1–9.",
 		"nonogram": "Use the number clues to fill your first square.",
@@ -40,7 +42,7 @@
 		"duo": "Tap a blank square to choose a sun or moon.",
 		"numberPath": "Start at 1. Drag or tap neighboring squares in order.",
 		"wordGroups": "Tap four words that belong together.",
-		"killerSudoku": "Tap a blank square and use its cage sum to pick a digit.",
+		"killerSudoku": "Select an empty square, then enter a digit.",
 		"wordLadder": "Change one letter to make a new word.",
 		"wordGuess": "Enter any five-letter word to get your first clues.",
 		"cryptogram": "Tap a cipher letter, then guess what it stands for.",

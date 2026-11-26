@@ -31,6 +31,8 @@
 	"notReadyCta": "查看今日免费谜题",
 	"startUsesPick": "开始后会用掉今天 3 个免费名额中的 1 个，开始过的游戏全天都能玩。",
 	"englishWordPuzzle": "英文单词谜题",
+	"cageSudokuCornerTotal": "角落小数字是虚线框内数字的总和。",
+	"cageSudokuExample": "示例（不是本局）：框内 3 + 5，角落就是 8。",
 	"firstAction": {
 		"sudoku": "点一个空格，再选 1–9 的数字。",
 		"nonogram": "根据行列的数字提示，填上第一格。",
@@ -40,7 +42,7 @@
 		"duo": "点一个空格，选太阳或月亮。",
 		"numberPath": "从 1 开始，拖动或依次点按相邻方格。",
 		"wordGroups": "点四个有共同主题的单词。",
-		"killerSudoku": "点一个空格，参考区块总和选数字。",
+		"killerSudoku": "先选一个空格，再输入数字。",
 		"wordLadder": "换掉一个字母，拼出新单词。",
 		"wordGuess": "输入任意五字母单词，获取提示。",
 		"cryptogram": "点一个加密字母，猜它代表哪个字母。",

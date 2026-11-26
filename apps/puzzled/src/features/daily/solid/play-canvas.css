@@ -143,6 +143,7 @@
 	[data-play-canvas] .play-date { order: 4; width: 100%; min-block-size: 1.25rem; padding-bottom: .25rem; font-size: .75rem; }
 	[data-play-canvas] .play-hud { column-gap: .5rem; }
 	[data-play-canvas] .play-hud > button svg { display: none; }
+	[data-play-canvas] .play-cue.cage-sudoku-cue { padding-block: 0; line-height: 1rem; }
 }
 
 /* Size Path and Sudoku from the viewport on the first paint. Chromium can
