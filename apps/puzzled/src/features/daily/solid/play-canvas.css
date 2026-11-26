@@ -361,3 +361,33 @@
 		[data-play-canvas] .play-tools:has([data-board-finished]) > :not(.completion-card) { display: none; }
 	}
 }
+
+/* Keep the board in its in-play frame. Controls after it can collapse once
+   a result is accepted; completed boards and discoveries remain readable. */
+[data-play-canvas] .play-body:has([data-board-finished]) :is(.play-tools, .pip-actions, .pip-feedback):not(:has([data-board-finished])) {
+	display: none;
+}
+
+[data-play-canvas] [data-arithmo-board]:has([data-board-finished]) [data-arithmo-keypad],
+[data-play-canvas] [data-hive-board]:has([data-board-finished]) .hive-comb + div,
+[data-play-canvas] [data-word-box-board]:has([data-board-finished]) :is(fieldset > form, #frame-next-letter, ol + button),
+[data-play-canvas]:is([data-game-slug="crowns"], [data-game-slug="duo"], [data-game-slug="word-search"]) .play-body > div:has(> [data-board-finished]) > fieldset ~ :not(ul, .completion-card),
+[data-play-canvas] [data-ladder-board]:has([data-board-finished]) > form {
+	display: none;
+}
+
+/* An accepted Quad loss adds a one-line answer under each table. Reserve
+   that line during play so the centred desktop grid never jumps on reveal. */
+[data-play-canvas] [data-quad-board] .play-board > div {
+	display: grid;
+	grid-template-rows: auto 1.25rem;
+}
+[data-play-canvas] [data-quad-board] .play-board > div > p { line-height: 1.25rem; }
+
+@media (width < 1024px) {
+	/* The domino actions unmount after placement; keep them below the grid. */
+	[data-play-canvas] [data-pip-place-board] { row-gap: 0; }
+	[data-play-canvas] [data-pip-place-board] .pip-actions { order: 1; }
+	[data-play-canvas] [data-pip-place-board] .play-board { margin-block: .75rem; }
+	[data-play-canvas] [data-block-slide-board] { row-gap: 0; }
+}

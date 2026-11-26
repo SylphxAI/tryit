@@ -98,5 +98,7 @@ export function createResultDailyContext(
 		`${t('streak.currentStreak')}: ${new Intl.NumberFormat(props.locale).format(days)}`
 	const streakPending = () =>
 		Boolean(ritualDay() && (streak.loading || streak.state === 'unresolved'))
-	return { percentileLabel, ritual, retention, streakCountLabel, streakPending }
+	// Wait for the resources that can change the height of the finish rail.
+	const layoutReady = () => mounted() && !ritual.loading && !percentile.loading && !streakPending()
+	return { percentileLabel, ritual, retention, streakCountLabel, streakPending, layoutReady }
 }

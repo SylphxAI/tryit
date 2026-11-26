@@ -1,7 +1,9 @@
 import { devices, expect, type Locator, type Page, test } from '@playwright/test'
 import sudokuGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/sudoku.json'
+import { isPracticeSupported } from '../src/features/practice/lib/practice'
 import { productDayKey } from '../src/lib/product-day'
 import { SAVE_STREAK_DISMISSED_DAY_KEY } from '../src/lib/storage-keys'
+import { type FinishFixture, guestFinishFixtures } from './guest-finish-fixtures'
 
 const fivePath = '/en-US/games/word-guess?start=1#play'
 const firstPuzzleId = '11a198bc-8079-4830-8c07-0d397aaabc73'
@@ -318,7 +320,7 @@ async function expectFinishTypography(card: Locator, actions: Locator[], phone: 
 	const next = card.getByRole('link', { name: /^Play next:/ })
 	const elements = [
 		card.locator('.completion-heading h2'),
-		...(await card.locator('[data-result-percentile], [data-result-milestone="7"]').all()),
+		...(await card.locator('[data-result-percentile], [data-result-streak]').all()),
 		...actions,
 	]
 	const boxes = await Promise.all(
@@ -375,38 +377,24 @@ for (const viewport of [
 		}
 
 		for (const [slug, outcome, installAvailable, dismissedEarlier] of [
-			['word-guess', 'lost', true, false],
-			['word-guess', 'won', true, false],
+			...(
+				Object.entries(guestFinishFixtures) as [keyof typeof guestFinishFixtures, FinishFixture][]
+			).flatMap(([slug, fixture]) => [
+				[slug, 'won', true] as const,
+				...(fixture.lose ? [[slug, 'lost', false] as const] : []),
+			]),
+			['word-guess', 'won', false],
 			['word-guess', 'won', true, true],
-			['sudoku', 'won', true, false],
-			['crossword', 'won', false, false],
 		] as const) {
-			const install = installAvailable && outcome === 'won' && dismissedEarlier
-			test(`${slug} guest finish ${outcome} shows only ${install ? 'install' : 'save-streak'} and fits without moving the board`, async ({
+			const install = installAvailable && dismissedEarlier === true
+			test(`${slug} guest finish ${outcome} (${install ? 'install only' : installAvailable ? 'save-streak preferred' : 'save-streak only'}) fits without moving the board`, async ({
 				page,
 				baseURL,
 			}, info) => {
 				requireLocalFixture(baseURL)
 				const dayKey = productDayKey()
-				const next = 'crowns'
-				const puzzleData = {
-					'word-guess': { wordLength: 5, maxAttempts: 6 },
-					sudoku: {
-						grid: Array.from({ length: 9 }, (_, r) =>
-							Array.from({ length: 9 }, (_, c) =>
-								r === 8 && c === 8 ? null : ((r * 3 + Math.floor(r / 3) + c) % 9) + 1,
-							),
-						),
-						difficulty: 'easy',
-					},
-					crossword: {
-						grid: [['', '', '', '', ''], ...Array.from({ length: 4 }, () => Array(5).fill(null))],
-						clues: {
-							across: [{ number: 1, row: 0, col: 0, length: 5, clue: 'Pleasant' }],
-							down: [],
-						},
-					},
-				}[slug]
+				const next = slug === 'crowns' ? 'duo' : 'crowns'
+				const fixture: FinishFixture = guestFinishFixtures[slug]
 				await page.emulateMedia({ reducedMotion: 'reduce' })
 				await page.route('**/v1/guest/session', (route) =>
 					route.fulfill({ json: { issued: true } }),
@@ -417,7 +405,7 @@ for (const viewport of [
 				)
 				await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) =>
 					route.fulfill({
-						json: { daily: { ...daily, puzzleDataJson: JSON.stringify(puzzleData) } },
+						json: { daily: { ...daily, puzzleDataJson: JSON.stringify(fixture.data) } },
 					}),
 				)
 				await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
@@ -432,15 +420,14 @@ for (const viewport of [
 						},
 					}),
 				)
-				await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => {
-					const { word } = JSON.parse(route.request().postDataJSON().guessJson)
-					const tiles =
-						outcome === 'lost'
-							? Array(5).fill('absent')
-							: word === 'charm'
-								? ['correct', 'present', 'absent', 'absent', 'absent']
-								: Array(5).fill('correct')
-					return route.fulfill({ json: { resultJson: JSON.stringify({ tiles }) } })
+				await page.route(/puzzled\.v1\.PuzzleService\/(CheckGuess|GradeGuess)$/, (route) => {
+					const guess = JSON.parse(route.request().postDataJSON().guessJson)
+					const grade =
+						outcome === 'lost' && slug === 'word-guess'
+							? { tiles: Array(5).fill('absent') }
+							: fixture.grade?.(guess)
+					expect(grade, 'Unexpected grading request').toBeDefined()
+					return route.fulfill({ json: { resultJson: JSON.stringify(grade) } })
 				})
 				await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => {
 					expect(route.request().postDataJSON()).toMatchObject({ gameSlug: slug, status: outcome })
@@ -450,7 +437,7 @@ for (const viewport of [
 							valid: true,
 							status: outcome,
 							score: 487,
-							revealJson: outcome === 'lost' ? JSON.stringify({ word: 'COUCH' }) : undefined,
+							revealJson: outcome === 'lost' ? JSON.stringify(fixture.reveal) : undefined,
 						},
 					})
 				})
@@ -472,7 +459,7 @@ for (const viewport of [
 					)
 				}
 				await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-				const difficulty = slug === 'sudoku' ? 'difficulty=easy&' : ''
+				const difficulty = fixture.difficulty ? `difficulty=${fixture.difficulty}&` : ''
 				await page.goto(`/en-US/games/${slug}?${difficulty}start=1#play`)
 				const decline = page.getByRole('button', { name: 'Decline', exact: true })
 				await decline.click()
@@ -480,10 +467,8 @@ for (const viewport of [
 					.locator('[data-game-stage="start"]')
 					.getByRole('button', { name: 'Play' })
 					.click()
-				const board =
-					slug === 'word-guess'
-						? page.getByRole('table', { name: 'Five' })
-						: page.locator('.play-body .play-board')
+				const stage = page.locator('[data-game-stage="board"]')
+				const board = stage.locator(fixture.board)
 				await expect(board).toBeVisible()
 				await page.evaluate(() => document.fonts.ready)
 				if (installAvailable && viewport.width !== 390) {
@@ -496,25 +481,24 @@ for (const viewport of [
 				await expect(cue).toBeVisible()
 				const bounds = (locator: Locator) =>
 					locator.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect)
-				const before = await bounds(board)
-				if (slug === 'word-guess') {
-					const guesses =
-						outcome === 'lost'
-							? ['crane', 'raise', 'blush', 'flame', 'sugar', 'lemon']
-							: ['charm', 'couch']
-					for (const [index, word] of guesses.entries()) {
-						await page.keyboard.type(word)
-						await page.keyboard.press('Enter')
-						await expect(board.locator('tr').nth(index).locator('[data-grade]')).toHaveCount(5)
-					}
-				} else if (slug === 'sudoku') {
-					await board.getByRole('button', { name: 'Row 9, Column 9', exact: true }).click()
-					await page.keyboard.press('8')
-				} else {
-					await board.locator('[data-crossword-cell]').first().click()
-					await page.keyboard.type('NICER')
-					await page.getByRole('button', { name: 'Check', exact: true }).click()
-				}
+				// Compare board geometry in the canvas, not its position in the viewport after reveal.
+				const boardPosition = () =>
+					board.evaluate((el) => {
+						const canvas = el.closest<HTMLElement>('.play-body')!
+						const rect = el.getBoundingClientRect()
+						const frame = canvas.getBoundingClientRect()
+						return {
+							x: rect.x - frame.x + canvas.scrollLeft,
+							y: rect.y - frame.y + canvas.scrollTop,
+							width: rect.width,
+							height: rect.height,
+						}
+					})
+				const before = await boardPosition()
+				if (outcome === 'lost') {
+					if (!fixture.lose) throw new Error(`Missing loss driver for ${slug}`)
+					await fixture.lose(page, stage)
+				} else await fixture.win(page, stage)
 
 				const card = page.locator('.completion-card[data-board-finished]')
 				await expect(card.locator('.completion-heading')).toHaveAttribute('data-outcome', outcome)
@@ -523,10 +507,12 @@ for (const viewport of [
 				await expect(guest).toHaveCount(install ? 0 : 1)
 				await expect(nudge).toHaveCount(install ? 1 : 0)
 				const actions = card.locator(
-					'.result-next, .result-action-row :is(a, button), .result-guest-link, [data-result-guest-capture] button, [data-install-nudge] button',
+					'.result-next, .result-action-row :is(a, button), [data-result-guest-capture] :is(a, button), [data-install-nudge] button',
 				)
 				await expect(actions).toHaveCount(
-					1 + (slug === 'crossword' ? 2 : 3) + (install ? (viewport.width === 390 ? 1 : 2) : 2),
+					1 +
+						(isPracticeSupported(slug) ? 3 : 2) +
+						(install ? (viewport.width === 390 ? 1 : 2) : 2),
 				)
 				const visibleActions = await actions.all()
 				const prompts = install ? [nudge] : [guest.locator('p').first()]
@@ -536,13 +522,18 @@ for (const viewport of [
 				await expect(card.locator('[data-result-milestone="7"]')).toHaveCount(
 					outcome === 'won' ? 1 : 0,
 				)
-				const after = await bounds(board)
+				await expect.soft(card).toBeInViewport({ ratio: 0.99 })
+				const after = await boardPosition()
 				const panel = await bounds(card)
 				const size = await card.evaluate(({ scrollHeight, clientHeight }) => ({
 					scrollHeight,
 					clientHeight,
 				}))
-				await page.screenshot({ path: info.outputPath(`${slug}.png`) })
+				await page.screenshot({
+					path: info.outputPath(
+						`${slug}-${outcome}-${install ? 'install' : installAvailable ? 'account-preferred' : 'account'}-${viewport.width}x${viewport.height}.png`,
+					),
+				})
 				await info.attach('finish geometry', {
 					body: JSON.stringify({ slug, outcome, install, viewport, before, after, panel, size }),
 					contentType: 'application/json',
@@ -550,21 +541,28 @@ for (const viewport of [
 				expect.soft(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
 				await expect(cue).toBeHidden()
 				for (const key of ['x', 'y', 'width', 'height'] as const) {
-					expect(Math.abs(after[key] - before[key])).toBeLessThanOrEqual(1)
+					// Rungs grows as the player adds legal steps.
+					if (key === 'height' && slug === 'word-ladder') continue
+					expect.soft(Math.abs(after[key] - before[key]), `board ${key}`).toBeLessThanOrEqual(1)
 				}
-				const protectedCells = slug === 'word-guess' ? board.locator('[data-grade]') : board
+				const protectedCells =
+					slug === 'word-guess'
+						? board.locator('[data-grade]')
+						: slug === 'word-groups'
+							? board.locator('[data-group-category]')
+							: board
 				if (slug === 'word-guess')
 					await expect(protectedCells).toHaveCount(outcome === 'lost' ? 30 : 10)
 				for (const cell of await protectedCells.all())
 					expect.soft(overlaps(panel, await bounds(cell))).toBe(false)
 				await expectFinishTypography(card, visibleActions, viewport.width === 390)
-				for (const locator of [board, card, ...visibleActions, ...prompts]) {
+				for (const locator of [card, ...visibleActions, ...prompts]) {
 					const rect = await bounds(locator)
-					expect(rect.top).toBeGreaterThanOrEqual(0)
-					expect(rect.bottom).toBeLessThanOrEqual(viewport.height)
+					expect.soft(rect.top, String(locator)).toBeGreaterThanOrEqual(-1)
+					expect.soft(rect.bottom, String(locator)).toBeLessThanOrEqual(viewport.height + 1)
 					expect(rect.left).toBeGreaterThanOrEqual(0)
 					expect(rect.right).toBeLessThanOrEqual(viewport.width)
-					await expect(locator).toBeInViewport({ ratio: 0.99 })
+					await expect.soft(locator).toBeInViewport({ ratio: 0.99, timeout: 1200 })
 				}
 				for (const action of [...visibleActions, ...prompts]) {
 					expect(
@@ -574,7 +572,7 @@ for (const viewport of [
 						}),
 					).toBe(true)
 				}
-				if (slug === 'word-guess' && outcome === 'won' && !dismissedEarlier) {
+				if (slug === 'word-guess' && outcome === 'won' && installAvailable && !install) {
 					await guest.getByRole('button', { name: 'Dismiss' }).click()
 					await expect(guest).toHaveCount(0)
 					await expect(nudge).toHaveCount(0)

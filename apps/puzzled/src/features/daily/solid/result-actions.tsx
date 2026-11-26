@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ChartNoAxesColumnIncreasing, Flame, Snowflake, X } from 'lucide-solid'
-import { createEffect, createSignal, onMount, Show } from 'solid-js'
+import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import { gamePath } from '@/lib/game-slug'
@@ -36,7 +36,7 @@ export function ResultActions(props: {
 		props.locale,
 		`/sign-in?${new URLSearchParams({ callbackUrl: localizedPath(props.locale, '/stats') })}`,
 	)
-	const { percentileLabel, ritual, retention, streakCountLabel, streakPending } =
+	const { percentileLabel, ritual, retention, streakCountLabel, streakPending, layoutReady } =
 		createResultDailyContext(props, model, mounted, t)
 	const [dismissedDay, setDismissedDay] = createSignal<string | null | false>()
 	onMount(() => {
@@ -97,6 +97,32 @@ export function ResultActions(props: {
 		}
 	}
 	const { copyButton, status, dialogActions } = createResultShareControls(share, t)
+	let actionRow: HTMLDivElement | undefined
+	let revealed = false
+	createEffect(() => {
+		if (
+			!props.freshWin ||
+			props.facts.mode !== 'daily' ||
+			!layoutReady() ||
+			prompt() === undefined ||
+			revealed
+		)
+			return
+		const frame = requestAnimationFrame(() => {
+			const card = actionRow?.closest<HTMLElement>('[data-board-finished]')
+			const canvas = card?.closest<HTMLElement>('[data-play-canvas] .play-body')
+			if (!canvas || !card?.isConnected || card.hasAttribute('data-result-open')) return
+			revealed = true
+			const bottom = Math.min(window.innerHeight, canvas.getBoundingClientRect().bottom)
+			if (card.getBoundingClientRect().bottom <= bottom + 1) return
+			card.scrollIntoView({
+				block: 'nearest',
+				inline: 'nearest',
+				behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+			})
+		})
+		onCleanup(() => cancelAnimationFrame(frame))
+	})
 	return (
 		<>
 			<ResultPattern model={model()} strings={strings} />
@@ -142,7 +168,7 @@ export function ResultActions(props: {
 					/>
 				)}
 			</Show>
-			<div class="result-action-row">
+			<div class="result-action-row" ref={actionRow}>
 				{copyButton('rail')}
 				<Show when={props.facts.mode === 'daily' && isPracticeSupported(props.facts.gameSlug)}>
 					<a
