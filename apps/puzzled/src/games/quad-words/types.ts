@@ -3,6 +3,9 @@
  * Play 4 Wordle games simultaneously
  */
 
+// Reading order, shared by the mini-boards and keyboard corners.
+export const BOARD_INDICES = [0, 1, 2, 3] as const
+
 // A single board's state
 export type BoardState = {
 	guesses: string[]
