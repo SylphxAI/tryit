@@ -153,7 +153,7 @@ mod tests {
                 .unwrap_or_else(std::sync::PoisonError::into_inner),
             [(Method::GET, PATH.to_owned())],
         );
-        let catalogue = catalogue?;
+        let catalogue = catalogue.map_err(|error| std::io::Error::other(error.to_string()))?;
         assert_eq!(catalogue.spec.products.len(), 1);
         assert_eq!(catalogue.spec.products[0].key, "example");
         Ok(())
