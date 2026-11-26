@@ -146,9 +146,6 @@ export function ResultActions(props: {
 					<div class="flex flex-wrap items-center gap-x-3">
 						<div class="flex-1 basis-40">
 							<p>{t('onboarding.keepStreak', { days: retention().days })}</p>
-							<Show when={model().status === 'won'}>
-								<p class="result-guest-note">{t('onboarding.saveStreakNote')}</p>
-							</Show>
 						</div>
 						<a class="result-guest-link" href={signIn}>
 							{t('onboarding.createFreeAccount')}
