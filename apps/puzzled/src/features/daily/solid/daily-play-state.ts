@@ -5,6 +5,7 @@ import type { GamePageData } from '@/features/catalog/solid/game-data'
 import type { PuzzleDifficulty } from '@/games/types'
 import { isPlusRequiredError } from '@/lib/billing/plus'
 import { getTodayProgress, startDaily } from '@/lib/connect/puzzle-client'
+import { withPresentationDeadline } from '@/lib/presentation-document'
 import { classifyDailyResponse, type DailySnapshot, loadDailySnapshot } from '../lib/daily-fallback'
 import { claimedDailyPicks } from '../lib/daily-picks'
 import { rememberDailyLevel } from '../lib/daily-resume-path'
@@ -65,7 +66,9 @@ export function createDailyPlayState(
 		{ initialValue: props.initial, ssrLoadFrom: 'initial' },
 	)
 	onMount(() => setMounted(true))
-	const [isGuest] = createResource(mounted, () => readPlayGuestStatus().catch(() => undefined))
+	const [isGuest, { refetch: retryGuestStatus }] = createResource(mounted, () =>
+		withPresentationDeadline(readPlayGuestStatus(), undefined),
+	)
 	const play = async (puzzleDate: string) => {
 		if (starting() || !hasBoard) return
 		setStarting(true)
@@ -121,5 +124,16 @@ export function createDailyPlayState(
 		{ initialValue: null },
 	)
 	const pickIndex = () => (claimedPicks.latest?.indexOf(slug) ?? -1) + 1
-	return { state, refetch, isGuest, starting, entered, play, snapshot, claimedPicks, pickIndex }
+	return {
+		state,
+		refetch,
+		isGuest,
+		retryGuestStatus,
+		starting,
+		entered,
+		play,
+		snapshot,
+		claimedPicks,
+		pickIndex,
+	}
 }

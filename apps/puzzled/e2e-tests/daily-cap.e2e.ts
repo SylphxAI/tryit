@@ -2,7 +2,11 @@ import { expect, type Page, test } from '@playwright/test'
 import killerGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/killer-sudoku.json'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import { nextProductDayStart, productDayKey } from '../src/lib/product-day'
-import { CONSENT_KEY, PWA_PROMPT_DISMISSED_KEY } from '../src/lib/storage-keys'
+import {
+	CONSENT_KEY,
+	PWA_PROMPT_DISMISSED_KEY,
+	SAVE_STREAK_DISMISSED_DAY_KEY,
+} from '../src/lib/storage-keys'
 
 const picks = ['number-path', 'killer-sudoku', 'sudoku']
 const sudoku = Array.from({ length: 9 }, (_, r) =>
@@ -20,8 +24,10 @@ async function fixture(page: Page, options?: { ios?: boolean; standalone?: boole
 	const started = new Set<string>()
 	let finished = false
 	await page.addInitScript(
-		({ consentKey, ios, standalone }) => {
+		({ consentKey, dismissedSaveKey, dayKey, ios, standalone }) => {
 			localStorage.setItem(consentKey, 'denied')
+			// These fixtures check install availability after an earlier save-streak dismissal.
+			localStorage.setItem(dismissedSaveKey, dayKey)
 			if (ios)
 				Object.defineProperty(navigator, 'userAgent', {
 					value: 'Mozilla/5.0 (iPhone) Version/18.0 Mobile/15E148 Safari/604.1',
@@ -32,7 +38,13 @@ async function fixture(page: Page, options?: { ios?: boolean; standalone?: boole
 					native(query === '(display-mode: standalone)' ? 'all' : query)
 			}
 		},
-		{ consentKey: CONSENT_KEY, ios: options?.ios, standalone: options?.standalone },
+		{
+			consentKey: CONSENT_KEY,
+			dismissedSaveKey: SAVE_STREAK_DISMISSED_DAY_KEY,
+			dayKey,
+			ios: options?.ios,
+			standalone: options?.standalone,
+		},
 	)
 	const rpc = (name: string) => '**/puzzled.v1.PuzzleService/' + name
 	const daily = (gameSlug: string, difficulty?: string) => {

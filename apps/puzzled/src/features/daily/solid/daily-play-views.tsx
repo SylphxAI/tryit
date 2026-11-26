@@ -16,6 +16,7 @@ export function renderDailyCompletion(
 		result,
 		explicitPlay,
 		isGuest,
+		guestStatusPending,
 		resultOpen,
 		onDetailsOpenChange,
 	}: {
@@ -24,6 +25,7 @@ export function renderDailyCompletion(
 		result: Accessor<Extract<DailySnapshot, { kind: 'completed' }>>
 		explicitPlay: boolean
 		isGuest: Accessor<boolean | undefined>
+		guestStatusPending: Accessor<boolean>
 		resultOpen: Accessor<boolean>
 		onDetailsOpenChange: (open: boolean) => void
 	},
@@ -49,6 +51,7 @@ export function renderDailyCompletion(
 			</p>
 			<ResultActions
 				isGuest={isGuest()}
+				guestStatusPending={guestStatusPending()}
 				onDetailsOpenChange={onDetailsOpenChange}
 				facts={{
 					gameSlug: slug,

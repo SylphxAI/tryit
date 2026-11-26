@@ -19,8 +19,18 @@ export function DailyPlay(props: DailyPlayProps) {
 	const board = gameBoards.get(slug)
 	const explicitPlay = props.started && !choose && Boolean(board)
 	const [resultOpen, setResultOpen] = createSignal(false)
-	const { state, refetch, isGuest, starting, entered, play, snapshot, claimedPicks, pickIndex } =
-		createDailyPlayState(props, { slug, archive, choose, hasBoard: Boolean(board) })
+	const {
+		state,
+		refetch,
+		isGuest,
+		retryGuestStatus,
+		starting,
+		entered,
+		play,
+		snapshot,
+		claimedPicks,
+		pickIndex,
+	} = createDailyPlayState(props, { slug, archive, choose, hasBoard: Boolean(board) })
 
 	const unavailable = () => (
 		<div class="play-entry mx-auto max-w-md space-y-2 text-center">
@@ -69,6 +79,7 @@ export function DailyPlay(props: DailyPlayProps) {
 						result,
 						explicitPlay,
 						isGuest: () => isGuest.latest,
+						guestStatusPending: () => isGuest.loading,
 						resultOpen,
 						onDetailsOpenChange: setResultOpen,
 					})
@@ -116,6 +127,8 @@ export function DailyPlay(props: DailyPlayProps) {
 							difficulty={props.difficulty}
 							draftScope={value().draftScope ?? undefined}
 							isGuest={isGuest.latest}
+							guestStatusPending={isGuest.loading}
+							retryGuestStatus={retryGuestStatus}
 							pickIndex={pickIndex()}
 							onAlreadyPlayed={() => void refetch()}
 						/>

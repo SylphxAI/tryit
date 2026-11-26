@@ -1,6 +1,7 @@
 import { devices, expect, type Locator, type Page, test } from '@playwright/test'
 import sudokuGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/sudoku.json'
 import { productDayKey } from '../src/lib/product-day'
+import { SAVE_STREAK_DISMISSED_DAY_KEY } from '../src/lib/storage-keys'
 
 const fivePath = '/en-US/games/word-guess?start=1#play'
 const firstPuzzleId = '11a198bc-8079-4830-8c07-0d397aaabc73'
@@ -373,14 +374,15 @@ for (const viewport of [
 			test.use({ viewport })
 		}
 
-		for (const [slug, outcome, install] of [
-			['word-guess', 'lost', false],
-			['word-guess', 'won', false],
-			['word-guess', 'won', true],
-			['sudoku', 'won', true],
-			['crossword', 'won', true],
+		for (const [slug, outcome, installAvailable, dismissedEarlier] of [
+			['word-guess', 'lost', true, false],
+			['word-guess', 'won', true, false],
+			['word-guess', 'won', true, true],
+			['sudoku', 'won', true, false],
+			['crossword', 'won', false, false],
 		] as const) {
-			test(`${slug} guest finish ${outcome}${install ? ' with install' : ' without install'} fits without moving the board`, async ({
+			const install = installAvailable && outcome === 'won' && dismissedEarlier
+			test(`${slug} guest finish ${outcome} shows only ${install ? 'install' : 'save-streak'} and fits without moving the board`, async ({
 				page,
 				baseURL,
 			}, info) => {
@@ -458,7 +460,13 @@ for (const viewport of [
 				await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
 					route.fulfill({ json: { info: { currentStreak: 7 } } }),
 				)
-				if (!install) {
+				if (dismissedEarlier) {
+					await page.addInitScript(({ key, day }) => localStorage.setItem(key, day), {
+						key: SAVE_STREAK_DISMISSED_DAY_KEY,
+						day: dayKey,
+					})
+				}
+				if (!installAvailable) {
 					await page.addInitScript(() =>
 						Object.defineProperty(navigator, 'standalone', { value: true }),
 					)
@@ -478,7 +486,7 @@ for (const viewport of [
 						: page.locator('.play-body .play-board')
 				await expect(board).toBeVisible()
 				await page.evaluate(() => document.fonts.ready)
-				if (install && viewport.width !== 390) {
+				if (installAvailable && viewport.width !== 390) {
 					// A loopback build is not installable; exercise the captured Chromium event.
 					await page.evaluate(() =>
 						window.dispatchEvent(new Event('beforeinstallprompt', { cancelable: true })),
@@ -512,20 +520,16 @@ for (const viewport of [
 				await expect(card.locator('.completion-heading')).toHaveAttribute('data-outcome', outcome)
 				const guest = card.locator('[data-result-guest-capture]')
 				const nudge = card.locator('[data-install-nudge]')
-				await expect(guest).toHaveCount(outcome === 'won' ? 1 : 0)
+				await expect(guest).toHaveCount(install ? 0 : 1)
 				await expect(nudge).toHaveCount(install ? 1 : 0)
 				const actions = card.locator(
-					'.result-next, .result-action-row :is(a, button), .result-guest-link, [data-install-nudge] button',
+					'.result-next, .result-action-row :is(a, button), .result-guest-link, [data-result-guest-capture] button, [data-install-nudge] button',
 				)
 				await expect(actions).toHaveCount(
-					1 +
-						(slug === 'crossword' ? 2 : 3) +
-						(outcome === 'won' ? 1 : 0) +
-						(install ? (viewport.width === 390 ? 1 : 2) : 0),
+					1 + (slug === 'crossword' ? 2 : 3) + (install ? (viewport.width === 390 ? 1 : 2) : 2),
 				)
 				const visibleActions = await actions.all()
-				const prompts =
-					outcome === 'won' ? [guest.locator('p').first(), ...(install ? [nudge] : [])] : []
+				const prompts = install ? [nudge] : [guest.locator('p').first()]
 				await expect(card.locator('[data-result-percentile]')).toHaveCount(
 					outcome === 'won' ? 1 : 0,
 				)
@@ -569,6 +573,11 @@ for (const viewport of [
 							return el.contains(document.elementFromPoint(left + width / 2, top + height / 2))
 						}),
 					).toBe(true)
+				}
+				if (slug === 'word-guess' && outcome === 'won' && !dismissedEarlier) {
+					await guest.getByRole('button', { name: 'Dismiss' }).click()
+					await expect(guest).toHaveCount(0)
+					await expect(nudge).toHaveCount(0)
 				}
 			})
 		}
