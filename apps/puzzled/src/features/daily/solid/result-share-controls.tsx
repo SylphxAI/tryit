@@ -9,29 +9,34 @@ export function createResultShareControls(
 	t: Translate,
 ) {
 	const { feedback, nativeShareAvailable, pending, save, shareChallenge } = share
-	const status = (surface: ShareSurface) => (
-		<Show when={feedback()?.surface === surface && feedback()}>
-			{(state) => (
-				<div class="result-feedback">
-					<p role="status">{t(state().message)}</p>
-					<Show when={state().caption}>
-						{(caption) => (
-							<label>
-								{t('share.card.caption')}
-								<textarea
-									rows={3}
-									readOnly
-									value={caption()}
-									class="mt-1 w-full rounded-lg border border-border p-2"
-									onFocus={(event) => event.currentTarget.select()}
-								/>
-							</label>
-						)}
-					</Show>
-				</div>
-			)}
-		</Show>
-	)
+	const status = (surface: ShareSurface) => {
+		const state = () => {
+			const current = feedback()
+			return current?.surface === surface ? current : undefined
+		}
+		return (
+			<div classList={{ 'result-feedback': !!state() }}>
+				{/* The live region must exist before the action updates its text. */}
+				<p role="status" aria-atomic="true">
+					<Show when={state()?.message}>{(message) => t(message())}</Show>
+				</p>
+				<Show when={state()?.caption}>
+					{(caption) => (
+						<label>
+							{t('share.card.caption')}
+							<textarea
+								rows={3}
+								readOnly
+								value={caption()}
+								class="mt-1 w-full rounded-lg border border-border p-2"
+								onFocus={(event) => event.currentTarget.select()}
+							/>
+						</label>
+					)}
+				</Show>
+			</div>
+		)
+	}
 	const copyButton = (surface: ShareSurface) => (
 		<button
 			type="button"
