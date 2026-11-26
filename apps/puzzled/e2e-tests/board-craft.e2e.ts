@@ -1,6 +1,8 @@
 import { devices, expect, type Locator, type Page, test } from '@playwright/test'
 import sudokuGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/sudoku.json'
+import { isPracticeSupported } from '../src/features/practice/lib/practice'
 import { productDayKey } from '../src/lib/product-day'
+import { type FinishFixture, guestFinishFixtures } from './guest-finish-fixtures'
 
 const fivePath = '/en-US/games/word-guess?start=1#play'
 const firstPuzzleId = '11a198bc-8079-4830-8c07-0d397aaabc73'
@@ -374,11 +376,13 @@ for (const viewport of [
 		}
 
 		for (const [slug, outcome, install] of [
-			['word-guess', 'lost', false],
+			...(
+				Object.entries(guestFinishFixtures) as [keyof typeof guestFinishFixtures, FinishFixture][]
+			).flatMap(([slug, fixture]) => [
+				[slug, 'won', true] as const,
+				...(fixture.lose ? [[slug, 'lost', false] as const] : []),
+			]),
 			['word-guess', 'won', false],
-			['word-guess', 'won', true],
-			['sudoku', 'won', true],
-			['crossword', 'won', true],
 		] as const) {
 			test(`${slug} guest finish ${outcome}${install ? ' with install' : ' without install'} fits without moving the board`, async ({
 				page,
@@ -386,25 +390,8 @@ for (const viewport of [
 			}, info) => {
 				requireLocalFixture(baseURL)
 				const dayKey = productDayKey()
-				const next = 'crowns'
-				const puzzleData = {
-					'word-guess': { wordLength: 5, maxAttempts: 6 },
-					sudoku: {
-						grid: Array.from({ length: 9 }, (_, r) =>
-							Array.from({ length: 9 }, (_, c) =>
-								r === 8 && c === 8 ? null : ((r * 3 + Math.floor(r / 3) + c) % 9) + 1,
-							),
-						),
-						difficulty: 'easy',
-					},
-					crossword: {
-						grid: [['', '', '', '', ''], ...Array.from({ length: 4 }, () => Array(5).fill(null))],
-						clues: {
-							across: [{ number: 1, row: 0, col: 0, length: 5, clue: 'Pleasant' }],
-							down: [],
-						},
-					},
-				}[slug]
+				const next = slug === 'crowns' ? 'duo' : 'crowns'
+				const fixture: FinishFixture = guestFinishFixtures[slug]
 				await page.emulateMedia({ reducedMotion: 'reduce' })
 				await page.route('**/v1/guest/session', (route) =>
 					route.fulfill({ json: { issued: true } }),
@@ -415,7 +402,7 @@ for (const viewport of [
 				)
 				await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) =>
 					route.fulfill({
-						json: { daily: { ...daily, puzzleDataJson: JSON.stringify(puzzleData) } },
+						json: { daily: { ...daily, puzzleDataJson: JSON.stringify(fixture.data) } },
 					}),
 				)
 				await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
@@ -430,15 +417,14 @@ for (const viewport of [
 						},
 					}),
 				)
-				await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => {
-					const { word } = JSON.parse(route.request().postDataJSON().guessJson)
-					const tiles =
-						outcome === 'lost'
-							? Array(5).fill('absent')
-							: word === 'charm'
-								? ['correct', 'present', 'absent', 'absent', 'absent']
-								: Array(5).fill('correct')
-					return route.fulfill({ json: { resultJson: JSON.stringify({ tiles }) } })
+				await page.route(/puzzled\.v1\.PuzzleService\/(CheckGuess|GradeGuess)$/, (route) => {
+					const guess = JSON.parse(route.request().postDataJSON().guessJson)
+					const grade =
+						outcome === 'lost' && slug === 'word-guess'
+							? { tiles: Array(5).fill('absent') }
+							: fixture.grade?.(guess)
+					expect(grade, 'Unexpected grading request').toBeDefined()
+					return route.fulfill({ json: { resultJson: JSON.stringify(grade) } })
 				})
 				await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => {
 					expect(route.request().postDataJSON()).toMatchObject({ gameSlug: slug, status: outcome })
@@ -448,7 +434,7 @@ for (const viewport of [
 							valid: true,
 							status: outcome,
 							score: 487,
-							revealJson: outcome === 'lost' ? JSON.stringify({ word: 'COUCH' }) : undefined,
+							revealJson: outcome === 'lost' ? JSON.stringify(fixture.reveal) : undefined,
 						},
 					})
 				})
@@ -464,7 +450,7 @@ for (const viewport of [
 					)
 				}
 				await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-				const difficulty = slug === 'sudoku' ? 'difficulty=easy&' : ''
+				const difficulty = fixture.difficulty ? `difficulty=${fixture.difficulty}&` : ''
 				await page.goto(`/en-US/games/${slug}?${difficulty}start=1#play`)
 				const decline = page.getByRole('button', { name: 'Decline', exact: true })
 				await decline.click()
@@ -472,10 +458,8 @@ for (const viewport of [
 					.locator('[data-game-stage="start"]')
 					.getByRole('button', { name: 'Play' })
 					.click()
-				const board =
-					slug === 'word-guess'
-						? page.getByRole('table', { name: 'Five' })
-						: page.locator('.play-body .play-board')
+				const stage = page.locator('[data-game-stage="board"]')
+				const board = stage.locator(fixture.board)
 				await expect(board).toBeVisible()
 				await page.evaluate(() => document.fonts.ready)
 				if (install && viewport.width !== 390) {
@@ -489,24 +473,10 @@ for (const viewport of [
 				const bounds = (locator: Locator) =>
 					locator.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect)
 				const before = await bounds(board)
-				if (slug === 'word-guess') {
-					const guesses =
-						outcome === 'lost'
-							? ['crane', 'raise', 'blush', 'flame', 'sugar', 'lemon']
-							: ['charm', 'couch']
-					for (const [index, word] of guesses.entries()) {
-						await page.keyboard.type(word)
-						await page.keyboard.press('Enter')
-						await expect(board.locator('tr').nth(index).locator('[data-grade]')).toHaveCount(5)
-					}
-				} else if (slug === 'sudoku') {
-					await board.getByRole('button', { name: 'Row 9, Column 9', exact: true }).click()
-					await page.keyboard.press('8')
-				} else {
-					await board.locator('[data-crossword-cell]').first().click()
-					await page.keyboard.type('NICER')
-					await page.getByRole('button', { name: 'Check', exact: true }).click()
-				}
+				if (outcome === 'lost') {
+					if (!fixture.lose) throw new Error(`Missing loss driver for ${slug}`)
+					await fixture.lose(page, stage)
+				} else await fixture.win(page, stage)
 
 				const card = page.locator('.completion-card[data-board-finished]')
 				await expect(card.locator('.completion-heading')).toHaveAttribute('data-outcome', outcome)
@@ -519,7 +489,7 @@ for (const viewport of [
 				)
 				await expect(actions).toHaveCount(
 					1 +
-						(slug === 'crossword' ? 2 : 3) +
+						(isPracticeSupported(slug) ? 3 : 2) +
 						(outcome === 'won' ? 1 : 0) +
 						(install ? (viewport.width === 390 ? 1 : 2) : 0),
 				)
@@ -538,7 +508,11 @@ for (const viewport of [
 					scrollHeight,
 					clientHeight,
 				}))
-				await page.screenshot({ path: info.outputPath(`${slug}.png`) })
+				await page.screenshot({
+					path: info.outputPath(
+						`${slug}-${outcome}-${install ? 'install' : 'no-install'}-${viewport.width}x${viewport.height}.png`,
+					),
+				})
 				await info.attach('finish geometry', {
 					body: JSON.stringify({ slug, outcome, install, viewport, before, after, panel, size }),
 					contentType: 'application/json',
@@ -546,9 +520,16 @@ for (const viewport of [
 				expect.soft(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
 				await expect(cue).toBeHidden()
 				for (const key of ['x', 'y', 'width', 'height'] as const) {
-					expect(Math.abs(after[key] - before[key])).toBeLessThanOrEqual(1)
+					// Rungs grows as the player adds legal steps.
+					if (key === 'height' && slug === 'word-ladder') continue
+					expect.soft(Math.abs(after[key] - before[key]), `board ${key}`).toBeLessThanOrEqual(1)
 				}
-				const protectedCells = slug === 'word-guess' ? board.locator('[data-grade]') : board
+				const protectedCells =
+					slug === 'word-guess'
+						? board.locator('[data-grade]')
+						: slug === 'word-groups'
+							? board.locator('[data-group-category]')
+							: board
 				if (slug === 'word-guess')
 					await expect(protectedCells).toHaveCount(outcome === 'lost' ? 30 : 10)
 				for (const cell of await protectedCells.all())

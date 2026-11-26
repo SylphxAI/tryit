@@ -361,3 +361,73 @@
 		[data-play-canvas] .play-tools:has([data-board-finished]) > :not(.completion-card) { display: none; }
 	}
 }
+
+/* These single-column games can have a tall solved board or persistent clues.
+   At wide sizes reserve a finish rail before the board paints, so completion
+   never needs to relocate the grid or cover its cells. */
+@media (width >= 1024px) {
+	@container (height >= 26rem) {
+		[data-play-canvas]:is([data-game-slug="word-search"], [data-game-slug="crowns"], [data-game-slug="duo"], [data-game-slug="word-groups"], [data-game-slug="word-ladder"], [data-game-slug="word-box"], [data-game-slug="arithmo"], [data-game-slug="word-hive"]) .play-body > :not(.play-entry) {
+			margin-inline: max(0px, calc((100% - 30rem - 46%) / 2)) auto;
+			max-inline-size: calc(54% - 1.5rem);
+		}
+		[data-play-canvas]:is([data-game-slug="word-search"], [data-game-slug="crowns"], [data-game-slug="duo"], [data-game-slug="word-groups"], [data-game-slug="word-ladder"], [data-game-slug="word-box"], [data-game-slug="arithmo"], [data-game-slug="word-hive"]) .play-body > :not(.play-split) .completion-card[data-board-finished]:has(> .result-action-row) {
+			position: absolute;
+			inset-inline: 56% 0;
+			inset-block: 0;
+			margin-block: auto;
+			block-size: max-content;
+		}
+	}
+}
+
+@media (width < 640px) {
+	@container (height >= 26rem) {
+		/* Size the board's slot before play, not when the result arrives. */
+		[data-play-canvas] :is([data-nonogram-board], [data-number-path-board], [data-killer-sudoku-board]) .play-board {
+			max-inline-size: min(100%, clamp(16rem, calc(100cqh - 23rem), 19rem));
+			margin-inline: auto;
+		}
+		[data-play-canvas]:is([data-game-slug="crowns"], [data-game-slug="duo"], [data-game-slug="word-search"]) .play-body fieldset {
+			inline-size: min(100%, clamp(15rem, calc(100cqh - 26rem), 18rem));
+			margin-inline: auto;
+		}
+		[data-play-canvas] [data-block-slide-board] { row-gap: 0; }
+		[data-play-canvas] [data-block-slide-board] .play-board {
+			width: min(100%, clamp(12rem, calc((100cqh - 22rem) * .8), 17rem));
+		}
+		[data-play-canvas] [data-pip-place-board] .pip-actions { order: 1; }
+		[data-play-canvas] [data-pip-place-board] { row-gap: 0; }
+		[data-play-canvas] [data-pip-place-board] .play-board { margin-block: .75rem; }
+		[data-play-canvas] [data-quad-board] td { height: clamp(1.375rem, calc((100cqh - 23rem) / 18), 1.875rem); }
+		[data-play-canvas] [data-quad-board] .play-meta { min-height: 3rem; }
+		[data-play-canvas] [data-quad-board]:has([data-board-finished]) .play-meta > button { visibility: hidden; }
+		[data-play-canvas] [data-word-box-board]:has([data-board-finished]) :is(fieldset > form, fieldset > :has(> input), #frame-next-letter, ol + button) { display: none; }
+		[data-play-canvas] [data-arithmo-board]:has([data-board-finished]) [data-arithmo-keypad] { display: none; }
+		[data-play-canvas] [data-hive-board]:has([data-board-finished]) :is([data-hive-draft], [data-hive-feedback]) { visibility: hidden; }
+		[data-play-canvas] [data-hive-board]:has([data-board-finished]) .hive-comb + div { display: none; }
+	}
+}
+
+@media (width < 640px) {
+	@container (height >= 26rem) {
+		[data-play-canvas][data-game-slug="word-search"] .play-body fieldset {
+			inline-size: min(100%, clamp(13rem, calc(100cqh - 29rem), 15rem));
+		}
+		[data-play-canvas] [data-ladder-path] { gap: .25rem; padding: .5rem; }
+		[data-play-canvas] [data-ladder-path] button { padding-block: .25rem; }
+		[data-play-canvas] [data-word-box-board]:has([data-board-finished]),
+		[data-play-canvas] [data-arithmo-board]:has([data-board-finished]) { row-gap: .25rem; }
+		[data-play-canvas] [data-quad-board] td { height: 1.25rem; }
+		[data-play-canvas] [data-quad-board] .play-board > div {
+			display: grid;
+			grid-template-rows: auto 1.25rem;
+			padding-block: .25rem;
+		}
+		[data-play-canvas] [data-quad-board] .play-board > div > p { line-height: 1.25rem; }
+		[data-play-canvas] [data-hive-board] :is([data-hive-draft], [data-hive-feedback]) { block-size: 1.875rem; }
+		[data-play-canvas] [data-hive-board] [data-hive-draft] > div { padding-block: 0; line-height: 1.75rem; }
+		[data-play-canvas] [data-hive-board] .hive-comb { max-inline-size: 10.75rem; }
+		[data-play-canvas] [data-hive-board]:has([data-board-finished]) details { display: none; }
+	}
+}
