@@ -430,8 +430,8 @@
 		[data-play-canvas] [data-quad-board]:has([data-board-finished]) .play-meta { display: none; }
 		[data-play-canvas] [data-quad-board] td { height: 1.125rem; line-height: 1; }
 		[data-play-canvas] [data-quad-board] .play-board > div { padding-block: .25rem; }
-		[data-play-canvas] [data-hive-board] :is([data-hive-draft], [data-hive-feedback]) { block-size: 1.875rem; }
-		[data-play-canvas] [data-hive-board] [data-hive-draft] > div { padding-block: 0; line-height: 1.75rem; }
+		[data-play-canvas] [data-hive-board] :is([data-hive-draft], [data-hive-feedback]) { block-size: 1.25rem; min-block-size: 1.25rem; flex-shrink: 0; }
+		[data-play-canvas] [data-hive-board] [data-hive-draft] > div { padding-block: 0; line-height: 1.125rem; }
 		[data-play-canvas] [data-hive-board] .hive-comb { max-inline-size: 10.75rem; }
 		[data-play-canvas] [data-hive-board] > * { margin-block: 0; }
 		[data-play-canvas] [data-hive-board] { gap: .25rem; }
