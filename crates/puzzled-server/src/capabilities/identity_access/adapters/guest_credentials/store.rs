@@ -37,7 +37,7 @@ pub async fn account_backed(
 /// Account mapping, guest access, erasure, and adoption share this lock order.
 pub async fn lock_players(
     connection: &mut PgConnection,
-    mut players: Vec<Uuid>,
+    players: Vec<Uuid>,
 ) -> Result<(), sqlx::Error> {
     // Most requests lock exactly one player. Keep the same hash and lock as
     // the sorted multi-player case, without a separate lookup round trip.
@@ -48,18 +48,15 @@ pub async fn lock_players(
             .await?;
         return Ok(());
     }
-    players.sort_unstable();
-    players.dedup();
-    let mut keys = Vec::new();
-    for player in players {
-        let key: i64 = sqlx::query_scalar("SELECT hashtextextended('puzzled:erasure:' || $1, 0)")
-            .bind(player.to_string())
-            .fetch_one(&mut *connection)
-            .await?;
-        keys.push(key);
+    if players.is_empty() {
+        return Ok(());
     }
-    keys.sort_unstable();
-    keys.dedup();
+    let keys: Vec<i64> = sqlx::query_scalar(
+        "SELECT DISTINCT hashtextextended('puzzled:erasure:' || player::text, 0) AS key          FROM unnest($1::uuid[]) AS players(player) ORDER BY key",
+    )
+    .bind(&players)
+    .fetch_all(&mut *connection)
+    .await?;
     for key in keys {
         sqlx::query("SELECT pg_advisory_xact_lock($1)")
             .bind(key)
@@ -181,3 +178,8 @@ pub(super) async fn has_player_rows(
     }
     Ok(false)
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[path = "allocation_tests.rs"]
+mod allocation_tests;

@@ -19,6 +19,11 @@ fn midnight(date: NaiveDate) -> NaiveDateTime {
     date.and_hms_opt(0, 0, 0).unwrap_or_default()
 }
 
+pub(crate) const FETCH_SQL: &str = r#"SELECT id, puzzle_data, solution FROM daily_puzzles
+           WHERE game_slug = $1 AND puzzle_date = $2
+             AND difficulty::text IS NOT DISTINCT FROM $3
+           ORDER BY created_at ASC LIMIT 1"#;
+
 /// The stored puzzle for exactly (game, day, difficulty).
 pub async fn fetch(
     pool: &PgPool,
@@ -26,18 +31,13 @@ pub async fn fetch(
     date: NaiveDate,
     difficulty: Option<&str>,
 ) -> Result<Option<Resolved>, String> {
-    let row: Option<(Uuid, Value, Option<Value>)> = sqlx::query_as(
-        r#"SELECT id, puzzle_data, solution FROM daily_puzzles
-           WHERE game_slug = $1 AND puzzle_date = $2
-             AND difficulty::text IS NOT DISTINCT FROM $3
-           ORDER BY created_at ASC LIMIT 1"#,
-    )
-    .bind(game_slug)
-    .bind(midnight(date))
-    .bind(difficulty)
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| format!("daily_puzzles read failed: {e}"))?;
+    let row: Option<(Uuid, Value, Option<Value>)> = sqlx::query_as(FETCH_SQL)
+        .bind(game_slug)
+        .bind(midnight(date))
+        .bind(difficulty)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| format!("daily_puzzles read failed: {e}"))?;
     Ok(match row {
         Some((id, puzzle_data, Some(solution))) => Some(Resolved {
             puzzle_data,

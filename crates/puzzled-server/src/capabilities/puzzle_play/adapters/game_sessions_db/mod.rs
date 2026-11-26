@@ -11,6 +11,7 @@ mod guest_adoption;
 mod persistence;
 mod progress;
 
+pub(crate) use completion::CompletedRow;
 pub use completion::{
     has_completed_session, has_completed_session_on_connection, has_ritual_completion,
     has_ritual_completion_on_connection, load_completed_session,
