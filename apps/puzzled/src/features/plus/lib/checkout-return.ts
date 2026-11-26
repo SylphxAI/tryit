@@ -7,8 +7,8 @@ import {
 } from '@/features/analytics/lib/google-tag'
 
 /** Report browser attribution without writing or replacing the Money purchase record. */
-export function reportCheckoutReturn(receipt: SettledPurchase) {
-	trackCheckoutPurchase(receipt)
+export function reportCheckoutReturn(receipt: SettledPurchase, legacySessionId?: string | null) {
+	trackCheckoutPurchase(receipt, legacySessionId)
 	clearCheckoutQuote()
 }
 

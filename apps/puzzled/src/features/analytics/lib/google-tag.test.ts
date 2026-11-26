@@ -333,6 +333,32 @@ describe('conversions', () => {
 		])
 	})
 
+	test.each([
+		'puzzled:ads:sent:paid:pi_fixture_paid_legacy',
+		'puzzled:ads:conversion:paid:pi_fixture_paid_legacy',
+		'puzzled:ads:sent:paid:cs_fixture_legacy',
+		'puzzled:ads:conversion:paid:cs_fixture_legacy',
+	])('a paid return with %s already recorded sends nothing and clears the quote', (marker) => {
+		const { h, items } = install()
+		const paid = { orderId: 'pi_fixture_paid_legacy', value: 7, currency: 'USD' }
+		const sessionId = 'cs_fixture_legacy'
+		items.set(marker, '1')
+		rememberCheckoutQuote({ plan: 'pass', value: 4.99, currency: 'USD' })
+		expect(trackCheckoutPurchase(paid, sessionId)).toBe(false)
+		reportCheckoutReturn(paid, sessionId)
+		expect(sent(h)).toEqual([])
+		expect([...items]).toEqual([[marker, '1']])
+	})
+
+	test('a new paid return reserves only its order marker even with a legacy session ID', () => {
+		const { h, items } = install()
+		const paid = { orderId: 'pi_fixture_paid_new', value: 7, currency: 'USD' }
+		expect(trackCheckoutPurchase(paid, 'cs_fixture_new')).toBe(true)
+		expect(trackCheckoutPurchase(paid, 'cs_fixture_new')).toBe(false)
+		expect(sent(h)).toHaveLength(1)
+		expect([...items]).toEqual([['puzzled:ads:sent:paid:pi_fixture_paid_new', '1']])
+	})
+
 	for (const [choice, gpc] of [
 		[null, false],
 		['denied', false],
