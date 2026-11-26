@@ -17,5 +17,6 @@
 	"cellStep": "Paso {number}",
 	"startAtOne": "Empieza en el 1",
 	"nextSquare": "Toca o arrastra hasta una casilla junto al {number}",
+	"deadEnd": "Desde aquí no puedes avanzar. Pulsa Deshacer para retroceder.",
 	"wrongClue": "Esa casilla tiene un {clue}. Ahora toca el paso {expected}."
 }

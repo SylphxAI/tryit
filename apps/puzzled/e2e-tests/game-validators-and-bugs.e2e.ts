@@ -29,6 +29,54 @@ async function play(page: Page, slug: string, data: unknown, locale = 'en-US', d
 	await expect(page.locator('[data-game-stage="board"]')).toBeVisible()
 }
 
+test.describe('Path recovery on touch', () => {
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+
+	test('offers Undo immediately when only rewinds or wrong clues remain', async ({ page }) => {
+		await play(page, 'number-path', {
+			size: 3,
+			clues: [
+				[1, null, 4],
+				[null, 5, null],
+				[null, null, 9],
+			],
+		})
+		const board = page.locator('[data-number-path-board]')
+		const status = board.locator('.play-tools').getByRole('status')
+		const progress = board.locator('output')
+		const start = board.getByRole('button', { name: /^Row 1, Column 1,/ })
+		const blank = board.getByRole('button', { name: /^Row 1, Column 2(?:,|$)/ })
+		const undo = board.getByRole('button', { name: 'Undo', exact: true })
+		const cue = 'No moves from here. Use Undo to back up.'
+		const enterDeadEnd = async () => {
+			await blank.tap()
+			await expect(progress).toHaveText('2/9')
+			await expect(status).toHaveText(cue)
+		}
+
+		await expect(status).toBeEmpty()
+		await expect(undo).toBeDisabled()
+		await start.tap()
+		await expect(progress).toHaveText('1/9')
+		await expect(status).toBeEmpty()
+		await enterDeadEnd()
+		await undo.tap()
+		await expect(progress).toHaveText('1/9')
+		await expect(status).toBeEmpty()
+
+		await enterDeadEnd()
+		await start.tap()
+		await expect(progress).toHaveText('1/9')
+		await expect(status).toBeEmpty()
+
+		await enterDeadEnd()
+		await board.getByRole('button', { name: 'Start over', exact: true }).tap()
+		await expect(progress).toHaveText('0/9')
+		await expect(status).toBeEmpty()
+		await expect(undo).toBeDisabled()
+	})
+})
+
 for (const viewport of [
 	{ width: 1440, height: 900 },
 	{ width: 390, height: 844 },

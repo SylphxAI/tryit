@@ -5,6 +5,22 @@ type VisitResult =
 	| { kind: 'wrongClue'; clue: number; expected: number }
 	| { kind: 'head' | 'outside' | 'startAtOne' | 'nextSquare' }
 
+/** Only a growing path counts as forward progress, not a rewind or the head. */
+export function isDeadEnd(puzzle: NumberPathPuzzleData, path: Cell[]): boolean {
+	const head = path.at(-1)
+	if (!head || path.length >= puzzle.size ** 2) return false
+	const { row, col } = head
+	return ![
+		{ row: row - 1, col },
+		{ row: row + 1, col },
+		{ row, col: col - 1 },
+		{ row, col: col + 1 },
+	].some((cell) => {
+		const result = visitCell(puzzle, path, cell)
+		return result.kind === 'move' && result.path.length > path.length
+	})
+}
+
 /** A previously visited tile rewinds the path; a new tile must be a legal next step. */
 export function visitCell(puzzle: NumberPathPuzzleData, path: Cell[], cell: Cell): VisitResult {
 	const { row, col } = cell

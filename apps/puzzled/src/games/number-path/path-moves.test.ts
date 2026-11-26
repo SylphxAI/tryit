@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { visitCell } from './path-moves'
+import { isDeadEnd, visitCell } from './path-moves'
 
 const puzzle = {
 	size: 3,
@@ -14,6 +14,38 @@ const empty = { row: 0, col: 1 }
 const three = { row: 0, col: 2 }
 const five = { row: 1, col: 1 }
 const six = { row: 1, col: 0 }
+
+describe('Path dead ends', () => {
+	test('are limited to unfinished nonempty paths', () => {
+		expect(isDeadEnd(puzzle, [])).toBe(false)
+		const full = [
+			start,
+			empty,
+			three,
+			{ row: 1, col: 2 },
+			five,
+			six,
+			{ row: 2, col: 0 },
+			{ row: 2, col: 1 },
+			{ row: 2, col: 2 },
+		]
+		expect(isDeadEnd(puzzle, full)).toBe(false)
+	})
+
+	test('counts a blank or the next clue as forward progress', () => {
+		expect(isDeadEnd(puzzle, [start])).toBe(false)
+		expect(isDeadEnd(puzzle, [start, empty])).toBe(false)
+	})
+
+	test('does not count an out-of-bounds square, a rewind, or a future clue', () => {
+		const board = { ...puzzle, clues: [[1, null, 4], ...puzzle.clues.slice(1)] }
+		const path = [start, empty]
+		expect(isDeadEnd(board, path)).toBe(true)
+		const rewind = visitCell(board, path, start)
+		expect(rewind).toEqual({ kind: 'move', path: [start] })
+		expect(isDeadEnd(board, path.slice(0, -1))).toBe(false)
+	})
+})
 
 describe('Path visits', () => {
 	test('starts only at clue 1', () => {
