@@ -347,16 +347,6 @@
 	overflow-wrap: anywhere;
 }
 
-/* Leave the board unobscured on the compact, anchored rail. The account
-   strip is optional and scrolls within the card after the play/share actions. */
-@media (width < 1024px) {
-	@container (height >= 26rem) {
-		[data-play-canvas] .completion-card[data-board-finished]:has(.result-guest-capture) {
-			max-block-size: min(12.5rem, 40cqh);
-		}
-	}
-}
-
 .result-guest-capture > div { flex: 1 1 14rem; }
 .result-guest-note { color: var(--result-quiet); margin-block-start: .125rem; }
 
@@ -382,3 +372,94 @@
 	font-size: .8125rem;
 }
 .result-install p + p { margin-block-start: .25rem; color: var(--result-quiet); }
+
+/* A compact result without the install offer keeps its actions above the dock. */
+@media (width < 1024px) {
+	@container (height >= 26rem) {
+		[data-play-canvas] .completion-card[data-board-finished]:has(.result-guest-capture):not(:has(.result-install)) {
+			max-block-size: min(12.5rem, 40cqh);
+		}
+	}
+}
+
+/* The play rail shares the screen with the board. Keep the dialog's roomier
+   rhythm, but put related finish facts and the two optional prompts in rows. */
+[data-play-canvas] .completion-card:has(.result-install) {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: center;
+	gap: .375rem;
+	padding: .5rem;
+}
+[data-play-canvas] .completion-card:has(.result-install) > * { grid-column: 1 / -1; }
+[data-play-canvas] .completion-card:has(.result-install) > :is(
+	.completion-heading, .result-preview, .result-percentile, .result-streak-notes, .result-next,
+	.result-guest-capture, .result-install
+) { margin-block: 0; }
+[data-play-canvas] .completion-card:has(.result-install) :is(
+	.completion-heading:has(+ .result-preview), .result-preview,
+	.result-percentile:has(+ .result-streak-notes), .result-percentile + .result-streak-notes
+) { grid-column: var(--result-half-row, auto); }
+[data-play-canvas] .completion-card:has(.result-install) .result-preview { justify-self: end; }
+[data-play-canvas] .completion-card:has(.result-install) .result-streak-notes { justify-content: end; }
+[data-play-canvas] .completion-card:has(.result-install) .result-action-row:has(> :nth-child(3)) {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: .375rem;
+}
+[data-play-canvas] .completion-card:has(.result-install) .result-action-row > .result-button {
+	padding: .25em .375em;
+	flex-wrap: wrap;
+	column-gap: .25em;
+}
+[data-play-canvas] .completion-card:has(.result-install) :is(.result-guest-capture, .result-install) {
+	padding: .375rem .5rem;
+	line-height: 1.3;
+}
+[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install)
+	> :is(.result-guest-capture, .result-install) { grid-column: var(--result-half-row, auto); align-self: stretch; }
+[data-play-canvas] .completion-card:has(.result-install) .result-install {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-content: start;
+	gap: .25rem;
+}
+[data-play-canvas] .completion-card:has(.result-install) .result-install > div { display: contents; }
+[data-play-canvas] .completion-card:has(.result-install) .result-install p { grid-column: 1 / -1; }
+[data-play-canvas] .completion-card:has(.result-install) .result-install p:first-child {
+	grid-column: 1;
+	align-self: center;
+}
+[data-play-canvas] .completion-card:has(.result-install) .result-install > button {
+	grid-area: 1 / 2;
+}
+
+@media (width < 1024px) {
+	/* Fit the full guest result in the vacated controls space, without shrinking
+	   text or tap targets. Keep the primary action first in the same row. */
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) {
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		--result-half-row: span 3;
+		gap: .25rem;
+	}
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) > .result-next {
+		grid-column: span 2;
+		align-self: stretch;
+	}
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) > .result-next + .result-action-row {
+		grid-column: span 4;
+		align-self: stretch;
+		gap: .25rem;
+	}
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install)
+		:is(.result-action-row, .result-next) svg,
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) .result-install p:first-child svg { display: none; }
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) .result-guest-link {
+		min-block-size: 2.75rem;
+	}
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) .result-install p + p { margin-block-start: 0; }
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install) .result-current-streak { padding: 0; }
+	[data-play-canvas] .completion-card:has(.result-guest-capture + .result-install):not(:has(.result-preview))
+		> :is(.completion-heading:has(+ .result-percentile + .result-streak-notes), .result-percentile:has(+ .result-streak-notes), .result-percentile + .result-streak-notes) {
+		grid-column: span 2;
+	}
+}

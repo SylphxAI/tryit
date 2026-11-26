@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page, test } from '@playwright/test'
+import { devices, expect, type Locator, type Page, test } from '@playwright/test'
 import sudokuGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/sudoku.json'
 import { productDayKey } from '../src/lib/product-day'
 
@@ -306,5 +306,175 @@ for (const { route, localTheme, englishTheme } of [
 		await expect(board.getByText(englishTheme, { exact: true })).toHaveCount(0)
 		await page.goto(route)
 		await expect(board.getByText(englishTheme, { exact: true })).toBeVisible()
+	})
+}
+
+for (const viewport of [
+	{ width: 1440, height: 900 },
+	{ width: 390, height: 844 },
+]) {
+	test.describe(`${viewport.width}×${viewport.height}`, () => {
+		if (viewport.width === 390) {
+			const { userAgent } = devices['iPhone 13']
+			test.use({ viewport, userAgent, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })
+		} else {
+			test.use({ viewport })
+		}
+
+		for (const slug of ['word-guess', 'sudoku', 'crossword'] as const) {
+			test(`${slug} guest finish fits without moving the board`, async ({
+				page,
+				baseURL,
+			}, info) => {
+				requireLocalFixture(baseURL)
+				const dayKey = productDayKey()
+				const next = 'crowns'
+				const puzzleData = {
+					'word-guess': { wordLength: 5, maxAttempts: 6 },
+					sudoku: {
+						grid: Array.from({ length: 9 }, (_, r) =>
+							Array.from({ length: 9 }, (_, c) =>
+								r === 8 && c === 8 ? null : ((r * 3 + Math.floor(r / 3) + c) % 9) + 1,
+							),
+						),
+						difficulty: 'easy',
+					},
+					crossword: {
+						grid: [['', '', '', '', ''], ...Array.from({ length: 4 }, () => Array(5).fill(null))],
+						clues: {
+							across: [{ number: 1, row: 0, col: 0, length: 5, clue: 'Pleasant' }],
+							down: [],
+						},
+					},
+				}[slug]
+				await page.emulateMedia({ reducedMotion: 'reduce' })
+				await page.route('**/v1/guest/session', (route) =>
+					route.fulfill({ json: { issued: true } }),
+				)
+				await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+					route.fulfill({
+						json: {
+							gameSlug: slug,
+							puzzleId: firstPuzzleId,
+							puzzleDate: dayKey,
+							canPlay: true,
+							puzzleDataJson: JSON.stringify(puzzleData),
+						},
+					}),
+				)
+				await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
+					route.fulfill({
+						json: {
+							dayKey,
+							freePicks: { gameSlugs: [slug] },
+							games: [
+								{ gameSlug: slug, hasCompleted: true },
+								{ gameSlug: next, hasCompleted: false },
+							],
+						},
+					}),
+				)
+				await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => {
+					const { word } = JSON.parse(route.request().postDataJSON().guessJson)
+					const tiles =
+						word === 'charm'
+							? ['correct', 'present', 'absent', 'absent', 'absent']
+							: Array(5).fill('correct')
+					return route.fulfill({ json: { resultJson: JSON.stringify({ tiles }) } })
+				})
+				await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) =>
+					route.fulfill({ json: { gameSlug: slug, valid: true, status: 'won', score: 487 } }),
+				)
+				await page.route('**/puzzled.v1.StatsService/GetTodayPercentile', (route) =>
+					route.fulfill({ json: { gameSlug: slug, dayKey, percentile: 73, totalPlayers: 15 } }),
+				)
+				await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
+					route.fulfill({ json: { info: { currentStreak: 7 } } }),
+				)
+				await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+				const difficulty = slug === 'sudoku' ? 'difficulty=easy&' : ''
+				await page.goto(`/en-US/games/${slug}?${difficulty}start=1#play`)
+				const decline = page.getByRole('button', { name: 'Decline', exact: true })
+				await decline.click()
+				const board =
+					slug === 'word-guess'
+						? page.getByRole('table', { name: 'Five' })
+						: page.locator('.play-body .play-board')
+				await expect(board).toBeVisible()
+				await page.evaluate(() => document.fonts.ready)
+				if (viewport.width !== 390) {
+					// A loopback build is not installable; exercise the captured Chromium event.
+					await page.evaluate(() =>
+						window.dispatchEvent(new Event('beforeinstallprompt', { cancelable: true })),
+					)
+				}
+				const cue = page.locator('[data-first-action]')
+				await expect(cue).toBeVisible()
+				const bounds = (locator: Locator) =>
+					locator.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect)
+				const before = await bounds(board)
+				if (slug === 'word-guess') {
+					for (const [index, word] of ['charm', 'couch'].entries()) {
+						await page.keyboard.type(word)
+						await page.keyboard.press('Enter')
+						await expect(board.locator('tr').nth(index).locator('[data-grade]')).toHaveCount(5)
+					}
+				} else if (slug === 'sudoku') {
+					await board.getByRole('button', { name: 'Row 9, Column 9', exact: true }).click()
+					await page.keyboard.press('8')
+				} else {
+					await board.locator('[data-crossword-cell]').first().click()
+					await page.keyboard.type('NICER')
+					await page.getByRole('button', { name: 'Check', exact: true }).click()
+				}
+
+				const card = page.locator('.completion-card[data-board-finished]')
+				const actions = [
+					card.getByRole('link', { name: /^Play next:/ }),
+					card.getByRole('button', { name: 'Copy challenge', exact: true }),
+					card.getByText(/^Create a free account to keep your streak/),
+					card.getByRole('link', { name: 'Create a free account', exact: true }),
+					card.getByRole('complementary', { name: 'Add Tryit to your Home Screen', exact: true }),
+				]
+				for (const action of actions) await expect(action).toBeVisible()
+				await expect(card.locator('[data-result-percentile]')).toBeVisible()
+				await expect(card.locator('[data-result-milestone="7"]')).toBeVisible()
+				const after = await bounds(board)
+				const panel = await bounds(card)
+				const size = await card.evaluate(({ scrollHeight, clientHeight }) => ({
+					scrollHeight,
+					clientHeight,
+				}))
+				await page.screenshot({ path: info.outputPath(`${slug}.png`) })
+				await info.attach('finish geometry', {
+					body: JSON.stringify({ slug, viewport, before, after, panel, size }),
+					contentType: 'application/json',
+				})
+				expect(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
+				await expect(cue).toBeHidden()
+				for (const key of ['x', 'y', 'width', 'height'] as const) {
+					expect(Math.abs(after[key] - before[key])).toBeLessThanOrEqual(1)
+				}
+				expect(
+					panel.top >= after.bottom || panel.left >= after.right || panel.right <= after.left,
+				).toBe(true)
+				for (const locator of [board, card, ...actions]) {
+					const rect = await bounds(locator)
+					expect(rect.top).toBeGreaterThanOrEqual(0)
+					expect(rect.bottom).toBeLessThanOrEqual(viewport.height)
+					expect(rect.left).toBeGreaterThanOrEqual(0)
+					expect(rect.right).toBeLessThanOrEqual(viewport.width)
+					await expect(locator).toBeInViewport({ ratio: 0.99 })
+				}
+				for (const action of actions) {
+					expect(
+						await action.evaluate((el) => {
+							const { left, top, width, height } = el.getBoundingClientRect()
+							return el.contains(document.elementFromPoint(left + width / 2, top + height / 2))
+						}),
+					).toBe(true)
+				}
+			})
+		}
 	})
 }

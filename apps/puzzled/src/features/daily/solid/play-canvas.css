@@ -110,6 +110,9 @@
 	text-wrap: pretty;
 }
 
+/* The cue stops reading after the finish, but keeps the board's top edge fixed. */
+[data-play-canvas]:has([data-board-finished]) [data-first-action] { visibility: hidden; }
+
 [data-play-canvas] .play-body {
 	container-type: size;
 	position: relative;
@@ -278,9 +281,22 @@
 }
 
 [data-play-canvas] .play-tools .completion-card { visibility: visible; }
-/* Keep the optional post-win card in reach on phones, without moving the board. */
-[data-play-canvas] .completion-card:has(.result-install) {
-	max-block-size: min(19rem, 58cqh);
+/* The full install result grows into the canvas scrollport, not a nested one. */
+[data-play-canvas] .completion-card[data-board-finished]:has(.result-install) {
+	max-block-size: none;
+	overflow: visible;
+}
+
+@media (width < 1024px) {
+	/* Reuse the vacated controls space, including when the card lives in the tools. */
+	[data-play-canvas] .play-split:has(.result-install) { row-gap: 0; }
+	[data-play-canvas] .completion-card:has(.result-install) {
+		position: static;
+		margin-block: .25rem 0;
+	}
+	[data-play-canvas] .play-body:has(.result-install) .play-tools:not(:has(.completion-card)),
+	[data-play-canvas] .play-tools:has(.result-install) > :not(.completion-card) { display: none; }
+	[data-play-canvas] .play-tools:has(.result-install) { display: contents; }
 }
 
 @media (width >= 1024px) {
@@ -298,10 +314,10 @@
 		max-block-size: calc(100% - 1rem);
 	}
 
-	/* Mini Grid keeps finish markup inside its tools, not directly in the grid.
-	   Use the same column boundary for that nested card. */
-	[data-play-canvas] .play-split .play-tools .completion-card {
-		inset-inline-start: calc((100% - 3rem) * 1.27 / 2.27 + 3rem);
+	/* A stand-alone board puts the result below the board. */
+	[data-play-canvas] .play-body > :not(.play-split) .completion-card:has(.result-install) {
+		position: static;
+		margin-block: .5rem 0;
 	}
 
 	/* Center the progress and tools as one stack within a definite play frame.
@@ -330,14 +346,18 @@
 }
 
 /* Use flow as the reachable fallback when large text, zoom or landscape leaves
-   no room for an anchored card. Normal portrait and desktop need no scroll. */
+   no room for an anchored card. */
 @container (height < 26rem) {
-	[data-play-canvas] .completion-card {
+	[data-play-canvas] .completion-card:not(.play-entry) {
 		position: static;
 		max-block-size: none;
 		margin-block: .5rem 0;
 	}
 	@media (width >= 1024px) {
-		[data-play-canvas] .play-split > .completion-card { grid-area: tools; }
+		[data-play-canvas] .play-split > .completion-card:not(.play-entry) {
+			grid-area: tools;
+			max-block-size: none;
+		}
+		[data-play-canvas] .play-tools:has([data-board-finished]) > :not(.completion-card) { display: none; }
 	}
 }
