@@ -166,7 +166,7 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 					</For>
 				</div>
 			</div>
-			<div class="play-tools">
+			<div class="play-tools" data-play-control>
 				<div class={styles.pad}>
 					<div class={styles.digits}>
 						<For each={digits}>

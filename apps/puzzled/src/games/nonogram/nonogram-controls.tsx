@@ -30,7 +30,7 @@ export function NonogramControls(props: { locale: Locale; play: ControlsPlay; t:
 	const modeClass =
 		'flex min-h-11 items-center gap-2 rounded-xl border border-border px-4 font-semibold aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground'
 	return (
-		<div class="play-tools space-y-2">
+		<div class="play-tools space-y-2" data-play-control>
 			<div class="flex justify-center gap-2">
 				<button
 					type="button"

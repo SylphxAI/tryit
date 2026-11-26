@@ -50,11 +50,11 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 
 	return (
 		<section class="flex w-full flex-col gap-3" aria-label={copy('name')} data-cryptogram-board>
-			<div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+			<div class="flex min-h-11 flex-wrap items-center justify-between gap-2 text-sm">
 				<p aria-live="polite">
 					{copy('progress', { filled: filled(), total: Object.keys(guesses()).length })}
 				</p>
-				<div class="flex flex-wrap gap-1">
+				<div class="flex flex-wrap gap-1" data-play-control>
 					<button
 						type="button"
 						class="min-h-11 px-2 font-semibold disabled:opacity-50"
@@ -108,7 +108,12 @@ function Cipher(props: DailyBoardProps & { data: CryptogramPuzzleData }) {
 				{notice()}
 			</p>
 			{/* Ten equal columns on each row; Clear occupies the last three on the bottom. */}
-			<div class="mx-auto grid w-full max-w-lg gap-1" dir="ltr" data-cipher-keyboard>
+			<div
+				class="mx-auto grid w-full max-w-lg gap-1"
+				dir="ltr"
+				data-cipher-keyboard
+				data-play-control
+			>
 				<CryptogramKeyRows play={play} copy={copy} />
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={copy('complete')} />

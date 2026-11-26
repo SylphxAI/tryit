@@ -162,7 +162,7 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 					</For>
 				</div>
 			</fieldset>
-			<div class="flex flex-wrap items-center gap-3">
+			<div class="flex flex-wrap items-center gap-3" data-play-control>
 				<Show when={!locked()}>
 					<button
 						class="min-h-11 rounded-xl border border-border px-4 disabled:opacity-50"
@@ -174,7 +174,7 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 					</button>
 				</Show>
 			</div>
-			<div role="status" class="text-sm font-semibold text-destructive">
+			<div role="status" class="text-sm font-semibold text-destructive" data-play-control>
 				<For each={reasons()}>{(reason) => <p>{t(`games.crowns.conflicts.${reason}`)}</p>}</For>
 			</div>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.crowns.complete')} />

@@ -1063,7 +1063,7 @@ test('Arithmo hides the cursor while grading and after a win with unused rows', 
 		grade: () => ({ tiles: Array.from({ length: 8 }, () => 'correct') }),
 	})
 	const release = Promise.withResolvers<void>()
-	await page.route('**/puzzled.v1.PuzzleService/GradeGuess', async (route) => {
+	await page.route('**/puzzled.v1.PuzzleService/CheckGuess', async (route) => {
 		await release.promise
 		await route.fallback()
 	})

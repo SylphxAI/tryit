@@ -361,3 +361,24 @@
 		[data-play-canvas] .play-tools:has([data-board-finished]) > :not(.completion-card) { display: none; }
 	}
 }
+
+/* Auxiliary controls are distinct from the board and completed status. */
+[data-play-canvas] .play-body:has([data-board-finished]) :is([data-play-control], .pip-feedback) {
+	display: none;
+}
+
+/* An accepted Quad loss adds a one-line answer under each table. Reserve
+   that line during play so the centred desktop grid never jumps on reveal. */
+[data-play-canvas] [data-quad-board] .play-board > div {
+	display: grid;
+	grid-template-rows: auto 1.25rem;
+}
+[data-play-canvas] [data-quad-board] .play-board > div > p { line-height: 1.25rem; }
+
+@media (width < 1024px) {
+	/* The domino actions unmount after placement; keep them below the grid. */
+	[data-play-canvas] [data-pip-place-board] { row-gap: 0; }
+	[data-play-canvas] [data-pip-place-board] .pip-actions { order: 1; }
+	[data-play-canvas] [data-pip-place-board] .play-board { margin-block: .75rem; }
+	[data-play-canvas] [data-block-slide-board] { row-gap: 0; }
+}

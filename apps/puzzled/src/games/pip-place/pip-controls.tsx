@@ -28,7 +28,7 @@ export function PipActions(props: { play: PipPlacePlay; t: Translate }) {
 	const { t } = props
 	const { board, dispatch } = props.play
 	return (
-		<div class="pip-actions flex flex-wrap gap-2 text-sm">
+		<div class="pip-actions flex flex-wrap gap-2 text-sm" data-play-control>
 			<button
 				type="button"
 				class="min-h-11 rounded-lg border border-border px-3 disabled:opacity-50"
@@ -64,6 +64,7 @@ export function PipTray(props: { play: PipPlacePlay; t: Translate }) {
 		<>
 			<div
 				class="play-tools flex flex-wrap justify-center gap-2 rounded-xl data-highlight:ring-2 data-highlight:ring-accent-warm data-highlight:ring-offset-2"
+				data-play-control
 				data-pip-tray
 				data-highlight={board().cue === 'selectDomino' || undefined}
 				dir="ltr"

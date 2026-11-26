@@ -17,7 +17,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 
 	return (
 		<div class="play-split mx-auto w-full max-w-[30rem] space-y-3" data-quad-board>
-			<div class="play-meta flex items-center justify-between gap-x-3 text-sm">
+			<div class="play-meta flex min-h-12 items-center justify-between gap-x-3 text-sm">
 				{/* A notice takes the progress line's place, so the boards and keys never move. */}
 				<div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 leading-5">
 					<p
@@ -49,6 +49,7 @@ export default function QuadWordsBoard(props: DailyBoardProps) {
 				{/* CheckGuess caps the served puzzle at nine; only ungraded input can be cleared. */}
 				<button
 					type="button"
+					data-play-control
 					class="min-h-12 shrink-0 font-semibold underline disabled:opacity-50"
 					disabled={!canPlay() || !state().currentGuess}
 					onClick={clearGuess}

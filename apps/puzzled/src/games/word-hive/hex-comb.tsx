@@ -67,7 +67,7 @@ export function HiveActions(props: {
 	t: Translate
 }) {
 	return (
-		<div class="grid grid-cols-3 gap-2">
+		<div class="grid grid-cols-3 gap-2" data-play-control>
 			<button
 				type="button"
 				data-hive-key

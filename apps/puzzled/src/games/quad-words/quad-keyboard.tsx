@@ -37,6 +37,7 @@ export function QuadKeyboard(props: QuadKeyboardProps) {
 		<Show when={props.state.gameStatus === 'playing'}>
 			<div
 				class="play-tools mx-auto grid w-full max-w-md gap-1 pt-1.5 sm:pt-0"
+				data-play-control
 				aria-busy={props.state.grading}
 				dir="ltr"
 			>
