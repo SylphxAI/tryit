@@ -6,6 +6,21 @@ use sqlx::PgConnection;
 
 const WRITER_PROBE: &str = "SELECT NOT pg_is_in_recovery() AND current_setting('transaction_read_only') = 'off' AS writable";
 
+/// Keep two connections warm between visits without increasing the API cap.
+/// SQLx replenishes connections below this floor. Its lifetimes are not
+/// jittered; longer bounds make normal idle/recycle churn less frequent.
+#[must_use]
+pub fn api_writer_pool_options() -> PgPoolOptions {
+    writer_pool_options(
+        PgPoolOptions::new()
+            .min_connections(2)
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(15))
+            .idle_timeout(Some(Duration::from_secs(30 * 60)))
+            .max_lifetime(Some(Duration::from_secs(2 * 60 * 60))),
+    )
+}
+
 /// Extend the existing pool, preserving its sizing, startup and acquisition budget.
 /// Writer validation is the health round trip; a separate ping is redundant.
 /// No statement is replayed if a writer is demoted after checkout.
@@ -136,6 +151,17 @@ mod tests {
             select_database_url().as_deref(),
             Some("postgresql://app:secret@db.example.test:5432/app?sslmode=require")
         );
+    }
+
+    #[test]
+    fn api_writer_pool_keeps_a_warm_floor_without_raising_the_cap() {
+        let options = api_writer_pool_options();
+        assert_eq!(options.get_min_connections(), 2);
+        assert_eq!(options.get_max_connections(), 5);
+        assert_eq!(options.get_acquire_timeout(), Duration::from_secs(15));
+        assert!(options.get_idle_timeout() > Some(Duration::from_secs(600)));
+        assert!(options.get_max_lifetime() > options.get_idle_timeout());
+        assert!(!options.get_test_before_acquire());
     }
 
     #[test]
