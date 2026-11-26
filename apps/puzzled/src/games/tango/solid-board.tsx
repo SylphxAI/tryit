@@ -22,6 +22,8 @@ export default function DuoBoard(props: DailyBoardProps) {
 	)
 }
 
+const arrowMoves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }
+
 function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const { size, initialGrid } = props.data
@@ -34,7 +36,11 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 	const finish = createBoardFinish(props, 'duo')
 	const [grid, setGrid] = finish.draft.signal('grid', initial)
 	const [lockedClue, setLockedClue] = createSignal(false)
+	const [tabStop, setTabStop] = createSignal(0)
+	const [activeCell, setActiveCell] = createSignal<number | null>(null)
+	const buttons: HTMLButtonElement[] = []
 	const locked = () => finish.state() !== 'playing'
+	const highlightedCell = () => (locked() ? undefined : cells[activeCell() ?? -1])
 	const details = createMemo(() => getConflictDetails(grid()))
 	const conflicts = createMemo(
 		() => new Set(details().cells.map(({ row, col }) => row * size + col)),
@@ -52,6 +58,24 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 		setGrid(next)
 		if (isSolved(next)) finish.finish({ grid: next.map((line) => line.map((cell) => cell.value)) })
 	}
+	function onKey(event: KeyboardEvent, row: number, col: number) {
+		if (locked() || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return
+		if (Object.hasOwn(arrowMoves, event.key)) {
+			event.preventDefault()
+			const [dr, dc] = arrowMoves[event.key as keyof typeof arrowMoves]
+			const clamp = (index: number) => Math.max(0, Math.min(size - 1, index))
+			const next = clamp(row + dr) * size + clamp(col + dc)
+			buttons[next]?.focus()
+			setActiveCell(next)
+			return
+		}
+		const key = event.key.toLowerCase()
+		const value = key === 's' ? 'sun' : key === 'm' ? 'moon' : undefined
+		if (value === undefined && key !== 'delete' && key !== 'backspace') return
+		event.preventDefault()
+		setActiveCell(row * size + col)
+		change(row, col, value ?? null)
+	}
 	return (
 		<div class="mx-auto w-full max-w-[30rem] space-y-3">
 			<div class="flex items-center justify-between gap-2 text-sm">
@@ -64,15 +88,33 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 				<div
 					class="grid gap-1 rounded-xl border border-border bg-surface-muted p-1"
 					style={{ 'grid-template-columns': `repeat(${size}, minmax(0, 1fr))` }}
+					onPointerLeave={() => setActiveCell(null)}
+					onFocusOut={(event) => {
+						const next = event.relatedTarget
+						if (!(next instanceof Node && event.currentTarget.contains(next))) setActiveCell(null)
+					}}
 				>
 					<For each={cells}>
-						{({ row, col, isGiven }) => {
+						{(cell, index) => {
+							const { row, col, isGiven } = cell
 							const value = () => grid()[row][col].value
-							const invalid = () => conflicts().has(row * size + col)
+							const invalid = () => conflicts().has(index())
+							const crosshair = () => {
+								const active = highlightedCell()
+								return (
+									active &&
+									active !== cell &&
+									(active.row === row || active.col === col) &&
+									!isGiven &&
+									!invalid() &&
+									value() === null
+								)
+							}
 							return (
 								<button
+									ref={(button) => (buttons[index()] = button)}
 									type="button"
-									class="grid aspect-square min-w-0 place-items-center rounded-lg border border-border bg-background text-foreground data-given:bg-surface-muted data-given:text-muted-foreground data-invalid:border-destructive data-invalid:ring-2 data-invalid:ring-inset data-invalid:ring-destructive focus-visible:z-10"
+									class="grid aspect-square min-w-0 place-items-center rounded-lg border border-border bg-background text-foreground data-given:bg-surface-muted data-given:text-muted-foreground data-invalid:border-destructive data-invalid:ring-2 data-invalid:ring-inset data-invalid:ring-destructive not-data-invalid:data-active:border-accent-warm not-data-invalid:data-active:ring-2 not-data-invalid:data-active:ring-inset not-data-invalid:data-active:ring-accent-warm data-crosshair:bg-accent-warm-soft focus-visible:z-10"
 									aria-label={[
 										t('common.cellRow', { index: row + 1 }),
 										t('common.cellColumn', { index: col + 1 }),
@@ -81,15 +123,21 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 									aria-invalid={invalid() || undefined}
 									data-given={isGiven || undefined}
 									data-invalid={invalid() || undefined}
+									data-active={highlightedCell() === cell || undefined}
+									data-crosshair={crosshair() || undefined}
 									aria-disabled={isGiven || undefined}
+									tabIndex={tabStop() === index() ? 0 : -1}
+									onFocus={() => {
+										setTabStop(index())
+										setActiveCell(index())
+									}}
+									onPointerEnter={(event) => {
+										if (event.pointerType !== 'touch') setActiveCell(index())
+									}}
 									onClick={() =>
 										change(row, col, value() === null ? 'sun' : value() === 'sun' ? 'moon' : null)
 									}
-									onKeyDown={(event) => {
-										if (event.key !== 'Delete' && event.key !== 'Backspace') return
-										event.preventDefault()
-										change(row, col, null)
-									}}
+									onKeyDown={(event) => onKey(event, row, col)}
 								>
 									<Show when={value() === 'sun'}>
 										<Sun class="size-[55%]" aria-hidden="true" />
