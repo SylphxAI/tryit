@@ -1,23 +1,13 @@
 /** @jsxImportSource solid-js */
-import { Delete, RotateCcw } from 'lucide-solid'
-import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js'
-import { playButton } from '@/features/catalog/solid/game-landing'
-import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
+import { RotateCcw } from 'lucide-solid'
+import { createMemo, For, Show } from 'solid-js'
+import { BoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
-import { triggerHaptic } from '@/shared/hooks/use-haptic'
-import { isFrameWord } from './dictionary'
+import { createWordBoxPlay } from './create-word-box-play'
 import { FrameGrid } from './frame-grid'
 import { parseWordBoxClientPayload } from './parse-client'
-import {
-	allLettersUsed,
-	getUsedLetters,
-	hasValidSideTransitions,
-	type LetterBox,
-	startsWithLastLetter,
-	usesValidLetters,
-} from './types'
-
-const slug = 'word-box'
+import type { LetterBox } from './types'
+import { WordBoxEntry } from './word-box-entry'
 
 export default function WordBoxBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -40,136 +30,26 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 	const copy = (key: string, values?: Record<string, string | number>) =>
 		t(`games.wordBox.${key}`, values)
 	const box = props.box
-	const finish = createBoardFinish(props, slug, {
-		onRejected() {
-			const chain = words()
-			setCurrent(chain.at(-1) ?? '')
-			setWords(chain.slice(0, -1))
-			setError('rejected')
-		},
-	})
-	const [words, setWords] = finish.draft.signal<string[]>('words', [])
-	const [current, setCurrent] = finish.draft.signal('current', '')
-	const [error, setError] = createSignal<
-		| 'invalidLetter'
-		| 'sameSide'
-		| 'wrongStart'
-		| 'tooShort'
-		| 'notInWordList'
-		| 'dictionaryUnavailable'
-		| 'rejected'
-	>()
-	const [checking, setChecking] = createSignal(false)
-	const [confirmReset, setConfirmReset] = createSignal(false)
-	let draft: HTMLInputElement | undefined
-	let disposed = false
-	onCleanup(() => {
-		disposed = true
-	})
-	const used = createMemo(() => getUsedLetters(words()))
-	const required = () => words().at(-1)?.slice(-1)
-	const playable = () => finish.state() === 'playing' && !checking()
-	const total = Object.values(box).reduce((count, letters) => count + letters.length, 0)
-
-	function invalid(reason: NonNullable<ReturnType<typeof error>>) {
-		triggerHaptic('error')
-		setError(reason)
-	}
-	function add(letter: string) {
-		if (!playable()) return
-		const next = current() + letter
-		if (!usesValidLetters(box, next)) return invalid('invalidLetter')
-		if (!startsWithLastLetter(words().at(-1) ?? '', next)) return invalid('wrongStart')
-		if (!hasValidSideTransitions(box, next)) return invalid('sameSide')
-		setCurrent(next)
-		setError(undefined)
-		if (confirmReset()) draft?.focus({ preventScroll: true })
-		triggerHaptic('light')
-	}
-	function backspace() {
-		if (!playable()) return
-		setCurrent((value) => value.slice(0, -1))
-		setError(undefined)
-	}
-	async function addWord() {
-		if (!playable()) return
-		const word = current()
-		if (word.length < 3) return invalid('tooShort')
-		setChecking(true)
-		setError(undefined)
-		try {
-			const valid = await isFrameWord(word)
-			if (disposed) return
-			if (!valid) return invalid('notInWordList')
-		} catch {
-			if (!disposed) invalid('dictionaryUnavailable')
-			return
-		} finally {
-			if (!disposed) setChecking(false)
-		}
-		const next = [...words(), word]
-		setWords(next)
-		setCurrent('')
-		setError(undefined)
-		// The shared letter/chain rules qualify a play; only SubmitGuess can save a win.
-		if (allLettersUsed(box, getUsedLetters(next)))
-			finish.finish({ words: next }, { attempts: next.length })
-	}
-	function undoWord() {
-		if (!playable() || current() || !words().length) return
-		setCurrent(words().at(-1) ?? '')
-		setWords((chain) => chain.slice(0, -1))
-		setError(undefined)
-	}
-	function reset() {
-		if (!playable()) return
-		if ((words().length || current()) && !confirmReset()) {
-			setConfirmReset(true)
-			return
-		}
-		setConfirmReset(false)
-		setCurrent('')
-		setWords([])
-		setError(undefined)
-		draft?.focus({ preventScroll: true })
-	}
-	function keyDown(event: KeyboardEvent) {
-		if (
-			!playable() ||
-			event.defaultPrevented ||
-			event.altKey ||
-			event.ctrlKey ||
-			event.metaKey ||
-			event.isComposing
-		)
-			return
-		const target = event.target
-		if (
-			target instanceof HTMLElement &&
-			(target.isContentEditable ||
-				target.closest(
-					'input:not(#frame-current), textarea, select, [role="textbox"], dialog, [role="dialog"]',
-				))
-		)
-			return
-		if (/^[a-z]$/i.test(event.key)) add(event.key.toUpperCase())
-		else if (event.key === 'Backspace' || event.key === 'Delete') backspace()
-		else if (
-			event.key === 'Enter' &&
-			!(
-				target instanceof HTMLElement &&
-				target.closest('button:not([data-box-letter]), a, summary, [role="button"]')
-			)
-		) {
-			if (!event.repeat) void addWord()
-		} else return
-		event.preventDefault()
-	}
-
-	onMount(() => {
-		window.addEventListener('keydown', keyDown)
-		onCleanup(() => window.removeEventListener('keydown', keyDown))
-	})
+	const play = createWordBoxPlay(props, box)
+	const {
+		finish,
+		used,
+		total,
+		playable,
+		reset,
+		confirmReset,
+		cancelReset,
+		checking,
+		words,
+		current,
+		required,
+		error,
+		add,
+		addWord,
+		backspace,
+		undoWord,
+		setDraft,
+	} = play
 
 	return (
 		<section
@@ -187,12 +67,12 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 						event.currentTarget.focus({ preventScroll: true })
 						reset()
 					}}
-					onBlur={() => setConfirmReset(false)}
+					onBlur={cancelReset}
 					onKeyDown={(event) => {
 						if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault()
 						if (event.key === 'Escape' && confirmReset()) {
 							event.preventDefault()
-							setConfirmReset(false)
+							cancelReset()
 						}
 					}}
 				>
@@ -214,45 +94,17 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 					playable={playable()}
 					add={add}
 				/>
-				<form
-					class="flex flex-wrap items-center justify-center gap-2"
-					onSubmit={(event) => {
-						event.preventDefault()
-						void addWord()
-					}}
-				>
-					<label class="sr-only" for="frame-current">
-						{copy('input')}
-					</label>
-					<input
-						id="frame-current"
-						ref={draft}
-						class="h-12 min-w-0 basis-40 rounded-lg border border-border bg-background px-3 text-center font-display text-xl font-bold tracking-wider"
-						dir="ltr"
-						value={current()}
-						placeholder={required() ?? '_'}
-						readOnly
-						inputMode="none"
-						disabled={!playable()}
-						aria-describedby={required() ? 'frame-next-letter' : undefined}
-					/>
-					<button
-						type="button"
-						aria-label={copy('backspace')}
-						class="grid size-11 place-items-center rounded-lg border border-border disabled:opacity-50"
-						disabled={!playable() || !current()}
-						onClick={backspace}
-					>
-						<Delete size={18} aria-hidden="true" />
-					</button>
-					<button
-						type="submit"
-						class={`${playButton} disabled:cursor-not-allowed disabled:opacity-50`}
-						disabled={!playable() || current().length < 3}
-					>
-						{copy('enter')}
-					</button>
-				</form>
+				<WordBoxEntry
+					inputLabel={copy('input')}
+					backspaceLabel={copy('backspace')}
+					submitLabel={copy('enter')}
+					current={current()}
+					required={required()}
+					playable={playable()}
+					setDraft={setDraft}
+					backspace={backspace}
+					addWord={addWord}
+				/>
 			</fieldset>
 			<Show when={required()}>
 				{(letter) => (
