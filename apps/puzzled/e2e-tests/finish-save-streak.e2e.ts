@@ -109,7 +109,7 @@ for (const mobile of [true, false]) {
 			const dismiss = offer.getByRole('button', { name: 'Dismiss', exact: true })
 			await expect(offer).toBeVisible()
 			await expect(offer.getByRole('paragraph')).toHaveText(
-				'Create a free account to keep your streak of 1 day and today’s result.',
+				'Create a free account to keep your streak of 1 day and today’s result. Takes about 20 seconds.',
 			)
 			await expect(card.locator('[data-install-nudge], [data-result-milestone]')).toHaveCount(0)
 			const actions = card.getByRole('button').or(card.getByRole('link'))
@@ -131,6 +131,7 @@ for (const mobile of [true, false]) {
 				scrollHeight: el.scrollHeight,
 				clientHeight: el.clientHeight,
 			}))
+			await expect(card).toBeInViewport({ ratio: 0.99 })
 			expect.soft(scrollHeight, 'finish card does not scroll').toBeLessThanOrEqual(clientHeight + 1)
 			for (const action of await actions.all()) {
 				const hit = await action.evaluate((el) => {

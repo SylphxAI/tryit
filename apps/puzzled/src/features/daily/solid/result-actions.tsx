@@ -145,11 +145,8 @@ export function ResultActions(props: {
 				<div class="result-guest-capture" data-result-guest-capture>
 					<div class="result-guest-body">
 						<p class="result-guest-copy">
-							{t('onboarding.keepStreak', { days: retention().days })}
-							<Show when={model().status === 'won'}>
-								{' '}
-								<span class="result-guest-note">{t('onboarding.saveStreakNote')}</span>
-							</Show>
+							{t('onboarding.keepStreak', { days: retention().days })}{' '}
+							<span class="result-guest-note">{t('onboarding.saveStreakNote')}</span>
 						</p>
 						<a class="result-guest-link" href={signIn}>
 							{t('onboarding.createFreeAccount')}
