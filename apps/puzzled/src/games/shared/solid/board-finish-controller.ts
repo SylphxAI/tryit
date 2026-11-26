@@ -27,6 +27,7 @@ export type DailyBoardProps = {
 	draftScope?: string
 	isGuest?: boolean
 	guestStatusPending?: boolean
+	retryGuestStatus?: () => void
 	pickIndex?: number | null
 	onAlreadyPlayed: () => void
 }
@@ -141,6 +142,9 @@ export function createBoardFinish(
 		},
 		get guestStatusPending() {
 			return props.guestStatusPending
+		},
+		get retryGuestStatus() {
+			return props.retryGuestStatus
 		},
 		onNewPractice: props.onNewPractice,
 		result() {

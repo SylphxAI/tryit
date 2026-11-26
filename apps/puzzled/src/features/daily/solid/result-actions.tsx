@@ -24,6 +24,7 @@ export function ResultActions(props: {
 	freshWin?: boolean
 	isGuest?: boolean
 	guestStatusPending?: boolean
+	retryGuestStatus?: () => void
 	shareTitle?: string
 	shareText?: string
 }) {
@@ -46,6 +47,7 @@ export function ResultActions(props: {
 		}
 	})
 	const [prompt, setPrompt] = createSignal<ReturnType<typeof resultRetentionPrompt>>()
+	let retriedGuestStatus = false
 	createEffect(() => {
 		if (
 			!mounted() ||
@@ -54,10 +56,24 @@ export function ResultActions(props: {
 			prompt() !== undefined
 		)
 			return
-		const canOfferSave =
-			props.isGuest === true && dismissedDay() !== false && dismissedDay() !== props.facts.todayKey
+		const canOfferSave = dismissedDay() !== false && dismissedDay() !== props.facts.todayKey
+		// Recover only a fresh, mounted daily finish with unknown identity. The
+		// result and its actions don't wait; only retention prompt selection does.
+		if (
+			canOfferSave &&
+			props.isGuest === undefined &&
+			!retriedGuestStatus &&
+			props.retryGuestStatus &&
+			props.freshWin &&
+			model().mode === 'daily' &&
+			model().dayKey === props.facts.todayKey
+		) {
+			retriedGuestStatus = true
+			props.retryGuestStatus()
+			return
+		}
 		// Don't briefly offer install while an eligible guest's streak is still loading.
-		if (canOfferSave && streakPending()) return
+		if (canOfferSave && props.isGuest === true && streakPending()) return
 		setPrompt(
 			resultRetentionPrompt(
 				model().status,

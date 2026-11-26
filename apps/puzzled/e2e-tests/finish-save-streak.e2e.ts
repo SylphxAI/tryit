@@ -1,4 +1,5 @@
-import { devices, expect, test } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
+import { devices, expect, type Page, test } from '@playwright/test'
 import { productDayKey } from '../src/lib/product-day'
 import { SAVE_STREAK_DISMISSED_DAY_KEY } from '../src/lib/storage-keys'
 
@@ -8,6 +9,96 @@ const path = '/en-US/games/word-guess?start=1#play'
 const guesses = ['crane', 'raise', 'blush', 'flame', 'sugar', 'lemon']
 const loss = { status: 'lost', attempts: guesses.length }
 const { defaultBrowserType: _browser, ...phone } = devices['iPhone 13']
+
+async function stubFiveLoss(
+	page: Page,
+	baseURL: string | undefined,
+	beforeAccept?: () => Promise<void>,
+) {
+	expect(['localhost', '127.0.0.1']).toContain(new URL(baseURL ?? '').hostname)
+	const dayKey = productDayKey()
+	const puzzle = { gameSlug: slug, puzzleDate: dayKey }
+	let accepted = false
+	await page.emulateMedia({ reducedMotion: 'reduce' })
+	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+	await page.addInitScript(
+		(priorDay) => {
+			if (!localStorage.getItem(priorDay.key)) localStorage.setItem(priorDay.key, priorDay.value)
+		},
+		{
+			key: SAVE_STREAK_DISMISSED_DAY_KEY,
+			value: productDayKey(new Date(Date.now() - 86_400_000)),
+		},
+	)
+	await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+	await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+		route.fulfill({
+			json: accepted
+				? { ...puzzle, canPlay: false, completedSession: loss }
+				: {
+						...puzzle,
+						canPlay: true,
+						puzzleDataJson: JSON.stringify({ wordLength: 5, maxAttempts: guesses.length }),
+					},
+		}),
+	)
+	await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
+		route.fulfill({
+			json: {
+				dayKey,
+				freePicks: { gameSlugs: [slug] },
+				games: [
+					{ gameSlug: slug, hasCompleted: accepted },
+					{ gameSlug: next, hasCompleted: false },
+				],
+			},
+		}),
+	)
+	await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) =>
+		route.fulfill({ json: { resultJson: JSON.stringify({ tiles: Array(5).fill('absent') }) } }),
+	)
+	await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', async (route) => {
+		const input = route.request().postDataJSON()
+		expect(input).toMatchObject({ ...puzzle, ...loss })
+		expect(JSON.parse(input.submissionJson)).toEqual({ guesses })
+		if (beforeAccept) await beforeAccept()
+		accepted = true
+		return route.fulfill({ json: { gameSlug: slug, valid: true, status: 'lost' } })
+	})
+	await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
+		route.fulfill({ json: { info: { currentStreak: accepted ? 1 : 0 } } }),
+	)
+	await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) =>
+		route.fulfill({ json: {} }),
+	)
+	await page.route('**/puzzled.v1.PuzzleService/ShareResult', (route) =>
+		route.fulfill({ json: {} }),
+	)
+	return dayKey
+}
+
+async function playFiveLoss(page: Page, mobile: boolean) {
+	const board = page.getByRole('table', { name: 'Five', exact: true })
+	await expect(board).toBeVisible()
+	// Give Chromium an install event even on loopback, so absence on loss is meaningful.
+	await page.evaluate(() =>
+		window.dispatchEvent(new Event('beforeinstallprompt', { cancelable: true })),
+	)
+	const keyboard = page
+		.locator('fieldset')
+		.filter({ has: page.getByRole('button', { name: 'Enter', exact: true }) })
+	for (const [i, word] of guesses.entries()) {
+		if (mobile) {
+			for (const key of word.toUpperCase())
+				await keyboard.getByRole('button', { name: key, exact: true }).tap()
+			await keyboard.getByRole('button', { name: 'Enter', exact: true }).tap()
+		} else {
+			await page.keyboard.type(word)
+			await page.keyboard.press('Enter')
+		}
+		await expect(board.getByRole('row').nth(i).locator('[data-grade="absent"]')).toHaveCount(5)
+	}
+}
 
 for (const mobile of [true, false]) {
 	test.describe(mobile ? 'iPhone 13 (390×844)' : 'desktop (1440×900)', () => {
@@ -21,87 +112,9 @@ for (const mobile of [true, false]) {
 			page,
 			baseURL,
 		}, info) => {
-			expect(['localhost', '127.0.0.1']).toContain(new URL(baseURL ?? '').hostname)
-			const dayKey = productDayKey()
-			const puzzle = { gameSlug: slug, puzzleDate: dayKey }
-			let accepted = false
-			await page.emulateMedia({ reducedMotion: 'reduce' })
-			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-			await page.addInitScript(
-				(priorDay) => {
-					if (!localStorage.getItem(priorDay.key))
-						localStorage.setItem(priorDay.key, priorDay.value)
-				},
-				{
-					key: SAVE_STREAK_DISMISSED_DAY_KEY,
-					value: productDayKey(new Date(Date.now() - 86_400_000)),
-				},
-			)
-			await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
-			await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
-				route.fulfill({
-					json: accepted
-						? { ...puzzle, canPlay: false, completedSession: loss }
-						: {
-								...puzzle,
-								canPlay: true,
-								puzzleDataJson: JSON.stringify({ wordLength: 5, maxAttempts: guesses.length }),
-							},
-				}),
-			)
-			await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
-				route.fulfill({
-					json: {
-						dayKey,
-						freePicks: { gameSlugs: [slug] },
-						games: [
-							{ gameSlug: slug, hasCompleted: accepted },
-							{ gameSlug: next, hasCompleted: false },
-						],
-					},
-				}),
-			)
-			await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) =>
-				route.fulfill({ json: { resultJson: JSON.stringify({ tiles: Array(5).fill('absent') }) } }),
-			)
-			await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => {
-				const input = route.request().postDataJSON()
-				expect(input).toMatchObject({ ...puzzle, ...loss })
-				expect(JSON.parse(input.submissionJson)).toEqual({ guesses })
-				accepted = true
-				return route.fulfill({ json: { gameSlug: slug, valid: true, status: 'lost' } })
-			})
-			await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
-				route.fulfill({ json: { info: { currentStreak: accepted ? 1 : 0 } } }),
-			)
-			await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) =>
-				route.fulfill({ json: {} }),
-			)
-			await page.route('**/puzzled.v1.PuzzleService/ShareResult', (route) =>
-				route.fulfill({ json: {} }),
-			)
-
+			const dayKey = await stubFiveLoss(page, baseURL)
 			await page.goto(path)
-			const board = page.getByRole('table', { name: 'Five', exact: true })
-			await expect(board).toBeVisible()
-			// Give Chromium an install event even on loopback, so absence on loss is meaningful.
-			await page.evaluate(() =>
-				window.dispatchEvent(new Event('beforeinstallprompt', { cancelable: true })),
-			)
-			const keyboard = page
-				.locator('fieldset')
-				.filter({ has: page.getByRole('button', { name: 'Enter', exact: true }) })
-			for (const [i, word] of guesses.entries()) {
-				if (mobile) {
-					for (const key of word.toUpperCase())
-						await keyboard.getByRole('button', { name: key, exact: true }).tap()
-					await keyboard.getByRole('button', { name: 'Enter', exact: true }).tap()
-				} else {
-					await page.keyboard.type(word)
-					await page.keyboard.press('Enter')
-				}
-				await expect(board.getByRole('row').nth(i).locator('[data-grade="absent"]')).toHaveCount(5)
-			}
+			await playFiveLoss(page, mobile)
 
 			const card = page.locator('[data-board-finished]')
 			await expect(card.locator('[data-outcome="lost"]')).toBeVisible()
@@ -172,5 +185,112 @@ for (const mobile of [true, false]) {
 			await refetchedStreak
 			await expect(replay.locator('[data-result-guest-capture]')).toHaveCount(0)
 		})
+	})
+}
+
+// Other Solid server functions share this URL. Match only the generated
+// reader so unrelated document and server-function requests stay healthy.
+async function guestStatusReference(): Promise<string> {
+	const ssr = await readFile('.output/server/_ssr/ssr.mjs', 'utf8')
+	const refs = Array.from(
+		ssr.matchAll(/createServerReference\("([^"]+)", async function readPlayGuestStatus\(/g),
+	)
+	expect(refs).toHaveLength(1)
+	return refs[0][1]
+}
+
+for (const scenario of ['recover', 'fail-closed', 'signed-in', 'exit'] as const) {
+	test(`Five loss guest-status read: ${scenario}`, async ({ page, context, baseURL }, info) => {
+		const identity = await guestStatusReference()
+		const requests: number[] = []
+		const allowRetry = Promise.withResolvers<void>()
+		const submitStarted = Promise.withResolvers<void>()
+		const allowAccept = Promise.withResolvers<void>()
+		await stubFiveLoss(
+			page,
+			baseURL,
+			scenario === 'exit'
+				? async () => {
+						submitStarted.resolve()
+						await allowAccept.promise
+					}
+				: undefined,
+		)
+		if (scenario === 'signed-in') {
+			await context.addCookies([
+				{
+					name: 'puzzled_session',
+					value: 'local-account-fixture',
+					url: new URL(baseURL ?? '').origin,
+					httpOnly: true,
+				},
+			])
+		}
+		await page.route('**/_server', async (route) => {
+			if (route.request().headers()['x-server-id'] !== identity) return route.continue()
+			const index = requests.length
+			requests.push(0)
+			if (index === 1) await allowRetry.promise
+			if (
+				scenario !== 'signed-in' &&
+				(index === 0 || (index === 1 && scenario === 'fail-closed'))
+			) {
+				await route.fulfill({ status: 503, body: 'fixture identity service unavailable' })
+				requests[index] = 503
+				return
+			}
+			const response = await route.fetch()
+			await route.fulfill({ response })
+			requests[index] = response.status()
+		})
+		try {
+			await page.goto(path)
+			await expect.poll(() => requests[0]).toBe(scenario === 'signed-in' ? 200 : 503)
+			await playFiveLoss(page, false)
+			const finish = page.locator('[data-board-finished]')
+			const save = page.locator('[data-result-guest-capture]')
+			if (scenario === 'exit') {
+				await submitStarted.promise
+				await expect(finish).toHaveCount(0)
+				await page.goto('/en-US/privacy')
+				allowAccept.resolve()
+				await expect(finish).toHaveCount(0)
+				await expect(save).toHaveCount(0)
+				expect(requests).toEqual([503])
+				return
+			}
+			await expect(finish.locator('[data-outcome="lost"]')).toBeVisible()
+			// The result/actions are not gated by the held identity response.
+			await expect(finish.getByRole('link', { name: /^Play next:/ })).toBeVisible()
+			await expect(finish.getByRole('button', { name: 'Copy challenge' })).toBeVisible()
+			await expect(finish.getByRole('button', { name: 'See your result' })).toBeVisible()
+			await expect(save).toHaveCount(0)
+			await page.evaluate(() =>
+				document.documentElement.setAttribute('data-fixture-same-document', '1'),
+			)
+			allowRetry.resolve()
+			if (scenario === 'recover') {
+				await expect(save).toHaveCount(1)
+				await expect(save.getByRole('paragraph')).toContainText('keep your streak of 1 day')
+			} else if (scenario === 'fail-closed') {
+				await expect.poll(() => requests[1]).toBe(503)
+				await expect(save).toHaveCount(0)
+			}
+			await expect(page.locator('html')).toHaveAttribute('data-fixture-same-document', '1')
+			await expect(page.locator('[data-install-nudge]')).toHaveCount(0)
+			await page.screenshot({ path: info.outputPath(`${scenario}.png`) })
+			expect(requests).toEqual(
+				scenario === 'signed-in' ? [200] : scenario === 'recover' ? [503, 200] : [503, 503],
+			)
+			if (scenario === 'fail-closed') {
+				await page.reload()
+				await expect(page.locator('[data-game-stage="completed"]')).toBeVisible()
+				await expect(save).toHaveCount(1)
+				expect(requests).toEqual([503, 503, 200])
+			}
+		} finally {
+			allowRetry.resolve()
+			allowAccept.resolve()
+		}
 	})
 }

@@ -62,6 +62,7 @@ export function BoardFinish(props: {
 									facts={{ ...result(), mode: result().mode === 'archive' ? 'archive' : 'daily' }}
 									isGuest={props.finish.isGuest}
 									guestStatusPending={props.finish.guestStatusPending}
+									retryGuestStatus={props.finish.retryGuestStatus}
 									freshWin
 									onDetailsOpenChange={setResultOpen}
 									locale={props.locale}
