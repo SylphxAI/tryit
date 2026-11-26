@@ -150,6 +150,12 @@ for (const viewport of [
 					'Accept-Language': 'en-US',
 				})
 				const { started } = await fixture(page, { ios: viewport.width === 390 })
+				const installEvents: unknown[] = []
+				await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) => {
+					const body = route.request().postDataJSON()
+					if (body.event.startsWith('pwa_install')) installEvents.push(body)
+					return route.fulfill({ json: {} })
+				})
 				await page.goto('/')
 				await expect(page.getByText('0 of 3 free picks used today')).toBeVisible()
 				await expect(page.getByText(installTitle)).toHaveCount(0)
@@ -164,6 +170,16 @@ for (const viewport of [
 				await expect(rail.getByText('Current Streak: 4')).toBeInViewport()
 				await expect(rail.getByRole('link', { name: /^Resume:/ })).toBeInViewport()
 				await expect(rail.getByText(installTitle)).toBeVisible()
+				await expect
+					.poll(() => installEvents.slice())
+					.toEqual([
+						{
+							event: 'pwa_install_prompted',
+							platform: viewport.width === 390 ? 'ios_guide' : 'chromium',
+							trigger: 'post_first_win',
+							isGuest: true,
+						},
+					])
 				if (viewport.width === 390) {
 					await expect(rail.getByText('Tap Share → Add to Home Screen.')).toBeVisible()
 					await rail.getByRole('button', { name: 'Dismiss' }).click()

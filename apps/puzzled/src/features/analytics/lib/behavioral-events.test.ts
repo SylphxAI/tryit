@@ -53,12 +53,25 @@ const events = [
 		{ surface: 'archive_lock', gameSlug: 'sudoku', picksUsed: 0, currency: 'GBP', isGuest: true },
 	],
 	[
-		{ event: 'pwa_install_prompted', platform: 'ios_guide', trigger: 'post_first_win' },
-		{ platform: 'ios_guide', trigger: 'post_first_win' },
+		{
+			event: 'pwa_install_prompted',
+			platform: 'ios_guide',
+			trigger: 'post_first_win',
+			is_guest: true,
+		},
+		{ platform: 'ios_guide', trigger: 'post_first_win', isGuest: true },
 	],
 	[
-		{ event: 'pwa_installed', platform: 'chromium', trigger: 'post_first_win' },
-		{ platform: 'chromium', trigger: 'post_first_win' },
+		{ event: 'pwa_installed', platform: 'chromium', trigger: 'post_first_win', is_guest: false },
+		{ platform: 'chromium', trigger: 'post_first_win', isGuest: false },
+	],
+	[
+		{ event: 'save_streak_prompted', outcome: 'won', trigger: 'daily_finish' },
+		{ status: 'won', trigger: 'daily_finish' },
+	],
+	[
+		{ event: 'save_streak_clicked', outcome: 'lost', trigger: 'daily_finish' },
+		{ status: 'lost', trigger: 'daily_finish' },
 	],
 	[
 		{ event: 'push_opted_in', trigger: 'settings', result: 'dismissed' },
@@ -118,7 +131,7 @@ afterEach(() => {
 })
 
 for (const consent of ['analytics_only', 'denied'] as const) {
-	test(`all eight events use the exact anonymous schema with consent ${consent}`, () => {
+	test(`all behavioral events use the exact anonymous schema with consent ${consent}`, () => {
 		const { posts, ga, bodies } = browser(consent)
 		for (const [event] of events) {
 			const dirty = {
@@ -132,7 +145,7 @@ for (const consent of ['analytics_only', 'denied'] as const) {
 			}
 			trackBehavioralEvent(dirty)
 		}
-		expect(posts).toHaveLength(8)
+		expect(posts).toHaveLength(events.length)
 		for (const { url, init } of posts) {
 			expect(url.endsWith(FUNNEL_PATH)).toBe(true)
 			expect(init?.credentials).toBe('omit')

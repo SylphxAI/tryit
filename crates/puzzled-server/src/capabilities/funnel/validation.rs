@@ -172,16 +172,36 @@ fn validate_behavior(input: &Incoming) -> Option<Row> {
                 "is_guest": input.is_guest?,
             }),
         ),
-        event @ ("pwa_install_prompted" | "pwa_installed") => (
-            if event == "pwa_installed" {
-                "pwa_installed"
+        event @ ("pwa_install_prompted" | "pwa_installed") => {
+            let mut params = json!({
+                "platform": allowed(input.platform.as_deref(), &PWA_PLATFORMS)?,
+                "trigger": allowed(input.trigger.as_deref(), &["post_first_win"])?,
+            });
+            // Older callers omit guest status; that is not evidence of an account.
+            if let Some(is_guest) = input.is_guest {
+                params["is_guest"] = json!(is_guest);
+            }
+            (
+                if event == "pwa_installed" {
+                    "pwa_installed"
+                } else {
+                    "pwa_install_prompted"
+                },
+                None,
+                params,
+            )
+        }
+        event @ ("save_streak_prompted" | "save_streak_clicked") => (
+            if event == "save_streak_prompted" {
+                "save_streak_prompted"
             } else {
-                "pwa_install_prompted"
+                "save_streak_clicked"
             },
             None,
             json!({
-                "platform": allowed(input.platform.as_deref(), &PWA_PLATFORMS)?,
-                "trigger": allowed(input.trigger.as_deref(), &["post_first_win"])?,
+                // Connect's existing status field carries the daily finish outcome.
+                "outcome": allowed(input.status.as_deref(), &STATUSES)?,
+                "trigger": allowed(input.trigger.as_deref(), &["daily_finish"])?,
             }),
         ),
         "push_opted_in" => (

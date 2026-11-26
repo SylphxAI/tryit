@@ -47,7 +47,13 @@ export function sendFunnel(
 					rating: payload.event === 'web_vitals' ? payload.rating : undefined,
 					gameSlug: 'game_slug' in payload ? payload.game_slug : undefined,
 					mode: 'mode' in payload ? payload.mode : undefined,
-					status: 'status' in payload ? payload.status : undefined,
+					// Save-streak analytics use the existing wire status enum; storage calls it outcome.
+					status:
+						'outcome' in payload
+							? payload.outcome
+							: 'status' in payload
+								? payload.status
+								: undefined,
 					pickIndex: 'pick_index' in payload ? (payload.pick_index ?? undefined) : undefined,
 					timeBucketS: 'time_bucket_s' in payload ? payload.time_bucket_s : undefined,
 					isGuest: 'is_guest' in payload ? payload.is_guest : undefined,
