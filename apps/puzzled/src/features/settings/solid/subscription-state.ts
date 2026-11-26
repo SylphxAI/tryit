@@ -88,7 +88,7 @@ export function createSubscriptionState(
 			!conversion && confirmed() && view()?.status === 'trialing' && handoff.session
 		if (!conversion && !trialSession) return
 		const report = () => {
-			if (conversion) reportCheckoutReturn(conversion)
+			if (conversion) reportCheckoutReturn(conversion, handoff.session)
 			else if (trialSession) reportCheckoutTrial(trialSession)
 		}
 		if (cookieConsent().ready) {

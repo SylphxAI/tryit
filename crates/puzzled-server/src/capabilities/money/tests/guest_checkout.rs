@@ -393,7 +393,6 @@ async fn checkout_receipt_requires_exact_owned_paid_session() {
         ("cs_pass", "pi_pass_fixture", 300, "JPY"),
         ("chk_pass", "pi_pass_fixture", 300, "JPY"),
         ("cs_recurring", "in_recurring_fixture", 1299, "USD"),
-        ("cs_missing_payment_id", "chk_recurring", 1299, "USD"),
     ] {
         let receipt = money
             .settled_checkout(session, session, &subjects)
@@ -424,6 +423,7 @@ async fn checkout_receipt_requires_exact_owned_paid_session() {
         .await
         .is_none());
     for session in [
+        "cs_missing_payment_id",
         "cs_pending",
         "cs_unpaid",
         "cs_trial",

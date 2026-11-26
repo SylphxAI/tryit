@@ -80,16 +80,10 @@ impl Money {
         {
             return None;
         }
-        // CheckoutSession has no Order id. Money exposes the actual processor
-        // payment and (for recurring) invoice id; otherwise use the same canonical
-        // Money checkout id for both processor-id and Money-id return URLs.
-        let order_id = [
-            text("processor_payment_id"),
-            text("processor_invoice_id"),
-            canonical,
-        ]
-        .into_iter()
-        .find(|id| valid_id(id))?;
+        // Match money.checkout.settled; wait for a processor ID rather than using the checkout ID.
+        let order_id = [text("processor_payment_id"), text("processor_invoice_id")]
+            .into_iter()
+            .find(|id| valid_id(id))?;
         Some(SettledReceipt {
             order_id: order_id.to_owned(),
             amount_minor,

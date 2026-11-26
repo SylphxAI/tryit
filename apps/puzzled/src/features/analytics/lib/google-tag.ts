@@ -339,6 +339,7 @@ export function sendGa4Event(name: string, params: Record<string, unknown>): boo
 export type CheckoutQuote = { plan: string; value: number; currency: string }
 
 const SENT_PREFIX = 'puzzled:ads:sent:'
+const LEGACY_CONVERSION_PREFIX = 'puzzled:ads:conversion:'
 
 type Store = {
 	getItem(key: string): string | null
@@ -386,10 +387,19 @@ function readQuote(storage: Store): CheckoutQuote | null {
 	return null
 }
 
-function fireOnce(storage: Store, key: string, send: () => boolean): boolean {
+function fireOnce(
+	storage: Store,
+	key: string,
+	send: () => boolean,
+	previousMarkers: string[] = [],
+): boolean {
 	const marker = SENT_PREFIX + key
 	try {
-		if (storage.getItem(marker)) return false
+		if (
+			storage.getItem(marker) !== null ||
+			previousMarkers.some((key) => storage.getItem(key) !== null)
+		)
+			return false
 		storage.setItem(marker, '1')
 		if (send()) return true
 		storage.removeItem(marker)
@@ -434,11 +444,25 @@ export function clearCheckoutQuote(): void {
 export type SettledPurchase = { orderId: string; value: number; currency: string }
 
 /** Report Ads attribution only; use the Money-verified receipt, never the trial quote. */
-export function trackCheckoutPurchase({ orderId, value, currency }: SettledPurchase): boolean {
+export function trackCheckoutPurchase(
+	{ orderId, value, currency }: SettledPurchase,
+	legacySessionId?: string | null,
+): boolean {
 	const tag = active
 	const storage = store()
 	if (!tag?.canSendAdsPurchase() || !storage || !PURCHASE_ORDER_ID.test(orderId)) return false
-	return fireOnce(storage, `paid:${orderId}`, () =>
-		tag.adsPurchase({ value, currency, transactionId: orderId }),
+	const previousMarkers = [`${LEGACY_CONVERSION_PREFIX}paid:${orderId}`]
+	if (legacySessionId) {
+		// Before using Money order IDs, a browser could record the returned session instead.
+		previousMarkers.push(
+			`${SENT_PREFIX}paid:${legacySessionId}`,
+			`${LEGACY_CONVERSION_PREFIX}paid:${legacySessionId}`,
+		)
+	}
+	return fireOnce(
+		storage,
+		`paid:${orderId}`,
+		() => tag.adsPurchase({ value, currency, transactionId: orderId }),
+		previousMarkers,
 	)
 }

@@ -134,7 +134,7 @@ test.describe('Solid subscription and family settings', () => {
 		await page.addInitScript(
 			({ quoteKey }) => {
 				localStorage.setItem('puzzled:signal.consent', 'granted')
-				// Reseed even on reload: the session marker, not only quote deletion, must deduplicate.
+				// Reseed even on reload: the order marker, not only quote deletion, must deduplicate.
 				localStorage.setItem(
 					quoteKey,
 					JSON.stringify({ plan: 'family_yearly', value: 79.99, currency: 'GBP' }),
@@ -172,13 +172,21 @@ test.describe('Solid subscription and family settings', () => {
 		expect(googleRequests).toHaveLength(2)
 	})
 
-	for (const { name, session, consent, gpc, expected } of [
+	for (const { name, session, consent, gpc, expected, previouslyReported } of [
 		{
 			name: 'Starter Pass without subscription',
 			session: 'fixture_checkout_pass',
 			consent: 'granted',
 			gpc: false,
 			expected: 1,
+		},
+		{
+			name: 'paid return already reported under its legacy session ID',
+			session: 'fixture_checkout_pass',
+			consent: 'granted',
+			gpc: false,
+			expected: 0,
+			previouslyReported: true,
 		},
 		{
 			name: 'active Plus with a different pending session',
@@ -207,13 +215,18 @@ test.describe('Solid subscription and family settings', () => {
 			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE', ...(gpc ? { 'Sec-GPC': '1' } : {}) })
 			const googleRequests = await capture(page, false)
 			await forwardBilling(page)
-			await page.addInitScript((choice) => {
-				localStorage.setItem('puzzled:signal.consent', choice)
-				localStorage.setItem(
-					'puzzled:ads:checkout-quote',
-					JSON.stringify({ plan: 'bogus', value: 999, currency: 'USD' }),
-				)
-			}, consent)
+			await page.addInitScript(
+				({ consent, session, previouslyReported }) => {
+					localStorage.setItem('puzzled:signal.consent', consent)
+					if (previouslyReported)
+						localStorage.setItem(`puzzled:ads:conversion:paid:${session}`, '1')
+					localStorage.setItem(
+						'puzzled:ads:checkout-quote',
+						JSON.stringify({ plan: 'bogus', value: 999, currency: 'USD' }),
+					)
+				},
+				{ consent, session, previouslyReported },
+			)
 			await page.goto(`/settings/subscription?session_id=${session}&callbackUrl=%2Fgames%2Fsudoku`)
 			await expect(page.getByRole('link', { name: 'Return to puzzle' })).toBeVisible()
 			const conversions = async () =>
@@ -231,11 +244,12 @@ test.describe('Solid subscription and family settings', () => {
 						},
 					],
 				])
-			} else if (consent === 'denied' || gpc) {
+			} else if (previouslyReported || consent === 'denied' || gpc) {
 				await expect
 					.poll(() => page.evaluate(() => localStorage.getItem('puzzled:ads:checkout-quote')))
 					.toBeNull()
-				expect(googleRequests).toEqual([])
+				if (previouslyReported) await expect.poll(() => googleRequests.length).toBe(1)
+				else expect(googleRequests).toEqual([])
 				expect(await conversions()).toEqual([])
 			} else {
 				await expect.poll(() => googleRequests.length).toBe(1)
