@@ -2,6 +2,7 @@
 import { Clock } from 'lucide-solid'
 import { Show } from 'solid-js'
 import { getGameColors } from '@/games/theme-colors'
+import { createTranslator } from '@/lib/i18n/translate'
 import {
 	type GameLandingActionsProps,
 	renderGuestPrompt,
@@ -12,6 +13,7 @@ import {
 export type GameLandingHeroProps = GameLandingActionsProps & {
 	stage: boolean
 	practice?: boolean
+	englishWordNoticeInHero: boolean
 }
 
 export function renderGameLandingHeroBody(props: GameLandingHeroProps) {
@@ -53,6 +55,11 @@ export function renderGameLandingHeroBody(props: GameLandingHeroProps) {
 					{d()
 						.difficultyLevels.map(({ label }) => label)
 						.join(' / ')}
+				</li>
+			</Show>
+			<Show when={props.englishWordNoticeInHero}>
+				<li class="tag-chip font-semibold" data-english-word-puzzle>
+					{createTranslator(d().locale)('daily.englishWordPuzzle')}
 				</li>
 			</Show>
 		</ul>

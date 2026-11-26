@@ -4,19 +4,8 @@ import { For, Show } from 'solid-js'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { slugToCamelCase } from '@/lib/game-slug'
 import { createTranslator } from '@/lib/i18n/translate'
+import { needsEnglishWordNotice } from '../lib/english-word-puzzles'
 import { DailyPickCount } from './daily-pick-count'
-
-const englishWordPuzzles = new Set([
-	'word-guess',
-	'quad-words',
-	'word-ladder',
-	'word-groups',
-	'word-search',
-	'cryptogram',
-	'word-box',
-	'word-hive',
-	'crossword',
-])
 
 const arithmoFeedback = [
 	['correct', 'border-correct bg-correct'],
@@ -30,10 +19,12 @@ export function BoardIntro(props: {
 	picks?: number
 	locked: boolean
 	changeDifficulty: boolean
+	englishWordNoticeInHero: boolean
 }) {
 	const t = createTranslator(props.data.locale)
 	let rules: HTMLDialogElement | undefined
-	const wordNotice = !props.data.locale.startsWith('en-') && englishWordPuzzles.has(props.data.slug)
+	const wordNotice = () =>
+		!props.englishWordNoticeInHero && needsEnglishWordNotice(props.data.locale, props.data.slug)
 	return (
 		<header class="play-intro mb-2 text-sm">
 			<div class="play-hud flex flex-wrap items-center gap-x-3">
@@ -89,7 +80,7 @@ export function BoardIntro(props: {
 							<span class="block">{t('daily.cageSudokuExample')}</span>
 						</Show>
 					</p>
-					<Show when={wordNotice}>
+					<Show when={wordNotice()}>
 						<p
 							class="mt-1 inline-flex rounded-full border border-border bg-background px-2 py-0.5 text-xs font-semibold"
 							data-english-word-puzzle
