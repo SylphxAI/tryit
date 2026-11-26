@@ -24,7 +24,7 @@ use super::connect_preferences::preferences_connect_service;
 use super::connect_puzzle::puzzle_connect_service;
 use super::connect_stats::stats_connect_service;
 use super::funnel_event::funnel_connect_service;
-use super::health::{healthz, readyz};
+use super::health::{healthz, readyz, WriterReadiness};
 use super::observability_test::observability_test;
 use super::state::AppState;
 use crate::capabilities::identity_access::adapters::auth_session::attach_auth_session;
@@ -44,13 +44,13 @@ pub fn router(state: AppState) -> Router {
 
     let auth = state.auth.clone();
     let guest_pool = state.pool.clone();
+    let writer_readiness = guest_pool.as_ref().map(WriterReadiness::new);
     Router::new()
         .route(
             "/v1/guest/session",
             post(crate::capabilities::identity_access::adapters::guest_credentials::session),
         )
         .route("/healthz", get(healthz))
-        .route("/readyz", get(readyz))
         .route(METRICS_PATH, post(metrics_tick))
         .route(DAILY_PUZZLES_PATH, post(daily_puzzles_tick))
         .route(AUDIT_RETENTION_PATH, post(audit_retention_tick))
@@ -75,6 +75,9 @@ pub fn router(state: AppState) -> Router {
         .layer(axum::middleware::from_fn(
             crate::capabilities::identity_access::adapters::guest_credentials::bootstrap_guard,
         ))
+        // Platform readiness must not pass through request identity middleware,
+        // which can itself use the request pool when credentials are supplied.
+        .route("/readyz", get(readyz).with_state(writer_readiness))
         .layer(axum::middleware::from_fn(
             crate::observability::capture_server_errors,
         ))

@@ -222,21 +222,139 @@ async fn readyz_fails_closed_without_database() {
     assert_eq!(json, serde_json::json!({"status": "not_ready"}));
 }
 
+async fn readiness(app: &axum::Router) -> axum::response::Response {
+    app.clone()
+        .oneshot(build_request(Method::GET, "/readyz", Body::empty()))
+        .await
+        .unwrap_or_else(|error| panic!("readyz request: {error}"))
+}
+
 #[tokio::test]
-async fn readyz_returns_ok_with_postgres() {
+#[allow(clippy::unwrap_used)]
+async fn readyz_stays_ok_when_all_five_request_connections_are_held() {
     let Some(db) = crate::test_support::fresh_database().await else {
         return;
     };
-    let response = router(AppState::new(Some(db)))
-        .oneshot(build_request(Method::GET, "/readyz", Body::empty()))
+    let pool = crate::db_config::writer_pool_options(
+        sqlx::postgres::PgPoolOptions::new().max_connections(5),
+    )
+    .connect_with((*db.connect_options()).clone())
+    .await
+    .unwrap();
+    db.close().await;
+    let mut held = Vec::new();
+    for _ in 0..5 {
+        held.push(pool.acquire().await.unwrap());
+    }
+    assert_eq!(pool.size(), 5);
+    assert!(pool.try_acquire().is_none());
+    let app = router(AppState::new(Some(pool)));
+    let start = std::time::Instant::now();
+    let response = tokio::time::timeout(std::time::Duration::from_secs(1), readiness(&app))
         .await
-        .unwrap_or_else(|error| panic!("readyz request: {error}"));
+        .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
+    eprintln!(
+        "five request connections held: /readyz 200 in {:?}",
+        start.elapsed()
+    );
     assert_eq!(response.headers()["cache-control"], "no-store");
     assert_eq!(
         body_json(response).await,
         serde_json::json!({"status": "ok"})
     );
+    drop(held);
+}
+
+#[tokio::test]
+#[allow(clippy::unwrap_used)]
+async fn readyz_times_out_when_postgres_does_not_respond() {
+    use sqlx::postgres::PgConnectOptions;
+    use std::time::{Duration, Instant};
+
+    // A TCP peer that accepts connections but never answers Postgres startup
+    // messages exercises the time bound, unlike a fast connection refusal.
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let app = router(AppState::new(Some(sqlx::PgPool::connect_lazy_with(
+        PgConnectOptions::new_without_pgpass()
+            .host("127.0.0.1")
+            .port(address.port()),
+    ))));
+    let start = Instant::now();
+    let (response, accepted) = tokio::join!(
+        tokio::time::timeout(Duration::from_secs(1), readiness(&app)),
+        tokio::time::timeout(Duration::from_secs(1), listener.accept()),
+    );
+    let (_socket, _) = accepted.unwrap().unwrap();
+    let response = response.unwrap();
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    eprintln!(
+        "unresponsive Postgres: /readyz 503 in {:?}",
+        start.elapsed()
+    );
+}
+
+#[tokio::test]
+#[allow(clippy::unwrap_used)]
+async fn readyz_rejects_a_reachable_readonly_database() {
+    let Some(db) = crate::test_support::fresh_database().await else {
+        return;
+    };
+    let options = (*db.connect_options())
+        .clone()
+        .options([("default_transaction_read_only", "on")]);
+    // Prove the configured target is live and readable, not merely offline.
+    let pool = sqlx::PgPool::connect_with(options).await.unwrap();
+    let value: i32 = sqlx::query_scalar("SELECT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(value, 1);
+    let response = readiness(&router(AppState::new(Some(pool)))).await;
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+}
+
+#[tokio::test]
+#[allow(clippy::unwrap_used)]
+async fn readyz_reconnects_after_postgres_terminates_the_probe_socket() {
+    let Some(db) = crate::test_support::fresh_database().await else {
+        return;
+    };
+    let options = (*db.connect_options())
+        .clone()
+        .application_name("readiness-test");
+    let app = router(AppState::new(Some(sqlx::PgPool::connect_lazy_with(
+        options,
+    ))));
+    let probe_pid = || {
+        sqlx::query_scalar::<_, i32>(
+            "SELECT pid FROM pg_stat_activity WHERE datname = current_database() AND application_name = 'readiness-test'",
+        )
+        .fetch_one(&db)
+    };
+    assert_eq!(readiness(&app).await.status(), StatusCode::OK);
+    let first = probe_pid().await.unwrap();
+    assert_eq!(readiness(&app).await.status(), StatusCode::OK);
+    assert_eq!(probe_pid().await.unwrap(), first, "reuse the probe socket");
+    let terminated: bool = sqlx::query_scalar("SELECT pg_terminate_backend($1, 1000)")
+        .bind(first)
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    assert!(terminated);
+    let start = std::time::Instant::now();
+    assert_eq!(readiness(&app).await.status(), StatusCode::OK);
+    eprintln!(
+        "terminated probe socket: next /readyz 200 in {:?}",
+        start.elapsed()
+    );
+    assert_ne!(
+        probe_pid().await.unwrap(),
+        first,
+        "reconnect the probe socket"
+    );
+    assert_eq!(readiness(&app).await.status(), StatusCode::OK);
 }
 
 #[tokio::test]

@@ -21,11 +21,11 @@ pub fn writer_pool_options(options: PgPoolOptions) -> PgPoolOptions {
 }
 
 async fn probe_writer(connection: &mut PgConnection, budget: Duration) -> Result<(), sqlx::Error> {
-    require_writer(
-        sqlx::query_scalar::<_, bool>(WRITER_PROBE).fetch_one(connection),
-        budget,
-    )
-    .await
+    require_writer(is_writer(connection), budget).await
+}
+
+pub(crate) async fn is_writer(connection: &mut PgConnection) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(WRITER_PROBE).fetch_one(connection).await
 }
 
 async fn require_writer(
