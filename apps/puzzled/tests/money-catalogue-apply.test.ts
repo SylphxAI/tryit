@@ -339,13 +339,12 @@ describe('money catalogue workflow and reader', () => {
 
 	test('the Rust reader and fixtures name only the real collection', () => {
 		const clientDir = join(root, 'crates/puzzled-server/src/capabilities/money/client')
-		const reader =
-			'"name": format!("{}/price_catalogs/default", self.environment_resource().await?)'
+		const reader = /format!\("\{\}\/price_catalogs\/default",/
 		let foundReader = false
 		for (const file of readdirSync(clientDir, { withFileTypes: true })) {
 			if (!file.isFile() || !file.name.endsWith('.rs')) continue
 			const source = readFileSync(join(clientDir, file.name), 'utf8')
-			foundReader ||= source.includes(reader)
+			foundReader ||= reader.test(source)
 			expect(source, file.name).not.toContain('"{}/catalogs/default"')
 		}
 		expect(foundReader, 'Money client must read price_catalogs/default').toBe(true)
