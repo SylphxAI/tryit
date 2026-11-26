@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { createClient } from '@connectrpc/connect'
 import { StatsService } from '@/gen/connect/puzzled/v1/stats_pb'
 import { GUEST_DAY_ID_KEY } from '@/lib/storage-keys'
+import { startDaily } from './puzzle-client'
 import { ensureGuestSession, getConnectTransport, resetConnectTransportCache } from './transport'
 
 const originalFetch = globalThis.fetch
@@ -52,22 +53,76 @@ describe('browser guest cookie admission', () => {
 		expect(calls).toHaveLength(1)
 	})
 
-	test('refusal and unreadable readiness fail honestly and permit an independent retry', async () => {
-		let attempt = 0
-		globalThis.fetch = (async () => {
-			attempt += 1
-			if (attempt === 1) return respond({}, 503)
-			if (attempt === 2) return respond({})
-			return respond({ issued: false })
+	test.each([
+		[
+			'network rejection',
+			() => {
+				throw new TypeError('Failed to fetch')
+			},
+		],
+		['status 0', () => Response.error()],
+		['HTTP 502', () => respond({}, 502)],
+		['HTTP 503', () => respond({}, 503)],
+		['HTTP 504', () => respond({}, 504)],
+	] as const)('retries %s once and shares the successful bootstrap', async (_failure, fail) => {
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			calls.push(new Request(input, init))
+			return calls.length === 1 ? fail() : respond({ issued: true })
+		}) as unknown as typeof fetch
+		const first = ensureGuestSession('https://puzzled.test')
+		// Join after the first fetch has failed, while the retry is pending.
+		await Promise.resolve()
+		expect(ensureGuestSession('https://puzzled.test')).toBe(first)
+		expect(calls).toHaveLength(1)
+		expect(await first).toEqual({ issued: true })
+		expect(calls).toHaveLength(2)
+	})
+
+	test.each([400, 401, 403, 429, 500])('does not retry HTTP %i', async (status) => {
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			calls.push(new Request(input, init))
+			return respond({}, status)
 		}) as unknown as typeof fetch
 		await expect(ensureGuestSession('https://puzzled.test')).rejects.toThrow(
 			'guest_session_unavailable',
 		)
+		expect(calls).toHaveLength(1)
+	})
+
+	test('two failed bootstraps reject StartDaily without sending it and allow a later Play', async () => {
+		const input = { gameSlug: 'number-path', puzzleDate: '2026-11-26' }
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const request = new Request(input, init)
+			calls.push(request)
+			if (request.url.endsWith('/v1/guest/session')) {
+				return calls.length <= 2 ? respond({}, 503) : respond({ issued: true })
+			}
+			return respond({ daily: { canPlay: true } })
+		}) as unknown as typeof fetch
+		await expect(startDaily(input)).rejects.toThrow('guest_session_unavailable')
+		expect(calls.map((request) => new URL(request.url).pathname)).toEqual([
+			'/v1/guest/session',
+			'/v1/guest/session',
+		])
+		expect(await startDaily(input)).toMatchObject({ canPlay: true })
+		expect(calls.map((request) => new URL(request.url).pathname).slice(2)).toEqual([
+			'/v1/guest/session',
+			'/puzzled.v1.PuzzleService/StartDaily',
+		])
+	})
+
+	test('an invalid success response fails without retry and clears the cached attempt', async () => {
+		let attempt = 0
+		globalThis.fetch = (async () => {
+			attempt += 1
+			return attempt === 1 ? respond({}) : respond({ issued: false })
+		}) as unknown as typeof fetch
 		await expect(ensureGuestSession('https://puzzled.test')).rejects.toThrow(
 			'guest_session_invalid_response',
 		)
+		expect(attempt).toBe(1)
 		expect(await ensureGuestSession('https://puzzled.test')).toEqual({ issued: false })
-		expect(attempt).toBe(3)
+		expect(attempt).toBe(2)
 	})
 
 	test('first RPC waits for bootstrap and sends cookies, never a raw guest id', async () => {

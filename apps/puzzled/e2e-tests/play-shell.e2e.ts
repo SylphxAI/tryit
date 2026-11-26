@@ -519,6 +519,74 @@ async function twoFrames(page: Page) {
 	)
 }
 
+for (const recover of [true, false]) {
+	test(
+		recover
+			? 'first Play recovers from a guest bootstrap network abort and starts once'
+			: 'two guest bootstrap failures show Try again without starting the puzzle',
+		async ({ page, context }) => {
+			const slug = 'number-path'
+			const daily = playable(slug)
+			let bootstraps = 0
+			const starts: unknown[] = []
+			await page.route('**/v1/guest/session', (route) => {
+				bootstraps++
+				if (bootstraps === 1 || !recover) return route.abort('failed')
+				return route.fulfill({
+					json: { issued: true },
+					headers: { 'Set-Cookie': '__Host-puzzled_guest=retry-fixture; HttpOnly; Secure; Path=/' },
+				})
+			})
+			await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+				route.fulfill({
+					json: {
+						gameSlug: slug,
+						puzzleDate: daily.puzzleDate,
+						canPlay: true,
+						requiresStart: true,
+					},
+				}),
+			)
+			await page.route('**/puzzled.v1.PuzzleService/StartDaily', async (route) => {
+				starts.push(route.request().postDataJSON())
+				if (
+					!(await route.request().headerValue('cookie'))?.includes(
+						'__Host-puzzled_guest=retry-fixture',
+					)
+				) {
+					return route.fulfill({
+						status: 401,
+						json: { code: 'unauthenticated', message: 'identity_required' },
+					})
+				}
+				return route.fulfill({ json: { daily } })
+			})
+			await page.goto(`${gamePath(slug)}?start=1#play`)
+			const play = page.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' })
+			await expect(play).toBeEnabled()
+			expect(await context.cookies()).toEqual([])
+			expect(bootstraps).toBe(0)
+			await play.click()
+			const unavailable = page.getByRole('heading', { name: 'Puzzle not available' })
+			const board = page.locator(`${stage} .play-board`)
+			if (recover) {
+				await expect(board).toBeVisible()
+				await expect(unavailable).toHaveCount(0)
+				expect(starts).toEqual([
+					expect.objectContaining({ gameSlug: slug, puzzleDate: daily.puzzleDate }),
+				])
+			} else {
+				await expect(unavailable).toBeVisible()
+				await expect(board).toHaveCount(0)
+				expect(starts).toEqual([])
+				await page.getByRole('button', { name: 'Try again' }).click()
+				await expect(play).toBeEnabled()
+			}
+			expect(bootstraps).toBe(2)
+		},
+	)
+}
+
 function holdResponse(page: Page, url: string | RegExp, json?: unknown) {
 	const release = Promise.withResolvers<void>()
 	const requested = Promise.withResolvers<void>()
