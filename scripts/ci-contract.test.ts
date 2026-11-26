@@ -135,8 +135,8 @@ describe('self-hosted CI contract', () => {
 			(step) => step.name === 'Install Playwright Chromium and WebKit',
 		)
 		expect(install).toMatchObject({ env: { PLAYWRIGHT_INSTALL_BROWSERS: 'chromium webkit' } })
-		expect(install?.run).toContain('bunx playwright install "${browsers[@]}"')
-		expect(install?.run).toContain('bunx playwright install-deps "${browsers[@]}"')
+		expect(install?.run).toContain(`bunx playwright install "\${browsers[@]}"`)
+		expect(install?.run).toContain(`bunx playwright install-deps "\${browsers[@]}"`)
 	})
 
 	test('browser installs are job-isolated and Lighthouse resolves the package revision', () => {
