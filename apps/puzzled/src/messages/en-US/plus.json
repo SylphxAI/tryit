@@ -29,6 +29,7 @@
 		"perYear": "per year",
 		"saving": "Save {percent}%",
 		"includesAllGames": "All {count} games, every day",
+		"includesPractice": "Unlimited practice across {practiceCount} games",
 		"includesArchive": "Puzzles from the past {days} days",
 		"includesStats": "Stats and streaks for every game",
 		"includesAdFree": "Completely ad-free",

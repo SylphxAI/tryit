@@ -303,6 +303,7 @@
 @media (max-width: 767px) {
 	.currencyRow {
 		gap: 0 8px;
+		margin-top: 4px;
 	}
 	.planLink {
 		padding-inline: 4px;
@@ -310,7 +311,7 @@
 	}
 
 	.intro {
-		margin-bottom: 8px;
+		margin-bottom: 4px;
 	}
 
 	.currency {
@@ -335,15 +336,16 @@
 	}
 
 	.page .cardHeading {
-		margin-bottom: 6px;
+		margin-bottom: 4px;
 	}
 
 	.page .card {
 		padding: 12px;
 	}
 
+	/* Leave room for the Japanese commerce disclosure link on the same row. */
 	.page .currencyRow select {
-		max-width: 10.5rem;
+		max-width: 10rem;
 	}
 }
 
@@ -359,6 +361,21 @@
 .page .features {
 	gap: 3px;
 	margin: 0 0 12px;
+}
+
+@media (max-width: 767px) {
+	.page .features {
+		gap: 2px;
+		margin-bottom: 6px;
+	}
+}
+
+@media (min-width: 1024px) {
+	.page .features {
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: 16px;
+	}
 }
 
 .features li {

@@ -29,6 +29,7 @@
 		"perYear": "al año",
 		"saving": "Ahorra un {percent}%",
 		"includesAllGames": "Los {count} juegos, todos los días",
+		"includesPractice": "Práctica sin límites en {practiceCount} juegos",
 		"includesArchive": "Puzzles de los últimos {days} días",
 		"includesStats": "Estadísticas y rachas de cada juego",
 		"includesAdFree": "Sin ningún anuncio",

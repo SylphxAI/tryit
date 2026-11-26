@@ -1,9 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Locator, type Page, test } from '@playwright/test'
+import { PRACTICE_GAMES } from '../src/features/practice/lib/practice'
 import { CONSENT_KEY } from '../src/lib/storage-keys'
 import { settle, WCAG_TAGS } from './a11y-support'
 
 /** Pricing choices, benefits and guest return paths stay available at every size. */
+const practiceCount = PRACTICE_GAMES.length
 const VIEWPORTS = [
 	{ name: 'laptop-1440x757', width: 1440, height: 757 },
 	{ name: 'desktop-1440x900', width: 1440, height: 900 },
@@ -177,6 +179,9 @@ for (const viewport of VIEWPORTS) {
 				for (const id of ['plus', 'family']) {
 					const offer = page.locator(`#${id}`)
 					await expect(offer.getByText('All 19 games, every day', { exact: true })).toBeVisible()
+					await expect(
+						offer.getByText(`Unlimited practice across ${practiceCount} games`, { exact: true }),
+					).toBeVisible()
 					await expect(
 						offer.getByText('Puzzles from the past 30 days', { exact: true }),
 					).toBeVisible()
@@ -800,6 +805,35 @@ for (const [locale, path, label] of [
 		expect(geometry.overflow).toBe(0)
 		expect(geometry.scroll).toBe(0)
 		expect((await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations).toEqual([])
+	})
+}
+
+const practiceBenefitCopy = {
+	'en-US': `Unlimited practice across ${practiceCount} games`,
+	'en-GB': `Unlimited practice across ${practiceCount} games`,
+	es: `Práctica sin límites en ${practiceCount} juegos`,
+	ja: `${practiceCount}種類のゲームで何度でも練習`,
+	'pt-BR': `Treino ilimitado em ${practiceCount} jogos`,
+	'zh-CN': `${practiceCount} 款游戏，不限次数练习`,
+	'zh-HK': `${practiceCount} 款遊戲，想練幾多次都得`,
+	'zh-TW': `${practiceCount} 款遊戲，想練幾次就練幾次`,
+}
+
+for (const [locale, copy] of Object.entries(practiceBenefitCopy)) {
+	test(`practice paywall shows the localized benefit for Plus and Family (${locale})`, async ({
+		page,
+	}) => {
+		const prefix = locale === 'en-US' ? '' : `/${locale}`
+		await page.goto(`${prefix}/pricing?trigger=practice_upsell`)
+		await expect(page.locator('html')).toHaveAttribute('lang', locale)
+		for (const id of ['plus', 'family']) {
+			const offer = page.locator(`#${id}`)
+			await expect(offer.getByText(copy, { exact: true })).toBeVisible()
+			await expect(offer.locator('[data-checkout-trigger]')).toHaveAttribute(
+				'data-checkout-trigger',
+				'practice_upsell',
+			)
+		}
 	})
 }
 

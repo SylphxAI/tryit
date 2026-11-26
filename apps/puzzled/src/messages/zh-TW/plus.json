@@ -16,6 +16,7 @@
 		"passTerms": "單次付款，可使用 Tryit Plus {days} 天，不會自動續約。",
 		"currencyLabel": "幣別",
 		"saving": "省下 {percent}%",
+		"includesPractice": "{practiceCount} 款遊戲，想練幾次就練幾次",
 		"includesArchive": "過去 {days} 天的題目",
 		"includesSync": "手機與電腦同步",
 		"trialLine": "免費試用 {days} 天，之後每年 {price}，首次扣款日為 {date}。可隨時在「設定」中一步取消。",

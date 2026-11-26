@@ -29,6 +29,7 @@
 		"perYear": "por ano",
 		"saving": "Economize {percent}%",
 		"includesAllGames": "Todos os {count} jogos, todos os dias",
+		"includesPractice": "Treino ilimitado em {practiceCount} jogos",
 		"includesArchive": "Desafios dos últimos {days} dias",
 		"includesStats": "Estatísticas e sequências de cada jogo",
 		"includesAdFree": "Totalmente sem anúncios",

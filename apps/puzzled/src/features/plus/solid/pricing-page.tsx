@@ -34,6 +34,7 @@ function PricingBody({ data }: { data: PricingData }) {
 		locale,
 		cards,
 		gameCount,
+		practiceCount,
 		freeSlug,
 		freeName,
 		currencies,
@@ -56,9 +57,11 @@ function PricingBody({ data }: { data: PricingData }) {
 		cards.find((card) => card.family === family && card.interval === 'month')
 	const yearly = (family: boolean) =>
 		cards.find((card) => card.family === family && card.interval === 'year')
+	const practiceBenefit = t('includesPractice', { practiceCount })
 	const everydayBenefits = [t('includesAdFree'), t('includesSync')]
 	const includes = (family: boolean) => [
 		t('includesAllGames', { count: gameCount }),
+		practiceBenefit,
 		t('includesArchive'),
 		t('includesStats'),
 		...(family ? [t('includesFamily', { count: familyMax })] : []),
@@ -82,7 +85,7 @@ function PricingBody({ data }: { data: PricingData }) {
 	const buyerFaq = <MarketingFaq id="buyer-faq" {...data.buyerFaq} class={styles.faq} />
 	const everydayBenefitList = (
 		<ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1 px-1 text-sm text-muted-foreground">
-			<For each={everydayBenefits}>
+			<For each={plusMember ? [practiceBenefit, ...everydayBenefits] : everydayBenefits}>
 				{(line) => (
 					<li class="flex items-start gap-2">
 						<Check class="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />

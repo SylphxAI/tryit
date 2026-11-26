@@ -1,5 +1,6 @@
 import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
+import { PRACTICE_GAMES } from '@/features/practice/lib/practice'
 import { getAllGameMetadata } from '@/games/registry'
 import { readBillingPlans, requestBilling } from '@/lib/api/request-billing'
 import { showsCurrentPlan } from '@/lib/billing/plus'
@@ -65,6 +66,7 @@ export async function readPricingPage(
 		locale,
 		planState,
 		gameCount,
+		practiceCount: PRACTICE_GAMES.length,
 		freeSlug,
 		freeName: translate(`games.${slugToCamelCase(freeSlug)}.name`),
 		currencies,
