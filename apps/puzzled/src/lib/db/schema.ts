@@ -1080,7 +1080,7 @@ export const funnelEvents = pgTable(
 		index('funnel_events_event_time_idx').on(table.event, table.occurredAt),
 		check(
 			'funnel_events_event_check',
-			sql`${table.event} IN ('landing', 'game_start', 'signup', 'web_vitals', 'share_landing', 'game_complete', 'game_abandon', 'hint_used', 'share_clicked', 'paywall_hit', 'pwa_install_prompted', 'pwa_installed', 'push_opted_in')`,
+			sql`${table.event} IN ('landing', 'game_start', 'signup', 'web_vitals', 'share_landing', 'game_complete', 'game_abandon', 'hint_used', 'share_clicked', 'paywall_hit', 'pwa_install_prompted', 'pwa_installed', 'push_opted_in', 'save_streak_prompted', 'save_streak_clicked')`,
 		),
 	],
 )

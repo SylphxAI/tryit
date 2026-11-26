@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 
-use super::{validate_browser, validation::clean_path, Incoming};
+use super::{validate_browser, validation::clean_path, Incoming, Row};
 
 fn incoming(json: &str) -> Incoming {
     serde_json::from_str(json).unwrap()
@@ -140,6 +140,97 @@ fn behavioral_params_reject_wrong_values_and_missing_required_fields() {
             accepted,
             "{completed}"
         );
+    }
+}
+
+#[test]
+fn save_streak_requires_bounded_outcome_and_daily_finish_trigger() {
+    for event in ["save_streak_prompted", "save_streak_clicked"] {
+        for outcome in ["won", "lost"] {
+            let request = json!({
+                "event": event, "status": outcome, "trigger": "daily_finish",
+                "game_slug": "sudoku", "game_id": "private", "path": "/pricing?email=private",
+                "user_id": "private", "email": "player@example.invalid", "metric": "LCP",
+                "value": 100, "rating": "good", "is_guest": true,
+                "outcome": "private", "params": {"email": "player@example.invalid"},
+            });
+            assert_eq!(
+                validate_browser(&incoming(&request.to_string())),
+                Some(Row {
+                    event,
+                    path: None,
+                    game_slug: None,
+                    metric: None,
+                    value: None,
+                    rating: None,
+                    params: Some(json!({"outcome": outcome, "trigger": "daily_finish"})),
+                })
+            );
+        }
+
+        let valid = json!({"event": event, "status": "won", "trigger": "daily_finish"});
+        for field in ["status", "trigger"] {
+            let mut missing = valid.clone();
+            missing.as_object_mut().unwrap().remove(field);
+            assert!(validate_browser(&incoming(&missing.to_string())).is_none());
+            for invalid in [
+                Value::Null,
+                json!(""),
+                json!("player@example.invalid"),
+                json!(false),
+            ] {
+                let mut request = valid.clone();
+                request[field] = invalid;
+                assert!(
+                    serde_json::from_value::<Incoming>(request.clone())
+                        .ok()
+                        .and_then(|input| validate_browser(&input))
+                        .is_none(),
+                    "accepted {request}"
+                );
+            }
+        }
+        for (field, value) in [
+            ("status", "WON"),
+            ("status", "playing"),
+            ("trigger", "post_first_win"),
+        ] {
+            let mut request = valid.clone();
+            request[field] = json!(value);
+            assert!(
+                validate_browser(&incoming(&request.to_string())).is_none(),
+                "accepted {request}"
+            );
+        }
+    }
+}
+
+#[test]
+fn pwa_guest_status_is_optional_and_never_inferred() {
+    for event in ["pwa_install_prompted", "pwa_installed"] {
+        let base = json!({"event": event, "platform": "chromium", "trigger": "post_first_win"});
+        let expected = json!({"platform": "chromium", "trigger": "post_first_win"});
+        let stored = |request: &Value| {
+            validate_browser(&incoming(&request.to_string()))
+                .unwrap()
+                .params
+                .unwrap()
+        };
+        assert_eq!(stored(&base), expected);
+
+        let mut request = base.clone();
+        request["is_guest"] = Value::Null;
+        assert_eq!(stored(&request), expected);
+        for is_guest in [true, false] {
+            request["is_guest"] = json!(is_guest);
+            let mut known = expected.clone();
+            known["is_guest"] = json!(is_guest);
+            assert_eq!(stored(&request), known);
+        }
+        for invalid in [json!("false"), json!(0), json!("player@example.invalid")] {
+            request["is_guest"] = invalid;
+            assert!(serde_json::from_value::<Incoming>(request.clone()).is_err());
+        }
     }
 }
 

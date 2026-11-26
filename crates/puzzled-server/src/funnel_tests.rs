@@ -129,6 +129,36 @@ async fn same_origin_behavioral_events_persist_only_exact_params() {
             json!({"platform":"chromium","trigger":"post_first_win"}),
         ),
         (
+            json!({"event":"pwa_install_prompted","platform":"chromium","trigger":"post_first_win","isGuest":true}),
+            None,
+            json!({"platform":"chromium","trigger":"post_first_win","is_guest":true}),
+        ),
+        (
+            json!({"event":"pwa_installed","platform":"other","trigger":"post_first_win","isGuest":false}),
+            None,
+            json!({"platform":"other","trigger":"post_first_win","is_guest":false}),
+        ),
+        (
+            json!({"event":"pwa_installed","platform":"ios_guide","trigger":"post_first_win","isGuest":null}),
+            None,
+            json!({"platform":"ios_guide","trigger":"post_first_win"}),
+        ),
+        (
+            json!({
+                "event":"save_streak_prompted","status":"lost","trigger":"daily_finish",
+                "gameSlug":"sudoku","gameId":"private-game","path":"/games/sudoku?email=private",
+                "userId":"private-user","email":"player@example.invalid","isGuest":true,
+                "params":{"email":"player@example.invalid"},
+            }),
+            None,
+            json!({"outcome":"lost","trigger":"daily_finish"}),
+        ),
+        (
+            json!({"event":"save_streak_clicked","status":"won","trigger":"daily_finish"}),
+            None,
+            json!({"outcome":"won","trigger":"daily_finish"}),
+        ),
+        (
             json!({"event":"push_opted_in","trigger":"settings","result":"denied","gameSlug":"sudoku","isGuest":true}),
             None,
             json!({"trigger":"settings","result":"denied"}),
@@ -161,10 +191,27 @@ async fn same_origin_behavioral_events_persist_only_exact_params() {
         json!({"event":"share_clicked","gameSlug":"sudoku","action":"save_png"}),
         json!({"event":"paywall_hit","gameSlug":"sudoku","surface":"archive_lock","picksUsed":0,"currency":"BTC","isGuest":false}),
         json!({"event":"push_opted_in","trigger":"settings","result":"arbitrary-user-text"}),
+        json!({"event":"save_streak_prompted","status":"player@example.invalid","trigger":"daily_finish"}),
+        json!({"event":"save_streak_prompted","trigger":"daily_finish"}),
+        json!({"event":"save_streak_clicked","status":"lost","trigger":"post_first_win"}),
+        json!({"event":"save_streak_clicked","status":"won"}),
     ] {
         assert_eq!(
             post_event(&app, &origin, "same-origin", &input).await,
             StatusCode::OK,
+            "{input}"
+        );
+    }
+    // Connect rejects wrong JSON types instead of coercing guest status or enums.
+    for input in [
+        json!({"event":"pwa_install_prompted","platform":"chromium","trigger":"post_first_win","isGuest":"false"}),
+        json!({"event":"pwa_installed","platform":"chromium","trigger":"post_first_win","isGuest":0}),
+        json!({"event":"save_streak_prompted","status":false,"trigger":"daily_finish"}),
+        json!({"event":"save_streak_clicked","status":"won","trigger":0}),
+    ] {
+        assert_eq!(
+            post_event(&app, &origin, "same-origin", &input).await,
+            StatusCode::BAD_REQUEST,
             "{input}"
         );
     }

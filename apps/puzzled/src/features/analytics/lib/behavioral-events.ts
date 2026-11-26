@@ -62,6 +62,12 @@ export type BehavioralEvent =
 			event: 'pwa_install_prompted' | 'pwa_installed'
 			platform: PwaPlatform
 			trigger: 'post_first_win'
+			is_guest?: boolean
+	  }
+	| {
+			event: 'save_streak_prompted' | 'save_streak_clicked'
+			outcome: 'won' | 'lost'
+			trigger: 'daily_finish'
 	  }
 	| { event: 'push_opted_in'; trigger: PushTrigger; result: 'granted' | 'denied' | 'dismissed' }
 
@@ -139,9 +145,18 @@ function sanitize(input: BehavioralEvent): BehavioralEvent | undefined {
 		}
 		case 'pwa_install_prompted':
 		case 'pwa_installed': {
-			const { platform, trigger } = input
-			if (oneOf(platform, platforms) && trigger === 'post_first_win')
-				return { event, platform, trigger }
+			const { platform, trigger, is_guest } = input
+			if (oneOf(platform, platforms) && trigger === 'post_first_win') {
+				if (is_guest === undefined) return { event, platform, trigger }
+				if (typeof is_guest === 'boolean') return { event, platform, trigger, is_guest }
+			}
+			break
+		}
+		case 'save_streak_prompted':
+		case 'save_streak_clicked': {
+			const { outcome, trigger } = input
+			if (oneOf(outcome, ['won', 'lost']) && trigger === 'daily_finish')
+				return { event, outcome, trigger }
 			break
 		}
 		case 'push_opted_in': {

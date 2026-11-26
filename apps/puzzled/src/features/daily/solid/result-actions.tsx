@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { ChartNoAxesColumnIncreasing, Flame, Snowflake, X } from 'lucide-solid'
 import { createEffect, createSignal, onMount, Show } from 'solid-js'
+import { trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import { gamePath } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
@@ -74,14 +75,17 @@ export function ResultActions(props: {
 		}
 		// Don't briefly offer install while an eligible guest's streak is still loading.
 		if (canOfferSave && props.isGuest === true && streakPending()) return
-		setPrompt(
-			resultRetentionPrompt(
-				model().status,
-				props.freshWin,
-				canOfferSave && retention().captureGuest,
-			),
+		const chosen = resultRetentionPrompt(
+			model().status,
+			props.freshWin,
+			canOfferSave && retention().captureGuest,
 		)
+		setPrompt(chosen)
+		if (chosen === 'save-streak') trackSaveStreak('save_streak_prompted')
 	})
+	function trackSaveStreak(event: 'save_streak_prompted' | 'save_streak_clicked') {
+		trackBehavioralEvent({ event, outcome: model().status, trigger: 'daily_finish' })
+	}
 	function dismissSaveStreak() {
 		const dayKey = props.facts.todayKey
 		if (!dayKey) return
@@ -178,7 +182,11 @@ export function ResultActions(props: {
 							{t('onboarding.keepStreak', { days: retention().days })}{' '}
 							<span class="result-guest-note">{t('onboarding.saveStreakNote')}</span>
 						</p>
-						<a class="result-guest-link" href={signIn}>
+						<a
+							class="result-guest-link"
+							href={signIn}
+							onClick={() => trackSaveStreak('save_streak_clicked')}
+						>
 							{t('onboarding.createFreeAccount')}
 						</a>
 					</div>
@@ -193,7 +201,7 @@ export function ResultActions(props: {
 				</div>
 			</Show>
 			<Show when={prompt() === 'install'}>
-				<PwaInstallNudge locale={props.locale} />
+				<PwaInstallNudge locale={props.locale} isGuest={props.isGuest} />
 			</Show>
 		</>
 	)

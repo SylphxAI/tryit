@@ -14,6 +14,7 @@ async function stubFiveLoss(
 	page: Page,
 	baseURL: string | undefined,
 	beforeAccept?: () => Promise<void>,
+	retentionEvents?: unknown[],
 ) {
 	expect(['localhost', '127.0.0.1']).toContain(new URL(baseURL ?? '').hostname)
 	const dayKey = productDayKey()
@@ -68,9 +69,13 @@ async function stubFiveLoss(
 	await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
 		route.fulfill({ json: { info: { currentStreak: accepted ? 1 : 0 } } }),
 	)
-	await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) =>
-		route.fulfill({ json: {} }),
-	)
+	await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) => {
+		if (retentionEvents) {
+			const body = route.request().postDataJSON()
+			if (body.event.startsWith('save_streak_')) retentionEvents.push(body)
+		}
+		return route.fulfill({ json: {} })
+	})
 	await page.route('**/puzzled.v1.PuzzleService/ShareResult', (route) =>
 		route.fulfill({ json: {} }),
 	)
@@ -112,7 +117,8 @@ for (const mobile of [true, false]) {
 			page,
 			baseURL,
 		}, info) => {
-			const dayKey = await stubFiveLoss(page, baseURL)
+			const retentionEvents: unknown[] = []
+			const dayKey = await stubFiveLoss(page, baseURL, undefined, retentionEvents)
 			await page.goto(path)
 			await playFiveLoss(page, mobile)
 
@@ -167,6 +173,20 @@ for (const mobile of [true, false]) {
 				expect(width).toBeGreaterThanOrEqual(44)
 				expect(height).toBeGreaterThanOrEqual(44)
 			}
+			await expect
+				.poll(() => retentionEvents.slice())
+				.toEqual([{ event: 'save_streak_prompted', status: 'lost', trigger: 'daily_finish' }])
+			// Keep this fixture on the finish card after exercising the real CTA handler.
+			await account.evaluate((link) =>
+				link.addEventListener('click', (event) => event.preventDefault(), { once: true }),
+			)
+			await account.click()
+			await expect
+				.poll(() => retentionEvents.slice())
+				.toEqual([
+					{ event: 'save_streak_prompted', status: 'lost', trigger: 'daily_finish' },
+					{ event: 'save_streak_clicked', status: 'lost', trigger: 'daily_finish' },
+				])
 			await account.focus()
 			await page.keyboard.press('Tab')
 			await expect(dismiss).toBeFocused()
