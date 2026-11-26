@@ -41,7 +41,7 @@
 		"subscribing": "Opening checkout...",
 		"currentPlan": "You have Tryit Plus",
 		"manage": "Manage your subscription",
-		"legal": "Prices include VAT. Sold by Sylphx Limited, registered in England and Wales. Your subscription renews automatically until you cancel it in Settings.",
+		"sellerNote": "Prices include VAT. Sold by Sylphx Limited, registered in England and Wales.",
 		"checkoutCancelled": "Checkout was cancelled. You have not been charged.",
 		"alreadySubscribed": "You already have Tryit Plus.",
 		"immediateSupplyConsent": "I want access now and understand I lose the 14-day cancellation right.",

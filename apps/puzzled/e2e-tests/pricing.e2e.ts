@@ -1,8 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Locator, type Page, test } from '@playwright/test'
 import { PRACTICE_GAMES } from '../src/features/practice/lib/practice'
+import { CURRENCY_COOKIE } from '../src/lib/billing/currency'
+import { defaultLocale } from '../src/lib/i18n/config'
+import { createTranslator } from '../src/lib/i18n/translate'
 import { CONSENT_KEY } from '../src/lib/storage-keys'
-import { settle, WCAG_TAGS } from './a11y-support'
+import { DESKTOP, MOBILE, settle, WCAG_TAGS } from './a11y-support'
 
 /** Pricing choices, benefits and guest return paths stay available at every size. */
 const practiceCount = PRACTICE_GAMES.length
@@ -97,6 +100,140 @@ test('pricing exits paint keyboard focus but no mouse focus ring', async ({ page
 	await page.keyboard.press('Enter')
 	await expect(page).toHaveURL(/#family$/)
 })
+
+const pricingLegalCases = [
+	{
+		locale: 'en-US',
+		currency: 'USD',
+		amounts: [2.99, 4.99, 39.99],
+		seller: 'Prices include VAT. Sold by Sylphx Limited, registered in England and Wales.',
+	},
+	{
+		locale: 'en-GB',
+		currency: 'GBP',
+		amounts: [2.99, 3.99, 29.99],
+		seller: 'Prices include VAT. Sold by Sylphx Limited, registered in England and Wales.',
+	},
+	{
+		locale: 'es',
+		currency: 'USD',
+		amounts: [2.99, 4.99, 39.99],
+		seller:
+			'Los precios incluyen IVA. Vendido por Sylphx Limited, registrada en Inglaterra y Gales.',
+	},
+	{
+		locale: 'ja',
+		currency: 'USD',
+		amounts: [2.99, 4.99, 39.99],
+		seller: '表示価格にはVATが含まれます。販売元：Sylphx Limited（イングランド・ウェールズ登録）。',
+	},
+	{
+		locale: 'pt-BR',
+		currency: 'USD',
+		amounts: [2.99, 4.99, 39.99],
+		seller:
+			'Os preços incluem impostos (VAT). Vendido pela Sylphx Limited, registrada na Inglaterra e no País de Gales.',
+	},
+	{
+		locale: 'zh-CN',
+		currency: 'USD',
+		amounts: [2.99, 4.99, 39.99],
+		seller: '价格已含增值税。由 Sylphx Limited（在英格兰及威尔士注册）销售。',
+	},
+	{
+		locale: 'zh-HK',
+		currency: 'HKD',
+		amounts: [29, 49, 319],
+		seller: '價格已包含增值稅。由 Sylphx Limited（於英格蘭及威爾斯註冊）出售。',
+	},
+	{
+		locale: 'zh-TW',
+		currency: 'USD',
+		amounts: [2.99, 4.99, 39.99],
+		seller: '價格已包含增值稅。由 Sylphx Limited（於英格蘭及威爾斯註冊）出售。',
+	},
+] as const
+
+for (const { locale, currency, amounts, seller } of pricingLegalCases) {
+	for (const viewport of [MOBILE, DESKTOP]) {
+		test(`pricing renewal disclosure: ${locale} ${viewport.width}×${viewport.height}`, async ({
+			page,
+			context,
+			baseURL,
+		}) => {
+			if (!baseURL || !['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname)) {
+				throw new Error('The loopback open-plan fixture URL is required')
+			}
+			const origin = new URL(baseURL).origin
+			await page.setViewportSize(viewport)
+			await context.addCookies([
+				{ name: CURRENCY_COOKIE, value: currency.toLowerCase(), url: baseURL },
+			])
+			await page.addInitScript((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
+			await context.route('**/*', (route) =>
+				route.request().method() === 'GET' && new URL(route.request().url()).origin === origin
+					? route.continue()
+					: route.abort(),
+			)
+			const prefix = locale === defaultLocale ? '' : `/${locale}`
+			await page.goto(`${prefix}/pricing?plan=individual_once#plus`)
+			await expect(page.locator('html')).toHaveAttribute('lang', locale)
+			const offer = page.locator('#plus')
+			const cta = offer.locator('button[data-checkout-trigger="pricing_card"]')
+			const footer = page.locator('#plans').getByText(seller, { exact: true })
+			const terms = page.locator(`#plans a[href="${prefix}/terms#subscriptions"]`)
+			const t = createTranslator(locale)
+			const copy = (key: string, values?: Record<string, string | number>) =>
+				t(`plus.pricing.${key}`, values)
+			const price = (amount: number) =>
+				new Intl.NumberFormat(locale, {
+					style: 'currency',
+					currency,
+					maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+				}).format(amount)
+
+			await expect(offer.getByRole('radio')).toHaveCount(3)
+			await expect(offer.locator('input[value="once"]')).toBeChecked()
+			for (const [interval, amount] of [
+				['once', amounts[0]],
+				['month', amounts[1]],
+				['year', amounts[2]],
+				['once', amounts[0]],
+			] as const) {
+				const radio = offer.locator(`input[value="${interval}"]`)
+				await radio.check()
+				await expect(radio).toBeChecked()
+				await expect(
+					offer.locator('label').filter({ has: page.locator(`input[value="${interval}"]`) }),
+				).toContainText(price(amount))
+				const once = interval === 'once'
+				const adjacent = cta.locator('xpath=preceding-sibling::p[1]')
+				await expect(adjacent).toHaveText(
+					once
+						? copy('passTerms', { days: 3 })
+						: copy(interval === 'month' ? 'renewsMonthly' : 'renewsYearly', {
+								price: price(amount),
+							}),
+				)
+				if (once) {
+					const waiver = offer.getByRole('checkbox', {
+						name: copy('immediateSupplyConsent'),
+						exact: true,
+					})
+					await expect(waiver).toBeVisible()
+					await expect(waiver).not.toBeChecked()
+					await expect(cta).toBeDisabled()
+				} else {
+					await expect(offer.getByRole('checkbox')).toHaveCount(0)
+					await expect(cta).toBeEnabled()
+					await expect(cta).toHaveAccessibleDescription(copy('recurringSupplyTerms'))
+				}
+				await expect(footer).toBeVisible()
+				await expect(terms).toBeVisible()
+			}
+		})
+	}
+}
 
 async function openPricing(page: Page) {
 	await page.goto('/pricing', { waitUntil: 'domcontentloaded' })

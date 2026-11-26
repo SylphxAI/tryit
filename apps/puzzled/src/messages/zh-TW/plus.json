@@ -21,7 +21,6 @@
 		"includesSync": "手機與電腦同步",
 		"trialLine": "免費試用 {days} 天，之後每年 {price}，首次扣款日為 {date}。可隨時在「設定」中一步取消。",
 		"startTrial": "開始 {days} 天免費試用",
-		"legal": "價格已包含增值稅。由 Sylphx Limited（於英格蘭及威爾斯註冊）出售。訂閱會自動續訂，直到你在「設定」中取消。",
 		"checkoutCancelled": "已取消付款，未向你扣款。",
 		"immediateSupplyConsent": "我同意立即開通使用，並了解將放棄 14 天取消權。",
 		"recurringSupplyTerms": "訂閱後可立即使用；如於 14 天內取消，你只需按已提供的服務比例支付費用。",
