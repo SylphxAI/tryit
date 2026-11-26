@@ -6,49 +6,9 @@ export type Category = {
 	level: CategoryLevel
 }
 
-export type ConnectionsPuzzle = {
-	id: string
-	date: string
-	categories: [Category, Category, Category, Category]
-}
-
-export type GameStatus = 'playing' | 'won' | 'lost'
-
-export type ConnectionsState = {
-	/** A guess is being graded by the server; input waits. */
-	grading: boolean
-	selectedWords: string[]
-	solvedCategories: Category[]
-	remainingWords: string[]
-	mistakes: number
-	gameStatus: GameStatus
-	guessHistory: string[][]
-	/** True if the last wrong guess had 3 of 4 words from a category */
-	lastGuessWasOneAway: boolean
-}
-
-export type ConnectionsAction =
-	| { type: 'SELECT_WORD'; word: string }
-	| { type: 'DESELECT_WORD'; word: string }
-	| { type: 'CLEAR_SELECTION' }
-	| { type: 'GRADING'; grading: boolean }
-	| { type: 'APPLY_GUESS'; guess: string[]; category: Category | null; oneAway: boolean }
-	| { type: 'DUPLICATE_GUESS' }
-	| { type: 'SHUFFLE' }
-	| { type: 'RESET'; words: string[] }
-
 export const MAX_MISTAKES = 4
 export const WORDS_PER_CATEGORY = 4
 export const TOTAL_CATEGORIES = 4
-
-/**
- * One graded guess (`PuzzleService.CheckGuess`): the category comes back only
- * when the guess solves it.
- */
-export type GradeGroupGuess = (
-	words: string[],
-	solved: string[],
-) => Promise<{ correct: boolean; oneAway: boolean; category?: Category }>
 
 /**
  * Puzzle data sent to client (shuffled words only, no category groupings)
