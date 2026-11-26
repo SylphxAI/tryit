@@ -26,6 +26,7 @@ export type DailyBoardProps = {
 	difficulty?: PuzzleDifficulty
 	draftScope?: string
 	isGuest?: boolean
+	guestStatusPending?: boolean
 	pickIndex?: number | null
 	onAlreadyPlayed: () => void
 }
@@ -137,6 +138,9 @@ export function createBoardFinish(
 		draft,
 		get isGuest() {
 			return props.isGuest
+		},
+		get guestStatusPending() {
+			return props.guestStatusPending
 		},
 		onNewPractice: props.onNewPractice,
 		result() {

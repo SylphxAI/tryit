@@ -90,12 +90,13 @@ export function createResultDailyContext(
 				return null
 			}
 		},
-		{ initialValue: null },
 	)
 	const retention = createMemo(() =>
-		resultCardRetention(model(), ritualDay() ? streak.latest : null, props.isGuest),
+		resultCardRetention(model(), ritualDay() ? (streak.latest ?? null) : null, props.isGuest),
 	)
 	const streakCountLabel = (days: number) =>
 		`${t('streak.currentStreak')}: ${new Intl.NumberFormat(props.locale).format(days)}`
-	return { percentileLabel, ritual, retention, streakCountLabel }
+	const streakPending = () =>
+		Boolean(ritualDay() && (streak.loading || streak.state === 'unresolved'))
+	return { percentileLabel, ritual, retention, streakCountLabel, streakPending }
 }

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { locales } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
-import { resultCardRetention } from './result-card-retention'
+import { resultCardRetention, resultRetentionPrompt } from './result-card-retention'
 
 const win = { mode: 'daily', status: 'won' } as const
 const loss = { mode: 'daily', status: 'lost' } as const
@@ -57,6 +57,34 @@ test.each([win, loss])(
 		).toBe(false)
 	},
 )
+
+test.each([
+	['guest win with a save offer', win, true, false, 'save-streak'],
+	['guest loss with a save offer', loss, true, false, 'save-streak'],
+	['signed-in win', win, false, false, 'install'],
+	['signed-in loss', loss, false, false, 'none'],
+	['guest win after earlier dismissal', win, true, true, 'install'],
+	['guest loss after earlier dismissal', loss, true, true, 'none'],
+] as const)('%s selects one retention prompt', (_name, card, guest, dismissedEarlier, expected) => {
+	const { captureGuest } = resultCardRetention(
+		card,
+		{ currentStreak: 1, freezeUsedYesterday: false },
+		guest,
+	)
+	expect(resultRetentionPrompt(card.status, true, captureGuest && !dismissedEarlier)).toBe(expected)
+})
+
+test('dismissing save-streak does not reveal install on this finish', () => {
+	const selected = resultRetentionPrompt('won', true, true)
+	const dismissed = resultRetentionPrompt('won', true, false, selected, true)
+	expect(dismissed).toBe('none')
+	expect(resultRetentionPrompt('won', true, false, dismissed)).toBe('none')
+	expect(resultRetentionPrompt('won', true, false)).toBe('install')
+})
+
+test('an older win cannot offer installation', () => {
+	expect(resultRetentionPrompt('won', false, false)).toBe('none')
+})
 
 test.each(locales)('%s has usable milestone, freeze, and account copy', (locale) => {
 	const t = createTranslator(locale)

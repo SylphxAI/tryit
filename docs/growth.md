@@ -86,7 +86,7 @@ should move.
 | # | Capability | Job it serves | Where it appears | Metric | Effort | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Earned streak freezes (streak freeze) | Keep a streak alive through a missed day without guilt; free players earn one per 7 played days, hold at most 2, and a held freeze covers one missed day automatically (auto-cover is on by default; the `ToggleAutoFreeze` RPC turns it off, no settings control yet) | Stats streak card (freezes held, days to the next one), streak calculation | D7 retention | M | shipped (#299): rules in `puzzled-core` `personal_streak`, ledgers `streak_freeze_awards` and `streak_freeze_uses`; guests and signed-in players alike |
-| 2 | Save-your-streak account ask (try before signup, saved progress) | Guests keep streak and stats across devices | Result screen: a dismissible inline card after any guest daily finish, win or loss, with a server-confirmed streak of at least 1 day; the account link returns to Stats; the install nudge remains win-only | Guest to account rate, D7 retention | S | none |
+| 2 | Save-your-streak account ask (try before signup, saved progress) | Guests keep streak and stats across devices | Result screen: a dismissible inline card after any guest daily finish, win or loss, with a server-confirmed streak of at least 1 day; the account link returns to Stats; only one prompt per finish (the win-only install nudge is a fallback) | Guest to account rate, D7 retention | S | none |
 | 3 | Daily reminder at each player's own time and time zone (personalised notification timing) | Gentle return without guilt | The player's saved reminder time is stored but does not schedule the send today: the daily-reminder job sends on its own schedule. Email (opt-in) at the player's time in their zone; browser Web Push through the existing reminder job (VAPID configuration required) | D7 retention | S | none for Puzzled's own email; shared caps for cross-product reminders |
 | 4 | Streak on the shared card (share cards) | Show the sharer's run on the card and landing, so a friend has something to beat | Share landing, share image, challenge comparison | Landing rate, conversion | S | none |
 | 5 | How-to-play structured data on game pages (programmatic pages) | Rank for "how to play X" from the rules the pages already show | Per-game page markup | Search landings | S | none |
@@ -106,7 +106,9 @@ Design notes for the open items:
 - **Save-your-streak ask:** after any guest daily finish, win or loss, the result screen offers a
   free account when the authoritative streak is at least 1 day. It keeps the player's streak of days
   played and today's result. Dismissing the card hides it on this device for the rest of the product
-  day. Practice and archive finishes never show it. The separate install nudge remains win-only.
+  day. Practice and archive finishes never show it. A finish selects at most one prompt. The install
+  nudge can appear on a fresh win if the account offer was not selected; dismissing the account
+  offer never replaces it with the install nudge on the same card.
   Sign-in adopts accepted guest sessions through the existing claim path (`gamification`, `identity`).
 - **Reminder time:** invitation copy only, one-tap unsubscribe (`jobs_policy`, `jobs_db`); using the
   player's own setting rather than inferring a median finish hour is enough to start.

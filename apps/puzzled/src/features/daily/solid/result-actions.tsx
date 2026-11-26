@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ChartNoAxesColumnIncreasing, Flame, Snowflake, X } from 'lucide-solid'
-import { createSignal, onMount, Show } from 'solid-js'
+import { createEffect, createSignal, onMount, Show } from 'solid-js'
 import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import { gamePath } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
@@ -8,6 +8,7 @@ import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import { SAVE_STREAK_DISMISSED_DAY_KEY } from '@/lib/storage-keys'
 import { asDifficulty } from '../lib/difficulty-completion'
+import { resultRetentionPrompt } from '../lib/result-card-retention'
 import { DailyNextLink } from './daily-pick-ui'
 import { PwaInstallNudge } from './pwa-install-nudge'
 import { createResultDailyContext } from './result-daily-context'
@@ -22,6 +23,7 @@ export function ResultActions(props: {
 	onDetailsOpenChange: (open: boolean) => void
 	freshWin?: boolean
 	isGuest?: boolean
+	guestStatusPending?: boolean
 	shareTitle?: string
 	shareText?: string
 }) {
@@ -32,24 +34,42 @@ export function ResultActions(props: {
 		props.locale,
 		`/sign-in?${new URLSearchParams({ callbackUrl: localizedPath(props.locale, '/stats') })}`,
 	)
-	const { percentileLabel, ritual, retention, streakCountLabel } = createResultDailyContext(
-		props,
-		model,
-		mounted,
-		t,
-	)
-	const [dismissedDay, setDismissedDay] = createSignal<string | null>()
+	const { percentileLabel, ritual, retention, streakCountLabel, streakPending } =
+		createResultDailyContext(props, model, mounted, t)
+	const [dismissedDay, setDismissedDay] = createSignal<string | null | false>()
 	onMount(() => {
 		try {
 			setDismissedDay(localStorage.getItem(SAVE_STREAK_DISMISSED_DAY_KEY))
 		} catch {
 			// Don't show the offer if we can't read a previous dismissal.
+			setDismissedDay(false)
 		}
+	})
+	const [prompt, setPrompt] = createSignal<ReturnType<typeof resultRetentionPrompt>>()
+	createEffect(() => {
+		if (
+			!mounted() ||
+			props.guestStatusPending ||
+			dismissedDay() === undefined ||
+			prompt() !== undefined
+		)
+			return
+		const canOfferSave =
+			props.isGuest === true && dismissedDay() !== false && dismissedDay() !== props.facts.todayKey
+		// Don't briefly offer install while an eligible guest's streak is still loading.
+		if (canOfferSave && streakPending()) return
+		setPrompt(
+			resultRetentionPrompt(
+				model().status,
+				props.freshWin,
+				canOfferSave && retention().captureGuest,
+			),
+		)
 	})
 	function dismissSaveStreak() {
 		const dayKey = props.facts.todayKey
 		if (!dayKey) return
-		setDismissedDay(dayKey)
+		setPrompt(resultRetentionPrompt(model().status, props.freshWin, false, prompt(), true))
 		try {
 			localStorage.setItem(SAVE_STREAK_DISMISSED_DAY_KEY, dayKey)
 		} catch {
@@ -135,13 +155,7 @@ export function ResultActions(props: {
 				</ResultDetails>
 			</div>
 			{status('rail')}
-			<Show
-				when={
-					retention().captureGuest &&
-					dismissedDay() !== undefined &&
-					dismissedDay() !== props.facts.todayKey
-				}
-			>
+			<Show when={prompt() === 'save-streak'}>
 				<div class="result-guest-capture" data-result-guest-capture>
 					<div class="result-guest-body">
 						<p class="result-guest-copy">
@@ -162,7 +176,7 @@ export function ResultActions(props: {
 					</button>
 				</div>
 			</Show>
-			<Show when={props.freshWin && model().status === 'won'}>
+			<Show when={prompt() === 'install'}>
 				<PwaInstallNudge locale={props.locale} />
 			</Show>
 		</>

@@ -17,3 +17,16 @@ export function resultCardRetention(
 		captureGuest: isGuest === true && days !== null && days >= 1,
 	}
 }
+
+/** Select once, after the inputs for this finish have settled. A dismissal clears
+ * the selected prompt; it is never a reason to select the other prompt. */
+export function resultRetentionPrompt(
+	status: ResultCardModel['status'],
+	freshWin: boolean | undefined,
+	canSave: boolean,
+	current?: 'save-streak' | 'install' | 'none',
+	closed = false,
+): 'save-streak' | 'install' | 'none' {
+	if (closed) return 'none'
+	return current ?? (canSave ? 'save-streak' : freshWin && status === 'won' ? 'install' : 'none')
+}

@@ -69,6 +69,7 @@ export function DailyPlay(props: DailyPlayProps) {
 						result,
 						explicitPlay,
 						isGuest: () => isGuest.latest,
+						guestStatusPending: () => isGuest.loading,
 						resultOpen,
 						onDetailsOpenChange: setResultOpen,
 					})
@@ -116,6 +117,7 @@ export function DailyPlay(props: DailyPlayProps) {
 							difficulty={props.difficulty}
 							draftScope={value().draftScope ?? undefined}
 							isGuest={isGuest.latest}
+							guestStatusPending={isGuest.loading}
 							pickIndex={pickIndex()}
 							onAlreadyPlayed={() => void refetch()}
 						/>
