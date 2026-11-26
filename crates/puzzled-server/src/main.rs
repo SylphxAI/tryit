@@ -1,8 +1,9 @@
 //! puzzled-server binary.
 
+use std::time::Duration;
+
 use puzzled_server::shared::db_config::{api_writer_pool_options, select_database_url};
 use puzzled_server::{http_port, router, shutdown_signal, AppState};
-use std::time::Duration;
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::prelude::*;
