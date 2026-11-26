@@ -412,15 +412,13 @@ for (const viewport of [
 				await page.route('**/v1/guest/session', (route) =>
 					route.fulfill({ json: { issued: true } }),
 				)
+				const daily = { gameSlug: slug, puzzleId: firstPuzzleId, puzzleDate: dayKey, canPlay: true }
 				await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+					route.fulfill({ json: { ...daily, requiresStart: true } }),
+				)
+				await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) =>
 					route.fulfill({
-						json: {
-							gameSlug: slug,
-							puzzleId: firstPuzzleId,
-							puzzleDate: dayKey,
-							canPlay: true,
-							puzzleDataJson: JSON.stringify(puzzleData),
-						},
+						json: { daily: { ...daily, puzzleDataJson: JSON.stringify(puzzleData) } },
 					}),
 				)
 				await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
@@ -457,6 +455,10 @@ for (const viewport of [
 				await page.goto(`/en-US/games/${slug}?${difficulty}start=1#play`)
 				const decline = page.getByRole('button', { name: 'Decline', exact: true })
 				await decline.click()
+				await page
+					.locator('[data-game-stage="start"]')
+					.getByRole('button', { name: 'Play' })
+					.click()
 				const board =
 					slug === 'word-guess'
 						? page.getByRole('table', { name: 'Five' })
