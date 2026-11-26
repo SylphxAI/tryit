@@ -9,7 +9,6 @@ import {
 import { getGameColors } from '@/games/theme-colors'
 import { formatTrialEnd } from '@/lib/billing/plus'
 import type { Translate } from '@/lib/i18n/translate'
-import { cn } from '@/lib/utils'
 import type { HomeDocument, HomeFacts } from './home-data'
 import { MilestonePrompt } from './milestone-prompt'
 
@@ -44,11 +43,7 @@ export function HomeBanners(props: {
 				{(season) => (
 					<aside
 						data-season={season().id}
-						class={cn(
-							'border-b border-foreground/10',
-							getGameColors(season().accent).bg,
-							getGameColors(season().accent).onField,
-						)}
+						class={`border-b border-foreground/10 ${getGameColors(season().accent).bg} ${getGameColors(season().accent).onField}`}
 					>
 						<p class="page-shell-wide flex justify-center gap-2 py-2 text-sm">
 							<span aria-hidden="true">{season().glyph}</span>

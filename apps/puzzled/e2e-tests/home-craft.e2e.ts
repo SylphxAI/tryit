@@ -1,6 +1,38 @@
 import { expect, test } from '@playwright/test'
 import { DESKTOP, languageTrigger, MOBILE, settle } from './a11y-support'
 
+test('cold Home stays within its decoded startup JavaScript budget', async ({ page }, info) => {
+	await page.goto('/', { waitUntil: 'load' })
+	await expect(page.locator('[data-home-featured]')).toBeVisible()
+	const countdown = page.locator('[data-home-countdown]')
+	const renderedTime = await countdown.textContent()
+	await expect(countdown).not.toHaveText(renderedTime ?? '')
+
+	// This budget is for the production asset graph, not Vite's unbundled dev server.
+	const { scripts, bytes } = await page.evaluate(() => {
+		const scripts = performance.getEntriesByType('resource').filter((entry) => {
+			const url = new URL(entry.name)
+			return (
+				url.origin === location.origin &&
+				url.pathname.startsWith('/_build/assets/') &&
+				url.pathname.endsWith('.js')
+			)
+		}) as PerformanceResourceTiming[]
+		return {
+			scripts: scripts.length,
+			bytes: scripts.reduce((total, entry) => total + entry.decodedBodySize, 0),
+		}
+	})
+	expect(scripts, 'production JavaScript entries must be measured').toBeGreaterThan(0)
+	expect(bytes, 'decoded startup JavaScript must be measured').toBeGreaterThan(0)
+	await info.attach('home-startup-javascript', {
+		body: JSON.stringify({ scripts, bytes }),
+		contentType: 'application/json',
+	})
+	// The fixed classes on Home do not need to ship a runtime utility-class merger.
+	expect(bytes).toBeLessThanOrEqual(390_000)
+})
+
 for (const viewport of [
 	{ width: 1440, height: 757 },
 	{ width: 1440, height: 900 },

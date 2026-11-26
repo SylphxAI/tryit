@@ -6,7 +6,6 @@ import type { HomeDayCopy } from '@/features/home/lib/home-day-copy'
 import { homeParticipationCopy } from '@/features/home/lib/home-participation-copy'
 import { gameFamilyColor, getGameColors } from '@/games/theme-colors'
 import type { Translate } from '@/lib/i18n/translate'
-import { cn } from '@/lib/utils'
 import { ProgressRing } from '@/shared/solid/progress-ring'
 import type { HomeDocument, HomeFacts } from './home-data'
 
@@ -30,9 +29,7 @@ export function HomeDayLead(props: {
 			classList={{ [gameFamilyColor[page.featured.category]]: true }}
 		>
 			<div
-				class={cn(
-					'home-featured-art family-field relative flex items-center justify-center border-e border-hairline sm:border-e-0 sm:border-b',
-				)}
+				class="home-featured-art family-field relative flex items-center justify-center border-e border-hairline sm:border-e-0 sm:border-b"
 				aria-hidden="true"
 				style={{ '--game-paper': getGameColors(page.featured.theme).hex }}
 			>
