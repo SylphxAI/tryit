@@ -1,5 +1,7 @@
 use serde_json::{json, Value};
 
+use super::super::checkout_aliases::valid_id;
+
 use super::transport::{segment, WithHeaders};
 use super::{Money, MoneyError};
 
@@ -35,7 +37,66 @@ pub struct ClaimedCheckout {
     pub plan_id: Option<String>,
 }
 
+/// Paid Money checkout facts only; not an entitlement or a quoted price.
+#[derive(Debug, PartialEq, Eq)]
+pub struct SettledReceipt {
+    pub order_id: String,
+    pub amount_minor: i64,
+    pub currency: String,
+}
+
 impl Money {
+    pub async fn settled_checkout(
+        &self,
+        returned: &str,
+        lookup: &str,
+        subjects: &[String],
+    ) -> Option<SettledReceipt> {
+        if !valid_id(returned) || !valid_id(lookup) || subjects.is_empty() {
+            return None;
+        }
+        // Dynamic invoke preserves fields newer than the pinned typed SDK schema.
+        let session = self.checkout_session(lookup).await.ok()?;
+        let text = |key| session.get(key).and_then(Value::as_str).unwrap_or_default();
+        let subject = session.pointer("/subject/end_user")?.as_str()?;
+        let (parent, canonical) = text("name").rsplit_once("/checkout_sessions/")?;
+        if parent != self.environment_resource().await.ok()?
+            || !valid_id(canonical)
+            || (lookup != returned && canonical != lookup)
+            || (canonical != returned && text("processor_session_id") != returned)
+            || !subjects.iter().any(|owned| owned == subject)
+            || text("state") != "complete"
+            || text("payment_status") != "paid"
+            || !text("denied_reason").is_empty()
+        {
+            return None;
+        }
+        let amount = session.get("amount_total")?;
+        let amount_minor = amount.as_i64().or_else(|| amount.as_str()?.parse().ok())?;
+        let currency = text("currency_code").to_ascii_uppercase();
+        if amount_minor <= 0
+            || currency.len() != 3
+            || !currency.bytes().all(|b| b.is_ascii_uppercase())
+        {
+            return None;
+        }
+        // CheckoutSession has no Order id. Money exposes the actual processor
+        // payment and (for recurring) invoice id; otherwise use the same canonical
+        // Money checkout id for both processor-id and Money-id return URLs.
+        let order_id = [
+            text("processor_payment_id"),
+            text("processor_invoice_id"),
+            canonical,
+        ]
+        .into_iter()
+        .find(|id| valid_id(id))?;
+        Some(SettledReceipt {
+            order_id: order_id.to_owned(),
+            amount_minor,
+            currency,
+        })
+    }
+
     /// Create a checkout session over direct HTTP so guest checkout response fields
     /// (`claim_secret`, `claim_secret_expires_at`, `processor_session_id`) are preserved
     /// verbatim without SDK schema stripping.

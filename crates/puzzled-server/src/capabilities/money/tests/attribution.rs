@@ -69,6 +69,7 @@ async fn checkout_binds_full_split_or_denied_signal_snapshots_to_events() {
             None,
             consent,
             measurement,
+            None,
         )
         .await
         .unwrap();

@@ -19,7 +19,7 @@ import { file_google_protobuf_cpp_features } from '@bufbuild/protobuf/wkt'
 export const file_puzzled_v1_billing: GenFile =
 	/*@__PURE__*/
 	fileDesc(
-		'ChhwdXp6bGVkL3YxL2JpbGxpbmcucHJvdG8SCnB1enpsZWQudjEihAEKBFBsYW4SCgoCaWQYASABKAkSDgoGZmFtaWx5GAIgASgIEhAKCGludGVydmFsGAMgASgJEiUKBnByaWNlcxgEIAMoCzIVLnB1enpsZWQudjEuUGxhblByaWNlEhIKCnRyaWFsX2RheXMYBSABKAUSEwoLYWNjZXNzX2RheXMYBiABKAUiOAoJUGxhblByaWNlEhAKCGN1cnJlbmN5GAEgASgJEhkKEXVuaXRfYW1vdW50X21pbm9yGAIgASgDIhIKEExpc3RQbGFuc1JlcXVlc3QifQoRTGlzdFBsYW5zUmVzcG9uc2USEgoKc2FsZXNfb3BlbhgBIAEoCBIfCgVwbGFucxgCIAMoCzIQLnB1enpsZWQudjEuUGxhbhIaChJmYW1pbHlfbWF4X21lbWJlcnMYAyABKA1KBAgEEAVSEWNhbmNlbGxhdGlvbl9kYXlzIloKDEZhbWlseU1lbWJlchIPCgd1c2VyX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVvd25lchgDIAEoCBIUCgxqb2luZWRfYXRfbXMYBCABKAMicgoGRmFtaWx5EgwKBHJvbGUYASABKAkSKQoHbWVtYmVycxgCIAMoCzIYLnB1enpsZWQudjEuRmFtaWx5TWVtYmVyEhMKC21heF9tZW1iZXJzGAMgASgNEhoKC2ludml0ZV9jb2RlGAQgASgJQgWqAQIIASIpChZHZXRTdWJzY3JpcHRpb25SZXF1ZXN0Eg8KB3JlZnJlc2gYASABKAgixQIKF0dldFN1YnNjcmlwdGlvblJlc3BvbnNlEhIKCnNhbGVzX29wZW4YASABKAgSEAoIZW50aXRsZWQYAiABKAgSDgoGc291cmNlGAMgASgJEhYKB3BsYW5faWQYBCABKAlCBaoBAggBEhUKBnN0YXR1cxgFIAEoCUIFqgECCAESJAoVY3VycmVudF9wZXJpb2RfZW5kX21zGAYgASgDQgWqAQIIARIcChRjYW5jZWxfYXRfcGVyaW9kX2VuZBgHIAEoCBIiCgZmYW1pbHkYCSABKAsyEi5wdXp6bGVkLnYxLkZhbWlseRIcCg10cmlhbF9lbmRzX21zGAogASgDQgWqAQIIARIoChlzdWJzY3JpcHRpb25fdHJpYWxfZW5kX21zGAsgASgDQgWqAQIIAUoECAgQCVIPcmVmdW5kX3VudGlsX21zImwKFUNyZWF0ZUNoZWNrb3V0UmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEg4KBmxvY2FsZRgCIAEoCRIQCghjdXJyZW5jeRgDIAEoCRIgChhpbW1lZGlhdGVfc3VwcGx5X2NvbnNlbnQYBCABKAgiJQoWQ3JlYXRlQ2hlY2tvdXRSZXNwb25zZRILCgN1cmwYASABKAkihwEKHENyZWF0ZUNoZWNrb3V0QXR0ZW1wdFJlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIOCgZsb2NhbGUYAiABKAkSEAoIY3VycmVuY3kYAyABKAkSIAoYaW1tZWRpYXRlX3N1cHBseV9jb25zZW50GAQgASgIEhIKCnJlcXVlc3RfaWQYBSABKAkiLAodQ3JlYXRlQ2hlY2tvdXRBdHRlbXB0UmVzcG9uc2USCwoDdXJsGAEgASgJIigKEkdldENoZWNrb3V0UmVxdWVzdBISCgpyZXF1ZXN0X2lkGAEgASgJIrEBChNHZXRDaGVja291dFJlc3BvbnNlEhIKCnJlcXVlc3RfaWQYASABKAkSDQoFc3RhdGUYAiABKAkSGgoSbW9uZXlfc2Vzc2lvbl9uYW1lGAMgASgJEgsKA3VybBgEIAEoCRIcChRwcm9jZXNzb3Jfc2Vzc2lvbl9pZBgFIAEoCRIVCg1zZXNzaW9uX3N0YXRlGAYgASgJEhkKEXN5bnRoZXRpY19maXh0dXJlGAcgASgJIkMKFENsYWltQ2hlY2tvdXRSZXF1ZXN0EhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYASABKAkSDgoGbG9jYWxlGAIgASgJIigKFUNsYWltQ2hlY2tvdXRSZXNwb25zZRIPCgdjbGFpbWVkGAEgASgIIiUKE0NyZWF0ZVBvcnRhbFJlcXVlc3QSDgoGbG9jYWxlGAEgASgJIiMKFENyZWF0ZVBvcnRhbFJlc3BvbnNlEgsKA3VybBgBIAEoCSIbChlDYW5jZWxTdWJzY3JpcHRpb25SZXF1ZXN0IkcKGkNhbmNlbFN1YnNjcmlwdGlvblJlc3BvbnNlEhkKEWFjY2Vzc19lbmRzX2F0X21zGAIgASgDSgQIARACUghyZWZ1bmRlZCIbChlSZXN1bWVTdWJzY3JpcHRpb25SZXF1ZXN0IhwKGlJlc3VtZVN1YnNjcmlwdGlvblJlc3BvbnNlIigKEUpvaW5GYW1pbHlSZXF1ZXN0EhMKC2ludml0ZV9jb2RlGAEgASgJIhQKEkpvaW5GYW1pbHlSZXNwb25zZSIUChJMZWF2ZUZhbWlseVJlcXVlc3QiFQoTTGVhdmVGYW1pbHlSZXNwb25zZSIsChlSZW1vdmVGYW1pbHlNZW1iZXJSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiHAoaUmVtb3ZlRmFtaWx5TWVtYmVyUmVzcG9uc2UiGgoYUmVzZXRGYW1pbHlJbnZpdGVSZXF1ZXN0IjAKGVJlc2V0RmFtaWx5SW52aXRlUmVzcG9uc2USEwoLaW52aXRlX2NvZGUYASABKAkypAkKDkJpbGxpbmdTZXJ2aWNlEkgKCUxpc3RQbGFucxIcLnB1enpsZWQudjEuTGlzdFBsYW5zUmVxdWVzdBodLnB1enpsZWQudjEuTGlzdFBsYW5zUmVzcG9uc2USWgoPR2V0U3Vic2NyaXB0aW9uEiIucHV6emxlZC52MS5HZXRTdWJzY3JpcHRpb25SZXF1ZXN0GiMucHV6emxlZC52MS5HZXRTdWJzY3JpcHRpb25SZXNwb25zZRJXCg5DcmVhdGVDaGVja291dBIhLnB1enpsZWQudjEuQ3JlYXRlQ2hlY2tvdXRSZXF1ZXN0GiIucHV6emxlZC52MS5DcmVhdGVDaGVja291dFJlc3BvbnNlEmwKFUNyZWF0ZUNoZWNrb3V0QXR0ZW1wdBIoLnB1enpsZWQudjEuQ3JlYXRlQ2hlY2tvdXRBdHRlbXB0UmVxdWVzdBopLnB1enpsZWQudjEuQ3JlYXRlQ2hlY2tvdXRBdHRlbXB0UmVzcG9uc2USTgoLR2V0Q2hlY2tvdXQSHi5wdXp6bGVkLnYxLkdldENoZWNrb3V0UmVxdWVzdBofLnB1enpsZWQudjEuR2V0Q2hlY2tvdXRSZXNwb25zZRJUCg1DbGFpbUNoZWNrb3V0EiAucHV6emxlZC52MS5DbGFpbUNoZWNrb3V0UmVxdWVzdBohLnB1enpsZWQudjEuQ2xhaW1DaGVja291dFJlc3BvbnNlElEKDENyZWF0ZVBvcnRhbBIfLnB1enpsZWQudjEuQ3JlYXRlUG9ydGFsUmVxdWVzdBogLnB1enpsZWQudjEuQ3JlYXRlUG9ydGFsUmVzcG9uc2USYwoSQ2FuY2VsU3Vic2NyaXB0aW9uEiUucHV6emxlZC52MS5DYW5jZWxTdWJzY3JpcHRpb25SZXF1ZXN0GiYucHV6emxlZC52MS5DYW5jZWxTdWJzY3JpcHRpb25SZXNwb25zZRJjChJSZXN1bWVTdWJzY3JpcHRpb24SJS5wdXp6bGVkLnYxLlJlc3VtZVN1YnNjcmlwdGlvblJlcXVlc3QaJi5wdXp6bGVkLnYxLlJlc3VtZVN1YnNjcmlwdGlvblJlc3BvbnNlEksKCkpvaW5GYW1pbHkSHS5wdXp6bGVkLnYxLkpvaW5GYW1pbHlSZXF1ZXN0Gh4ucHV6emxlZC52MS5Kb2luRmFtaWx5UmVzcG9uc2USTgoLTGVhdmVGYW1pbHkSHi5wdXp6bGVkLnYxLkxlYXZlRmFtaWx5UmVxdWVzdBofLnB1enpsZWQudjEuTGVhdmVGYW1pbHlSZXNwb25zZRJjChJSZW1vdmVGYW1pbHlNZW1iZXISJS5wdXp6bGVkLnYxLlJlbW92ZUZhbWlseU1lbWJlclJlcXVlc3QaJi5wdXp6bGVkLnYxLlJlbW92ZUZhbWlseU1lbWJlclJlc3BvbnNlEmAKEVJlc2V0RmFtaWx5SW52aXRlEiQucHV6emxlZC52MS5SZXNldEZhbWlseUludml0ZVJlcXVlc3QaJS5wdXp6bGVkLnYxLlJlc2V0RmFtaWx5SW52aXRlUmVzcG9uc2VCFJIDEQgCEAEYASACKAEwAcI+AhADYghlZGl0aW9uc3DpBw',
+		'ChhwdXp6bGVkL3YxL2JpbGxpbmcucHJvdG8SCnB1enpsZWQudjEihAEKBFBsYW4SCgoCaWQYASABKAkSDgoGZmFtaWx5GAIgASgIEhAKCGludGVydmFsGAMgASgJEiUKBnByaWNlcxgEIAMoCzIVLnB1enpsZWQudjEuUGxhblByaWNlEhIKCnRyaWFsX2RheXMYBSABKAUSEwoLYWNjZXNzX2RheXMYBiABKAUiOAoJUGxhblByaWNlEhAKCGN1cnJlbmN5GAEgASgJEhkKEXVuaXRfYW1vdW50X21pbm9yGAIgASgDIhIKEExpc3RQbGFuc1JlcXVlc3QifQoRTGlzdFBsYW5zUmVzcG9uc2USEgoKc2FsZXNfb3BlbhgBIAEoCBIfCgVwbGFucxgCIAMoCzIQLnB1enpsZWQudjEuUGxhbhIaChJmYW1pbHlfbWF4X21lbWJlcnMYAyABKA1KBAgEEAVSEWNhbmNlbGxhdGlvbl9kYXlzIloKDEZhbWlseU1lbWJlchIPCgd1c2VyX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRINCgVvd25lchgDIAEoCBIUCgxqb2luZWRfYXRfbXMYBCABKAMicgoGRmFtaWx5EgwKBHJvbGUYASABKAkSKQoHbWVtYmVycxgCIAMoCzIYLnB1enpsZWQudjEuRmFtaWx5TWVtYmVyEhMKC21heF9tZW1iZXJzGAMgASgNEhoKC2ludml0ZV9jb2RlGAQgASgJQgWqAQIIASJGChZHZXRTdWJzY3JpcHRpb25SZXF1ZXN0Eg8KB3JlZnJlc2gYASABKAgSGwoTY2hlY2tvdXRfc2Vzc2lvbl9pZBgCIAEoCSJLCg9TZXR0bGVkQ2hlY2tvdXQSEAoIb3JkZXJfaWQYASABKAkSFAoMYW1vdW50X21pbm9yGAIgASgDEhAKCGN1cnJlbmN5GAMgASgJIvwCChdHZXRTdWJzY3JpcHRpb25SZXNwb25zZRISCgpzYWxlc19vcGVuGAEgASgIEhAKCGVudGl0bGVkGAIgASgIEg4KBnNvdXJjZRgDIAEoCRIWCgdwbGFuX2lkGAQgASgJQgWqAQIIARIVCgZzdGF0dXMYBSABKAlCBaoBAggBEiQKFWN1cnJlbnRfcGVyaW9kX2VuZF9tcxgGIAEoA0IFqgECCAESHAoUY2FuY2VsX2F0X3BlcmlvZF9lbmQYByABKAgSIgoGZmFtaWx5GAkgASgLMhIucHV6emxlZC52MS5GYW1pbHkSHAoNdHJpYWxfZW5kc19tcxgKIAEoA0IFqgECCAESKAoZc3Vic2NyaXB0aW9uX3RyaWFsX2VuZF9tcxgLIAEoA0IFqgECCAESNQoQc2V0dGxlZF9jaGVja291dBgMIAEoCzIbLnB1enpsZWQudjEuU2V0dGxlZENoZWNrb3V0SgQICBAJUg9yZWZ1bmRfdW50aWxfbXMibAoVQ3JlYXRlQ2hlY2tvdXRSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSDgoGbG9jYWxlGAIgASgJEhAKCGN1cnJlbmN5GAMgASgJEiAKGGltbWVkaWF0ZV9zdXBwbHlfY29uc2VudBgEIAEoCCIlChZDcmVhdGVDaGVja291dFJlc3BvbnNlEgsKA3VybBgBIAEoCSKHAQocQ3JlYXRlQ2hlY2tvdXRBdHRlbXB0UmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEg4KBmxvY2FsZRgCIAEoCRIQCghjdXJyZW5jeRgDIAEoCRIgChhpbW1lZGlhdGVfc3VwcGx5X2NvbnNlbnQYBCABKAgSEgoKcmVxdWVzdF9pZBgFIAEoCSIsCh1DcmVhdGVDaGVja291dEF0dGVtcHRSZXNwb25zZRILCgN1cmwYASABKAkiKAoSR2V0Q2hlY2tvdXRSZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkisQEKE0dldENoZWNrb3V0UmVzcG9uc2USEgoKcmVxdWVzdF9pZBgBIAEoCRINCgVzdGF0ZRgCIAEoCRIaChJtb25leV9zZXNzaW9uX25hbWUYAyABKAkSCwoDdXJsGAQgASgJEhwKFHByb2Nlc3Nvcl9zZXNzaW9uX2lkGAUgASgJEhUKDXNlc3Npb25fc3RhdGUYBiABKAkSGQoRc3ludGhldGljX2ZpeHR1cmUYByABKAkiQwoUQ2xhaW1DaGVja291dFJlcXVlc3QSGwoTY2hlY2tvdXRfc2Vzc2lvbl9pZBgBIAEoCRIOCgZsb2NhbGUYAiABKAkiKAoVQ2xhaW1DaGVja291dFJlc3BvbnNlEg8KB2NsYWltZWQYASABKAgiJQoTQ3JlYXRlUG9ydGFsUmVxdWVzdBIOCgZsb2NhbGUYASABKAkiIwoUQ3JlYXRlUG9ydGFsUmVzcG9uc2USCwoDdXJsGAEgASgJIhsKGUNhbmNlbFN1YnNjcmlwdGlvblJlcXVlc3QiRwoaQ2FuY2VsU3Vic2NyaXB0aW9uUmVzcG9uc2USGQoRYWNjZXNzX2VuZHNfYXRfbXMYAiABKANKBAgBEAJSCHJlZnVuZGVkIhsKGVJlc3VtZVN1YnNjcmlwdGlvblJlcXVlc3QiHAoaUmVzdW1lU3Vic2NyaXB0aW9uUmVzcG9uc2UiKAoRSm9pbkZhbWlseVJlcXVlc3QSEwoLaW52aXRlX2NvZGUYASABKAkiFAoSSm9pbkZhbWlseVJlc3BvbnNlIhQKEkxlYXZlRmFtaWx5UmVxdWVzdCIVChNMZWF2ZUZhbWlseVJlc3BvbnNlIiwKGVJlbW92ZUZhbWlseU1lbWJlclJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCSIcChpSZW1vdmVGYW1pbHlNZW1iZXJSZXNwb25zZSIaChhSZXNldEZhbWlseUludml0ZVJlcXVlc3QiMAoZUmVzZXRGYW1pbHlJbnZpdGVSZXNwb25zZRITCgtpbnZpdGVfY29kZRgBIAEoCTKkCQoOQmlsbGluZ1NlcnZpY2USSAoJTGlzdFBsYW5zEhwucHV6emxlZC52MS5MaXN0UGxhbnNSZXF1ZXN0Gh0ucHV6emxlZC52MS5MaXN0UGxhbnNSZXNwb25zZRJaCg9HZXRTdWJzY3JpcHRpb24SIi5wdXp6bGVkLnYxLkdldFN1YnNjcmlwdGlvblJlcXVlc3QaIy5wdXp6bGVkLnYxLkdldFN1YnNjcmlwdGlvblJlc3BvbnNlElcKDkNyZWF0ZUNoZWNrb3V0EiEucHV6emxlZC52MS5DcmVhdGVDaGVja291dFJlcXVlc3QaIi5wdXp6bGVkLnYxLkNyZWF0ZUNoZWNrb3V0UmVzcG9uc2USbAoVQ3JlYXRlQ2hlY2tvdXRBdHRlbXB0EigucHV6emxlZC52MS5DcmVhdGVDaGVja291dEF0dGVtcHRSZXF1ZXN0GikucHV6emxlZC52MS5DcmVhdGVDaGVja291dEF0dGVtcHRSZXNwb25zZRJOCgtHZXRDaGVja291dBIeLnB1enpsZWQudjEuR2V0Q2hlY2tvdXRSZXF1ZXN0Gh8ucHV6emxlZC52MS5HZXRDaGVja291dFJlc3BvbnNlElQKDUNsYWltQ2hlY2tvdXQSIC5wdXp6bGVkLnYxLkNsYWltQ2hlY2tvdXRSZXF1ZXN0GiEucHV6emxlZC52MS5DbGFpbUNoZWNrb3V0UmVzcG9uc2USUQoMQ3JlYXRlUG9ydGFsEh8ucHV6emxlZC52MS5DcmVhdGVQb3J0YWxSZXF1ZXN0GiAucHV6emxlZC52MS5DcmVhdGVQb3J0YWxSZXNwb25zZRJjChJDYW5jZWxTdWJzY3JpcHRpb24SJS5wdXp6bGVkLnYxLkNhbmNlbFN1YnNjcmlwdGlvblJlcXVlc3QaJi5wdXp6bGVkLnYxLkNhbmNlbFN1YnNjcmlwdGlvblJlc3BvbnNlEmMKElJlc3VtZVN1YnNjcmlwdGlvbhIlLnB1enpsZWQudjEuUmVzdW1lU3Vic2NyaXB0aW9uUmVxdWVzdBomLnB1enpsZWQudjEuUmVzdW1lU3Vic2NyaXB0aW9uUmVzcG9uc2USSwoKSm9pbkZhbWlseRIdLnB1enpsZWQudjEuSm9pbkZhbWlseVJlcXVlc3QaHi5wdXp6bGVkLnYxLkpvaW5GYW1pbHlSZXNwb25zZRJOCgtMZWF2ZUZhbWlseRIeLnB1enpsZWQudjEuTGVhdmVGYW1pbHlSZXF1ZXN0Gh8ucHV6emxlZC52MS5MZWF2ZUZhbWlseVJlc3BvbnNlEmMKElJlbW92ZUZhbWlseU1lbWJlchIlLnB1enpsZWQudjEuUmVtb3ZlRmFtaWx5TWVtYmVyUmVxdWVzdBomLnB1enpsZWQudjEuUmVtb3ZlRmFtaWx5TWVtYmVyUmVzcG9uc2USYAoRUmVzZXRGYW1pbHlJbnZpdGUSJC5wdXp6bGVkLnYxLlJlc2V0RmFtaWx5SW52aXRlUmVxdWVzdBolLnB1enpsZWQudjEuUmVzZXRGYW1pbHlJbnZpdGVSZXNwb25zZUIUkgMRCAIQARgBIAIoATABwj4CEANiCGVkaXRpb25zcOkH',
 		[file_google_protobuf_cpp_features],
 	)
 
@@ -225,6 +225,13 @@ export type GetSubscriptionRequest = Message<'puzzled.v1.GetSubscriptionRequest'
 	 * @generated from field: bool refresh = 1;
 	 */
 	refresh: boolean
+
+	/**
+	 * Exact Money or processor checkout session id from the post-payment return.
+	 *
+	 * @generated from field: string checkout_session_id = 2;
+	 */
+	checkoutSessionId: string
 }
 
 /**
@@ -234,6 +241,40 @@ export type GetSubscriptionRequest = Message<'puzzled.v1.GetSubscriptionRequest'
 export const GetSubscriptionRequestSchema: GenMessage<GetSubscriptionRequest> =
 	/*@__PURE__*/
 	messageDesc(file_puzzled_v1_billing, 6)
+
+/**
+ * A paid receipt for the exact returned checkout, independent of access.
+ *
+ * @generated from message puzzled.v1.SettledCheckout
+ */
+export type SettledCheckout = Message<'puzzled.v1.SettledCheckout'> & {
+	/**
+	 * Money's payment/invoice identifier, or the canonical Money checkout id.
+	 *
+	 * @generated from field: string order_id = 1;
+	 */
+	orderId: string
+
+	/**
+	 * @generated from field: int64 amount_minor = 2;
+	 */
+	amountMinor: bigint
+
+	/**
+	 * Upper-case ISO 4217 code.
+	 *
+	 * @generated from field: string currency = 3;
+	 */
+	currency: string
+}
+
+/**
+ * Describes the message puzzled.v1.SettledCheckout.
+ * Use `create(SettledCheckoutSchema)` to create a new message.
+ */
+export const SettledCheckoutSchema: GenMessage<SettledCheckout> =
+	/*@__PURE__*/
+	messageDesc(file_puzzled_v1_billing, 7)
 
 /**
  * @generated from message puzzled.v1.GetSubscriptionResponse
@@ -300,6 +341,11 @@ export type GetSubscriptionResponse = Message<'puzzled.v1.GetSubscriptionRespons
 	 * @generated from field: int64 subscription_trial_end_ms = 11 [features.field_presence = EXPLICIT];
 	 */
 	subscriptionTrialEndMs: bigint
+
+	/**
+	 * @generated from field: puzzled.v1.SettledCheckout settled_checkout = 12;
+	 */
+	settledCheckout?: SettledCheckout | undefined
 }
 
 /**
@@ -308,7 +354,7 @@ export type GetSubscriptionResponse = Message<'puzzled.v1.GetSubscriptionRespons
  */
 export const GetSubscriptionResponseSchema: GenMessage<GetSubscriptionResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 7)
+	messageDesc(file_puzzled_v1_billing, 8)
 
 /**
  * @generated from message puzzled.v1.CreateCheckoutRequest
@@ -348,7 +394,7 @@ export type CreateCheckoutRequest = Message<'puzzled.v1.CreateCheckoutRequest'> 
  */
 export const CreateCheckoutRequestSchema: GenMessage<CreateCheckoutRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 8)
+	messageDesc(file_puzzled_v1_billing, 9)
 
 /**
  * @generated from message puzzled.v1.CreateCheckoutResponse
@@ -366,7 +412,7 @@ export type CreateCheckoutResponse = Message<'puzzled.v1.CreateCheckoutResponse'
  */
 export const CreateCheckoutResponseSchema: GenMessage<CreateCheckoutResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 9)
+	messageDesc(file_puzzled_v1_billing, 10)
 
 /**
  * @generated from message puzzled.v1.CreateCheckoutAttemptRequest
@@ -406,7 +452,7 @@ export type CreateCheckoutAttemptRequest = Message<'puzzled.v1.CreateCheckoutAtt
  */
 export const CreateCheckoutAttemptRequestSchema: GenMessage<CreateCheckoutAttemptRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 10)
+	messageDesc(file_puzzled_v1_billing, 11)
 
 /**
  * @generated from message puzzled.v1.CreateCheckoutAttemptResponse
@@ -424,7 +470,7 @@ export type CreateCheckoutAttemptResponse = Message<'puzzled.v1.CreateCheckoutAt
  */
 export const CreateCheckoutAttemptResponseSchema: GenMessage<CreateCheckoutAttemptResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 11)
+	messageDesc(file_puzzled_v1_billing, 12)
 
 /**
  * @generated from message puzzled.v1.GetCheckoutRequest
@@ -444,7 +490,7 @@ export type GetCheckoutRequest = Message<'puzzled.v1.GetCheckoutRequest'> & {
  */
 export const GetCheckoutRequestSchema: GenMessage<GetCheckoutRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 12)
+	messageDesc(file_puzzled_v1_billing, 13)
 
 /**
  * @generated from message puzzled.v1.GetCheckoutResponse
@@ -498,7 +544,7 @@ export type GetCheckoutResponse = Message<'puzzled.v1.GetCheckoutResponse'> & {
  */
 export const GetCheckoutResponseSchema: GenMessage<GetCheckoutResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 13)
+	messageDesc(file_puzzled_v1_billing, 14)
 
 /**
  * @generated from message puzzled.v1.ClaimCheckoutRequest
@@ -527,7 +573,7 @@ export type ClaimCheckoutRequest = Message<'puzzled.v1.ClaimCheckoutRequest'> & 
  */
 export const ClaimCheckoutRequestSchema: GenMessage<ClaimCheckoutRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 14)
+	messageDesc(file_puzzled_v1_billing, 15)
 
 /**
  * @generated from message puzzled.v1.ClaimCheckoutResponse
@@ -547,7 +593,7 @@ export type ClaimCheckoutResponse = Message<'puzzled.v1.ClaimCheckoutResponse'> 
  */
 export const ClaimCheckoutResponseSchema: GenMessage<ClaimCheckoutResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 15)
+	messageDesc(file_puzzled_v1_billing, 16)
 
 /**
  * @generated from message puzzled.v1.CreatePortalRequest
@@ -565,7 +611,7 @@ export type CreatePortalRequest = Message<'puzzled.v1.CreatePortalRequest'> & {
  */
 export const CreatePortalRequestSchema: GenMessage<CreatePortalRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 16)
+	messageDesc(file_puzzled_v1_billing, 17)
 
 /**
  * @generated from message puzzled.v1.CreatePortalResponse
@@ -583,7 +629,7 @@ export type CreatePortalResponse = Message<'puzzled.v1.CreatePortalResponse'> & 
  */
 export const CreatePortalResponseSchema: GenMessage<CreatePortalResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 17)
+	messageDesc(file_puzzled_v1_billing, 18)
 
 /**
  * @generated from message puzzled.v1.CancelSubscriptionRequest
@@ -596,7 +642,7 @@ export type CancelSubscriptionRequest = Message<'puzzled.v1.CancelSubscriptionRe
  */
 export const CancelSubscriptionRequestSchema: GenMessage<CancelSubscriptionRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 18)
+	messageDesc(file_puzzled_v1_billing, 19)
 
 /**
  * @generated from message puzzled.v1.CancelSubscriptionResponse
@@ -614,7 +660,7 @@ export type CancelSubscriptionResponse = Message<'puzzled.v1.CancelSubscriptionR
  */
 export const CancelSubscriptionResponseSchema: GenMessage<CancelSubscriptionResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 19)
+	messageDesc(file_puzzled_v1_billing, 20)
 
 /**
  * @generated from message puzzled.v1.ResumeSubscriptionRequest
@@ -627,7 +673,7 @@ export type ResumeSubscriptionRequest = Message<'puzzled.v1.ResumeSubscriptionRe
  */
 export const ResumeSubscriptionRequestSchema: GenMessage<ResumeSubscriptionRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 20)
+	messageDesc(file_puzzled_v1_billing, 21)
 
 /**
  * @generated from message puzzled.v1.ResumeSubscriptionResponse
@@ -640,7 +686,7 @@ export type ResumeSubscriptionResponse = Message<'puzzled.v1.ResumeSubscriptionR
  */
 export const ResumeSubscriptionResponseSchema: GenMessage<ResumeSubscriptionResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 21)
+	messageDesc(file_puzzled_v1_billing, 22)
 
 /**
  * @generated from message puzzled.v1.JoinFamilyRequest
@@ -658,7 +704,7 @@ export type JoinFamilyRequest = Message<'puzzled.v1.JoinFamilyRequest'> & {
  */
 export const JoinFamilyRequestSchema: GenMessage<JoinFamilyRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 22)
+	messageDesc(file_puzzled_v1_billing, 23)
 
 /**
  * @generated from message puzzled.v1.JoinFamilyResponse
@@ -671,7 +717,7 @@ export type JoinFamilyResponse = Message<'puzzled.v1.JoinFamilyResponse'> & {}
  */
 export const JoinFamilyResponseSchema: GenMessage<JoinFamilyResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 23)
+	messageDesc(file_puzzled_v1_billing, 24)
 
 /**
  * @generated from message puzzled.v1.LeaveFamilyRequest
@@ -684,7 +730,7 @@ export type LeaveFamilyRequest = Message<'puzzled.v1.LeaveFamilyRequest'> & {}
  */
 export const LeaveFamilyRequestSchema: GenMessage<LeaveFamilyRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 24)
+	messageDesc(file_puzzled_v1_billing, 25)
 
 /**
  * @generated from message puzzled.v1.LeaveFamilyResponse
@@ -697,7 +743,7 @@ export type LeaveFamilyResponse = Message<'puzzled.v1.LeaveFamilyResponse'> & {}
  */
 export const LeaveFamilyResponseSchema: GenMessage<LeaveFamilyResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 25)
+	messageDesc(file_puzzled_v1_billing, 26)
 
 /**
  * @generated from message puzzled.v1.RemoveFamilyMemberRequest
@@ -715,7 +761,7 @@ export type RemoveFamilyMemberRequest = Message<'puzzled.v1.RemoveFamilyMemberRe
  */
 export const RemoveFamilyMemberRequestSchema: GenMessage<RemoveFamilyMemberRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 26)
+	messageDesc(file_puzzled_v1_billing, 27)
 
 /**
  * @generated from message puzzled.v1.RemoveFamilyMemberResponse
@@ -728,7 +774,7 @@ export type RemoveFamilyMemberResponse = Message<'puzzled.v1.RemoveFamilyMemberR
  */
 export const RemoveFamilyMemberResponseSchema: GenMessage<RemoveFamilyMemberResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 27)
+	messageDesc(file_puzzled_v1_billing, 28)
 
 /**
  * @generated from message puzzled.v1.ResetFamilyInviteRequest
@@ -741,7 +787,7 @@ export type ResetFamilyInviteRequest = Message<'puzzled.v1.ResetFamilyInviteRequ
  */
 export const ResetFamilyInviteRequestSchema: GenMessage<ResetFamilyInviteRequest> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 28)
+	messageDesc(file_puzzled_v1_billing, 29)
 
 /**
  * @generated from message puzzled.v1.ResetFamilyInviteResponse
@@ -759,7 +805,7 @@ export type ResetFamilyInviteResponse = Message<'puzzled.v1.ResetFamilyInviteRes
  */
 export const ResetFamilyInviteResponseSchema: GenMessage<ResetFamilyInviteResponse> =
 	/*@__PURE__*/
-	messageDesc(file_puzzled_v1_billing, 29)
+	messageDesc(file_puzzled_v1_billing, 30)
 
 /**
  * @generated from service puzzled.v1.BillingService

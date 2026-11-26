@@ -27,8 +27,8 @@ export function requestBilling(headers: Headers, accessPlans?: Promise<ListPlans
 	const client = () => createBillingClient(headers)
 	let plans: Promise<ListPlans> | undefined
 	const listPlans = () => (plans ??= Promise.resolve().then(() => readBillingPlans(headers)))
-	const subscription = (refresh = false) =>
-		client().getSubscription(create(GetSubscriptionRequestSchema, { refresh }))
+	const subscription = (refresh = false, checkoutSessionId = '') =>
+		client().getSubscription(create(GetSubscriptionRequestSchema, { refresh, checkoutSessionId }))
 	const claim = async (checkoutSessionId = '', locale = '') => {
 		const response = await client().claimCheckout(
 			create(ClaimCheckoutRequestSchema, { checkoutSessionId, locale }),

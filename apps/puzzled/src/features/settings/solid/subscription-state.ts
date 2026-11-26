@@ -1,6 +1,6 @@
 import { createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import { cookieConsent, onConsentChange } from '@/features/analytics/lib/consent'
-import { reportCheckoutReturn } from '@/features/plus/lib/checkout-return'
+import { reportCheckoutReturn, reportCheckoutTrial } from '@/features/plus/lib/checkout-return'
 import { checkoutConfirmed } from '@/lib/billing/plus'
 import type { Translate } from '@/lib/i18n/translate'
 import { logger } from '@/lib/logger'
@@ -23,7 +23,10 @@ export function createSubscriptionState(
 	const { locale, handoff, hasClaimCookie } = props.data
 	const [snapshot, setSnapshot] = createSignal<Snapshot>(props.data)
 	const view = () => snapshot().view
-	const confirmed = () => checkoutConfirmed(view())
+	const confirmed = () =>
+		checkoutConfirmed(view()) ||
+		Boolean(snapshot().conversion && view()?.entitled && view()?.source === 'plus')
+	const needsReadback = () => !confirmed() || Boolean(handoff.session && !snapshot().conversion)
 	const [busy, setBusy] = createSignal(false)
 	const [confirming, setConfirming] = createSignal<'cancel' | 'leave' | null>(null)
 	const [message, setMessage] = createSignal<{ text: string; error?: boolean }>()
@@ -48,20 +51,20 @@ export function createSubscriptionState(
 	onMount(() => {
 		mounted = true
 		setBrowser({ origin: window.location.origin, now: Date.now() })
-		if (hasClaimCookie || (handoff.session && !confirmed())) {
+		if (hasClaimCookie || (handoff.session && needsReadback())) {
 			// Unlike the SSR claim, this direct same-origin call applies the RPC's Set-Cookie.
 			void import('@/lib/connect/billing-client')
 				.then(({ claimCheckout }) => claimCheckout(handoff.session ?? '', locale))
 				.then((claimed) => {
-					if (mounted && claimed && !confirmed() && !busy()) return refresh()
+					if (mounted && claimed && needsReadback() && !busy()) return refresh()
 				})
 				.catch(() => undefined)
 		}
-		if (!handoff.fromCheckout || confirmed()) return
+		if (!handoff.fromCheckout || !needsReadback()) return
 		let attempts = 0
 		let reading = false
 		const timer = setInterval(() => {
-			if (confirmed() || attempts >= 15) {
+			if (!needsReadback() || attempts >= 15) {
 				clearInterval(timer)
 				return
 			}
@@ -81,9 +84,15 @@ export function createSubscriptionState(
 	})
 	createEffect(() => {
 		const conversion = snapshot().conversion
-		if (!conversion) return
+		const trialSession =
+			!conversion && confirmed() && view()?.status === 'trialing' && handoff.session
+		if (!conversion && !trialSession) return
+		const report = () => {
+			if (conversion) reportCheckoutReturn(conversion)
+			else if (trialSession) reportCheckoutTrial(trialSession)
+		}
 		if (cookieConsent().ready) {
-			reportCheckoutReturn(conversion)
+			report()
 			return
 		}
 		// Wait for request-level privacy context, not for a later opt-in.
@@ -92,7 +101,7 @@ export function createSubscriptionState(
 			if (!cookieConsent().ready) return
 			stop()
 			queueMicrotask(() => {
-				if (!cancelled) reportCheckoutReturn(conversion)
+				if (!cancelled) report()
 			})
 		})
 		onCleanup(() => {

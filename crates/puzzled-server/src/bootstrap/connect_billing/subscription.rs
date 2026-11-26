@@ -7,11 +7,11 @@ use super::family::family_view;
 use super::{account, internal, BillingConnectService, LOG_TARGET};
 use crate::capabilities::billing::service;
 use crate::capabilities::money::{
-    checkout as money_checkout, client::Subscription, pricing, Money, MoneyError,
+    checkout as money_checkout, checkout_aliases, client::Subscription, pricing, Money, MoneyError,
 };
 use crate::proto::puzzled::v1::{
     CancelSubscriptionResponse, CreatePortalRequest, CreatePortalResponse, GetSubscriptionRequest,
-    GetSubscriptionResponse, ResumeSubscriptionResponse,
+    GetSubscriptionResponse, ResumeSubscriptionResponse, SettledCheckout,
 };
 
 pub(super) async fn get_subscription(
@@ -32,7 +32,8 @@ pub(super) async fn get_subscription(
     if !service::is_account_id(&identity.user_id) {
         return Response::ok(response);
     }
-    if request.to_owned_message().refresh {
+    let request = request.to_owned_message();
+    if request.refresh {
         for subj in billing.player_subjects(&identity.user_id).await {
             money.refresh_grants(&subj);
         }
@@ -106,7 +107,33 @@ pub(super) async fn get_subscription(
             crate::capabilities::metrics::audience(&observed_pool, &observed_user, paid).await;
         }
     });
+    // Analytics readback is additive: a missing or refused receipt never changes access.
+    if !request.checkout_session_id.is_empty() {
+        let subjects = billing.player_subjects(&identity.user_id).await;
+        response.settled_checkout =
+            settled_checkout(pool, money, &request.checkout_session_id, &subjects)
+                .await
+                .into();
+    }
     Response::ok(response)
+}
+
+async fn settled_checkout(
+    pool: &sqlx::PgPool,
+    money: &Money,
+    id: &str,
+    subjects: &[String],
+) -> Option<SettledCheckout> {
+    let alias = checkout_aliases::canonical(pool, id).await;
+    let receipt = money
+        .settled_checkout(id, alias.as_deref().unwrap_or(id), subjects)
+        .await?;
+    Some(SettledCheckout {
+        order_id: receipt.order_id,
+        amount_minor: receipt.amount_minor,
+        currency: receipt.currency,
+        ..Default::default()
+    })
 }
 
 pub(super) async fn create_portal(

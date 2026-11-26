@@ -72,6 +72,17 @@ message Family {
 message GetSubscriptionRequest {
   // Read the subscription back from Money before answering (after checkout).
   bool refresh = 1;
+  // Exact Money or processor checkout session id from the post-payment return.
+  string checkout_session_id = 2;
+}
+
+// A paid receipt for the exact returned checkout, independent of access.
+message SettledCheckout {
+  // Money's payment/invoice identifier, or the canonical Money checkout id.
+  string order_id = 1;
+  int64 amount_minor = 2;
+  // Upper-case ISO 4217 code.
+  string currency = 3;
 }
 
 message GetSubscriptionResponse {
@@ -95,6 +106,7 @@ message GetSubscriptionResponse {
   // Own subscription: when its paid trial ends and the first charge happens
   // (Money's trial_end_time). Set only when Money reports one.
   int64 subscription_trial_end_ms = 11 [features.field_presence = EXPLICIT];
+  SettledCheckout settled_checkout = 12;
 }
 
 message CreateCheckoutRequest {

@@ -46,13 +46,30 @@ Bun.serve({
 				)
 			case 'GetSubscription':
 				if (cookies.includes('__Host-puzzled_guest=unavailable')) return problem(503, 'unavailable')
-				if (body.refresh && !claimed) return Response.json({ salesOpen: true })
+				if (body.checkoutSessionId === 'fixture_checkout_delayed' && !claimed)
+					return Response.json({ salesOpen: true })
+				if (body.checkoutSessionId === 'fixture_checkout_pass')
+					return Response.json({
+						salesOpen: true,
+						entitled: true,
+						source: 'plus',
+						settledCheckout: { orderId: 'pi_starter_fixture', amountMinor: '350', currency: 'JPY' },
+					})
 				return Response.json({
 					salesOpen: true,
 					entitled: true,
 					source: 'plus',
 					planId: 'family_yearly',
 					status: 'active',
+					...(body.checkoutSessionId === 'fixture_checkout_delayed' && claimed
+						? {
+								settledCheckout: {
+									orderId: 'in_plus_fixture',
+									amountMinor: '5999',
+									currency: 'GBP',
+								},
+							}
+						: {}),
 					currentPeriodEndMs: periodEnd,
 					cancelAtPeriodEnd: cancelled,
 					family: {

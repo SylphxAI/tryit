@@ -3,7 +3,7 @@ import { parseCookie } from 'cookie-es'
 import { consolePresentation } from '@/features/console/solid/read-context'
 import { requestBilling } from '@/lib/api/request-billing'
 import { CHECKOUT_CLAIM_COOKIE } from '@/lib/billing/checkout-claim-cookie'
-import { checkoutConfirmed, subscriptionView } from '@/lib/billing/plus'
+import { minorUnitsToMajor, subscriptionView } from '@/lib/billing/plus'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { requestUser } from '@/lib/identity/request-identity'
@@ -46,19 +46,24 @@ export async function readSubscriptionPage(
 			logger.warn('plus.checkout-claim-skipped', { error })
 		})
 	}
-	const view = await billing
-		.subscription(handoff.fromCheckout || hasClaimCookie)
-		.then(subscriptionView)
+	const subscription = await billing
+		.subscription(handoff.fromCheckout || hasClaimCookie, handoff.session ?? '')
 		.catch((error) => {
 			logger.warn('plus.subscription-page-read-failed', { error })
 			return null
 		})
-	const sessionId = handoff.session
-	const status =
-		checkoutConfirmed(view) && sessionId
-			? view?.status === 'trialing'
-				? ('trialing' as const)
-				: ('paid' as const)
+	const view = subscription ? subscriptionView(subscription) : null
+	// Claim binds a guest purchase; a false claim is normal for an already-owned
+	// checkout. Neither claim nor current access proves payment for this return.
+	const receipt = subscription?.settledCheckout
+	const amount = Number(receipt?.amountMinor)
+	const conversion =
+		handoff.session && receipt && Number.isSafeInteger(amount) && amount > 0
+			? {
+					orderId: receipt.orderId,
+					value: minorUnitsToMajor(amount, receipt.currency),
+					currency: receipt.currency,
+				}
 			: null
 	return {
 		...presentation,
@@ -66,7 +71,7 @@ export async function readSubscriptionPage(
 		handoff,
 		hasClaimCookie,
 		view,
-		conversion: status && sessionId ? { status, sessionId } : null,
+		conversion,
 	}
 }
 
