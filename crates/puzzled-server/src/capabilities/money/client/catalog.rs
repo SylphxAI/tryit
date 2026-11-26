@@ -100,3 +100,62 @@ impl Money {
         Ok(catalog)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use axum::http::{Method, StatusCode, Uri};
+    use axum::{Json, Router};
+    use serde_json::json;
+    use tokio::net::TcpListener;
+
+    use super::Money;
+
+    #[tokio::test]
+    async fn catalogue_get_requests_the_default_price_catalogue(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        const PATH: &str = "/v1/orgs/o/projects/p/envs/e/price_catalogs/default";
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let seen = Arc::clone(&requests);
+        let fake = Router::new().fallback(move |method: Method, uri: Uri| {
+            let seen = Arc::clone(&seen);
+            async move {
+                let correct = method == Method::GET && uri == PATH;
+                seen.lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .push((method, uri.to_string()));
+                if correct {
+                    (
+                        StatusCode::OK,
+                        Json(json!({"spec": {"products": [{"key": "example"}]}})),
+                    )
+                } else {
+                    (StatusCode::NOT_FOUND, Json(json!({"code": "not_found"})))
+                }
+            }
+        });
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let addr = listener.local_addr()?;
+        let server = tokio::spawn(async move { axum::serve(listener, fake).await });
+        let money = Money::new(
+            &format!("http://{addr}/v1/orgs/o/projects/p/envs/e"),
+            "sk_test",
+            "https://puzzled.test",
+        );
+
+        let catalogue = money.catalog().await;
+        server.abort();
+        // An attempt at /catalogs/default fails even if retried on the right path.
+        assert_eq!(
+            *requests
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner),
+            [(Method::GET, PATH.to_owned())],
+        );
+        let catalogue = catalogue.map_err(|error| std::io::Error::other(error.to_string()))?;
+        assert_eq!(catalogue.spec.products.len(), 1);
+        assert_eq!(catalogue.spec.products[0].key, "example");
+        Ok(())
+    }
+}
