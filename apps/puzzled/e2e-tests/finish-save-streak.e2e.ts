@@ -145,8 +145,19 @@ for (const mobile of [true, false]) {
 					.toBe(true)
 			}
 
+			const account = offer.getByRole('link', { name: 'Create a free account', exact: true })
+			for (const control of [account, dismiss]) {
+				const { width, height } = await control.evaluate((el) =>
+					el.getBoundingClientRect().toJSON(),
+				)
+				expect(width).toBeGreaterThanOrEqual(44)
+				expect(height).toBeGreaterThanOrEqual(44)
+			}
+			await account.focus()
+			await page.keyboard.press('Tab')
+			await expect(dismiss).toBeFocused()
 			if (mobile) await dismiss.tap()
-			else await dismiss.click()
+			else await page.keyboard.press('Enter')
 			await expect(offer).toHaveCount(0)
 			expect(
 				await page.evaluate((key) => localStorage.getItem(key), SAVE_STREAK_DISMISSED_DAY_KEY),
