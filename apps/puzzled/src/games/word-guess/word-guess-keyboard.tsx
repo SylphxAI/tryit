@@ -19,7 +19,12 @@ export function WordGuessKeyboard(props: WordGuessKeyboardProps) {
 	const { t, keys, busy, tone, rules, edit, grade } = props
 	const feedbackDescription = (grade: Feedback | undefined) => (grade ? rules(grade) : undefined)
 	return (
-		<fieldset class="grid gap-1" aria-label={t('games.wordGuess.rules.rule2')} aria-busy={busy()}>
+		<fieldset
+			data-play-control
+			class="grid gap-1"
+			aria-label={t('games.wordGuess.rules.rule2')}
+			aria-busy={busy()}
+		>
 			<For each={KEYBOARD_ROWS}>
 				{(row) => (
 					<div class="flex justify-center gap-1">

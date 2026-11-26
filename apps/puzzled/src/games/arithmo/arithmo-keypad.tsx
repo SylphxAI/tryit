@@ -20,7 +20,7 @@ type KeypadProps = Pick<
 export function ArithmoKeypad(props: KeypadProps) {
 	const { keyboard, inactive, edit, grade, text, feedbackText } = props
 	return (
-		<div data-arithmo-keypad class="grid gap-1" dir="ltr">
+		<div data-arithmo-keypad data-play-control class="grid gap-1" dir="ltr">
 			<For each={keys}>
 				{(row, index) => (
 					<div

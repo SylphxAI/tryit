@@ -18,7 +18,7 @@ type ControlsProps = {
 export function KillerSudokuControls({ play, t }: ControlsProps) {
 	const { state, feedback, wrongCage, playing, canUndo, dispatch, undo } = play
 	return (
-		<div class="play-tools">
+		<div class="play-tools" data-play-control>
 			<p role="status" class="min-h-5 text-center text-sm">
 				{feedback() ? t(`games.killerSudoku.messages.${feedback()}`) : ''}
 				<Show when={wrongCage()} keyed>

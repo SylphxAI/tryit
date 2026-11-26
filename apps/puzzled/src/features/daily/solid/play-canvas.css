@@ -362,17 +362,8 @@
 	}
 }
 
-/* Keep the board in its in-play frame. Controls after it can collapse once
-   a result is accepted; completed boards and discoveries remain readable. */
-[data-play-canvas] .play-body:has([data-board-finished]) :is(.play-tools, .pip-actions, .pip-feedback):not(:has([data-board-finished])) {
-	display: none;
-}
-
-[data-play-canvas] [data-arithmo-board]:has([data-board-finished]) [data-arithmo-keypad],
-[data-play-canvas] [data-hive-board]:has([data-board-finished]) .hive-comb + div,
-[data-play-canvas] [data-word-box-board]:has([data-board-finished]) :is(fieldset > form, #frame-next-letter, ol + button),
-[data-play-canvas]:is([data-game-slug="crowns"], [data-game-slug="duo"], [data-game-slug="word-search"]) .play-body > div:has(> [data-board-finished]) > fieldset ~ :not(ul, .completion-card),
-[data-play-canvas] [data-ladder-board]:has([data-board-finished]) > form {
+/* Auxiliary controls are distinct from the board and completed status. */
+[data-play-canvas] .play-body:has([data-board-finished]) :is([data-play-control], .pip-feedback) {
 	display: none;
 }
 

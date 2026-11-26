@@ -479,6 +479,9 @@ for (const viewport of [
 				}
 				const cue = page.locator('[data-first-action]')
 				await expect(cue).toBeVisible()
+				// Each game must identify its live controls; the end assertion cannot pass vacuously.
+				const playControls = stage.locator('[data-play-control]:visible')
+				await expect(playControls.first()).toBeVisible()
 				const bounds = (locator: Locator) =>
 					locator.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect)
 				// Compare board geometry in the canvas, not its position in the viewport after reveal.
@@ -540,6 +543,11 @@ for (const viewport of [
 				})
 				expect.soft(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
 				await expect(cue).toBeHidden()
+				await expect(playControls).toHaveCount(0)
+				if (slug === 'word-search') await expect(stage.locator('output')).toHaveText('2/2')
+				if (slug === 'word-box') await expect(stage.getByText('12/12 letters used')).toBeVisible()
+				if (slug === 'word-hive')
+					await expect(stage.locator('[data-hive-feedback]')).toContainText('CASTLED')
 				for (const key of ['x', 'y', 'width', 'height'] as const) {
 					// Rungs grows as the player adds legal steps.
 					if (key === 'height' && slug === 'word-ladder') continue

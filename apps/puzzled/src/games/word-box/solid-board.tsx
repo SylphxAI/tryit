@@ -57,10 +57,11 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 			aria-label={copy('name')}
 			data-word-box-board
 		>
-			<div class="flex flex-wrap items-center justify-between gap-x-3 text-sm">
+			<div class="flex min-h-11 flex-wrap items-center justify-between gap-x-3 text-sm">
 				<p aria-live="polite">{copy('progress', { used: used().size, total })}</p>
 				<button
 					type="button"
+					data-play-control
 					class="min-h-11 px-2 font-semibold disabled:opacity-50"
 					disabled={!playable()}
 					onClick={(event) => {
@@ -108,7 +109,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 			</fieldset>
 			<Show when={required()}>
 				{(letter) => (
-					<p id="frame-next-letter" class="text-center text-sm">
+					<p id="frame-next-letter" data-play-control class="text-center text-sm">
 						{copy('nextLetter', { letter: letter() })}
 					</p>
 				)}
@@ -128,6 +129,7 @@ function Frame(props: DailyBoardProps & { box: LetterBox }) {
 				</ol>
 				<button
 					type="button"
+					data-play-control
 					class="min-h-11 self-center px-2 text-sm font-semibold underline disabled:opacity-50"
 					disabled={!playable() || Boolean(current())}
 					onClick={undoWord}

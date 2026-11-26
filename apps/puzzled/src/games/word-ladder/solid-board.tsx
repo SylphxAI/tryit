@@ -110,7 +110,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 				{t('games.wordLadder.steps', { count: path().length - 1, minimum: minSteps })}
 			</p>
 			<Show when={playing()}>
-				<form class="flex gap-2" onSubmit={addStep}>
+				<form data-play-control class="flex gap-2" onSubmit={addStep}>
 					<input
 						ref={field}
 						id={inputId}
@@ -148,6 +148,7 @@ function Ladder(props: DailyBoardProps & { data: WordLadderPuzzleData }) {
 				</Show>
 				<button
 					type="button"
+					data-play-control
 					class="min-h-12 self-center rounded-xl border border-border px-5 font-semibold disabled:opacity-50"
 					disabled={path().length <= 1}
 					onClick={() => {

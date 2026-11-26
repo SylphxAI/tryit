@@ -12,7 +12,12 @@ const action =
 export function WordGroupsControls({ play, t }: { play: WordGroupsPlay; t: Translate }) {
 	return (
 		<>
-			<fieldset class="min-w-0 space-y-3" disabled={play.grading()} aria-busy={play.grading()}>
+			<fieldset
+				data-play-control
+				class="min-w-0 space-y-3"
+				disabled={play.grading()}
+				aria-busy={play.grading()}
+			>
 				<legend class="sr-only">{t('games.wordGroups.name')}</legend>
 				<WordGroupsGrid play={play} />
 				<div class="flex flex-wrap justify-center gap-2">

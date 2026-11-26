@@ -233,11 +233,13 @@ export const guestFinishFixtures = {
 	'word-box': {
 		data: frame[0].puzzleData,
 		board: 'fieldset > div:has(> div > button)',
-		win: async (page, stage) => {
-			for (const word of frame[0].solution.words) {
-				await stage.getByRole('textbox', { name: 'Current word' }).focus()
-				await page.keyboard.type(word)
+		win: async (_page, stage) => {
+			const chain = stage.getByRole('list', { name: 'Word chain' })
+			for (const [index, word] of frame[0].solution.words.entries()) {
+				for (const letter of word) await stage.locator(`[data-box-letter="${letter}"]`).click()
+				await expect(stage.getByRole('textbox', { name: 'Current word' })).toHaveValue(word)
 				await stage.getByRole('button', { name: 'Add word' }).click()
+				await expect(chain.getByRole('listitem')).toHaveCount(index + 1)
 			}
 		},
 	},

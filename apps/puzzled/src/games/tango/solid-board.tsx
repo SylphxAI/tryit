@@ -152,7 +152,7 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 				</div>
 			</fieldset>
 			<Show when={!locked()}>
-				<div>
+				<div data-play-control>
 					<button
 						class="min-h-11 rounded-xl border border-border px-4 disabled:opacity-50"
 						type="button"
@@ -183,7 +183,7 @@ function Board(props: DailyBoardProps & { data: TangoPuzzleData }) {
 					</div>
 				</div>
 			</Show>
-			<div role="status" class="text-sm font-semibold">
+			<div role="status" class="text-sm font-semibold" data-play-control>
 				<Show when={lockedClue()}>
 					<p>{t('games.duo.lockedClue')}</p>
 				</Show>

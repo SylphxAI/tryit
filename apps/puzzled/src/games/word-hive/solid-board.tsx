@@ -102,33 +102,36 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 			}}
 		>
 			<RankRail state={state()} t={t} />
-			<div
-				class="h-[3.25rem] rounded-xl border border-border bg-surface px-3 text-center"
-				data-hive-draft
-			>
+			<div class="min-h-[3.25rem]">
 				<div
-					class="h-full content-center overflow-y-auto py-2 font-display text-2xl leading-8 font-bold tracking-widest wrap-anywhere"
-					aria-live="polite"
-					lang="en"
-					dir="ltr"
+					class="h-[3.25rem] rounded-xl border border-border bg-surface px-3 text-center"
+					data-hive-draft
+					data-play-control
 				>
-					<Show
-						when={state().currentWord}
-						fallback={<span aria-hidden="true" class="hive-caret" />}
+					<div
+						class="h-full content-center overflow-y-auto py-2 font-display text-2xl leading-8 font-bold tracking-widest wrap-anywhere"
+						aria-live="polite"
+						lang="en"
+						dir="ltr"
 					>
-						<Index each={state().currentWord.split('')}>
-							{(letter) => (
-								<span
-									classList={{
-										'text-accent-warm-foreground underline decoration-2 underline-offset-4':
-											letter() === state().centerLetter,
-									}}
-								>
-									{letter()}
-								</span>
-							)}
-						</Index>
-					</Show>
+						<Show
+							when={state().currentWord}
+							fallback={<span aria-hidden="true" class="hive-caret" />}
+						>
+							<Index each={state().currentWord.split('')}>
+								{(letter) => (
+									<span
+										classList={{
+											'text-accent-warm-foreground underline decoration-2 underline-offset-4':
+												letter() === state().centerLetter,
+										}}
+									>
+										{letter()}
+									</span>
+								)}
+							</Index>
+						</Show>
+					</div>
 				</div>
 			</div>
 			<div class="flex h-12 items-center justify-center gap-2 text-sm" data-hive-feedback>

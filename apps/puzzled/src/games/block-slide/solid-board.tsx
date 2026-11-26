@@ -113,7 +113,7 @@ function Slides(
 					</span>
 				</div>
 			</fieldset>
-			<div class="play-tools space-y-2">
+			<div class="play-tools space-y-2" data-play-control>
 				<Show when={play.playing()}>
 					<SlideControls
 						text={text}

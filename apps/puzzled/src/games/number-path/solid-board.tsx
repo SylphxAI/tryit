@@ -198,7 +198,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 					</div>
 				</div>
 			</fieldset>
-			<div class="play-tools space-y-3">
+			<div class="play-tools space-y-3" data-play-control>
 				<p
 					role="status"
 					class="min-h-5 text-sm"

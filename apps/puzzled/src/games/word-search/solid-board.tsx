@@ -34,7 +34,7 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData; t: Transla
 
 	return (
 		<div class="mx-auto w-full max-w-sm space-y-3">
-			<div class="flex items-center justify-between gap-2 text-sm">
+			<div class="flex min-h-11 items-center justify-between gap-2 text-sm">
 				<span class="font-semibold">
 					{puzzleThemeLabel(theme, props.locale, zhTwThemes, t('games.wordSearch.name'))}
 				</span>
@@ -43,6 +43,7 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData; t: Transla
 				</output>
 				<button
 					type="button"
+					data-play-control
 					class="grid size-11 touch-manipulation place-items-center rounded-lg border border-border"
 					aria-label={t('common.reset')}
 					disabled={locked()}
@@ -84,7 +85,7 @@ function Board(props: DailyBoardProps & { data: WordSearchClientData; t: Transla
 					)}
 				</For>
 			</ul>
-			<p role="status" class="min-h-5 text-center text-sm text-muted-foreground">
+			<p role="status" data-play-control class="min-h-5 text-center text-sm text-muted-foreground">
 				{invalid() ? t('games.wordSearch.invalidSelection') : ''}
 			</p>
 			<BoardFinish finish={finish} locale={props.locale} message={t('games.wordSearch.complete')} />
