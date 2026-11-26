@@ -11,7 +11,7 @@ import { createDailyPlayState, type DailyPlayProps } from './daily-play-state'
 import { renderDailyCompletion, renderDailyDifficulty } from './daily-play-views'
 import { DailyUnlock } from './daily-unlock'
 
-export function DailyPlay(props: DailyPlayProps) {
+export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boolean }) {
 	const t = createTranslator(props.data.locale)
 	const slug = props.data.slug
 	const archive = props.day.mode === 'archive'
@@ -58,6 +58,7 @@ export function DailyPlay(props: DailyPlayProps) {
 			}
 			locked={Boolean(snapshot('locked'))}
 			changeDifficulty={!archive && props.data.difficultyLevels.length > 0}
+			englishWordNoticeInHero={props.englishWordNoticeInHero}
 		/>
 	)
 	const content = () => (

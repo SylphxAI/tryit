@@ -13,6 +13,7 @@ import { getRequestEvent } from 'solid-js/web'
 import { buildGamePage } from '@/features/catalog/solid/game-data'
 import { GameLanding } from '@/features/catalog/solid/game-landing'
 import { asDifficulty } from '@/features/daily/lib/difficulty-completion'
+import { needsEnglishWordNotice } from '@/features/daily/lib/english-word-puzzles'
 import { START_PARAM_ON } from '@/features/daily/lib/start-param'
 import { todayPlayPath } from '@/features/daily/lib/today-play-path'
 import { DailyPlay } from '@/features/daily/solid/daily-play'
@@ -101,6 +102,17 @@ export default function GamePage() {
 	const [search] = useSearchParams()
 	const data = createAsync(() => readGamePage(params, search), { deferStream: true })
 	const [lockedKey, setLockedKey] = createSignal<string>()
+	// The full daily hero owns Five's notice, even when a board resumes below it.
+	const englishWordNoticeInHero = () => {
+		const page = data()
+		return Boolean(
+			page?.day.mode === 'daily' &&
+				!page.practice &&
+				!page.started &&
+				page.data.slug === 'word-guess' &&
+				needsEnglishWordNotice(page.data.locale, page.data.slug),
+		)
+	}
 	const playKey = createMemo(() => {
 		const page = data()
 		return (
@@ -122,6 +134,7 @@ export default function GamePage() {
 				{(page) => (
 					<GameLanding
 						data={page().data}
+						englishWordNoticeInHero={englishWordNoticeInHero()}
 						locked={page().initialDaily?.kind === 'locked' || lockedKey() === playKey()}
 						stage={page().practice || (page().day.mode === 'daily' && page().started)}
 						practice={page().practice}
@@ -144,6 +157,7 @@ export default function GamePage() {
 								) : (
 									<DailyPlay
 										data={page().data}
+										englishWordNoticeInHero={englishWordNoticeInHero()}
 										day={page().day}
 										todayKey={page().todayKey}
 										resetAt={page().resetAt}

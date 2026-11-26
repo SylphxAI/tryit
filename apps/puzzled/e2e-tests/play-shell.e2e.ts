@@ -473,6 +473,72 @@ test('all 19 games show one rules dialog and introductory copy in zh-TW', async 
 	}
 })
 
+const fiveNoticeCases = [
+	['zh-HK', '英文單詞謎題', '拒絕'],
+	['es', 'Juego de palabras en inglés', 'Rechazar'],
+	['pt-BR', 'Jogo de palavras em inglês', 'Recusar'],
+] as const
+
+for (const [width, height] of [
+	[390, 844],
+	[1440, 900],
+]) {
+	test.describe(`Five direct landing ${width}×${height}`, () => {
+		test.use({ viewport: { width, height }, isMobile: width === 390, hasTouch: width === 390 })
+		for (const [locale, label, decline] of fiveNoticeCases) {
+			test(`${locale}: one notice before Play even when the daily board resumes below`, async ({
+				page,
+			}) => {
+				const path = `/${locale}/games/word-guess`
+				await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+				await page.goto(path)
+				// The enrolled craft server serves a playable frozen GetDaily snapshot.
+				await expect(page.locator(stage)).toBeVisible()
+				const hero = page.locator('.game-hero')
+				const notice = hero.locator('[data-english-word-puzzle]')
+				const play = hero.locator('a[data-start-intent="word-guess"]')
+				const consent = page.locator('[data-consent-banner]')
+				await expect(notice).toHaveText(label)
+				await expect(page.locator('[data-english-word-puzzle]')).toHaveCount(1)
+				await expect(play).toHaveCount(1)
+				await expect(play).toHaveAttribute('href', `${path}?start=1#play`)
+				await expect(consent).toBeVisible()
+				for (const dismiss of [false, true]) {
+					if (dismiss) {
+						const button = consent.getByRole('button', { name: decline, exact: true })
+						if (width === 390) await button.tap()
+						else await button.click()
+						await expect(consent).toHaveCount(0)
+					}
+					const bounds = (await notice.boundingBox())!
+					const cta = (await play.boundingBox())!
+					expect(bounds.y + bounds.height).toBeLessThanOrEqual(cta.y)
+					await expect(notice).toBeInViewport({ ratio: 1 })
+					await expect(play).toBeInViewport({ ratio: 1 })
+					// Trial checks hit testing without starting a game or moving to the play route.
+					if (width === 390) await play.tap({ trial: true })
+					else await play.click({ trial: true })
+					if (!dismiss)
+						expect(cta.y + cta.height).toBeLessThanOrEqual((await consent.boundingBox())!.y)
+				}
+			})
+		}
+	})
+}
+
+test('direct landing has no language notice for English Five or localized Quad', async ({
+	page,
+}) => {
+	for (const path of ['/games/word-guess', '/zh-HK/games/quad-words']) {
+		await page.goto(path)
+		await expect(page.locator('.game-hero [data-start-intent]')).toBeVisible()
+		await expect(page.locator('.game-hero [data-english-word-puzzle]')).toHaveCount(0)
+	}
+	// The landing-only negative must not remove Quad's existing in-play notice.
+	await openBoard(page, 'quad-words', 'zh-HK')
+	await expect(page.locator('#play [data-english-word-puzzle]')).toHaveText('英文單詞謎題')
+})
+
 for (const admitted of [true, false]) {
 	test(
 		'cold Play today tap sends one start and ' +
