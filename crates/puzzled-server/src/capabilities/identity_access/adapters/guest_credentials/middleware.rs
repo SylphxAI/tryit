@@ -41,7 +41,7 @@ pub async fn attach_guest(
     {
         if let Ok(player) = Uuid::parse_str(&identity.user_id) {
             let result = async {
-                let mut tx = pool.begin().await?;
+                let mut tx = crate::shared::verification_timing::begin(pool).await?;
                 lock_players(&mut tx, vec![player]).await?;
                 let collision: bool = sqlx::query_scalar(
                     "SELECT EXISTS (SELECT 1 FROM guest_credentials WHERE user_id = $1)",

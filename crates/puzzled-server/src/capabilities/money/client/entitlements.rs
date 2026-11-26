@@ -51,18 +51,17 @@ struct CheckResponse {
 impl Money {
     /// One entitlement check, uncached. `feature` is a catalogue feature key.
     pub async fn check_uncached(&self, user_id: &str, feature: &str) -> Result<Grant, MoneyError> {
-        let body = self
-            .sdk
-            .invoke(
-                "money.entitlement_grants.check",
-                json!({
-                    "parent": self.environment_resource().await?,
-                    "subject": {"end_user": user_id},
-                    "feature": feature,
-                }),
-            )
-            .await
-            .map_err(|e| self.map_sdk_error(e))?;
+        let environment = self.environment_resource().await?;
+        let body = crate::shared::verification_timing::money(self.sdk.invoke(
+            "money.entitlement_grants.check",
+            json!({
+                "parent": environment,
+                "subject": {"end_user": user_id},
+                "feature": feature,
+            }),
+        ))
+        .await
+        .map_err(|e| self.map_sdk_error(e))?;
         let parsed: CheckResponse = serde_json::from_value(body).map_err(|e| {
             MoneyError::Unavailable(format!(
                 "unreadable answer: {}",

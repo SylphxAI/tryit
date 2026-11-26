@@ -145,6 +145,14 @@ pub async fn admitted_request_identities(
     pool: Option<&sqlx::PgPool>,
     guest_write: bool,
 ) -> Result<RequestAccess, ConnectError> {
+    crate::shared::verification_timing::admission(admit(ctx, pool, guest_write)).await
+}
+
+async fn admit(
+    ctx: &RequestContext,
+    pool: Option<&sqlx::PgPool>,
+    guest_write: bool,
+) -> Result<RequestAccess, ConnectError> {
     use crate::capabilities::identity_access::adapters::guest_credentials;
     use puzzled_core::identity_policy::guest_day_id::user_id_to_storage_uuid;
     let internal = || ConnectError::new(ErrorCode::Internal, "identity_store_failed");
@@ -167,7 +175,9 @@ pub async fn admitted_request_identities(
         .as_ref()
         .and_then(|identity| user_id_to_storage_uuid(&identity.user_id));
     let (mut tx, candidate) = loop {
-        let mut tx = pool.begin().await.map_err(|_| internal())?;
+        let mut tx = crate::shared::verification_timing::begin(pool)
+            .await
+            .map_err(|_| internal())?;
         // Serialize token allocation BEFORE common player locks. A loser
         // never holds an unused candidate lock while acquiring the winner.
         if let Some(hash) = hash {

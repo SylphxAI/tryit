@@ -79,16 +79,15 @@ impl Money {
                 return Ok(catalog);
             }
         }
-        let body = self
-            .sdk
-            .invoke(
-                "money.price_catalogs.get",
-                json!({
-                    "name": format!("{}/price_catalogs/default", self.environment_resource().await?),
-                }),
-            )
-            .await
-            .map_err(|e| self.map_sdk_error(e))?;
+        let environment = self.environment_resource().await?;
+        let body = crate::shared::verification_timing::money(self.sdk.invoke(
+            "money.price_catalogs.get",
+            json!({
+                "name": format!("{}/price_catalogs/default", environment),
+            }),
+        ))
+        .await
+        .map_err(|e| self.map_sdk_error(e))?;
         let catalog: Arc<Catalog> = Arc::new(serde_json::from_value(body).map_err(|e| {
             MoneyError::Unavailable(format!(
                 "unreadable catalogue: {}",

@@ -83,4 +83,7 @@ pub fn router(state: AppState) -> Router {
         // `puzzled.user.write.ok|failed` journey line. Outside the capturer so
         // it sees every response, including a captured error's.
         .layer(axum::middleware::from_fn(crate::shared::signals::observe))
+        .layer(axum::middleware::from_fn(
+            crate::shared::verification_timing::observe,
+        ))
 }
