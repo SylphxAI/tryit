@@ -143,17 +143,21 @@ export function ResultActions(props: {
 				}
 			>
 				<div class="result-guest-capture" data-result-guest-capture>
-					<div class="flex flex-wrap items-center gap-x-3">
-						<div class="flex-1 basis-40">
-							<p>{t('onboarding.keepStreak', { days: retention().days })}</p>
-						</div>
+					<div class="result-guest-body">
+						<p class="result-guest-copy">
+							{t('onboarding.keepStreak', { days: retention().days })}
+							<Show when={model().status === 'won'}>
+								{' '}
+								<span class="result-guest-note">{t('onboarding.saveStreakNote')}</span>
+							</Show>
+						</p>
 						<a class="result-guest-link" href={signIn}>
 							{t('onboarding.createFreeAccount')}
 						</a>
 					</div>
 					<button
 						type="button"
-						class="result-button self-start"
+						class="result-button result-guest-dismiss"
 						aria-label={t('common.dismiss')}
 						onClick={dismissSaveStreak}
 					>
