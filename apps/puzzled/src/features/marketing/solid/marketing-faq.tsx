@@ -1,7 +1,7 @@
 /** @jsxImportSource solid-js */
 
+import { clsx } from 'clsx'
 import { For } from 'solid-js'
-import { cn } from '@/lib/utils'
 import { JsonLd } from '@/shared/solid/json-ld'
 import type { MarketingFaqItem } from '../components/marketing-faq-item'
 import { ChevronDown } from './editorial-icons'
@@ -62,7 +62,7 @@ export function MarketingFaq({
 			id={id}
 			aria-labelledby={title ? headingId : undefined}
 			// scroll-mt keeps an in-page anchor clear of the sticky h-16 shell header.
-			class={cn('section-block scroll-mt-24', className)}
+			class={clsx('section-block scroll-mt-24', className)}
 		>
 			<div class="page-shell-wide">
 				{title && (
@@ -75,7 +75,7 @@ export function MarketingFaq({
 				)}
 				{subtitle && <p class="mt-2 max-w-2xl leading-relaxed text-muted-foreground">{subtitle}</p>}
 				<div
-					class={cn(
+					class={clsx(
 						'grid border-t border-border',
 						(title || subtitle) && 'mt-5',
 						columns === 2 && 'md:grid-cols-2 md:gap-x-10',

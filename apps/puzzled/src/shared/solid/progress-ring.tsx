@@ -1,6 +1,5 @@
 /** @jsxImportSource solid-js */
 import { createUniqueId, type JSX } from 'solid-js'
-import { cn } from '@/lib/utils'
 
 type ProgressRingProps = {
 	/** Completed units. */
@@ -10,7 +9,6 @@ type ProgressRingProps = {
 	/** Outer diameter in CSS pixels. */
 	size?: number
 	strokeWidth?: number
-	className?: string
 	/** Rendered in the centre; defaults to the "done/total" count. */
 	label?: JSX.Element
 	/** Accessible description of the ring. */
@@ -28,7 +26,6 @@ export function ProgressRing({
 	max,
 	size = 92,
 	strokeWidth = 8,
-	className,
 	label,
 	title,
 }: ProgressRingProps) {
@@ -41,7 +38,7 @@ export function ProgressRing({
 
 	return (
 		<div
-			class={cn('relative inline-flex items-center justify-center', className)}
+			class="relative inline-flex items-center justify-center"
 			style={{ width: `${size}px`, height: `${size}px` }}
 			role="img"
 			aria-label={title}

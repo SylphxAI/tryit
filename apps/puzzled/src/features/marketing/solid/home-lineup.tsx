@@ -7,7 +7,6 @@ import { todayPlayPath, todayResultPath } from '@/features/daily/lib/today-play-
 import { lineupStatus } from '@/features/home/lib/home-day-copy'
 import { gameFamilyColor } from '@/games/theme-colors'
 import type { Translate } from '@/lib/i18n/translate'
-import { cn } from '@/lib/utils'
 import type { HomeDocument } from './home-data'
 import { HomeGameCard } from './home-game-card'
 
@@ -38,7 +37,7 @@ export function HomeLineup(props: {
 					{(value) => (
 						<li class="shrink-0">
 							<a
-								class={cn('category-chip family-pill', gameFamilyColor[value])}
+								class={`category-chip family-pill ${gameFamilyColor[value]}`}
 								href={href(`/games?category=${value}`)}
 							>
 								{t(`catalog.category.${value}`)}
