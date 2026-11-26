@@ -313,21 +313,12 @@ function overlaps(a: DOMRect, b: DOMRect) {
 	return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 }
 
-async function expectFinishTypography(card: Locator, hasPractice: boolean, phone: boolean) {
+async function expectFinishTypography(card: Locator, actions: Locator[], phone: boolean) {
 	const next = card.getByRole('link', { name: /^Play next:/ })
-	const secondary = card.locator('.result-action-row').locator('a, button')
-	await expect(secondary).toHaveCount(hasPractice ? 3 : 2)
-	const controls = [
-		next,
-		...(await secondary.all()),
-		card.getByRole('link', { name: 'Create a free account', exact: true }),
-		card.locator('[data-install-nudge]').getByRole('button', { name: 'Dismiss', exact: true }),
-	]
 	const elements = [
 		card.locator('.completion-heading h2'),
-		card.locator('[data-result-percentile]'),
-		card.locator('[data-result-milestone="7"]'),
-		...controls,
+		...(await card.locator('[data-result-percentile], [data-result-milestone="7"]').all()),
+		...actions,
 	]
 	const boxes = await Promise.all(
 		elements.map((locator) =>
@@ -338,7 +329,7 @@ async function expectFinishTypography(card: Locator, hasPractice: boolean, phone
 		for (const other of boxes.slice(index + 1)) expect(overlaps(box, other)).toBe(false)
 	}
 
-	for (const action of controls) {
+	for (const action of elements) {
 		const words = await action.evaluate((el) => {
 			const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
 			const range = document.createRange()
@@ -382,8 +373,14 @@ for (const viewport of [
 			test.use({ viewport })
 		}
 
-		for (const slug of ['word-guess', 'sudoku', 'crossword'] as const) {
-			test(`${slug} guest finish fits without moving the board`, async ({
+		for (const [slug, outcome, install] of [
+			['word-guess', 'lost', false],
+			['word-guess', 'won', false],
+			['word-guess', 'won', true],
+			['sudoku', 'won', true],
+			['crossword', 'won', true],
+		] as const) {
+			test(`${slug} guest finish ${outcome}${install ? ' with install' : ' without install'} fits without moving the board`, async ({
 				page,
 				baseURL,
 			}, info) => {
@@ -412,15 +409,13 @@ for (const viewport of [
 				await page.route('**/v1/guest/session', (route) =>
 					route.fulfill({ json: { issued: true } }),
 				)
+				const daily = { gameSlug: slug, puzzleId: firstPuzzleId, puzzleDate: dayKey, canPlay: true }
 				await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+					route.fulfill({ json: { ...daily, requiresStart: true } }),
+				)
+				await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) =>
 					route.fulfill({
-						json: {
-							gameSlug: slug,
-							puzzleId: firstPuzzleId,
-							puzzleDate: dayKey,
-							canPlay: true,
-							puzzleDataJson: JSON.stringify(puzzleData),
-						},
+						json: { daily: { ...daily, puzzleDataJson: JSON.stringify(puzzleData) } },
 					}),
 				)
 				await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
@@ -438,32 +433,52 @@ for (const viewport of [
 				await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => {
 					const { word } = JSON.parse(route.request().postDataJSON().guessJson)
 					const tiles =
-						word === 'charm'
-							? ['correct', 'present', 'absent', 'absent', 'absent']
-							: Array(5).fill('correct')
+						outcome === 'lost'
+							? Array(5).fill('absent')
+							: word === 'charm'
+								? ['correct', 'present', 'absent', 'absent', 'absent']
+								: Array(5).fill('correct')
 					return route.fulfill({ json: { resultJson: JSON.stringify({ tiles }) } })
 				})
-				await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) =>
-					route.fulfill({ json: { gameSlug: slug, valid: true, status: 'won', score: 487 } }),
-				)
+				await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => {
+					expect(route.request().postDataJSON()).toMatchObject({ gameSlug: slug, status: outcome })
+					return route.fulfill({
+						json: {
+							gameSlug: slug,
+							valid: true,
+							status: outcome,
+							score: 487,
+							revealJson: outcome === 'lost' ? JSON.stringify({ word: 'COUCH' }) : undefined,
+						},
+					})
+				})
 				await page.route('**/puzzled.v1.StatsService/GetTodayPercentile', (route) =>
 					route.fulfill({ json: { gameSlug: slug, dayKey, percentile: 73, totalPlayers: 15 } }),
 				)
 				await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
 					route.fulfill({ json: { info: { currentStreak: 7 } } }),
 				)
+				if (!install) {
+					await page.addInitScript(() =>
+						Object.defineProperty(navigator, 'standalone', { value: true }),
+					)
+				}
 				await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 				const difficulty = slug === 'sudoku' ? 'difficulty=easy&' : ''
 				await page.goto(`/en-US/games/${slug}?${difficulty}start=1#play`)
 				const decline = page.getByRole('button', { name: 'Decline', exact: true })
 				await decline.click()
+				await page
+					.locator('[data-game-stage="start"]')
+					.getByRole('button', { name: 'Play' })
+					.click()
 				const board =
 					slug === 'word-guess'
 						? page.getByRole('table', { name: 'Five' })
 						: page.locator('.play-body .play-board')
 				await expect(board).toBeVisible()
 				await page.evaluate(() => document.fonts.ready)
-				if (viewport.width !== 390) {
+				if (install && viewport.width !== 390) {
 					// A loopback build is not installable; exercise the captured Chromium event.
 					await page.evaluate(() =>
 						window.dispatchEvent(new Event('beforeinstallprompt', { cancelable: true })),
@@ -475,7 +490,11 @@ for (const viewport of [
 					locator.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect)
 				const before = await bounds(board)
 				if (slug === 'word-guess') {
-					for (const [index, word] of ['charm', 'couch'].entries()) {
+					const guesses =
+						outcome === 'lost'
+							? ['crane', 'raise', 'blush', 'flame', 'sugar', 'lemon']
+							: ['charm', 'couch']
+					for (const [index, word] of guesses.entries()) {
 						await page.keyboard.type(word)
 						await page.keyboard.press('Enter')
 						await expect(board.locator('tr').nth(index).locator('[data-grade]')).toHaveCount(5)
@@ -490,16 +509,29 @@ for (const viewport of [
 				}
 
 				const card = page.locator('.completion-card[data-board-finished]')
-				const actions = [
-					card.getByRole('link', { name: /^Play next:/ }),
-					card.getByRole('button', { name: 'Copy challenge', exact: true }),
-					card.getByText(/^Create a free account to keep your streak/),
-					card.getByRole('link', { name: 'Create a free account', exact: true }),
-					card.getByRole('complementary', { name: 'Add Tryit to your Home Screen', exact: true }),
-				]
-				for (const action of actions) await expect(action).toBeVisible()
-				await expect(card.locator('[data-result-percentile]')).toBeVisible()
-				await expect(card.locator('[data-result-milestone="7"]')).toBeVisible()
+				await expect(card.locator('.completion-heading')).toHaveAttribute('data-outcome', outcome)
+				const guest = card.locator('[data-result-guest-capture]')
+				const nudge = card.locator('[data-install-nudge]')
+				await expect(guest).toHaveCount(outcome === 'won' ? 1 : 0)
+				await expect(nudge).toHaveCount(install ? 1 : 0)
+				const actions = card.locator(
+					'.result-next, .result-action-row :is(a, button), .result-guest-link, [data-install-nudge] button',
+				)
+				await expect(actions).toHaveCount(
+					1 +
+						(slug === 'crossword' ? 2 : 3) +
+						(outcome === 'won' ? 1 : 0) +
+						(install ? (viewport.width === 390 ? 1 : 2) : 0),
+				)
+				const visibleActions = await actions.all()
+				const prompts =
+					outcome === 'won' ? [guest.locator('p').first(), ...(install ? [nudge] : [])] : []
+				await expect(card.locator('[data-result-percentile]')).toHaveCount(
+					outcome === 'won' ? 1 : 0,
+				)
+				await expect(card.locator('[data-result-milestone="7"]')).toHaveCount(
+					outcome === 'won' ? 1 : 0,
+				)
 				const after = await bounds(board)
 				const panel = await bounds(card)
 				const size = await card.evaluate(({ scrollHeight, clientHeight }) => ({
@@ -508,23 +540,21 @@ for (const viewport of [
 				}))
 				await page.screenshot({ path: info.outputPath(`${slug}.png`) })
 				await info.attach('finish geometry', {
-					body: JSON.stringify({ slug, viewport, before, after, panel, size }),
+					body: JSON.stringify({ slug, outcome, install, viewport, before, after, panel, size }),
 					contentType: 'application/json',
 				})
-				expect(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
+				expect.soft(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
 				await expect(cue).toBeHidden()
 				for (const key of ['x', 'y', 'width', 'height'] as const) {
 					expect(Math.abs(after[key] - before[key])).toBeLessThanOrEqual(1)
 				}
-				const played = board.locator('tr').filter({ has: page.locator('[data-grade]') })
-				let protectedBoard = after
-				if (slug === 'word-guess' && viewport.width === 390) {
-					await expect(played).toHaveCount(2)
-					protectedBoard = await bounds(played.last())
-				}
-				expect(overlaps(panel, protectedBoard)).toBe(false)
-				await expectFinishTypography(card, slug !== 'crossword', viewport.width === 390)
-				for (const locator of [board, card, ...actions]) {
+				const protectedCells = slug === 'word-guess' ? board.locator('[data-grade]') : board
+				if (slug === 'word-guess')
+					await expect(protectedCells).toHaveCount(outcome === 'lost' ? 30 : 10)
+				for (const cell of await protectedCells.all())
+					expect.soft(overlaps(panel, await bounds(cell))).toBe(false)
+				await expectFinishTypography(card, visibleActions, viewport.width === 390)
+				for (const locator of [board, card, ...visibleActions, ...prompts]) {
 					const rect = await bounds(locator)
 					expect(rect.top).toBeGreaterThanOrEqual(0)
 					expect(rect.bottom).toBeLessThanOrEqual(viewport.height)
@@ -532,7 +562,7 @@ for (const viewport of [
 					expect(rect.right).toBeLessThanOrEqual(viewport.width)
 					await expect(locator).toBeInViewport({ ratio: 0.99 })
 				}
-				for (const action of actions) {
+				for (const action of [...visibleActions, ...prompts]) {
 					expect(
 						await action.evaluate((el) => {
 							const { left, top, width, height } = el.getBoundingClientRect()

@@ -281,22 +281,22 @@
 }
 
 [data-play-canvas] .play-tools .completion-card { visibility: visible; }
-/* The full install result grows into the canvas scrollport, not a nested one. */
-[data-play-canvas] .completion-card[data-board-finished]:has(.result-install) {
+/* Daily results use the canvas scrollport, even without either optional prompt. */
+[data-play-canvas] .completion-card[data-board-finished]:has(> .result-action-row) {
 	max-block-size: none;
 	overflow: visible;
 }
 
 @media (width < 1024px) {
 	/* Reuse the vacated controls space, including when the card lives in the tools. */
-	[data-play-canvas] .play-split:has(.result-install) { row-gap: 0; }
-	[data-play-canvas] .completion-card:has(.result-install) {
+	[data-play-canvas] .play-split:has(.completion-card[data-board-finished] > .result-action-row) { row-gap: 0; }
+	[data-play-canvas] .completion-card[data-board-finished]:has(> .result-action-row) {
 		position: static;
 		margin-block: .25rem 0;
 	}
-	[data-play-canvas] .play-body:has(.result-install) .play-tools:not(:has(.completion-card)),
-	[data-play-canvas] .play-tools:has(.result-install) > :not(.completion-card) { display: none; }
-	[data-play-canvas] .play-tools:has(.result-install) { display: contents; }
+	[data-play-canvas] .play-body:has(.completion-card[data-board-finished] > .result-action-row) .play-tools:not(:has(.completion-card)),
+	[data-play-canvas] .play-tools:has(.completion-card[data-board-finished] > .result-action-row) > :not(.completion-card) { display: none; }
+	[data-play-canvas] .play-tools:has(.completion-card[data-board-finished] > .result-action-row) { display: contents; }
 }
 
 @media (width >= 1024px) {
@@ -315,7 +315,7 @@
 	}
 
 	/* A stand-alone board puts the result below the board. */
-	[data-play-canvas] .play-body > :not(.play-split) .completion-card:has(.result-install) {
+	[data-play-canvas] .play-body > :not(.play-split) .completion-card[data-board-finished]:has(> .result-action-row) {
 		position: static;
 		margin-block: .5rem 0;
 	}
