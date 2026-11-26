@@ -17,5 +17,6 @@
 	"cellStep": "第 {number} 步",
 	"startAtOne": "請先從 1 開始",
 	"nextSquare": "請點按或拖拉到相鄰格子",
+	"deadEnd": "這一步走不下去了，按「復原」退回上一步。",
 	"wrongClue": "這格是 {clue}，接下來是第 {expected} 步。"
 }
