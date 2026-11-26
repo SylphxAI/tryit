@@ -25,7 +25,7 @@ A finish counts when all of these hold:
 2. It is for the product day's puzzle (`day_key = D`) or D's featured free rotation.
 3. The game's class is `puzzle_ritual`, not `entertainment_oracle`.
 4. It is a terminal result the game treats as "today's attempt resolved" (a win, or an exhausted loss where the game has one daily attempt).
-5. It is not a dry run, admin injection or load-test marker.
+5. It is not a dry run, admin injection, load test or registered synthetic fixture. A finish recorded with the `x-puzzled-verification` header or the legacy `puzzled-verify-live/` user-agent sets `comparison_excluded` and is not counted. The header can only remove an otherwise valid finish from metrics; it cannot make a finish valid or eligible.
 6. It is the daily mode, not archive and not practice (`qualifies_as_ritual` in core).
 
 One finish counts per `(user, game, day_key)`: replaying is review, and the
@@ -45,10 +45,13 @@ FROM game_sessions
 WHERE day_key = $1          -- YYYY-MM-DD in Asia/Hong_Kong
   AND is_ritual = true
   AND module_class = 'puzzle_ritual'
-  AND status IN ('won', 'lost');
+  AND status IN ('won', 'lost')
+  AND NOT comparison_excluded
+  AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id = game_sessions.user_id);
 ```
 
-The pure form is `puzzled_core::puzzle_play::ritual_completion::compute_drc`.
+The pure oracle, `puzzled_core::puzzle_play::ritual_completion::compute_drc`, takes
+rows after verification finishes and synthetic fixtures have been filtered out.
 A dashboard number should match this within late-event lag (15 minutes).
 
 ## Supporting metrics

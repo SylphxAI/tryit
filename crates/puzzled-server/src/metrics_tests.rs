@@ -177,6 +177,115 @@ async fn rollup_matches_the_oracles_and_keeps_closed_cohort_and_landing_semantic
 }
 
 #[tokio::test]
+async fn rollup_excludes_marked_finishes_from_product_metrics_not_the_player() {
+    let Some(pool) = fresh_database().await else {
+        return;
+    };
+    let normal = Uuid::now_v7();
+    let harness = Uuid::now_v7();
+    let mixed = Uuid::now_v7();
+    let registered_fixture = Uuid::now_v7();
+    for day in [
+        "2026-10-18",
+        "2026-10-20",
+        "2026-10-21",
+        "2026-10-23",
+        "2026-10-25",
+    ] {
+        finish(&pool, normal, day, "sudoku", true, "puzzle_ritual", "won").await;
+        finish(&pool, harness, day, "sudoku", true, "puzzle_ritual", "won").await;
+    }
+    // A marked finish must not start a cohort or make a later real finish ineligible.
+    finish(
+        &pool,
+        mixed,
+        "2026-10-18",
+        "sudoku",
+        true,
+        "puzzle_ritual",
+        "won",
+    )
+    .await;
+    finish(
+        &pool,
+        normal,
+        "2026-10-25",
+        "oracle",
+        true,
+        "entertainment_oracle",
+        "won",
+    )
+    .await;
+    finish(
+        &pool,
+        harness,
+        "2026-10-25",
+        "oracle",
+        true,
+        "entertainment_oracle",
+        "won",
+    )
+    .await;
+    sqlx::query(
+        "UPDATE game_sessions SET comparison_excluded = true WHERE user_id = $1 OR user_id = $2",
+    )
+    .bind(harness)
+    .bind(mixed)
+    .execute(&pool)
+    .await
+    .unwrap();
+    finish(
+        &pool,
+        mixed,
+        "2026-10-25",
+        "sudoku",
+        true,
+        "puzzle_ritual",
+        "won",
+    )
+    .await;
+    sqlx::query("INSERT INTO synthetic_fixtures (user_id, fixture_key, auth_subject, synthetic_time) VALUES ($1, 'rollup-fixture', 'rollup-fixture-subject', now())")
+        .bind(registered_fixture).execute(&pool).await.unwrap();
+    finish(
+        &pool,
+        registered_fixture,
+        "2026-10-25",
+        "sudoku",
+        true,
+        "puzzle_ritual",
+        "won",
+    )
+    .await;
+
+    metrics::rollup(&pool, time("2026-11-01T16:17:00Z"))
+        .await
+        .unwrap();
+    let reports = metrics::reports(&pool).await.unwrap();
+    let report = |day| &reports.iter().find(|(r, _)| r.day_key == day).unwrap().0;
+    assert_eq!(report("2026-10-18").daily_puzzle_completers, 1);
+    let day = report("2026-10-25");
+    assert_eq!(day.daily_puzzle_completers, 2);
+    assert_eq!(day.daily_entertainment_completers, 1);
+    assert_eq!(day.weekly_ritualists, 1);
+    assert_eq!((day.d7_cohort, day.d7_returned), (1, 1));
+    // The mixed player's genuine first finish seeds a cohort seven days later.
+    assert_eq!(report("2026-11-01").d7_cohort, 1);
+
+    use puzzled_core::puzzle_play::ritual_completion::{DRC_RECOMPUTE_SQL, HRC_RECOMPUTE_SQL};
+    for (sql, count) in [
+        (DRC_RECOMPUTE_SQL, day.daily_puzzle_completers),
+        (HRC_RECOMPUTE_SQL, day.weekly_ritualists),
+    ] {
+        let recomputed: i64 = sqlx::query_scalar(sql)
+            .bind(&day.day_key)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(recomputed, count);
+    }
+}
+
+#[tokio::test]
 async fn landings_are_deduplicated_foreign_only_adopted_and_not_finishes() {
     let Some(pool) = fresh_database().await else {
         return;

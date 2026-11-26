@@ -49,11 +49,14 @@ WHERE day_key = $1
   AND is_ritual = true
   AND module_class = 'puzzle_ritual'
   AND status IN ('won', 'lost')
+  AND NOT comparison_excluded
+  AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id = game_sessions.user_id)
 "#;
 
 /// One-snapshot overview: distinct completers and per-module ritual finish counts.
 ///
-/// Bound `$1` = day_key `YYYY-MM-DD`. Same qualification as [`DRC_RECOMPUTE_SQL`].
+/// Bound `$1` = day_key `YYYY-MM-DD`. This is a play-surface snapshot, not
+/// the operator metric in [`DRC_RECOMPUTE_SQL`].
 /// The grand-total grouping has a NULL slug, including on an empty day. Game
 /// slugs are non-null in storage. One grouping-set scan avoids a second query,
 /// pool acquisition, and potentially different READ COMMITTED snapshot.
@@ -184,6 +187,8 @@ WITH daily AS (
   WHERE is_ritual = true
     AND module_class = 'puzzle_ritual'
     AND status IN ('won', 'lost')
+    AND NOT comparison_excluded
+    AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id = game_sessions.user_id)
     AND day_key >= to_char(($1::date - 6), 'YYYY-MM-DD')
     AND day_key <= $1
   GROUP BY user_id, day_key

@@ -1,6 +1,7 @@
 WITH qualified AS MATERIALIZED (
   SELECT user_id, day_key, completed_at FROM game_sessions
   WHERE is_ritual = true AND module_class = 'puzzle_ritual' AND status IN ('won', 'lost')
+    AND NOT comparison_excluded
     AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id=game_sessions.user_id)
 ), audiences AS MATERIALIZED (
   SELECT * FROM metric_audiences a
@@ -18,6 +19,7 @@ SELECT days.day_key,
      AND EXISTS (SELECT 1 FROM auth_subjects a WHERE a.user_id = q.user_id)) AS signed_in_completers,
   (SELECT count(DISTINCT user_id) FROM game_sessions g WHERE g.day_key = days.day_key
      AND g.is_ritual = true AND g.module_class = 'entertainment_oracle' AND g.status IN ('won','lost')
+     AND NOT g.comparison_excluded
      AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id=g.user_id)) AS daily_entertainment_completers,
   (SELECT count(*) FROM (SELECT user_id FROM daily q
      WHERE q.day_key BETWEEN to_char(days.day_key::date - 6, 'YYYY-MM-DD') AND days.day_key
