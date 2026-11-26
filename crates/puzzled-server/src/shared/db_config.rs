@@ -6,6 +6,21 @@ use sqlx::PgConnection;
 
 const WRITER_PROBE: &str = "SELECT NOT pg_is_in_recovery() AND current_setting('transaction_read_only') = 'off' AS writable";
 
+/// Keep two connections warm between visits without increasing the API cap.
+/// sqlx replaces reaped connections below this floor; it has no per-connection
+/// lifetime jitter. Longer bounds reduce synchronized retirement after boot.
+#[must_use]
+pub fn api_writer_pool_options() -> PgPoolOptions {
+    writer_pool_options(
+        PgPoolOptions::new()
+            .min_connections(2)
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(15))
+            .idle_timeout(Some(Duration::from_secs(30 * 60)))
+            .max_lifetime(Some(Duration::from_secs(2 * 60 * 60))),
+    )
+}
+
 /// Extend the existing pool, preserving its sizing, startup and acquisition budget.
 /// Writer validation is the health round trip; a separate ping is redundant.
 /// No statement is replayed if a writer is demoted after checkout.
