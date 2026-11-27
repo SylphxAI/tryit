@@ -10,6 +10,7 @@
 
 mod admission;
 mod daily;
+mod five_admission;
 mod grade;
 mod progress;
 mod puzzle;

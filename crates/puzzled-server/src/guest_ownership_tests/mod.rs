@@ -6,6 +6,7 @@ mod adoption;
 mod concurrent_first_writes;
 mod cookie_issuance;
 mod daily_play;
+mod five_cohort;
 mod identity_isolation;
 mod legacy_claim;
 mod support;
@@ -90,6 +91,11 @@ async fn plain_bootstrap_without_database_still_issues() {
 #[tokio::test]
 async fn passive_daily_reads_are_boardless_and_concurrent_starts_share_three_picks() {
     daily_play::passive_daily_reads_are_boardless_and_concurrent_starts_share_three_picks().await;
+}
+
+#[tokio::test]
+async fn five_cohort_guards_both_writers_and_preserves_legacy() {
+    five_cohort::five_cohort_guards_both_writers_and_preserves_legacy().await;
 }
 
 #[tokio::test]

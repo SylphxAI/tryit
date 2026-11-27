@@ -12,7 +12,7 @@ use puzzled_core::puzzle_play::application::guess_grading::{
 use puzzled_core::puzzle_play::daily_time::product_day_key;
 use puzzled_core::puzzle_play::game_slugs::canonicalize_game_slug;
 
-use super::{admission::Admission, date_from_string, PuzzleConnectService};
+use super::{admission::Admission, date_from_string, five_admission, PuzzleConnectService};
 use crate::capabilities::daily_pipeline;
 use crate::capabilities::puzzle_play::adapters::daily_puzzles_db::fetch_puzzle_by_id;
 use crate::proto::puzzled::v1::{CheckGuessRequest, CheckGuessResponse};
@@ -49,15 +49,17 @@ impl PuzzleConnectService {
             .map_err(|_| ConnectError::new(ErrorCode::InvalidArgument, "invalid_guess_json"))?;
         let puzzle = match (req.puzzle_id.as_deref(), &self.state.pool) {
             (Some(pid), Some(pool)) => match fetch_puzzle_by_id(pool, pid).await {
-                Ok(Some(p)) if p.game_slug == game_slug => p.solution,
+                Ok(Some(p)) if p.game_slug == game_slug => p
+                    .solution
+                    .map(|solution| (solution, Some(p.id.to_string()))),
                 _ => None,
             },
             _ => daily_pipeline::resolve(self.state.pool.as_ref(), game_slug, date, difficulty)
                 .await
                 .ok()
-                .map(|found| found.solution),
+                .map(|found| (found.solution, found.id)),
         };
-        let Some(solution) = puzzle else {
+        let Some((solution, puzzle_id)) = puzzle else {
             return Err(ConnectError::new(ErrorCode::NotFound, "puzzle_unavailable"));
         };
         // Reject invalid input before claiming a pick or charging an attempt.
@@ -72,6 +74,8 @@ impl PuzzleConnectService {
                 "identity_required_for_submit",
             ));
         }
+        five_admission::require_admitted(&mut access, game_slug, date, puzzle_id.as_deref())
+            .await?;
         if admission == Admission::FreePick {
             self.claim_free_pick(&mut access, billing_user, game_slug, today)
                 .await?;

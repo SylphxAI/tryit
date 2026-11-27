@@ -12,7 +12,7 @@ use puzzled_core::puzzle_play::daily_time::product_day_key;
 use puzzled_core::puzzle_play::game_slugs::{canonicalize_game_slug, is_valid_game_slug};
 
 use super::{
-    admission::Admission, date_from_string, parse_status, status_label,
+    admission::Admission, date_from_string, five_admission, parse_status, status_label,
     submit_puzzle::SubmissionPuzzle, PuzzleConnectService, TRACE_TARGET,
 };
 use crate::capabilities::puzzle_play::adapters::game_sessions_db::{
@@ -145,6 +145,8 @@ impl PuzzleConnectService {
             .ok_or_else(|| {
                 ConnectError::new(ErrorCode::Unauthenticated, "identity_required_for_submit")
             })?;
+        five_admission::require_admitted(&mut access, game_slug, date, resolved_id.as_deref())
+            .await?;
         // One verified finish per served puzzle **and** per free-daily
         // (user, game_slug, product day). Must not require resolved puzzle_id:
         // deterministic sudoku has no store row and sessions may store null

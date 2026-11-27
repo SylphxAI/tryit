@@ -3,5 +3,6 @@
 pub mod daily_free_picks;
 pub mod daily_puzzles_db;
 pub(crate) mod daily_snapshot;
+pub(crate) mod five_write_cohorts;
 pub mod game_sessions_db;
 pub mod result_shares_db;
