@@ -58,13 +58,18 @@ function useCookieConsent() {
 	return state
 }
 
-function ChoiceButtons(props: { copy: Copy; class: string; onChoose?: () => void }) {
+function ChoiceButtons(props: {
+	copy: Copy
+	class: string
+	onChoose?: () => void
+	banner?: boolean
+}) {
 	function choose(status: 'analytics_only' | 'granted' | 'denied') {
 		saveCookieChoice(status)
 		props.onChoose?.()
 	}
 	return (
-		<div class={props.class}>
+		<div class={props.class} data-consent-choices={props.banner ? '' : undefined}>
 			<button type="button" class={action} onClick={() => choose('denied')}>
 				{props.copy.decline}
 			</button>
@@ -120,8 +125,16 @@ export function ConsentBanner(props: { copy: Copy }) {
 						>
 							{props.copy.learnMore}
 						</a>
+						<CookieSettings
+							copy={props.copy}
+							triggerClass="consent-privacy text-xs underline underline-offset-2"
+						/>
 					</div>
-					<ChoiceButtons copy={props.copy} class="grid w-full grid-cols-3 gap-1.5 md:w-auto" />
+					<ChoiceButtons
+						copy={props.copy}
+						class="grid w-full grid-cols-3 gap-1.5 md:w-auto"
+						banner
+					/>
 				</div>
 			</section>
 		</Show>
@@ -129,13 +142,16 @@ export function ConsentBanner(props: { copy: Copy }) {
 }
 
 /** Same preferences in the public footer and member privacy settings. */
-export function CookieSettings(props: { copy: Copy }) {
+export function CookieSettings(props: { copy: Copy; triggerClass?: string }) {
 	const state = useCookieConsent()
 	let dialog: HTMLDialogElement | undefined
 	return (
 		<>
 			<button
-				class="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+				class={
+					props.triggerClass ??
+					'inline-flex min-h-11 items-center underline-offset-4 hover:underline'
+				}
 				type="button"
 				onClick={() => dialog?.showModal()}
 			>
@@ -157,6 +173,9 @@ export function CookieSettings(props: { copy: Copy }) {
 								: state()?.analytics
 									? props.copy.enabled
 									: props.copy.disabled}
+					</p>
+					<p class="text-sm text-muted-foreground" data-consent-providers>
+						{props.copy.providers}
 					</p>
 					<a class="chrome-control text-sm" href={props.copy.privacyHref}>
 						{props.copy.learnMore}

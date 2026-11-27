@@ -2,7 +2,7 @@
 	"privacy": {
 		"title": "Política de Privacidade",
 		"lastUpdated": "Última atualização",
-		"revision": "2026-11-14",
+		"revision": "2026-11-27",
 		"eyebrow": "Legal",
 		"lead": "Esta política explica quais dados o Tryit coleta, por que são coletados e como falar conosco sobre eles.",
 		"toc": {
@@ -57,7 +57,8 @@
 				"google": "Autenticação",
 				"mail": "Envio de e-mails (e-mails de login e verificação)",
 				"others": "Também podemos compartilhar dados com nossos provedores de hospedagem, consultores profissionais, autoridades quando a lei exigir, e com um comprador ou sucessor, caso nosso negócio ou o Tryit seja vendido ou reorganizado.",
-				"googleMeasurement": "Google Analytics e medição do Google Ads conforme as regras regionais na seção Cookies."
+				"googleMeasurement": "Google Analytics e medição do Google Ads conforme as regras regionais na seção Cookies.",
+				"meta": "**Meta Platforms (Meta Pixel & Conversions API):** **Meta Platforms Ireland Limited** (for users in the EEA, UK, and Switzerland) and **Meta Platforms, Inc.** (elsewhere) receive website and server-side purchase-measurement events only when optional advertising measurement is enabled under the regional and consent rules above. For the collection and transmission of event data from our websites in the EEA, UK, and Switzerland, Sylphx Limited and Meta Platforms Ireland Limited act as joint controllers under Meta's [Controller Addendum](https://www.facebook.com/legal/controller_addendum); Meta Platforms Ireland Limited is an independent controller for its subsequent processing under the [Meta Privacy Policy](https://www.facebook.com/privacy/policy). International transfers to Meta Platforms, Inc. in the United States rely on approved safeguards (such as the UK International Data Transfer Addendum, EU Standard Contractual Clauses, or the UK–US Data Bridge / Data Privacy Framework)."
 			},
 			"transfers": {
 				"title": "Transferências internacionais",
@@ -71,7 +72,9 @@
 				"title": "Cookies",
 				"content": "Usamos cookies necessários para login, segurança e configurações. Usamos o código de país da Cloudflare, não seu idioma. No EEE, no Reino Unido, na Suíça e em territórios europeus associados, ou se o país é desconhecido, análise e publicidade ficam desligadas até você aceitar. Nos demais locais, são ativadas por padrão até você recusar. Em Configurações de cookies (rodapé ou Configurações → Privacidade), escolha ambas, só análise ou nenhuma. Global Privacy Control (GPC) na solicitação ou no navegador desativa ambas mesmo após aceitação. Recusar não afeta o acesso ao Tryit.",
 				"notices": "Mais um cookie lembra quais avisos do site você fechou ou já viu: puzzled_dismissed_notices. Ele é estritamente necessário, definido por nós (próprio) e mantido por um ano; guarda apenas os IDs desses avisos, sem dados pessoais, por isso é definido sem pedir permissão e não é usado para análise. Outro cookie próprio estritamente necessário, o puzzled_currency, lembra a moeda que você escolhe na página de preços (por exemplo, GBP ou USD) por um ano; guarda apenas o código da moeda, sem dados pessoais, e não é usado para análise.",
-				"google": "O Google Analytics só registra visualizações de páginas públicas aprovadas, sem parâmetros nem URL de origem. Com análise ativada, enviamos tags de campanha e identificadores do Google Analytics para atribuição no checkout. Com publicidade ativada, também podemos enviar IDs de clique e do navegador da Meta e permitimos armazenamento publicitário, uso de dados e sinais de personalização. Relatórios podem incluir plano e preço, mas não nome ou e-mail."
+				"ga4": "Google Analytics page views use approved public paths only. To attribute visits and campaigns, the first page view after measurement is enabled may include allowlisted campaign parameters (`utm_*` — plus ad click parameters `gclid`, `gbraid`, and `wbraid` strictly when advertising measurement is enabled) and the external referrer's origin and path with its query string removed. Subsequent page views omit query strings and referrer URLs, and no measurement is dispatched when optional measurement is off or Global Privacy Control is active.",
+				"google": "Com análise ativada, enviamos tags de campanha e identificadores do Google Analytics para atribuição no checkout. Com publicidade ativada, também podemos enviar IDs de clique e do navegador da Meta e permitimos armazenamento publicitário, uso de dados e sinais de personalização. Relatórios podem incluir plano e preço, mas não nome ou e-mail.",
+				"meta": "**Meta Pixel and Meta Conversions API:** When optional advertising measurement is enabled (and Global Privacy Control is not active), we may load the **Meta Pixel** on public marketing, pricing, and checkout-confirmation pages and store first-party attribution identifiers (`_fbp` and `_fbc` for up to 90 days, and ad click ID `fbclid` for up to 30 days) in your browser. When you start or complete a purchase with advertising measurement enabled, **Sylphx Events** may also send server-side conversion events to Meta via the **Meta Conversions API (CAPI)** (including event/transaction reference, plan, amount, currency, event time, and available consented click/browser identifiers) so we can measure whether our ads lead to a verified purchase even if you close the checkout window. When advertising measurement is off or Global Privacy Control is on, we do not load the Meta Pixel or send conversion events to Meta. We never send Meta your gameplay history, account email address, or card details."
 			},
 			"rights": {
 				"title": "Seus direitos",
@@ -98,7 +101,7 @@
 			},
 			"changes": {
 				"title": "Alterações nesta política",
-				"content": "Podemos atualizar esta política e publicar cada nova versão nesta página com uma nova data de revisão vigente (atualmente 2026-11-14). As versões atualizadas entram em vigor mediante aviso (como publicação nesta página, e-mail ou aviso no produto) e o seu uso continuado ou aceitação de uma solicitação de reconsentimento no produto. Se pretendermos usar seus dados pessoais para uma nova finalidade, ou quando a lei exigir novo consentimento, avisaremos e obteremos seu consentimento antes de fazê-lo."
+				"content": "Podemos atualizar esta política e publicar cada nova versão nesta página com uma nova data de revisão vigente (atualmente 2026-11-27). As versões atualizadas entram em vigor mediante aviso (como publicação nesta página, e-mail ou aviso no produto) e o seu uso continuado ou aceitação de uma solicitação de reconsentimento no produto. Se pretendermos usar seus dados pessoais para uma nova finalidade, ou quando a lei exigir novo consentimento, avisaremos e obteremos seu consentimento antes de fazê-lo."
 			},
 			"contact": {
 				"title": "Fale conosco",

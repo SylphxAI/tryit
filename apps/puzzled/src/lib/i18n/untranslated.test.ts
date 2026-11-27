@@ -28,6 +28,11 @@ const SHARED_KEYS = new Set([
 	'settings.privacy.deleteAccount.confirmWord', // the word the player types; matches the English prompt
 	'settings.account.providers.',
 	'settings.connectedAccounts.providers.',
+	// Counsel's binding English text, published verbatim in every locale until a
+	// counsel-approved translation exists.
+	'legal.privacy.sections.cookies.ga4',
+	'legal.privacy.sections.cookies.meta',
+	'legal.privacy.sections.thirdParty.meta',
 ])
 
 /** Loanwords and cognates that are the ordinary word in that language. */

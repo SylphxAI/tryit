@@ -2,7 +2,7 @@
 	"privacy": {
 		"title": "隐私政策",
 		"lastUpdated": "最后更新",
-		"revision": "2026-11-14",
+		"revision": "2026-11-27",
 		"eyebrow": "法律文件",
 		"lead": "本政策说明 Tryit 收集哪些数据、为何收集，以及你可以如何就此联系我们。",
 		"toc": {
@@ -57,7 +57,8 @@
 				"google": "身份验证",
 				"mail": "电子邮件发送（登录与验证邮件）",
 				"others": "我们也可能与我们的托管服务提供商、专业顾问、法律要求时的有关部门，以及在我们的业务或 Tryit 出售或重组时的买方或继受方共享数据。",
-				"googleMeasurement": "按 Cookie 部分的地区规则使用 Google Analytics 和 Google Ads 衡量效果。"
+				"googleMeasurement": "按 Cookie 部分的地区规则使用 Google Analytics 和 Google Ads 衡量效果。",
+				"meta": "**Meta Platforms (Meta Pixel & Conversions API):** **Meta Platforms Ireland Limited** (for users in the EEA, UK, and Switzerland) and **Meta Platforms, Inc.** (elsewhere) receive website and server-side purchase-measurement events only when optional advertising measurement is enabled under the regional and consent rules above. For the collection and transmission of event data from our websites in the EEA, UK, and Switzerland, Sylphx Limited and Meta Platforms Ireland Limited act as joint controllers under Meta's [Controller Addendum](https://www.facebook.com/legal/controller_addendum); Meta Platforms Ireland Limited is an independent controller for its subsequent processing under the [Meta Privacy Policy](https://www.facebook.com/privacy/policy). International transfers to Meta Platforms, Inc. in the United States rely on approved safeguards (such as the UK International Data Transfer Addendum, EU Standard Contractual Clauses, or the UK–US Data Bridge / Data Privacy Framework)."
 			},
 			"transfers": {
 				"title": "跨境传输",
@@ -71,7 +72,9 @@
 				"title": "Cookie",
 				"content": "我们使用必要 Cookie 来登录、保证安全和记住设置。我们采用 Cloudflare 提供的国家代码，而非你的语言。欧洲经济区、英国、瑞士、相关欧洲领地或地区不明时，分析和广告默认关闭，直到你同意；其他地区默认启用，你可以拒绝。你可在页脚或“设置 → 隐私”的 Cookie 设置中允许两者、仅分析或拒绝两者。如果浏览器或请求发出 Global Privacy Control（GPC）信号，即使你已同意，也会关闭两者。拒绝不影响使用 Tryit。",
 				"notices": "另有一个 Cookie 用来记住你已关闭或已看过哪些站点公告：puzzled_dismissed_notices。它属于必要 Cookie，由我们自己设置（第一方），保存一年，只记录这些公告的编号，不含任何个人信息，因此无需询问即会设置，也不会用于分析。另有一个必要的第一方 Cookie：puzzled_currency，用来记住你在价格页选择的货币（例如 GBP 或 USD），保存一年，只记录货币代码，不含任何个人信息，也不会用于分析。",
-				"google": "Google Analytics 仅记录经批准的公开页面浏览，不包含查询字符串或来源网址。启用分析后，结账效果衡量会发送营销标记和 Google Analytics 标识符；启用广告时也可能发送广告点击和 Meta 浏览器标识符，并允许广告存储、使用数据及个性化信号。转化报告可包含方案和价格，但不包含姓名或电子邮件地址。"
+				"ga4": "Google Analytics page views use approved public paths only. To attribute visits and campaigns, the first page view after measurement is enabled may include allowlisted campaign parameters (`utm_*` — plus ad click parameters `gclid`, `gbraid`, and `wbraid` strictly when advertising measurement is enabled) and the external referrer's origin and path with its query string removed. Subsequent page views omit query strings and referrer URLs, and no measurement is dispatched when optional measurement is off or Global Privacy Control is active.",
+				"google": "启用分析后，结账效果衡量会发送营销标记和 Google Analytics 标识符；启用广告时也可能发送广告点击和 Meta 浏览器标识符，并允许广告存储、使用数据及个性化信号。转化报告可包含方案和价格，但不包含姓名或电子邮件地址。",
+				"meta": "**Meta Pixel and Meta Conversions API:** When optional advertising measurement is enabled (and Global Privacy Control is not active), we may load the **Meta Pixel** on public marketing, pricing, and checkout-confirmation pages and store first-party attribution identifiers (`_fbp` and `_fbc` for up to 90 days, and ad click ID `fbclid` for up to 30 days) in your browser. When you start or complete a purchase with advertising measurement enabled, **Sylphx Events** may also send server-side conversion events to Meta via the **Meta Conversions API (CAPI)** (including event/transaction reference, plan, amount, currency, event time, and available consented click/browser identifiers) so we can measure whether our ads lead to a verified purchase even if you close the checkout window. When advertising measurement is off or Global Privacy Control is on, we do not load the Meta Pixel or send conversion events to Meta. We never send Meta your gameplay history, account email address, or card details."
 			},
 			"rights": {
 				"title": "你的权利",
@@ -98,7 +101,7 @@
 			},
 			"changes": {
 				"title": "政策变更",
-				"content": "我们可能会更新本政策，并在本页发布带有新生效修订日期（当前为 2026-11-14）的新版本。更新后的版本在通知（例如在本页发布、电子邮件或产品内通知）及你继续使用或接受产品内重新同意提示后生效。如果我们打算为新目的使用你的个人数据，或法律要求重新征得同意，会在使用前通知你并取得同意。"
+				"content": "我们可能会更新本政策，并在本页发布带有新生效修订日期（当前为 2026-11-27）的新版本。更新后的版本在通知（例如在本页发布、电子邮件或产品内通知）及你继续使用或接受产品内重新同意提示后生效。如果我们打算为新目的使用你的个人数据，或法律要求重新征得同意，会在使用前通知你并取得同意。"
 			},
 			"contact": {
 				"title": "联系我们",

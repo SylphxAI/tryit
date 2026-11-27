@@ -6,6 +6,7 @@ import { defaultLocale } from '@/lib/i18n/config'
 import { localizedPath } from '@/lib/seo/urls'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
+import { InlineText } from './inline-text'
 import { type Policy, readPolicy } from './policy-route'
 
 export function PolicyPage(props: { kind: Policy }) {
@@ -57,14 +58,23 @@ export function PolicyPage(props: { kind: Policy }) {
 										{(section) => (
 											<section id={section.id} class="scroll-mt-24 space-y-3">
 												<h2 class="font-display text-2xl">{section.title}</h2>
-												<For each={section.paragraphs}>{(paragraph) => <p>{paragraph}</p>}</For>
+												<For each={section.paragraphs}>
+													{(paragraph) => (
+														<p>
+															<InlineText text={paragraph} />
+														</p>
+													)}
+												</For>
 												<Show when={section.bullets.length || section.providers.length}>
 													<ul class="list-disc space-y-2 ps-5">
 														<For each={section.bullets}>{(bullet) => <li>{bullet}</li>}</For>
 														<For each={section.providers}>
 															{(provider) => (
 																<li>
-																	<strong>{provider.name}</strong> – {provider.description}
+																	<Show when={provider.name}>
+																		<strong>{provider.name}</strong> –{' '}
+																	</Show>
+																	<InlineText text={provider.description} />
 																</li>
 															)}
 														</For>

@@ -136,7 +136,7 @@ async function canvasGeometry(page: Page) {
 				? []
 				: [el.getAttribute('aria-label') || el.textContent]
 		})
-		const choices = [...dock.querySelectorAll('button')].map((el) => {
+		const choices = [...dock.querySelectorAll('[data-consent-choices] button')].map((el) => {
 			const { width, height } = el.getBoundingClientRect()
 			return JSON.stringify([el.className, Math.round(width), Math.round(height)])
 		})
@@ -291,7 +291,7 @@ for (const [width, height] of layouts) {
 				test(slug + ' fits the frameless play canvas (' + locale + ')', async ({ page }) => {
 					await openBoard(page, slug, locale)
 					const dock = page.locator('[data-consent-banner]')
-					await expect(dock.getByRole('button')).toHaveText(
+					await expect(dock.locator('[data-consent-choices]').getByRole('button')).toHaveText(
 						locale === 'en-US'
 							? ['Decline', 'Accept', 'Analytics only']
 							: ['拒絕', '接受', '僅限分析'],
@@ -450,7 +450,7 @@ for (const [width, height] of layouts) {
 						await checkHelp(page, locale === 'en-US' ? 'How to play' : '玩法')
 						const play = page.locator('#play')
 						const before = (await play.boundingBox())!.height
-						await dock.getByRole('button').first().click()
+						await dock.locator('[data-consent-choices]').getByRole('button').first().click()
 						await expect(dock).toHaveCount(0)
 						expect((await play.boundingBox())!.height).toBeGreaterThan(before)
 					}

@@ -5,6 +5,7 @@
 	"decline": "拒否する",
 	"learnMore": "プライバシーポリシー",
 	"change": "Cookie 設定",
+	"providers": "計測・広告のプロバイダー：Google Analytics、Google Ads、Meta。",
 	"close": "閉じる",
 	"gpc": "Global Privacy Control（GPC）が有効です。任意の分析と広告は無効になっています。",
 	"enabled": "分析用 Cookie は有効です。",

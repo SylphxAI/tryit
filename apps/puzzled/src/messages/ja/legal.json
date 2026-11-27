@@ -2,7 +2,7 @@
 	"privacy": {
 		"title": "プライバシーポリシー",
 		"lastUpdated": "最終更新日",
-		"revision": "2026-11-14",
+		"revision": "2026-11-27",
 		"eyebrow": "法的情報",
 		"lead": "本ポリシーでは、Tryit が収集するデータの内容と収集の目的、およびこれに関するお問い合わせ方法について説明します。",
 		"toc": {
@@ -57,7 +57,8 @@
 				"google": "認証",
 				"mail": "メール配信(ログインおよび認証メール)",
 				"others": "このほか、ホスティング事業者、専門アドバイザー、法令により求められる場合の当局、当社または Tryit の事業が売却・再編された場合の譲受人や承継人とも、データを共有することがあります。",
-				"googleMeasurement": "「Cookie」に記載した地域ルールに従い、Google Analytics と Google Ads で計測します。"
+				"googleMeasurement": "「Cookie」に記載した地域ルールに従い、Google Analytics と Google Ads で計測します。",
+				"meta": "**Meta Platforms (Meta Pixel & Conversions API):** **Meta Platforms Ireland Limited** (for users in the EEA, UK, and Switzerland) and **Meta Platforms, Inc.** (elsewhere) receive website and server-side purchase-measurement events only when optional advertising measurement is enabled under the regional and consent rules above. For the collection and transmission of event data from our websites in the EEA, UK, and Switzerland, Sylphx Limited and Meta Platforms Ireland Limited act as joint controllers under Meta's [Controller Addendum](https://www.facebook.com/legal/controller_addendum); Meta Platforms Ireland Limited is an independent controller for its subsequent processing under the [Meta Privacy Policy](https://www.facebook.com/privacy/policy). International transfers to Meta Platforms, Inc. in the United States rely on approved safeguards (such as the UK International Data Transfer Addendum, EU Standard Contractual Clauses, or the UK–US Data Bridge / Data Privacy Framework)."
 			},
 			"transfers": {
 				"title": "国際的なデータ移転",
@@ -71,7 +72,9 @@
 				"title": "Cookie",
 				"content": "ログイン、セキュリティ、設定に必須の Cookie を使用します。言語ではなく Cloudflare が提供する国コードを使用します。EEA、英国、スイス、関連する欧州地域、または地域が不明な場合、分析と広告は同意まで無効です。それ以外ではオプトアウトするまで両方とも有効です。フッターまたは「設定 → プライバシー」の Cookie 設定から、両方を許可、分析のみ、両方を拒否のいずれかを選べます。以前同意していても、リクエストやブラウザーの Global Privacy Control（GPC）が有効なら両方を無効にします。拒否しても Tryit は利用できます。",
 				"notices": "もう 1 つ、閉じた、または確認済みのサイトのお知らせを記憶する Cookie として puzzled_dismissed_notices があります。これは必須の Cookie で、当社が設定し(ファーストパーティ)、1 年間保持されます。保存されるのはお知らせの ID のみで、個人データは含まれないため、同意をいただかずに設定され、分析には使用しません。また、必須のファーストパーティ Cookie である puzzled_currency は、料金ページで選択された通貨(GBP や USD など)を 1 年間記憶します。保存されるのは通貨コードのみで、個人データは含まれず、分析には使用しません。",
-				"google": "Google Analytics の閲覧計測は指定した公開ページのみで、クエリ文字列と参照元 URL は含みません。分析が有効な場合、購入の計測にキャンペーンタグと Google Analytics の識別子を送ります。広告が有効な場合は広告クリック ID や Meta のブラウザー識別子も送ることがあり、広告用の保存、ユーザーデータ利用、パーソナライズのシグナルを許可します。計測レポートにはプランと価格が含まれる場合がありますが、氏名やメールアドレスは含まれません。"
+				"ga4": "Google Analytics page views use approved public paths only. To attribute visits and campaigns, the first page view after measurement is enabled may include allowlisted campaign parameters (`utm_*` — plus ad click parameters `gclid`, `gbraid`, and `wbraid` strictly when advertising measurement is enabled) and the external referrer's origin and path with its query string removed. Subsequent page views omit query strings and referrer URLs, and no measurement is dispatched when optional measurement is off or Global Privacy Control is active.",
+				"google": "分析が有効な場合、購入の計測にキャンペーンタグと Google Analytics の識別子を送ります。広告が有効な場合は広告クリック ID や Meta のブラウザー識別子も送ることがあり、広告用の保存、ユーザーデータ利用、パーソナライズのシグナルを許可します。計測レポートにはプランと価格が含まれる場合がありますが、氏名やメールアドレスは含まれません。",
+				"meta": "**Meta Pixel and Meta Conversions API:** When optional advertising measurement is enabled (and Global Privacy Control is not active), we may load the **Meta Pixel** on public marketing, pricing, and checkout-confirmation pages and store first-party attribution identifiers (`_fbp` and `_fbc` for up to 90 days, and ad click ID `fbclid` for up to 30 days) in your browser. When you start or complete a purchase with advertising measurement enabled, **Sylphx Events** may also send server-side conversion events to Meta via the **Meta Conversions API (CAPI)** (including event/transaction reference, plan, amount, currency, event time, and available consented click/browser identifiers) so we can measure whether our ads lead to a verified purchase even if you close the checkout window. When advertising measurement is off or Global Privacy Control is on, we do not load the Meta Pixel or send conversion events to Meta. We never send Meta your gameplay history, account email address, or card details."
 			},
 			"rights": {
 				"title": "お客様の権利",
@@ -98,7 +101,7 @@
 			},
 			"changes": {
 				"title": "本ポリシーの変更",
-				"content": "当社は、本ポリシーを更新し、新しい発効改定日(現在は 2026-11-14)とともに新しい版をこのページに掲載することがあります。改定版は、通知(このページへの掲載、メール、またはサービス内通知など)と、お客様による継続利用またはサービス内の再同意プロンプトへの承諾をもって効力を生じます。個人データを新たな目的で利用する予定がある場合、または法令上新たな同意が必要な場合は、事前に通知して同意を取得します。"
+				"content": "当社は、本ポリシーを更新し、新しい発効改定日(現在は 2026-11-27)とともに新しい版をこのページに掲載することがあります。改定版は、通知(このページへの掲載、メール、またはサービス内通知など)と、お客様による継続利用またはサービス内の再同意プロンプトへの承諾をもって効力を生じます。個人データを新たな目的で利用する予定がある場合、または法令上新たな同意が必要な場合は、事前に通知して同意を取得します。"
 			},
 			"contact": {
 				"title": "お問い合わせ",
