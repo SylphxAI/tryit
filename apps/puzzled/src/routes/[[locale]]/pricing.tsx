@@ -3,6 +3,7 @@ import { createAsync, query, type RouteDefinition, useLocation, useParams } from
 import { HttpHeader } from '@solidjs/start'
 import { Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
+import { PricingOfferVisit } from '@/features/analytics/solid/pricing-offer-visit'
 import { PricingPage } from '@/features/plus/solid/pricing-page'
 import { defaultLocale, isValidLocale, locales } from '@/lib/i18n/config'
 
@@ -26,15 +27,18 @@ export const route = {
 export default function Pricing() {
 	const params = useParams()
 	const location = useLocation()
+	const viewed = new Set<'plus' | 'family'>()
 	const data = createAsync(() => getPricing(params.locale ?? defaultLocale, location.search), {
 		deferStream: true,
 	})
 	return (
 		<>
 			<HttpHeader name="Cache-Control" value="private, no-store" />
-			<Show when={data()} keyed>
-				{(page) => <PricingPage data={page} />}
-			</Show>
+			<PricingOfferVisit.Provider value={viewed}>
+				<Show when={data()} keyed>
+					{(page) => <PricingPage data={page} />}
+				</Show>
+			</PricingOfferVisit.Provider>
 		</>
 	)
 }

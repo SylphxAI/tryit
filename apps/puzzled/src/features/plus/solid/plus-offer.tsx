@@ -2,6 +2,7 @@
 import { Check } from 'lucide-solid'
 import { createEffect, createMemo, createSignal, For, type JSX, onMount, Show } from 'solid-js'
 import { trackPlusViewStage } from '@/features/analytics/lib/signal-stages'
+import { usePricingOfferVisibility } from '@/features/analytics/solid/pricing-offer-visit'
 import { formatMonthlyEquivalentPrice, formatPrice, type PlanCard } from '@/lib/billing/plus'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -60,6 +61,7 @@ type Props = {
  * SubscribeButton checkout flow.
  */
 export function PlusOffer(props: Props) {
+	const observePricingRow = usePricingOfferVisibility()
 	const translate = createTranslator(props.locale)
 	const t = (key: string, values?: Record<string, string | number>) =>
 		translate(`plus.pricing.${key}`, values)
@@ -127,8 +129,14 @@ export function PlusOffer(props: Props) {
 								const isOnce = card.interval === 'once'
 								const isYear = card.interval === 'year'
 								const checked = () => card.interval === interval()
+								let row!: HTMLLabelElement
+								createEffect(() => {
+									if (props.pricingPage && !props.subscribed && current()?.id === card.id)
+										observePricingRow(row, props.id, card.id)
+								})
 								return (
 									<label
+										ref={row}
 										class={cn(
 											styles.option,
 											'flex cursor-pointer items-center gap-3 rounded-xl border px-3',
