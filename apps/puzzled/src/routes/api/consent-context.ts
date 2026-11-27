@@ -9,7 +9,11 @@ const STRICT_TERRITORIES = new Set(
 	'AC AN AX CP DG EA EU EZ GF GG GI GP IC IM JE KR MF MQ RE SJ SU TA UK UN XK YT YU'.split(' '),
 )
 
-// Only a policy bucket leaves the server. Page HTML and cache keys stay geo-neutral.
+// The ten supported opt-out markets are a narrower policy than the existing
+// broad ROW/EEA bucket, which remains unchanged.
+const OPT_OUT_MARKETS = new Set('US CA AU NZ JP HK TW SG AE IL'.split(' '))
+
+// Only policy decisions leave the server. Page HTML and cache keys stay geo-neutral.
 export function GET({ request }: { request: Request }) {
 	const country = request.headers.get('CF-IPCountry') ?? ''
 	const candidate = /^[A-Z]{2}$/.test(country) && !STRICT_TERRITORIES.has(country) ? country : 'EEA'
@@ -17,6 +21,7 @@ export function GET({ request }: { request: Request }) {
 	return Response.json(
 		{
 			region: analytics_storage === 'granted' ? 'ROW' : 'EEA',
+			optOutMarket: OPT_OUT_MARKETS.has(country),
 			gpc:
 				request.headers
 					.get('Sec-GPC')
