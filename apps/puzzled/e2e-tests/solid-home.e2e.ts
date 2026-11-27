@@ -14,8 +14,8 @@ test('home serves the localized daily lineup, canonical metadata and FAQ without
 	try {
 		const page = await context.newPage()
 		for (const [path, lang, headline] of [
-			['/', 'en-US', /19 daily puzzles/i],
-			['/es', 'es', /19 puzles diarios/i],
+			['/', 'en-US', 'Pick any 3 for free'],
+			['/es', 'es', 'Elige 3 gratis'],
 		] as const) {
 			const response = await page.goto(path)
 			expect(response?.status()).toBe(200)

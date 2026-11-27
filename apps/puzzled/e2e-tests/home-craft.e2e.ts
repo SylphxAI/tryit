@@ -175,9 +175,6 @@ for (const viewport of [
 				(await card.getAttribute('data-home-game')) ?? undefined,
 			).toBe(false)
 		}
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-			'19 daily puzzles. Play now, no account needed.',
-		)
 		await expect(page.getByText('0 of 3 free picks used today')).toBeVisible()
 		const images = await motifs.evaluateAll((nodes: HTMLImageElement[]) =>
 			nodes.map((image) => ({
@@ -204,6 +201,72 @@ for (const viewport of [
 				loading: null,
 			})
 			expect(image.width, image.slug).toBeGreaterThan(0)
+		}
+		expect(await page.evaluate(() => window.scrollY)).toBe(0)
+	})
+}
+
+for (const [path, lang, headline, detail, featuredLabel, notice] of [
+	[
+		'/',
+		'en-US',
+		'Pick any 3 for free',
+		'19 daily puzzles. No account needed.',
+		'Featured today',
+		null,
+	],
+	[
+		'/ja',
+		'ja',
+		'好きな3つを無料で',
+		'毎日19種類のパズル。アカウント不要。',
+		'今日のおすすめ',
+		'英単語パズル',
+	],
+	[
+		'/zh-HK',
+		'zh-HK',
+		'任揀 3 款免費玩',
+		'每日 19 款謎題，唔使開帳戶。',
+		'今日精選',
+		'英文單詞謎題',
+	],
+] as const) {
+	test(`${lang} Home explains the free choice before Play`, async ({ page }) => {
+		await page.setViewportSize({ width: 375, height: 667 })
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		await page.goto(path)
+		await expect(page.locator('html')).toHaveAttribute('lang', lang)
+		const heading = page.getByRole('heading', { level: 1 })
+		const details = page.getByText(detail, { exact: true })
+		const hero = page.locator('[data-day-puzzle-card]')
+		const label = hero.getByText(featuredLabel, { exact: true })
+		const play = hero.locator('[data-home-featured]')
+		const dock = page.locator('[data-consent-banner]')
+		await expect(heading).toHaveText(headline)
+		await expect(dock).toBeVisible()
+		await settle(page)
+		await page.evaluate(() => document.fonts.ready.then(() => undefined))
+		const dockTop = (await dock.boundingBox())!.y
+		const playTop = (await play.boundingBox())!.y
+		for (const message of [heading, details, label]) {
+			await expect(message).toBeInViewport({ ratio: 1 })
+			const { y, height } = (await message.boundingBox())!
+			expect(y + height).toBeLessThanOrEqual(Math.min(dockTop, playTop))
+		}
+		await expect(page.locator('[data-home-game]')).toHaveCount(18)
+		const five = page.locator('[data-home-game="word-guess"], [data-home-featured="word-guess"]')
+		await expect(five).toHaveCount(1)
+		const englishNotice = page.getByText(notice ?? 'English word puzzle', { exact: true })
+		if (!notice) {
+			await expect(englishNotice).toHaveCount(0)
+		} else if ((await play.getAttribute('data-home-featured')) === 'word-guess') {
+			await expect(englishNotice).toBeInViewport({ ratio: 1 })
+			const { y, height } = (await englishNotice.boundingBox())!
+			expect(y + height).toBeLessThanOrEqual(Math.min(dockTop, playTop))
+		} else {
+			await expect(five).toHaveAccessibleName(new RegExp(notice))
+			await expect(five.getByText(notice, { exact: true })).toBeVisible()
 		}
 		expect(await page.evaluate(() => window.scrollY)).toBe(0)
 	})
@@ -290,9 +353,8 @@ test('Taiwan home and all 19 catalog tiles use local names and minute badges', a
 	await expect(page.locator('[data-day-primary-action]')).toHaveText(
 		`遊玩今日的「${await featured.textContent()}」`,
 	)
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-		'每天 19 款謎題，不用註冊就能玩。',
-	)
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('任選 3 款免費玩')
+	await expect(page.getByText('每天 19 款謎題，不用註冊。', { exact: true })).toBeVisible()
 	await expect(page.getByText('今天 3 個免費名額已用 0 個')).toBeVisible()
 	await expect(page.getByText(/今天已有 .* 位玩家完成/)).toHaveCount(0)
 	await expect(page.getByRole('link', { name: '跳至主要內容', exact: true })).toHaveAttribute(

@@ -966,10 +966,6 @@
 				"keys": ["stats.streakCard.notPlayedToday", "stats.streakHintOpen"]
 			},
 			{
-				"value": "Today's pick",
-				"keys": ["catalog.freeToday", "home.lineup.freeToday"]
-			},
-			{
 				"value": "Total Users",
 				"keys": ["admin.dashboard.totalUsers", "admin.system.totalUsers", "admin.users.totalUsers"]
 			},
@@ -2076,10 +2072,6 @@
 			{
 				"value": "Today is still open",
 				"keys": ["stats.streakCard.notPlayedToday", "stats.streakHintOpen"]
-			},
-			{
-				"value": "Today's pick",
-				"keys": ["catalog.freeToday", "home.lineup.freeToday"]
 			},
 			{
 				"value": "Total Users",
