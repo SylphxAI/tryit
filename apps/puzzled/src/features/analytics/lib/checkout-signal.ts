@@ -4,7 +4,7 @@ import {
 	type SignalAttribution,
 } from '@sylphx/sdk/signal'
 import { checkoutEntrySurface } from './checkout-entry-surface'
-import { captureSignalTouch, cookieConsent } from './consent'
+import { canUseMeta, captureSignalTouch, cookieConsent } from './consent'
 
 let measurementId: string | undefined
 
@@ -45,11 +45,14 @@ export function checkoutSignalHeaders(trigger?: string): Record<string, string> 
 		const { gclid, gbraid, wbraid, fbclid, capturedAt, ...utm } = captureSignalTouch()
 		const metaClick =
 			fbclid && capturedAt && !fbc?.endsWith(`.${fbclid}`) ? `fb.1.${capturedAt}.${fbclid}` : fbc
+		// Meta identifiers need the Meta-eligible grant; Google's ad ids keep the ad grant.
+		const meta = ad && canUseMeta()
 		const snapshot: CheckoutSnapshot = {
 			ga_client_id: gaClientId,
 			ga_session_id: gaSessionId,
 			...utm,
-			...(ad ? { gclid, gbraid, wbraid, fbclid, fbc: metaClick, fbp } : {}),
+			...(ad ? { gclid, gbraid, wbraid } : {}),
+			...(meta ? { fbclid, fbc: metaClick, fbp } : {}),
 		}
 		const json = JSON.stringify(snapshot)
 		// ASCII-safe wire encoding, including international campaign tags.

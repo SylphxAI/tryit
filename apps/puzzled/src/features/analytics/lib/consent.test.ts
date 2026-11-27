@@ -2,10 +2,12 @@ import { afterEach, expect, test } from 'bun:test'
 import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
 import { buildCsp } from '@/lib/csp'
 import { signalStreamConfig } from '@/lib/signal-config'
-import { CONSENT_KEY } from '@/lib/storage-keys'
+import { CONSENT_KEY, CONSENT_VERSION_KEY } from '@/lib/storage-keys'
 import { GET } from '@/routes/api/consent-context'
 import { checkoutSignalHeaders, setCheckoutMeasurementId } from './checkout-signal'
 import {
+	CONSENT_VERSION,
+	canUseMeta,
 	captureSignalTouch,
 	cookieConsent,
 	saveCookieChoice,
@@ -80,22 +82,48 @@ afterEach(() => {
 })
 
 for (const country of ['US', 'CA', 'AU']) {
-	test(`${country} defaults to complete SDK consent and attribution`, async () => {
-		browser()
+	test(`${country} defaults to complete SDK consent and Google attribution, Meta only once saved`, async () => {
+		const store = browser()
 		await context(country)
-		expect(snapshot()).toEqual({
-			consent: full,
-			surface: 'pricing_card',
-			fields: {
-				ga_client_id: '12345.67890',
-				ga_session_id: '1234567890',
-				gclid: 'fixture_g',
-				fbclid: 'fixture_fb',
-				fbp: 'fb.1.1234567890.444',
-				fbc: expect.stringMatching(/^fb\.1\.\d+\.fixture_fb$/),
-				utm_source: 'fixture',
-			},
+		const google = {
+			ga_client_id: '12345.67890',
+			ga_session_id: '1234567890',
+			gclid: 'fixture_g',
+			utm_source: 'fixture',
+		}
+		// An unsaved regional default is not a Meta grant.
+		expect(snapshot()).toEqual({ consent: full, surface: 'pricing_card', fields: google })
+		saveCookieChoice('granted')
+		expect(store.get(CONSENT_VERSION_KEY)).toBe(CONSENT_VERSION)
+		expect(snapshot().fields).toEqual({
+			...google,
+			fbclid: 'fixture_fb',
+			fbp: 'fb.1.1234567890.444',
+			fbc: expect.stringMatching(/^fb\.1\.\d+\.fixture_fb$/),
 		})
+	})
+}
+
+for (const country of ['DE', 'GB', 'CH', 'US']) {
+	test(`${country} grant saved before the Meta consent version keeps Google, not Meta`, async () => {
+		const store = browser()
+		store.set(CONSENT_KEY, 'granted')
+		await context(country)
+		const google = {
+			ga_client_id: '12345.67890',
+			ga_session_id: '1234567890',
+			gclid: 'fixture_g',
+			utm_source: 'fixture',
+		}
+		// No banner wall: the old grant still counts for everything but Meta.
+		expect(cookieConsent().prompt).toBe(false)
+		expect(snapshot()).toEqual({ consent: full, surface: 'pricing_card', fields: google })
+		expect(canUseMeta()).toBe(false)
+		store.set(CONSENT_VERSION_KEY, '2026-11-26')
+		expect(canUseMeta()).toBe(false)
+		saveCookieChoice('granted')
+		expect(canUseMeta()).toBe(true)
+		expect(snapshot().fields.fbp).toBe('fb.1.1234567890.444')
 	})
 }
 
@@ -225,7 +253,9 @@ test('ROW checkout defaults do not enable the opt-in SPA stream', () => {
 	setConsentContext({ region: 'ROW', gpc: false, stream })
 	trackSignalPage('/pricing')
 	expect(requests).toHaveLength(0)
-	expect(snapshot().fields).toMatchObject(campaign)
+	const { fbclid: _meta, ...google } = campaign
+	expect(snapshot().fields).toMatchObject(google)
+	expect(snapshot().fields.fbclid).toBeUndefined()
 })
 
 for (const choice of ['analytics_only', 'granted'] as const) {

@@ -18,6 +18,8 @@
 // ==========================================
 export const SIGNAL_STORAGE_KEY = 'puzzled:signal'
 export const CONSENT_KEY = `${SIGNAL_STORAGE_KEY}.consent`
+/** The consent text version a saved choice was made under (see CONSENT_VERSION). */
+export const CONSENT_VERSION_KEY = `${SIGNAL_STORAGE_KEY}.consent-version`
 
 // ==========================================
 // Sound & Audio
