@@ -5,8 +5,11 @@
  * remote code. Signal resolves the regional defaults and stored choices.
  *
  * The page address and title sent to Google are limited to an
- * allowlist of public marketing and game landing paths; private routes and
- * URL parameters never reach Google. With no ids configured the module is inert.
+ * allowlist of public marketing and game landing paths; private routes never
+ * reach Google. Only the first page view after consent carries the landing
+ * page's campaign and click-id parameters (an allowlist) and the external
+ * referrer's origin and path, so GA4 can attribute the session; no other URL
+ * parameter or fragment is sent. With no ids configured the module is inert.
  */
 
 import { resolveEffectiveConsent, type SignalConsent } from '@sylphx/sdk/signal'
@@ -71,6 +74,45 @@ export function trackablePath(pathname: string): string | null {
 	if (!path.startsWith('/games/')) return null
 	const slug = gameSlugFromPage(path.slice('/games/'.length))
 	return Object.hasOwn(PLAYER_TITLE, slug) && gamePath(slug) === path ? path : null
+}
+
+/** Landing-URL parameters GA4 and Google Ads use to attribute a session. */
+const ATTRIBUTION_PARAMS = [
+	'utm_source',
+	'utm_medium',
+	'utm_campaign',
+	'utm_term',
+	'utm_content',
+	'utm_id',
+	'gclid',
+	'gbraid',
+	'wbraid',
+] as const
+
+/** The document's landing query and referrer, read once when the app starts. */
+export type Landing = { search: string; referrer: string }
+
+/** The allowlisted landing parameters as a query string ('' when none). */
+export function attributionQuery(search: string): string {
+	const params = new URLSearchParams(search)
+	const out = new URLSearchParams()
+	for (const key of ATTRIBUTION_PARAMS) {
+		const value = params.get(key)?.trim()
+		if (value && !value.includes('@')) out.set(key, value.slice(0, 100))
+	}
+	const query = out.toString()
+	return query ? `?${query}` : ''
+}
+
+/** A cross-origin referrer reduced to origin and path; '' for same-origin or invalid. */
+export function externalReferrer(referrer: string, origin: string): string {
+	try {
+		const url = new URL(referrer)
+		if (!/^https?:$/.test(url.protocol) || url.origin === origin) return ''
+		return `${url.origin}${url.pathname}`
+	} catch {
+		return ''
+	}
 }
 
 const GOOGLE_COOKIE =
@@ -169,9 +211,17 @@ export function createGoogleTag(input: {
 	win: TagWindow
 	doc: TagDocument
 	consent: () => SignalConsent
+	landing?: Landing | null
 }): GoogleTagController {
 	const { ids, win, doc } = input
 	const base = `${win.location.origin}/`
+	// Attribution for the first page view sent; cleared once it has been used.
+	let landing: { query: string; referrer: string } | null = input.landing
+		? {
+				query: attributionQuery(input.landing.search),
+				referrer: externalReferrer(input.landing.referrer, win.location.origin),
+			}
+		: null
 	let previous: SignalConsent | undefined
 	let loaded = false
 	let gaOn = false
@@ -275,16 +325,20 @@ export function createGoogleTag(input: {
 		pageView(pathname, title) {
 			// Preserve the locale of a public URL, but never include a query or fragment.
 			const path = trackablePath(pathname) !== null ? cleanPath(pathname) : null
+			const send = gaOn && Boolean(path && title) && path !== lastPath
+			// The first view sent carries the landing attribution, even after SPA navigation.
+			const first = send ? landing : null
 			const page = {
-				page_location: path && title ? `${win.location.origin}${path}` : base,
-				page_referrer: '',
+				page_location: path && title ? `${win.location.origin}${path}${first?.query ?? ''}` : base,
+				page_referrer: first?.referrer ?? '',
 				page_title: path && title ? title : SITE_TITLE,
 			}
 			if (loaded) gtag('set', page)
-			if (!gaOn || !path || !title || path === lastPath) {
+			if (!send) {
 				if (!path) lastPath = null
 				return false
 			}
+			landing = null
 			lastPath = path
 			gtag('event', 'page_view', { ...page, send_to: ids.ga })
 			return true
