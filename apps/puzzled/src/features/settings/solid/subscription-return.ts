@@ -22,3 +22,31 @@ export function subscriptionReturn(search: URLSearchParams) {
 		returnTo: query.size ? `${subscriptionPath}?${query}` : subscriptionPath,
 	}
 }
+
+const SESSION_KEYS = ['s', 'session_id', 'checkout_session_id']
+
+/** The address without the checkout session id, or null when it carries none. */
+export function scrubbedReturnHref(href: string): string | null {
+	const url = new URL(href)
+	const present = SESSION_KEYS.filter((key) => url.searchParams.has(key))
+	if (present.length === 0) return null
+	for (const key of present) url.searchParams.delete(key)
+	return `${url.pathname}${url.search}${url.hash}`
+}
+
+type ReturnWindow = {
+	location: { href: string }
+	history: { state: unknown; replaceState(state: unknown, unused: string, url: string): void }
+}
+
+/**
+ * Once the page data holds the session, drop it from the address so a later
+ * third-party tag (Meta's `dl`, gtag) can never read it. The router state is
+ * kept, and `checkout=success` stays so a reload still shows the return.
+ */
+export function scrubCheckoutSession(win: ReturnWindow): boolean {
+	const next = scrubbedReturnHref(win.location.href)
+	if (next === null) return false
+	win.history.replaceState(win.history.state, '', next)
+	return true
+}
