@@ -9,6 +9,11 @@ use puzzled_core::puzzle_play::ritual_completion::{
 
 use super::parse_user_id;
 
+/// Fit client-reported elapsed time into game_sessions.time_spent_ms (PostgreSQL INT4).
+pub(crate) fn storage_elapsed_ms(reported_ms: u64) -> i32 {
+    i32::try_from(reported_ms).unwrap_or(i32::MAX)
+}
+
 #[derive(Debug, Clone)]
 pub struct PersistGameSessionInput<'a> {
     pub user_id: &'a str,
@@ -51,7 +56,7 @@ pub async fn persist_game_session(
     .bind(status)
     .bind(input.score)
     .bind(input.plan.attempts as i32)
-    .bind(input.plan.time_spent_ms as i32)
+    .bind(storage_elapsed_ms(input.plan.time_spent_ms))
     .fetch_one(pool)
     .await
     .map_err(|e| format!("game_sessions insert failed: {e}"))?;
@@ -178,7 +183,7 @@ pub async fn persist_validated_session_on_connection(
     .bind(status)
     .bind(score)
     .bind(attempts as i32)
-    .bind(time_spent_ms as i32)
+    .bind(storage_elapsed_ms(time_spent_ms))
     .bind(day_key_str)
     .bind(module_class)
     .bind(is_ritual)
