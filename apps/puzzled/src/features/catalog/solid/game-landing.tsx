@@ -55,7 +55,12 @@ export function GameLanding(props: ParentProps<GameLandingHeroProps>) {
 						{renderGameLandingHeroBody(props)}
 					</div>
 				</section>
-				<section id="play" tabIndex={-1} class="page-shell scroll-mt-16 py-3" aria-label={t().play}>
+				<section
+					id={props.showDifficulty ? undefined : 'play'}
+					tabIndex={-1}
+					class="page-shell scroll-mt-16 py-3 empty:hidden"
+					aria-label={t().play}
+				>
 					{props.children}
 				</section>
 				{renderGameRules(d)}

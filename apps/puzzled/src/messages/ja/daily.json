@@ -29,7 +29,7 @@
 	"notReadyTitle": "今日の{game}はまだ準備中です",
 	"notReadyBody": "今日の{game}のパズルはまだありません。今日の19種から他の無料パズル3つをすぐに遊べます。",
 	"notReadyCta": "今日の無料パズルを見る",
-	"startUsesPick": "始めると今日の無料枠（3つ）を1つ使います。始めたゲームは一日中遊べます。",
+	"startUsesPick": "毎日、好きなゲームを3つまで無料で遊べます。始めたゲームはその日いっぱい遊べます。",
 	"englishWordPuzzle": "英単語パズル",
 	"cageSudokuCornerTotal": "角の小さな数字は、点線内の数字の合計です。",
 	"cageSudokuExample": "別の盤面の例：囲みの中が 3 と 5 なら、角は 8 です。",

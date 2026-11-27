@@ -1126,14 +1126,14 @@ test('Path restores only the same viewer and served puzzle', async ({ page, cont
 })
 
 for (const { width, height, difficulty } of [
-	{ width: 390, height: 844, difficulty: 'easy' },
-	{ width: 1440, height: 900, difficulty: 'medium' },
+	{ width: 390, height: 844, difficulty: 'hard' },
+	{ width: 1440, height: 900, difficulty: 'hard' },
 ]) {
 	test.describe(`Sudoku daily choice on ${width}×${height}`, () => {
 		const touch = width === 390
 		test.use({ viewport: { width, height }, isMobile: touch, hasTouch: touch })
 
-		test(`groups both direct starts and opens ${difficulty} in one action`, async ({ page }) => {
+		test(`shows one picker; choosing claims nothing and Play opens Hard`, async ({ page }) => {
 			// The browser wiring is real; the Rust pick cap and replay are covered by DB tests.
 			const slug = 'sudoku'
 			const puzzleDate = productDayKey()
@@ -1148,13 +1148,16 @@ for (const { width, height, difficulty } of [
 				starts.push(route.request().postDataJSON())
 				return route.fulfill({ json: { daily: playable(slug, difficulty) } })
 			})
-			await page.goto('/games/sudoku')
-			const choices = page.getByRole('group', { name: "Play today's puzzle", exact: true })
-			const medium = choices.getByRole('link', { name: 'Medium', exact: true })
-			const easy = choices.getByRole('link', { name: 'Easy', exact: true })
-			await expect(medium).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
-			await expect(easy).toHaveAttribute('href', '/games/sudoku?difficulty=easy&start=1#play')
-			for (const link of [medium, easy]) {
+			await page.goto(touch ? '/games/sudoku' : '/games/sudoku?start=1#play')
+			const choices = page.getByRole('group', { name: 'Select Difficulty', exact: true })
+			const medium = choices.getByRole('radio', { name: 'Medium', exact: true })
+			const hard = choices.getByRole('radio', { name: 'Hard', exact: true })
+			const play = choices.getByRole('link', { name: "Play today's puzzle", exact: true })
+			await expect(choices).toHaveCount(1)
+			await expect(choices.getByRole('radio')).toHaveCount(3)
+			await expect(medium).toBeChecked()
+			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
+			for (const link of await choices.locator('label').all()) {
 				await expect(link).toBeInViewport({ ratio: 1 })
 				expect(
 					await link.evaluate((element) => {
@@ -1167,28 +1170,28 @@ for (const { width, height, difficulty } of [
 					}),
 				).toBe(true)
 			}
-			await expect(page.locator('#play').getByRole('link', { name: /^Hard/ })).toHaveAttribute(
-				'href',
-				'/games/sudoku?difficulty=hard&start=1#play',
-			)
+			if (touch) await choices.getByText('Hard', { exact: true }).tap()
+			else {
+				await medium.focus()
+				await page.keyboard.press('ArrowRight')
+			}
+			await expect(hard).toBeChecked()
+			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=hard&start=1#play')
+			await expect(play).toBeInViewport({ ratio: 1 })
 			expect(starts).toEqual([])
 			if (touch) {
-				await easy.tap()
+				await play.tap()
 			} else {
-				await page
-					.getByRole('navigation', { name: 'Breadcrumb' })
-					.getByRole('link', { name: 'All games' })
-					.focus()
 				await page.keyboard.press('Tab')
-				await expect(medium).toBeFocused()
-				await expect(medium).toHaveCSS('outline-width', '2px')
+				await expect(play).toBeFocused()
+				await expect(play).toHaveCSS('outline-width', '2px')
 				await page.keyboard.press('Enter')
 			}
 			await expect(
 				page.locator(stage).getByRole('group', { name: 'Sudoku', exact: true }),
 			).toBeVisible()
 			await expect(page.locator('[data-game-stage="start"] button')).toHaveCount(0)
-			await expect(page.getByRole('heading', { name: 'Select Difficulty' })).toHaveCount(0)
+			await expect(choices).toHaveCount(0)
 			expect(starts).toEqual([{ gameSlug: slug, difficulty, puzzleDate }])
 		})
 	})

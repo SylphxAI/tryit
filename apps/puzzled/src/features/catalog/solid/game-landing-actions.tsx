@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { Play } from 'lucide-solid'
-import { Show } from 'solid-js'
+import { For, Show } from 'solid-js'
 import { DEFAULT_DAILY_DIFFICULTY, todayPlayPath } from '@/features/daily/lib/today-play-path'
 import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import type { PuzzleDifficulty } from '@/games/types'
@@ -15,6 +15,8 @@ export type GameLandingActionsProps = {
 	locked: boolean
 	playHref: string
 	daily: boolean
+	chooseDifficulty: boolean
+	showDifficulty: boolean
 	difficulty?: PuzzleDifficulty
 	signedIn: boolean
 }
@@ -39,49 +41,69 @@ function LandingPlayLink(props: {
 }
 
 export function renderPlayLink(props: GameLandingActionsProps) {
-	const d = () => props.data
-	const sudokuChoices = () => {
-		if (!props.daily || props.difficulty || d().slug !== 'sudoku') return undefined
-		const primary = d().difficultyLevels.find(({ level }) => level === DEFAULT_DAILY_DIFFICULTY)
-		const easy = d().difficultyLevels.find(({ level }) => level === 'easy')
-		return primary && easy ? { primary, easy } : undefined
-	}
 	return (
-		<Show when={!props.locked}>
-			<Show
-				when={sudokuChoices()}
-				fallback={
-					<LandingPlayLink
-						slug={d().slug}
-						href={props.playHref}
-						label={d().labels.play}
-						class={playButton}
-						daily={props.daily}
-					/>
-				}
+		<Show when={!props.locked && !props.chooseDifficulty}>
+			<LandingPlayLink
+				slug={props.data.slug}
+				href={props.playHref}
+				label={props.data.labels.play}
+				class={playButton}
+				daily={props.daily}
+			/>
+		</Show>
+	)
+}
+
+export function renderDifficultyPicker(props: GameLandingActionsProps) {
+	const d = () => props.data
+	const t = () => createTranslator(d().locale)
+	const levels = () => d().difficultyLevels
+	const defaultLevel = () =>
+		levels().find(({ level }) => level === DEFAULT_DAILY_DIFFICULTY)?.level ?? levels()[0]?.level
+
+	// Native checked state exposes only the selected link, even before hydration.
+	return (
+		<Show when={props.showDifficulty}>
+			<fieldset
+				id="play"
+				aria-describedby="daily-pick-note"
+				class="mt-5 min-w-0 max-w-sm scroll-mt-16"
 			>
-				{(choices) => (
-					<fieldset class="min-w-0">
-						<legend class="mb-2 text-sm font-semibold">{d().labels.play}</legend>
-						<div class="flex flex-wrap items-center gap-2">
-							<LandingPlayLink
-								slug={d().slug}
-								href={props.playHref}
-								label={choices().primary.label}
-								class="chrome-control chrome-primary min-h-14 gap-2 px-5 text-base font-bold"
-								daily
-							/>
-							<LandingPlayLink
-								slug={d().slug}
-								href={localizedPath(d().locale, todayPlayPath(d().slug, choices().easy.level))}
-								label={choices().easy.label}
-								class="chrome-control min-h-12 gap-2 bg-foreground px-4 text-base font-bold text-background hover:bg-foreground/85"
-								daily
-							/>
-						</div>
-					</fieldset>
-				)}
-			</Show>
+				<legend class="mb-2 font-display text-base font-bold">
+					{t()('common.difficulty.selectDifficulty')}
+				</legend>
+				<div class="flex flex-wrap gap-2">
+					<For each={levels()}>
+						{(level) => (
+							<div class="group/level contents">
+								<label class="flex min-h-12 min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-1.5 py-1 text-center text-sm font-semibold hover:bg-accent has-checked:border-foreground has-checked:bg-accent">
+									<input
+										class="size-4 shrink-0 accent-foreground"
+										type="radio"
+										name="daily-difficulty"
+										value={level.level}
+										checked={level.level === defaultLevel()}
+									/>
+									{level.label}
+								</label>
+								<p class="order-1 hidden w-full text-sm text-muted-foreground group-has-checked/level:block">
+									{level.description}
+								</p>
+								<LandingPlayLink
+									slug={d().slug}
+									href={localizedPath(d().locale, todayPlayPath(d().slug, level.level))}
+									label={d().labels.play}
+									class={`${playButton} order-3 hidden w-full group-has-checked/level:inline-flex`}
+									daily
+								/>
+							</div>
+						)}
+					</For>
+					<p id="daily-pick-note" class="order-2 w-full text-sm text-muted-foreground">
+						{t()('daily.startUsesPick')}
+					</p>
+				</div>
+			</fieldset>
 		</Show>
 	)
 }

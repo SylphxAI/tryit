@@ -5,6 +5,7 @@ import { getGameColors } from '@/games/theme-colors'
 import { createTranslator } from '@/lib/i18n/translate'
 import {
 	type GameLandingActionsProps,
+	renderDifficultyPicker,
 	renderGuestPrompt,
 	renderPlayLink,
 	renderPracticeLink,
@@ -50,7 +51,7 @@ export function renderGameLandingHeroBody(props: GameLandingHeroProps) {
 			<Show when={d().highlight}>
 				<li class="tag-chip">{d().highlight}</li>
 			</Show>
-			<Show when={d().difficultyLevels.length}>
+			<Show when={d().difficultyLevels.length > 0 && !props.showDifficulty}>
 				<li class="tag-chip">
 					{d()
 						.difficultyLevels.map(({ label }) => label)
@@ -98,7 +99,11 @@ export function renderGameLandingHeroBody(props: GameLandingHeroProps) {
 						{d().description}
 					</p>
 					<div class="mt-4">{facts()}</div>
-					<div class="flex flex-wrap items-center gap-x-4 gap-y-2 empty:hidden mt-6">
+					{renderDifficultyPicker(props)}
+					<div
+						class="flex flex-wrap items-center gap-x-4 gap-y-2 empty:hidden"
+						classList={{ 'mt-2': props.showDifficulty, 'mt-6': !props.showDifficulty }}
+					>
 						{renderPlayLink(props)}
 						{renderPracticeLink(props)}
 					</div>

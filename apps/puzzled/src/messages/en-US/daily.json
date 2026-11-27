@@ -29,7 +29,7 @@
 	"notReadyTitle": "Today's {game} isn't ready yet",
 	"notReadyBody": "There is no {game} puzzle for today yet. Pick any 3 of today's other 19 puzzles to play free.",
 	"notReadyCta": "Browse today's free puzzles",
-	"startUsesPick": "Starting uses one of today's 3 free picks. A game you start stays open all day.",
+	"startUsesPick": "Pick any 3 games to play free each day. Once you start a game, it stays open all day.",
 	"englishWordPuzzle": "English word puzzle",
 	"cageSudokuCornerTotal": "Small corner number = sum of digits in the dashed cage.",
 	"cageSudokuExample": "Example (not this puzzle): 3 + 5 gives a corner total of 8.",

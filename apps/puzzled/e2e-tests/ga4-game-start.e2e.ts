@@ -22,7 +22,7 @@ const expectCommand = (page: Page, command: string, name: string) =>
 	expect.poll(() => commands(page)).toContainEqual([command, name, expect.anything()])
 
 async function enterExplicitPlay(page: Page) {
-	await page.locator('[data-start-intent="sudoku"]').first().click()
+	await page.locator('[data-start-intent="sudoku"]:visible').click()
 	await expect(page).toHaveURL(/start=1/)
 	await expect(page.locator('[data-play-canvas] .play-board')).toBeVisible()
 }
@@ -115,9 +115,10 @@ for (const [label, choice, country] of [
 
 		await leaveBoard(page)
 		await page.locator(`a[href="${game}"]`).first().click()
-		await expect(page.locator('[data-start-intent="sudoku"]').first()).toBeVisible()
-		expect(await starts(page)).toEqual([start]) // chooser, not another playable board
-		await page.locator('[data-start-intent="sudoku"][href*="difficulty=easy"]').first().click()
+		const choices = page.getByRole('group', { name: 'Select Difficulty' })
+		await choices.getByRole('radio', { name: 'Easy' }).check()
+		expect(await starts(page)).toEqual([start]) // choosing is not a playable board
+		await choices.getByRole('link', { name: "Play today's puzzle" }).click()
 		await expect(page.locator(board)).toBeVisible()
 		await expect.poll(() => starts(page)).toEqual([start, start])
 	})
