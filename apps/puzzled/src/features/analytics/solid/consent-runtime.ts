@@ -10,6 +10,7 @@ import {
 	cookieConsent,
 	notifyConsentChange,
 	onConsentChange,
+	rememberLanding,
 	type SignalStream,
 	setConsentContext,
 	trackSignalPage,
@@ -57,6 +58,7 @@ export function ConsentRuntime() {
 		typeof window === 'undefined'
 			? null
 			: { search: window.location.search, referrer: document.referrer }
+	if (typeof window !== 'undefined') rememberLanding(window.location.href)
 	function sync() {
 		const routing = isRouting()
 		const { pathname: path, search } = location

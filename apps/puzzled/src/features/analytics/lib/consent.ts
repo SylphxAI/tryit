@@ -123,8 +123,40 @@ function resetBrowser() {
 	session = undefined
 }
 
+let landingHref: string | null = null
+
+/**
+ * Hold the landing address in memory only, until consent context is known, so
+ * an ad visitor who navigates before /api/consent-context resolves keeps the
+ * landing click ids and UTMs. The SDK still decides what it may persist.
+ */
+export function rememberLanding(href: string): void {
+	landingHref ??= href
+}
+
+/** One SDK capture against the landing address, restored synchronously. */
+function captureLanding() {
+	const href = landingHref
+	landingHref = null
+	if (!href || !browser) return
+	const { location, history } = window
+	const here = location.href
+	const landing = new URL(href, here)
+	if (landing.origin !== new URL(here).origin || landing.href === here) return
+	for (const key of ['s', 'session_id', 'checkout_session_id']) landing.searchParams.delete(key)
+	const state = history.state
+	try {
+		history.replaceState(state, '', landing.href)
+		browser.capture()
+	} finally {
+		history.replaceState(state, '', here)
+	}
+}
+
 function syncBrowser() {
 	const consent = cookieConsent()
+	// A refusal or GPC discards the remembered landing; nothing was persisted.
+	if (context && (consent.gpc || storedChoice() === 'denied')) landingHref = null
 	if (!context || !consent.analytics) {
 		resetBrowser()
 		if (context) {
@@ -162,11 +194,13 @@ function syncBrowser() {
 				: undefined,
 	})
 	if (id) session = { id, navigation: 0, stages: 0 }
+	captureLanding()
 }
 
 export function setConsentContext(value: ConsentContext | null): void {
 	resetBrowser()
 	context = value
+	if (!value) landingHref = null
 	if (value) {
 		// Migrate affirmative choices without upgrading analytics-only grants.
 		try {
