@@ -25,6 +25,14 @@ import {
 	type TagWindow,
 	trackablePath,
 } from '../lib/google-tag'
+import {
+	createMetaPixel,
+	type MetaPixelController,
+	metaPixelId,
+	type PixelDocument,
+	type PixelWindow,
+	setActiveMetaPixel,
+} from '../lib/meta-pixel'
 import { syncReferral } from '../lib/referral'
 
 function publicDocumentTitle(path: string): string | null {
@@ -42,6 +50,7 @@ export function ConsentRuntime() {
 	const location = useLocation()
 	const isRouting = useIsRouting()
 	let tag: GoogleTagController | null = null
+	let pixel: MetaPixelController | null = null
 	let signup: SignUpMethod | null = null
 	// Read the landing URL once: consent may arrive after the SPA has navigated.
 	const landing =
@@ -66,6 +75,7 @@ export function ConsentRuntime() {
 			trackGa4KeyEvent('sign_up', { method })
 		}
 		if (!routing) tag?.pageView(path, isPublic ? publicDocumentTitle(path) : null)
+		if (!routing && consent.ready) pixel?.pageView(isPublic ? path : null)
 		if (!tag && !consent.analytics && (consent.ready || consent.gpc)) {
 			deleteGoogleCookies(document, window.location.hostname)
 		}
@@ -140,6 +150,17 @@ export function ConsentRuntime() {
 					})
 					setActiveGoogleTag(tag)
 				}
+				const meta = metaPixelId({
+					META_PIXEL_ID: typeof data.ids?.meta === 'string' ? data.ids.meta : undefined,
+				})
+				if (meta) {
+					pixel = createMetaPixel({
+						id: meta,
+						win: window as unknown as PixelWindow,
+						doc: document as unknown as PixelDocument,
+					})
+					setActiveMetaPixel(pixel)
+				}
 				setCheckoutMeasurementId(ids?.ga ?? null)
 				const raw: Partial<SignalStream> | null = data.stream ?? null
 				const stream =
@@ -157,6 +178,7 @@ export function ConsentRuntime() {
 			stop()
 			window.removeEventListener('storage', storageChanged)
 			setActiveGoogleTag(null)
+			setActiveMetaPixel(null)
 			setConsentContext(null)
 		})
 	})

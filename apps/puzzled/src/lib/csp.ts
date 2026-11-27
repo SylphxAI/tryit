@@ -35,6 +35,12 @@ export const GOOGLE_TAG_CONNECT_HOSTS = [
 	'https://pagead2.googlesyndication.com',
 ] as const
 
+/** Meta Pixel loader and event hosts, added to connect-src only while META_PIXEL_ID is set. */
+export const META_PIXEL_CONNECT_HOSTS = [
+	'https://connect.facebook.net',
+	'https://www.facebook.com',
+] as const
+
 /** Frames the Ads conversion tag may use, added only while the tag is configured. */
 export const GOOGLE_TAG_FRAME_HOSTS = [
 	'https://www.googletagmanager.com',
@@ -47,11 +53,19 @@ export function buildCsp(
 		dev = false,
 		ads = false,
 		googleTag = false,
+		metaPixel = false,
 		signalOrigin,
-	}: { dev?: boolean; ads?: boolean; googleTag?: boolean; signalOrigin?: string } = {},
+	}: {
+		dev?: boolean
+		ads?: boolean
+		googleTag?: boolean
+		metaPixel?: boolean
+		signalOrigin?: string
+	} = {},
 ): string {
 	const tagFrames = googleTag ? ` ${GOOGLE_TAG_FRAME_HOSTS.join(' ')}` : ''
 	const tagConnect = googleTag ? ` ${GOOGLE_TAG_CONNECT_HOSTS.join(' ')}` : ''
+	const pixelConnect = metaPixel ? ` ${META_PIXEL_CONNECT_HOSTS.join(' ')}` : ''
 	const adFrames = ads ? ` ${AD_CSP_HOSTS.frame.join(' ')}` : ''
 	const adConnect = ads ? ` ${AD_CSP_HOSTS.connect.join(' ')}` : ''
 	return [
@@ -62,7 +76,7 @@ export function buildCsp(
 		"img-src 'self' data: blob: https:",
 		`font-src 'self' data:`,
 		// Identity and error reporting are same-origin; Signal is explicitly scoped.
-		`connect-src 'self'${adConnect}${tagConnect}${signalOrigin ? ` ${signalOrigin}` : ''}`,
+		`connect-src 'self'${adConnect}${tagConnect}${pixelConnect}${signalOrigin ? ` ${signalOrigin}` : ''}`,
 		`frame-src 'self'${adFrames}${tagFrames}`,
 		"worker-src 'self'",
 		"object-src 'none'",

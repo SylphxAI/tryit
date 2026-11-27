@@ -86,6 +86,12 @@ export const KNOWN_VARS: readonly EnvVar[] = [
 		required: false,
 		description: 'Google Ads Website Purchase conversion label; ignored without GOOGLE_ADS_ID',
 	},
+	{
+		name: 'META_PIXEL_ID',
+		required: false,
+		description:
+			'Meta Pixel id (digits); empty means off. Loads only after a saved full ads consent, never under GPC',
+	},
 	// Deployment / dev host facts
 	{
 		name: 'SYLPHX_PUBLIC_URL',
@@ -287,6 +293,10 @@ export const env = {
 	/** Google Ads tag id (AW-...) */
 	get GOOGLE_ADS_ID(): string | undefined {
 		return process.env.GOOGLE_ADS_ID
+	},
+	/** Meta Pixel id; empty means off */
+	get META_PIXEL_ID(): string | undefined {
+		return process.env.META_PIXEL_ID
 	},
 	/** Google Ads Website Purchase conversion label */
 	get GOOGLE_ADS_PURCHASE_LABEL(): string | undefined {

@@ -24,6 +24,10 @@ value = "AW-18596053831"
 [environments.production.env.GOOGLE_ADS_PURCHASE_LABEL]
 value = "didiCKiywr8dEMeGpaNF"
 
+# Meta Pixel (digits). Empty means off: no script, no CSP hosts.
+[environments.production.env.META_PIXEL_ID]
+value = ""
+
 # Project-level schema gate (ADR-089 / DEPLOY-GUIDE). Ephemeral Job runs once
 # per push BEFORE writer services roll. Supersedes web-only release_command:
 # web runtime image has no atlas binary, so api-only crate deploys left

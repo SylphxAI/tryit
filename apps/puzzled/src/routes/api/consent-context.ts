@@ -1,5 +1,6 @@
 import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
 import { googleTagIds } from '@/features/analytics/lib/google-tag'
+import { metaPixelId } from '@/features/analytics/lib/meta-pixel'
 import { env } from '@/lib/env'
 import { signalStreamConfig } from '@/lib/signal-config'
 
@@ -21,7 +22,7 @@ export function GET({ request }: { request: Request }) {
 					.get('Sec-GPC')
 					?.split(',')
 					.some((value) => value.trim() === '1') ?? false,
-			ids: googleTagIds(env),
+			ids: { ...googleTagIds(env), meta: metaPixelId(env) },
 			stream: signalStreamConfig(),
 		},
 		{ headers: { 'Cache-Control': 'private, no-store' } },

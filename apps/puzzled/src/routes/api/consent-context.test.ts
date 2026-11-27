@@ -7,7 +7,9 @@ test('returns validated Ads configuration on the private consent endpoint', asyn
 		GOOGLE_ADS_ID: 'AW-18596053831',
 		GOOGLE_ADS_PURCHASE_LABEL: 'didiCKiywr8dEMeGpaNF',
 	}
-	const before = Object.keys(config).map((key) => [key, process.env[key]] as const)
+	const before = [...Object.keys(config), 'META_PIXEL_ID'].map(
+		(key) => [key, process.env[key]] as const,
+	)
 	Object.assign(process.env, config)
 	try {
 		const request = new Request('https://tryit.fun/api/consent-context', {
@@ -29,7 +31,10 @@ test('returns validated Ads configuration on the private consent endpoint', asyn
 			ga: config.GA_MEASUREMENT_ID,
 			ads: null,
 			adsPurchaseLabel: null,
+			meta: null,
 		})
+		process.env.META_PIXEL_ID = '1234567890'
+		expect((await GET({ request }).json()).ids.meta).toBe('1234567890')
 	} finally {
 		for (const [key, value] of before) {
 			if (value === undefined) delete process.env[key]
