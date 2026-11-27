@@ -1,5 +1,6 @@
 import { FAMILY_SEATS, listPrice } from '@/features/marketing/components/catalogue-prices'
 import { COMPARISON_HUB, COMPARISONS } from '@/features/marketing/components/comparison-specs'
+import { USE_CASE_SPECS } from '@/features/marketing/components/use-case-specs'
 import { getAllGameMetadata } from '@/games/registry'
 import { CONTACT_EMAIL } from '@/lib/config/app'
 import { gamePath } from '@/lib/game-slug'
@@ -17,6 +18,10 @@ const comparisons = [
 		(spec) => `- [Tryit vs ${spec.rival}](https://tryit.fun${spec.path}): ${spec.llmsSummary}`,
 	),
 ].join('\n')
+// Use cases come from their spec registry, so a new page cannot miss discovery.
+const useCases = Object.values(USE_CASE_SPECS)
+	.map((spec) => `- [${spec.metaTitle}](https://tryit.fun${spec.path}): ${spec.llmsSummary}`)
+	.join('\n')
 const usd = {
 	pass: listPrice('puzzled_starter_unlock'),
 	month: listPrice('plus_individual_monthly'),
@@ -53,8 +58,7 @@ Prices include VAT.
 ${games}
 
 ## Use Cases
-- [Daily word & logic puzzles online](https://tryit.fun/use-cases/daily-word-and-logic-puzzles-online): ${total} daily games, any 3 free each day, a daily reset at 16:00 UTC, and full archive access with Plus.
-- [Ad-free family brain games](https://tryit.fun/use-cases/family-brain-games-no-ads): Zero-distraction daily puzzles for up to ${FAMILY_SEATS} family accounts in 8 locales.
+${useCases}
 
 ## Comparisons
 ${comparisons}
