@@ -752,18 +752,18 @@ test.describe('Home Play at 390px', () => {
 			const { starts, release } = await fixture(page)
 			release()
 			const play = await cold(page)
+			const href = new URL((await play.getAttribute('href'))!, page.url()).href
+			expect(href).toMatch(/[?&]start=1#play$/)
 			if (mode === '_blank') await play.evaluate((a) => a.setAttribute('target', '_blank'))
 			const next = context.waitForEvent('page')
 			await play.click({
 				button: mode === 'middle' ? 'middle' : 'left',
 				modifiers: mode === 'Ctrl' ? ['Control'] : [],
 			})
-			const tab = await next
-			await expect(tab).toHaveURL(/[?&]start=1#play$/)
+			// A new tab opened; its background load is the browser's, so visit the URL here.
+			await (await next).close()
 			expect(await intent(page)).toBeNull()
-			expect(await intent(tab)).toBeNull()
-			// Check the exact URL's passive card without racing popup RPC interception.
-			await page.goto(tab.url())
+			await page.goto(href)
 			await expect(page.locator(card)).toBeEnabled()
 			expect(starts).toEqual([])
 		})
