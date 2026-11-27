@@ -1,6 +1,5 @@
 /** @jsxImportSource solid-js */
-import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js'
-import { PwaInstallNudge } from '@/features/daily/solid/pwa-install-nudge'
+import { createEffect, createSignal, lazy, onCleanup, onMount, Show } from 'solid-js'
 import type { Locale } from '@/lib/i18n/config'
 import { observeDayPrimaryActions } from '@/shared/components/observe-day-primary-actions'
 import {
@@ -10,6 +9,14 @@ import {
 	shouldShowInstallOffer,
 } from '@/shared/components/pwa-install-policy'
 import './home-install-offer.css'
+
+// Loaded only when the offer first shows: the nudge's analytics module pulls in
+// the Connect transport, which cold Home's startup JavaScript budget excludes.
+const PwaInstallNudge = lazy(() =>
+	import('@/features/daily/solid/pwa-install-nudge').then(({ PwaInstallNudge }) => ({
+		default: PwaInstallNudge,
+	})),
+)
 
 /**
  * The install offer for a returning player on Home: a finish on an earlier
