@@ -23,6 +23,7 @@
 		"scorePoints": "{score} puntos",
 		"streakDays": "Racha de {days} días",
 		"patternSummary": "Patrón: {hit} aciertos / {near} cercanos / {miss} fallos",
+		"wordHivePatternSummary": "Palabras encontradas: {words}, pangramas: {pangrams}",
 		"altOnDay": " el {day}",
 		"altTemplate": "Tryit - {game}{day}. {result}",
 		"altDetailsTemplate": " {details}.",

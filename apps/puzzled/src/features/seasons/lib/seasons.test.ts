@@ -154,6 +154,7 @@ describe('share caption and card', () => {
 			scorePoints: '{score} points',
 			streakDays: '{days}-day streak',
 			patternSummary: 'p',
+			wordHivePatternSummary: 'w',
 			altOnDay: ' on {day}',
 			altTemplate: 'Tryit - {game}{day}. {result}',
 			altDetailsTemplate: ' {details}.',

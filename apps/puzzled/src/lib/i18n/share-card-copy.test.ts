@@ -34,6 +34,7 @@ const CARD_PLACEHOLDERS: Record<string, string[]> = {
 	scorePoints: ['score'],
 	streakDays: ['days'],
 	patternSummary: ['hit', 'near', 'miss'],
+	wordHivePatternSummary: ['words', 'pangrams'],
 	altOnDay: ['day'],
 	altTemplate: ['game', 'day', 'result'],
 	altDetailsTemplate: ['details'],
