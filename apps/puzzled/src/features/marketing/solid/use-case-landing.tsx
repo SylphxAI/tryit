@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 
-import { For } from 'solid-js'
+import { For, Show } from 'solid-js'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { INK_SECONDARY_CTA, PRIMARY_CTA, SECONDARY_CTA } from '../components/editorial-presentation'
 import { buildUseCaseJsonLd, type UseCaseSpec } from '../components/use-case-specs'
@@ -53,7 +53,23 @@ export function UseCaseLanding({ spec, origin }: { spec: UseCaseSpec; origin: st
 											{(group) => (
 												<li>
 													<strong class="font-semibold text-foreground">{group.heading}:</strong>{' '}
-													{group.games}
+													<Show when={group.links} fallback={group.games}>
+														{(links) => (
+															<For each={links()}>
+																{(link, linkIndex) => (
+																	<>
+																		{linkIndex() > 0 && ', '}
+																		<EditorialLink
+																			href={link.href}
+																			class="font-medium text-foreground underline underline-offset-2"
+																		>
+																			{link.label}
+																		</EditorialLink>
+																	</>
+																)}
+															</For>
+														)}
+													</Show>
 												</li>
 											)}
 										</For>

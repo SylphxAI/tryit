@@ -9,7 +9,11 @@ const comparisons = [
 	'brilliant',
 	'wordle',
 ]
-const useCases = ['daily-word-and-logic-puzzles-online', 'family-brain-games-no-ads']
+const useCases = [
+	'daily-word-and-logic-puzzles-online',
+	'family-brain-games-no-ads',
+	'quick-brain-break-no-sign-up',
+]
 
 test('comparison hub exposes all seven cards and their loaded motifs', async ({ page }) => {
 	const response = await page.goto('/vs')

@@ -58,6 +58,12 @@ export const PUBLIC_ROUTES: readonly PublicRoute[] = [
 		priority: 0.8,
 		englishOnly: true,
 	},
+	{
+		path: '/use-cases/quick-brain-break-no-sign-up',
+		changeFrequency: 'monthly',
+		priority: 0.8,
+		englishOnly: true,
+	},
 	{ path: COMPARISON_HUB_PATH, changeFrequency: 'monthly', priority: 0.8, englishOnly: true },
 	...COMPARISON_SLUGS.map(
 		(slug): PublicRoute => ({
