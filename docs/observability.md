@@ -112,14 +112,11 @@ Browser funnel stages for ad optimisation use the same gate as page views
 `purchase` uses a SHA-256 of the processor order id as its event id (stable,
 so a reload deduplicates); no order, player, auth or customer id is sent.
 
-GA4 separately records a custom `game_start` for the first playable daily or
-archive board of a visit. It requires an effective analytics grant: either an
-affirmative choice already present when the board appeared or the server's
-named opt-out market default with no saved choice. Delayed consent context can
-confirm that same basis; opting in after seeing the board does not replay it.
-Switching a board from the landing view to explicit Play does not count again;
-a new visit can. Only GA4 receives it, with `game_slug`, `mode`, a query-free
-public game URL, and no referrer. It is not an Ads conversion.
+GA4 `game_start` counts the first playable daily or archive board per visit,
+not a switch to explicit Play. It requires an effective analytics grant from
+an existing affirmative choice or a named opt-out market default. Delayed
+context can confirm either; a later opt-in cannot replay the event. Only GA4
+receives it, with game, mode, a query-free public URL and no referrer.
 
 ## First-party funnel counter
 
