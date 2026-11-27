@@ -9,7 +9,8 @@ import { gameBoards } from '@/games/shared/solid/board-registry'
 import type { PuzzleDifficulty } from '@/games/types'
 import { getPracticePuzzle } from '@/lib/connect/puzzle-client'
 import { createTranslator } from '@/lib/i18n/translate'
-import { practicePath, practiceRefusal } from '../lib/practice'
+import { practicePath } from '../lib/practice'
+import { practiceRefusal } from '../lib/practice-refusal'
 import { PracticeUnlock } from './practice-unlock'
 
 export function PracticePlay(props: { data: GamePageData; difficulty?: PuzzleDifficulty }) {

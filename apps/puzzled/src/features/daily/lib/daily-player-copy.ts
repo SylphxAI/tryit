@@ -1,4 +1,3 @@
-import { IntlMessageFormat } from 'intl-messageformat'
 import type { Locale } from '@/lib/i18n/config'
 import { DAILY_FREE_PICKS } from './daily-picks'
 
@@ -12,7 +11,7 @@ const english = {
 }
 
 // Shared across Home, Play and Results, including locales with a frozen game catalogue.
-const copy: Record<
+export const DAILY_PLAYER_COPY: Record<
 	Locale,
 	{ picks: string; reset: string; install: string; ios: string; reminders: string }
 > = {
@@ -65,18 +64,28 @@ const copy: Record<
 	},
 }
 
+/**
+ * The copy only uses `{name, number}` arguments, so Intl.NumberFormat formats them
+ * exactly as IntlMessageFormat would without putting its parser on Home.
+ */
+function numberTemplate(template: string, locale: Locale) {
+	const number = new Intl.NumberFormat(locale)
+	return (values: Record<string, number>) =>
+		template.replace(/\{(\w+), number\}/g, (_, name: string) => number.format(values[name] ?? 0))
+}
+
 export function dailyPlayerCopy(locale: Locale) {
-	const messages = copy[locale]
-	const picks = new IntlMessageFormat(messages.picks, locale)
-	const reset = new IntlMessageFormat(messages.reset, locale)
+	const messages = DAILY_PLAYER_COPY[locale]
+	const picks = numberTemplate(messages.picks, locale)
+	const reset = numberTemplate(messages.reset, locale)
 	return {
 		install: messages.install,
 		ios: messages.ios,
 		reminders: messages.reminders,
-		picks: (used: number) => String(picks.format({ used, total: DAILY_FREE_PICKS })),
+		picks: (used: number) => picks({ used, total: DAILY_FREE_PICKS }),
 		reset: (remainingMs: number) => {
 			const minutes = Math.max(0, Math.ceil(remainingMs / 60_000))
-			return String(reset.format({ hours: Math.floor(minutes / 60), minutes: minutes % 60 }))
+			return reset({ hours: Math.floor(minutes / 60), minutes: minutes % 60 })
 		},
 	}
 }

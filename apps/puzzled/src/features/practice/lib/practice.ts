@@ -1,4 +1,3 @@
-import { Code, ConnectError } from '@connectrpc/connect'
 import type { PuzzleDifficulty } from '@/games/types'
 
 /** Mirrors puzzled-core's practice allowlist. The server still admits every request. */
@@ -32,10 +31,4 @@ export function practicePath(gamePath: string, difficulty?: PuzzleDifficulty) {
 	const search = new URLSearchParams({ mode: 'practice' })
 	if (difficulty) search.set('difficulty', difficulty)
 	return `${gamePath}?${search.toString()}#play`
-}
-
-export function practiceRefusal(error: unknown): 'guest' | 'free' | undefined {
-	const { code, rawMessage } = ConnectError.from(error)
-	if (code === Code.Unauthenticated) return 'guest'
-	if (code === Code.PermissionDenied && rawMessage === 'plus_required_for_practice') return 'free'
 }

@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test'
+import { IntlMessageFormat } from 'intl-messageformat'
 import { locales } from '@/lib/i18n/config'
 import { nextProductDayStart } from '@/lib/product-day'
-import { dailyPlayerCopy } from './daily-player-copy'
+import { DAILY_PLAYER_COPY, dailyPlayerCopy } from './daily-player-copy'
 
 const counters = [
 	'2 of 3 free picks used today',
@@ -30,4 +31,18 @@ test('the countdown targets the real product reset, 16:00 UTC, and never goes ne
 	expect(reset.toISOString()).toBe('2026-11-25T16:00:00.000Z')
 	expect(dailyPlayerCopy('en-US').reset(reset.getTime() - now.getTime())).toBe('Resets in 1h 3m')
 	expect(dailyPlayerCopy('en-US').reset(-100)).toBe('Resets in 0h 0m')
+})
+
+test('the light formatter matches IntlMessageFormat for every locale and value', () => {
+	for (const locale of locales) {
+		const copy = dailyPlayerCopy(locale)
+		const picks = new IntlMessageFormat(DAILY_PLAYER_COPY[locale].picks, locale)
+		const reset = new IntlMessageFormat(DAILY_PLAYER_COPY[locale].reset, locale)
+		for (const used of [0, 2, 1234]) {
+			expect(copy.picks(used)).toBe(String(picks.format({ used, total: 3 })))
+		}
+		expect(copy.reset((1234 * 60 + 5) * 60_000)).toBe(
+			String(reset.format({ hours: 1234, minutes: 5 })),
+		)
+	}
 })
