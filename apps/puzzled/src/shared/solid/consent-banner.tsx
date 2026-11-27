@@ -58,13 +58,18 @@ function useCookieConsent() {
 	return state
 }
 
-function ChoiceButtons(props: { copy: Copy; class: string; onChoose?: () => void }) {
+function ChoiceButtons(props: {
+	copy: Copy
+	class: string
+	onChoose?: () => void
+	banner?: boolean
+}) {
 	function choose(status: 'analytics_only' | 'granted' | 'denied') {
 		saveCookieChoice(status)
 		props.onChoose?.()
 	}
 	return (
-		<div class={props.class}>
+		<div class={props.class} data-consent-choices={props.banner ? '' : undefined}>
 			<button type="button" class={action} onClick={() => choose('denied')}>
 				{props.copy.decline}
 			</button>
@@ -122,10 +127,14 @@ export function ConsentBanner(props: { copy: Copy }) {
 						</a>
 						<CookieSettings
 							copy={props.copy}
-							triggerClass="consent-settings text-xs underline underline-offset-2"
+							triggerClass="consent-privacy text-xs underline underline-offset-2"
 						/>
 					</div>
-					<ChoiceButtons copy={props.copy} class="grid w-full grid-cols-3 gap-1.5 md:w-auto" />
+					<ChoiceButtons
+						copy={props.copy}
+						class="grid w-full grid-cols-3 gap-1.5 md:w-auto"
+						banner
+					/>
 				</div>
 			</section>
 		</Show>

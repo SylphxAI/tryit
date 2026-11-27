@@ -19,7 +19,7 @@ const full = {
 
 const banner = (page: Page) => page.locator('[data-consent-banner]')
 const settings = async (page: Page) => {
-	await page.getByRole('button', { name: 'Cookie settings', exact: true }).click()
+	await page.locator('footer').getByRole('button', { name: 'Cookie settings', exact: true }).click()
 	const dialog = page.getByRole('dialog', { name: 'Cookie settings' })
 	await expect(dialog).toBeVisible()
 	return dialog
@@ -119,7 +119,7 @@ for (const viewport of [
 			)
 			expect((await page.request.get('/manifest.webmanifest')).status()).toBe(200)
 			const metric = await banner(page).evaluate((el) => {
-				const buttons = [...el.querySelectorAll('button')]
+				const buttons = [...el.querySelectorAll('[data-consent-choices] button')]
 				const nav = document.querySelector('nav.fixed')?.getBoundingClientRect()
 				const bar = el.getBoundingClientRect()
 				const boxes = buttons.map((button) => button.getBoundingClientRect())
@@ -149,7 +149,7 @@ for (const viewport of [
 			expect(metric.rowSpread).toBeLessThan(1)
 			for (const target of [
 				page.locator('[data-day-primary-action]'),
-				page.getByRole('button', { name: 'Cookie settings', exact: true }),
+				page.locator('footer').getByRole('button', { name: 'Cookie settings', exact: true }),
 			]) {
 				await target.evaluate((el) => el.scrollIntoView({ block: 'end' }))
 				await expect
@@ -408,7 +408,8 @@ test('late consent leaves the cold Nonogram LCP on game content', async ({ page,
 	} finally {
 		held.resolve()
 	}
-	await expect(banner(page).getByRole('button')).toHaveCount(3)
+	await expect(banner(page).locator('[data-consent-choices]').getByRole('button')).toHaveCount(3)
+	await expect(banner(page).getByRole('button', { name: 'Cookie settings' })).toBeVisible()
 	await expect(banner(page).getByRole('link', { name: 'Privacy policy' })).toBeVisible()
 	// Let Chromium paint the revealed notice and deliver any new entry before the first input.
 	await page.evaluate(

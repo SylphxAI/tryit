@@ -29,11 +29,9 @@ for (const [width, height] of [
 		await page.setViewportSize({ width, height })
 		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 		await openPricing(page)
-		await expect(page.locator('[data-consent-banner]').getByRole('button')).toHaveText([
-			'Decline',
-			'Accept',
-			'Analytics only',
-		])
+		await expect(
+			page.locator('[data-consent-banner] [data-consent-choices]').getByRole('button'),
+		).toHaveText(['Decline', 'Accept', 'Analytics only'])
 		await page.evaluate(() => document.fonts.ready)
 		if (width === 390) await expect(page.locator('.site-tab-bar')).toBeVisible()
 		const family = page.getByRole('link', { name: /^Family plan for up to \d+ players$/ })

@@ -84,12 +84,12 @@ test('winning Sudoku reveals Copy challenge and See your result above the phone 
 		'/privacy',
 	)
 	await expect(banner.locator('a svg')).toHaveCount(0)
-	const choices = await banner.getByRole('button').all()
-	expect(await banner.getByRole('button').allTextContents()).toEqual([
-		'Decline',
-		'Accept',
-		'Analytics only',
-	])
+	const settings = banner.getByRole('button', { name: 'Cookie settings', exact: true })
+	expect((await settings.boundingBox())!.height).toBeGreaterThanOrEqual(24)
+	await expectDirectHit(settings)
+	const choiceButtons = banner.locator('[data-consent-choices]').getByRole('button')
+	const choices = await choiceButtons.all()
+	expect(await choiceButtons.allTextContents()).toEqual(['Decline', 'Accept', 'Analytics only'])
 	for (const choice of choices) {
 		const { width, height } = (await choice.boundingBox())!
 		expect(Math.min(width, height)).toBeGreaterThanOrEqual(44)
@@ -127,6 +127,17 @@ test('winning Sudoku reveals Copy challenge and See your result above the phone 
 	await dialog.getByRole('button', { name: 'Dismiss', exact: true }).tap()
 	await expect(dialog).toBeHidden()
 	await expect(details).toBeFocused()
+
+	await settings.tap()
+	const preferences = banner.getByRole('dialog', { name: 'Cookie settings', exact: true })
+	await expect(
+		preferences.getByText(
+			'Measurement and advertising providers: Google Analytics, Google Ads and Meta.',
+		),
+	).toBeVisible()
+	await preferences.getByRole('button', { name: 'Close', exact: true }).tap()
+	await expect(preferences).toBeHidden()
+	await expect(settings).toBeFocused()
 	await banner.getByRole('button', { name: 'Decline', exact: true }).tap()
 	await expect(banner).toBeHidden()
 })
