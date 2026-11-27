@@ -62,7 +62,7 @@ export type BehavioralEvent =
 	| {
 			event: 'pwa_install_prompted' | 'pwa_installed'
 			platform: PwaPlatform
-			trigger: 'post_first_win' | 'returning_home'
+			trigger: 'post_first_win'
 			is_guest?: boolean
 	  }
 	| {
@@ -147,7 +147,7 @@ function sanitize(input: BehavioralEvent): BehavioralEvent | undefined {
 		case 'pwa_install_prompted':
 		case 'pwa_installed': {
 			const { platform, trigger, is_guest } = input
-			if (oneOf(platform, platforms) && oneOf(trigger, ['post_first_win', 'returning_home'])) {
+			if (oneOf(platform, platforms) && trigger === 'post_first_win') {
 				if (is_guest === undefined) return { event, platform, trigger }
 				if (typeof is_guest === 'boolean') return { event, platform, trigger, is_guest }
 			}
