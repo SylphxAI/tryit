@@ -1,5 +1,5 @@
 WITH qualified AS MATERIALIZED (
-  SELECT user_id, day_key, completed_at FROM game_sessions
+  SELECT id, user_id, day_key, completed_at, adopted_from_guest FROM game_sessions
   WHERE is_ritual = true AND module_class = 'puzzle_ritual' AND status IN ('won', 'lost')
     AND NOT comparison_excluded
     AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id=game_sessions.user_id)
@@ -10,6 +10,18 @@ WITH qualified AS MATERIALIZED (
   SELECT DISTINCT user_id, day_key FROM qualified
 ), firsts AS MATERIALIZED (
   SELECT user_id, min(day_key) AS first_day, min(completed_at) AS first_at FROM qualified GROUP BY user_id
+), entries AS MATERIALIZED (
+  -- Each player's first qualifying finish (one cohort member per player) and
+  -- the identity that recorded it. A guest credential or adopted guest row is
+  -- guest entry; an account row is signed-in entry; anything else (rows from
+  -- before server-issued guest credentials) stays unknown.
+  SELECT DISTINCT ON (q.user_id) q.user_id, q.day_key AS first_day,
+    CASE WHEN q.adopted_from_guest IS NOT NULL
+           OR EXISTS (SELECT 1 FROM guest_credentials c WHERE c.user_id = q.user_id) THEN 'guest'
+         WHEN EXISTS (SELECT 1 FROM auth_subjects a WHERE a.user_id = q.user_id) THEN 'signed_in'
+         ELSE 'unknown' END AS entry,
+    EXISTS (SELECT 1 FROM auth_subjects a WHERE a.user_id = q.user_id) AS now_signed_in
+  FROM qualified q ORDER BY q.user_id, q.day_key, q.completed_at, q.id
 ), days AS (
   SELECT to_char(d, 'YYYY-MM-DD') AS day_key FROM generate_series($1::date, $2::date, interval '1 day') d
 )
@@ -40,5 +52,18 @@ SELECT days.day_key,
   (SELECT count(*) FROM audiences a WHERE a.day_key = days.day_key AND a.paid) AS paid_active,
   (SELECT count(*) FROM audiences a JOIN daily q USING (user_id, day_key) WHERE a.day_key = days.day_key AND a.paid) AS paid_completers,
   (SELECT count(*) FROM audiences a WHERE a.day_key = days.day_key AND NOT a.paid) AS free_active,
-  (SELECT count(*) FROM audiences a JOIN daily q USING (user_id, day_key) WHERE a.day_key = days.day_key AND NOT a.paid) AS free_completers
-FROM days ORDER BY days.day_key
+  (SELECT count(*) FROM audiences a JOIN daily q USING (user_id, day_key) WHERE a.day_key = days.day_key AND NOT a.paid) AS free_completers,
+  zero.*, d1.*
+FROM days
+CROSS JOIN LATERAL (SELECT count(*) AS first_completers,
+    count(*) FILTER (WHERE e.entry = 'guest') AS first_guest_entry,
+    count(*) FILTER (WHERE e.entry = 'signed_in') AS first_signed_in_entry,
+    count(*) FILTER (WHERE e.entry = 'guest' AND e.now_signed_in) AS first_guest_entry_now_signed_in
+  FROM entries e WHERE e.first_day = days.day_key) zero
+CROSS JOIN LATERAL (SELECT count(*) AS d1_cohort,
+    count(*) FILTER (WHERE c.returned) AS d1_returned,
+    count(*) FILTER (WHERE c.entry = 'guest') AS d1_cohort_guest_entry,
+    count(*) FILTER (WHERE c.entry = 'guest' AND c.returned) AS d1_returned_guest_entry
+  FROM (SELECT e.entry, EXISTS (SELECT 1 FROM daily q WHERE q.user_id = e.user_id AND q.day_key = days.day_key) AS returned
+    FROM entries e WHERE e.first_day = to_char(days.day_key::date - 1, 'YYYY-MM-DD')) c) d1
+ORDER BY days.day_key

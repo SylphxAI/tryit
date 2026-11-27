@@ -166,6 +166,27 @@ reverse trials belong to the free audience, unanswerable Money reads are exclude
 Plus includes Money grants/family seats; it is an access-segment proxy, not a
 revenue measure. Raw landings/audiences are not exposed through the report.
 
+### First-finish cohorts and D1
+
+Each report day D may carry `cohorts`: players whose first qualifying finish
+(the North Star predicate, so never synthetic or comparison rows) is on D,
+counted once per player. They are split by **entry identity**, the identity
+that recorded that first finish: guest (a server-issued guest credential, or a
+row adopted from one) or signed in; the rest are unknown, never folded into
+either. `first_guest_entry_now_signed_in` is current status, kept apart. D1 for
+D is D−1's cohort and those who finished again on D. Paid status plays no part.
+
+An absent `cohorts` means the report was stored before collection: unknown, not
+zero. Present zeros are a computed empty cohort. Either is final only when the
+day is `complete`; today's D1 is provisional. This is all-source D1, not
+organic D1.
+
+Not yet measurable, so no number is reported: **guest start to same-day
+completion** (`daily_free_picks` loses guest provenance on adoption and has no
+comparison flag, so the denominator is not authoritative) and the **organic
+split** (no authoritative point-in-time acquisition source; unknown attribution
+is not organic).
+
 ### Initial stop-the-line thresholds
 
 These policy defaults are versioned in the core and visible here. Closed-day

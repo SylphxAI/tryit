@@ -240,6 +240,21 @@ message MetricDay {
   string release = 19;
   repeated string alerts = 20;
   string generated_at = 21;
+  // Absent: not collected (stored before cohorts existed), never a zero.
+  // Present with zeros: computed empty. Final only when `complete`.
+  FirstFinishCohorts cohorts = 22;
+}
+// Players whose first qualifying finish is on the day, by entry identity
+// (unknown = total - guest - signed in); D1 is the previous day's cohort.
+message FirstFinishCohorts {
+  uint32 first_completers = 1;
+  uint32 first_guest_entry = 2;
+  uint32 first_signed_in_entry = 3;
+  uint32 first_guest_entry_now_signed_in = 4;
+  uint32 d1_cohort = 5;
+  uint32 d1_returned = 6;
+  uint32 d1_cohort_guest_entry = 7;
+  uint32 d1_returned_guest_entry = 8;
 }
 message GetMetricsReportResponse {
   repeated MetricDay days = 1;
