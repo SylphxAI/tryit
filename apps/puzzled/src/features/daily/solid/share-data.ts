@@ -78,6 +78,8 @@ export async function readShareLanding(
 			: shared?.attempts != null
 				? t('share.card.attemptsCount', { attempts: shared.attempts })
 				: null
+	// One tap starts play only for a share of today's board in a known game.
+	const startSlug = shared && target.sameAsShared ? target.gameSlug : null
 	const path = shareSegment === null ? '/daily' : `/r/${encodeURIComponent(shareSegment)}`
 	return {
 		kind: 'page',
@@ -115,12 +117,14 @@ export async function readShareLanding(
 					: null,
 			sameAsShared: target.sameAsShared,
 			playName,
+			startSlug,
 			playHref: localizedPath(
 				locale,
 				sharedPlayHref({
 					gameSlug: target.gameSlug,
 					shareId: shared ? shareId : rawShareId,
 					utmSource: query.utm_source,
+					start: startSlug ? { difficulty: shared?.difficulty } : null,
 				}),
 			),
 		},

@@ -103,6 +103,7 @@ function ShareLanding(props: { data: SharePageData }) {
 				</p>
 				<a
 					href={props.data.playHref}
+					data-start-intent={props.data.startSlug ?? undefined}
 					class="pressable mt-5 flex h-12 w-full items-center justify-center rounded-full bg-cta px-6 text-[16px] font-bold text-cta-foreground shadow-[inset_0_-3px_0_var(--color-cta-edge)] transition-colors hover:bg-cta-hover"
 				>
 					{t('home.day.playToday', { game: props.data.playName })}
