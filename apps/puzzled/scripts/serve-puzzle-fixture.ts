@@ -67,8 +67,15 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 			) {
 				return Response.json({ playerCount: 1 })
 			}
-			if (options.openPlans && url.pathname === '/puzzled.v1.BillingService/ListPlans') {
-				return Response.json(OPEN_PLANS)
+			if (url.pathname === '/puzzled.v1.BillingService/ListPlans' && request.method === 'POST') {
+				// readUnlockPrices runs on the server; opt in only the test's guest context.
+				const cookies = request.headers.get('cookie')?.split('; ')
+				if (cookies?.includes('__Host-puzzled_guest=first-finish-fixture')) {
+					const prices = [{ currency: 'eur', unitAmountMinor: '299' }]
+					const plans = [{ id: 'individual_once', accessDays: 3, prices }]
+					return Response.json({ salesOpen: true, plans })
+				}
+				if (options.openPlans) return Response.json(OPEN_PLANS)
 			}
 			if (
 				url.pathname === '/puzzled.v1.PuzzleService/GetSharedResult' &&
