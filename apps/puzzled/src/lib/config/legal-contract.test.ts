@@ -34,6 +34,24 @@ describe('legal configuration and multi-locale invariants', () => {
 		expect(PRIVACY_VERSION).toBe('2026-11-27')
 	})
 
+	const southKorea = {
+		'en-US': 'South Korea',
+		'en-GB': 'South Korea',
+		es: 'Corea del Sur',
+		ja: '韓国',
+		'pt-BR': 'Coreia do Sul',
+		'zh-CN': '韩国',
+		'zh-HK': '南韓',
+		'zh-TW': '南韓',
+	} satisfies Record<Locale, string>
+
+	test('all eight resolved privacy catalogues name South Korea in the consent clause', () => {
+		for (const locale of locales) {
+			const path = ['legal', 'privacy', 'sections', 'cookies', 'content']
+			expect(getPath(resolveLocale(locale), path)).toContain(southKorea[locale])
+		}
+	})
+
 	for (const locale of locales) {
 		test(`${locale} legal catalogue matches versions, channel separation, Reg 36/37, and Brazil CDC Art. 49`, () => {
 			const messages = resolveLocale(locale as Locale)

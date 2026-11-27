@@ -1,6 +1,6 @@
 /**
  * Meta Pixel, off unless META_PIXEL_ID is set. It loads only when canUseMeta()
- * allows it (ROW default unless refused; EEA/UK/CH/unknown only after a saved
+ * allows it (opt-out regions by default; opt-in and unknown regions only after a saved
  * current-version grant; never under GPC or for a flagged minor): before that
  * there is no script and no request. Init carries no advanced matching, so no email,
  * player, auth or customer id reaches Meta. Purchase uses the Money order id

@@ -81,7 +81,7 @@ afterEach(() => {
 	else Reflect.deleteProperty(navigator, 'globalPrivacyControl')
 })
 
-for (const country of ['US', 'CA', 'AU']) {
+for (const country of ['US', 'CA', 'AU', 'NZ', 'JP', 'HK', 'TW', 'SG', 'AE', 'IL']) {
 	test(`${country} defaults to complete SDK consent, Google and Meta attribution`, async () => {
 		browser()
 		await context(country)
@@ -113,7 +113,7 @@ for (const country of ['US', 'CA', 'AU']) {
 	})
 }
 
-for (const country of ['DE', 'GB', 'CH', 'XX', undefined]) {
+for (const country of ['DE', 'GB', 'CH', 'KR', 'XX', undefined]) {
 	test(`${String(country)} grant saved before the Meta consent version keeps Google, not Meta`, async () => {
 		const store = browser()
 		store.set(CONSENT_KEY, 'granted')
@@ -143,14 +143,16 @@ for (const country of ['DE', 'GB', 'CH', 'XX', undefined]) {
 	})
 }
 
-for (const country of ['DE', 'GB', 'CH', 'XX', 'SU', 'US, US', undefined]) {
+for (const country of ['DE', 'GB', 'CH', 'KR', 'XX', 'SU', 'US, US', undefined]) {
 	test(`${String(country)} fails closed until explicit opt-in`, async () => {
 		browser()
 		await context(country)
 		expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
 		expect(cookieConsent().prompt).toBe(true)
+		expect(canUseMeta()).toBe(false)
 		saveCookieChoice('granted')
 		expect(snapshot().consent).toBe(full)
+		expect(canUseMeta()).toBe(true)
 	})
 }
 
@@ -197,16 +199,26 @@ test('declining is persistent and clears the campaign touch', async () => {
 	expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
 })
 
-for (const gpc of ['header', 'browser']) {
-	test(`${gpc} GPC overrides even a stored grant`, async () => {
-		const store = browser()
-		store.set(CONSENT_KEY, 'granted')
-		if (gpc === 'browser')
-			Object.defineProperty(navigator, 'globalPrivacyControl', { value: true, configurable: true })
-		await context('AU', gpc === 'header' ? '0, 1' : undefined)
-		expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
-		expect(store.has('puzzled:signal.touch')).toBe(false)
-	})
+for (const country of ['AU', 'KR']) {
+	for (const gpc of ['header', 'browser']) {
+		test(`${country}: ${gpc} GPC overrides even a current stored grant`, async () => {
+			const store = browser()
+			await context(country)
+			saveCookieChoice('granted')
+			expect(canUseMeta()).toBe(true)
+			if (gpc === 'browser')
+				Object.defineProperty(navigator, 'globalPrivacyControl', {
+					value: true,
+					configurable: true,
+				})
+			await context(country, gpc === 'header' ? '0, 1' : undefined)
+			expect(cookieConsent().prompt).toBe(false)
+			expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
+			expect(canUseMeta()).toBe(false)
+			expect(captureSignalTouch()).toEqual({})
+			expect(store.has('puzzled:signal.touch')).toBe(false)
+		})
+	}
 }
 
 const campaign = {
