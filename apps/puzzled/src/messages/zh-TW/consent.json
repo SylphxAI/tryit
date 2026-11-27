@@ -2,8 +2,6 @@
 	"learnMore": "隱私權政策",
 	"gpc": "Global Privacy Control（GPC）已啟用，非必要的分析與廣告功能已關閉。",
 	"message": "允許分析和廣告嗎？",
-	"accept": "接受",
-	"decline": "拒絕",
 	"analyticsOnly": "僅限分析",
 	"full": "分析與廣告已開啟。",
 	"providers": "成效衡量及廣告服務供應商：Google Analytics、Google Ads 及 Meta。"
