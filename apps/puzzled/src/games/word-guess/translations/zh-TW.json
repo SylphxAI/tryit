@@ -13,6 +13,7 @@
 		"present": "黃色代表字母在詞裡，但位置不對",
 		"absent": "灰色代表詞裡沒有這個字母"
 	},
+	"sound": "音效",
 	"keyboard": {
 		"enter": "輸入",
 		"delete": "刪除"
