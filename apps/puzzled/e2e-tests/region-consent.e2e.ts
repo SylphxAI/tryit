@@ -53,8 +53,9 @@ async function captureCspViolations(page: Page) {
 	return violations
 }
 
-async function expectLandingPageView(page: Page, path: string) {
-	const pageLocation = `${new URL(page.url()).origin}${path}`
+/** After Accept, the first view keeps only allowlisted landing params; never PII or fragments. */
+async function expectLandingPageView(page: Page, path: string, query = '?gclid=fixture-g') {
+	const pageLocation = `${new URL(page.url()).origin}${path}${query}`
 	await expect
 		.poll(() => commands(page))
 		.toContainEqual([
@@ -74,7 +75,7 @@ async function expectLandingPageView(page: Page, path: string) {
 		},
 	])
 	expect(data.some(isConversion)).toBe(false)
-	expect(JSON.stringify(data)).not.toMatch(/private%40|example\.test|fixture-g|fixture-fragment/)
+	expect(JSON.stringify(data)).not.toMatch(/private%40|example\.test|email|fixture-fragment/)
 }
 
 async function setGpc(page: Page, signal: 'header' | 'browser') {
@@ -175,7 +176,7 @@ for (const viewport of [
 			expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('granted')
 			await expect.poll(() => requests).toEqual([scriptUrl])
 			await expect(banner(page)).toBeHidden()
-			await expectLandingPageView(page, '/')
+			await expectLandingPageView(page, '/', '?gclid=fixture-g&gbraid=fixture-gb&wbraid=fixture-wb')
 			const data = await commands(page)
 			expect(violations).toEqual([])
 			expect(data).toContainEqual([
@@ -183,7 +184,7 @@ for (const viewport of [
 				'page_view',
 				{
 					send_to: id,
-					page_location: `${new URL(page.url()).origin}/`,
+					page_location: `${new URL(page.url()).origin}/?gclid=fixture-g&gbraid=fixture-gb&wbraid=fixture-wb`,
 					page_title: 'Free Daily Brain Games & Puzzles | Tryit',
 					page_referrer: '',
 				},
@@ -267,6 +268,27 @@ for (const path of ['/games/sudoku', '/games/word-guess']) {
 			await expect.poll(() => requests).toEqual([scriptUrl])
 			await expectLandingPageView(page, path)
 			expect(violations).toEqual([])
+		})
+
+		test('EEA Analytics only sends a landing page view without ad click ids', async ({
+			page,
+			googleRequests: requests,
+		}) => {
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			await page.goto(`${path}?utm_source=google&utm_medium=cpc&gclid=fixture-g#fixture-fragment`)
+			await banner(page).getByRole('button', { name: 'Analytics only', exact: true }).click()
+			await expect.poll(() => requests).toEqual([scriptUrl])
+			const pageLocation = `${new URL(page.url()).origin}${path}?utm_source=google&utm_medium=cpc`
+			await expect
+				.poll(() => commands(page))
+				.toContainEqual([
+					'event',
+					'page_view',
+					expect.objectContaining({ send_to: id, page_location: pageLocation, page_referrer: '' }),
+				])
+			const data = await commands(page)
+			expect(data.some(([command, name]) => command === 'config' && name === adsId)).toBe(false)
+			expect(JSON.stringify(data)).not.toMatch(/gclid|fixture-g|fixture-fragment/)
 		})
 
 		test('EEA Decline suppresses Google and persists after reload', async ({

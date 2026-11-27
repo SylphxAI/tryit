@@ -279,6 +279,7 @@ describe('landing attribution', () => {
 		h.tag.sync()
 		expect(h.tag.pageView('/', 'Home | Tryit')).toBe(false)
 		h.state.analytics = true
+		h.state.marketing = true
 		h.tag.sync()
 		expect(h.tag.pageView('/games', 'Games | Tryit')).toBe(true)
 		expect(pageViews(h.calls)[0]).toMatchObject({
@@ -287,6 +288,19 @@ describe('landing attribution', () => {
 				'&utm_term=logic&utm_content=a1&utm_id=42&gclid=TEST123&gbraid=GB1&wbraid=WB1',
 			page_referrer: 'https://www.google.com/search/path',
 		})
+	})
+
+	test('analytics-only consent keeps campaign params but never sends ad click ids', () => {
+		const h = harness({ analytics: true, marketing: false }, IDS, undefined, AD_LANDING)
+		h.tag.sync()
+		expect(h.tag.pageView('/', 'Home | Tryit')).toBe(true)
+		expect(pageViews(h.calls)[0]).toMatchObject({
+			page_location:
+				'https://tryit.fun/?utm_source=google&utm_medium=cpc&utm_campaign=spring' +
+				'&utm_term=logic&utm_content=a1&utm_id=42',
+			page_referrer: 'https://www.google.com/search/path',
+		})
+		expect(JSON.stringify(h.calls)).not.toMatch(/gclid|gbraid|wbraid|TEST123[^4]|GB1|WB1/)
 	})
 
 	test('a same-origin or non-http referrer and an email-like value are not sent', () => {

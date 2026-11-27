@@ -76,27 +76,26 @@ export function trackablePath(pathname: string): string | null {
 	return Object.hasOwn(PLAYER_TITLE, slug) && gamePath(slug) === path ? path : null
 }
 
-/** Landing-URL parameters GA4 and Google Ads use to attribute a session. */
-const ATTRIBUTION_PARAMS = [
+/** Landing-URL campaign parameters GA4 uses to attribute a session. */
+const CAMPAIGN_PARAMS = [
 	'utm_source',
 	'utm_medium',
 	'utm_campaign',
 	'utm_term',
 	'utm_content',
 	'utm_id',
-	'gclid',
-	'gbraid',
-	'wbraid',
 ] as const
+/** Google Ads click ids: advertising identifiers, sent only with ads consent. */
+const CLICK_ID_PARAMS = ['gclid', 'gbraid', 'wbraid'] as const
 
 /** The document's landing query and referrer, read once when the app starts. */
 export type Landing = { search: string; referrer: string }
 
 /** The allowlisted landing parameters as a query string ('' when none). */
-export function attributionQuery(search: string): string {
+export function attributionQuery(search: string, ads: boolean): string {
 	const params = new URLSearchParams(search)
 	const out = new URLSearchParams()
-	for (const key of ATTRIBUTION_PARAMS) {
+	for (const key of [...CAMPAIGN_PARAMS, ...(ads ? CLICK_ID_PARAMS : [])]) {
 		const value = params.get(key)?.trim()
 		if (value && !value.includes('@')) out.set(key, value.slice(0, 100))
 	}
@@ -216,9 +215,9 @@ export function createGoogleTag(input: {
 	const { ids, win, doc } = input
 	const base = `${win.location.origin}/`
 	// Attribution for the first page view sent; cleared once it has been used.
-	let landing: { query: string; referrer: string } | null = input.landing
+	let landing: Landing | null = input.landing
 		? {
-				query: attributionQuery(input.landing.search),
+				search: input.landing.search,
 				referrer: externalReferrer(input.landing.referrer, win.location.origin),
 			}
 		: null
@@ -328,8 +327,9 @@ export function createGoogleTag(input: {
 			const send = gaOn && Boolean(path && title) && path !== lastPath
 			// The first view sent carries the landing attribution, even after SPA navigation.
 			const first = send ? landing : null
+			const query = first ? attributionQuery(first.search, allowsAds(input.consent())) : ''
 			const page = {
-				page_location: path && title ? `${win.location.origin}${path}${first?.query ?? ''}` : base,
+				page_location: path && title ? `${win.location.origin}${path}${query}` : base,
 				page_referrer: first?.referrer ?? '',
 				page_title: path && title ? title : SITE_TITLE,
 			}
