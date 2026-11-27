@@ -94,6 +94,14 @@
 		"keep": "Tudo o que você já concluiu continua nas suas estatísticas.",
 		"backToToday": "Voltar aos jogos de hoje"
 	},
+	"passOffer": {
+		"title": "Todos os jogos por {days} dias",
+		"price": "{price} uma vez · sem renovação",
+		"cta": "Quero o passe de {days} dias",
+		"checkout": "Pagar {price} uma vez",
+		"free": "Continuar jogando grátis",
+		"tomorrow": "Volte amanhã"
+	},
 	"offer": {
 		"resultTitle": "Jogue os {count} jogos e o arquivo",
 		"resultBody": "3 dos 19 desafios são grátis todos os dias. O Tryit Plus libera todos os jogos, o arquivo dos dias anteriores e as suas estatísticas de cada um.",
