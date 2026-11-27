@@ -41,6 +41,16 @@ pub(super) async fn get_metrics_report(
             release: d.release,
             alerts: d.alerts,
             generated_at,
+            first_completers: n(d.first_completers),
+            first_completers_guest_entry: n(d.first_completers_guest_entry),
+            first_completers_signed_in_entry: n(d.first_completers_signed_in_entry),
+            first_completers_guest_entry_now_signed_in: n(
+                d.first_completers_guest_entry_now_signed_in
+            ),
+            d1_cohort: n(d.d1_cohort),
+            d1_returned: n(d.d1_returned),
+            d1_cohort_guest_entry: n(d.d1_cohort_guest_entry),
+            d1_returned_guest_entry: n(d.d1_returned_guest_entry),
             ..Default::default()
         })
         .collect();

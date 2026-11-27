@@ -152,6 +152,12 @@ pub async fn rollup(pool: &PgPool, now: DateTime<Utc>) -> Result<usize, String> 
                 shares: r.try_get("shares")?, free_finish_ok: r.try_get("free_finish_ok")?, free_finish_failed: r.try_get("free_finish_failed")?,
                 paid_active: r.try_get("paid_active")?, paid_completers: r.try_get("paid_completers")?,
                 free_active: r.try_get("free_active")?, free_completers: r.try_get("free_completers")?,
+                first_completers: r.try_get("first_completers")?,
+                first_completers_guest_entry: r.try_get("first_completers_guest_entry")?,
+                first_completers_signed_in_entry: r.try_get("first_completers_signed_in_entry")?,
+                first_completers_guest_entry_now_signed_in: r.try_get("first_completers_guest_entry_now_signed_in")?,
+                d1_cohort: r.try_get("d1_cohort")?, d1_returned: r.try_get("d1_returned")?,
+                d1_cohort_guest_entry: r.try_get("d1_cohort_guest_entry")?, d1_returned_guest_entry: r.try_get("d1_returned_guest_entry")?,
                 day_key: key.clone(), ..Day::default()
             };
             let date = chrono::NaiveDate::parse_from_str(&key, "%Y-%m-%d").map_err(|e| sqlx::Error::Decode(Box::new(e)))?;

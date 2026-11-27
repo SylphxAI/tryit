@@ -411,3 +411,213 @@ async fn the_oldest_visible_day_keeps_its_alert_comparison_context() {
     assert_eq!(oldest.day_key, "2026-09-22");
     assert!(oldest.alerts.contains(&"completers_drop".into()));
 }
+
+async fn ritual(
+    pool: &PgPool,
+    user: Uuid,
+    day: &str,
+    game: &str,
+    at: &str,
+    guest: Option<Uuid>,
+    excluded: bool,
+) {
+    sqlx::query("INSERT INTO game_sessions (user_id,game_slug,day_key,is_ritual,module_class,status,completed_at,adopted_from_guest,comparison_excluded) VALUES ($1,$2,$3,true,'puzzle_ritual','won',$4::text::timestamp,$5,$6)")
+        .bind(user).bind(game).bind(day).bind(at).bind(guest).bind(excluded).execute(pool).await.unwrap();
+}
+
+#[tokio::test]
+async fn day_zero_and_d1_cohorts_count_each_player_once_by_entry_identity() {
+    let Some(pool) = fresh_database().await else {
+        return;
+    };
+    let [guest, claimed_guest, account, signed_in, legacy, fixture, comparison] =
+        std::array::from_fn(|_| Uuid::now_v7());
+    for (user, adopted) in [(guest, None), (claimed_guest, Some(account))] {
+        sqlx::query("INSERT INTO guest_credentials (token_hash,user_id,provenance,adopted_user_id,revoked_at,revocation_reason) VALUES ($1,$2,'server_issued',$3,CASE WHEN $3::uuid IS NULL THEN NULL ELSE now() END,CASE WHEN $3::uuid IS NULL THEN NULL ELSE 'adopted' END)")
+            .bind(format!("hash-{user}")).bind(user).bind(adopted).execute(&pool).await.unwrap();
+    }
+    for (subject, user) in [("cohort-account", account), ("cohort-signed-in", signed_in)] {
+        sqlx::query("INSERT INTO auth_subjects (subject,user_id) VALUES ($1,$2)")
+            .bind(subject)
+            .bind(user)
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    sqlx::query("INSERT INTO synthetic_fixtures (user_id, fixture_key, auth_subject, synthetic_time) VALUES ($1, 'cohort-fixture', 'cohort-fixture-subject', now())")
+        .bind(fixture).execute(&pool).await.unwrap();
+    // Paid status is not identity: a paid signed-in player is an ordinary member.
+    sqlx::query(
+        "INSERT INTO metric_audiences (user_id,day_key,paid) VALUES ($1,'2026-10-24',true)",
+    )
+    .bind(signed_in)
+    .execute(&pool)
+    .await
+    .unwrap();
+    // Claimed guest: played as a guest (two games on day zero, the second does
+    // not make a second member), adopted, then returned on HK day 25 at 01:30
+    // local, which is still 24 Oct in UTC.
+    ritual(
+        &pool,
+        account,
+        "2026-10-24",
+        "sudoku",
+        "2026-10-24 02:00:00",
+        Some(claimed_guest),
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        account,
+        "2026-10-24",
+        "word-guess",
+        "2026-10-24 15:59:00",
+        Some(claimed_guest),
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        account,
+        "2026-10-25",
+        "sudoku",
+        "2026-10-24 17:30:00",
+        None,
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        guest,
+        "2026-10-24",
+        "sudoku",
+        "2026-10-24 03:00:00",
+        None,
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        signed_in,
+        "2026-10-24",
+        "sudoku",
+        "2026-10-24 03:00:00",
+        None,
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        signed_in,
+        "2026-10-25",
+        "sudoku",
+        "2026-10-25 03:00:00",
+        None,
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        legacy,
+        "2026-10-24",
+        "sudoku",
+        "2026-10-24 03:00:00",
+        None,
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        fixture,
+        "2026-10-24",
+        "sudoku",
+        "2026-10-24 03:00:00",
+        None,
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        fixture,
+        "2026-10-25",
+        "sudoku",
+        "2026-10-25 03:00:00",
+        None,
+        false,
+    )
+    .await;
+    // A comparison finish neither starts a cohort nor counts as a return.
+    ritual(
+        &pool,
+        comparison,
+        "2026-10-24",
+        "sudoku",
+        "2026-10-24 03:00:00",
+        None,
+        true,
+    )
+    .await;
+    ritual(
+        &pool,
+        comparison,
+        "2026-10-25",
+        "sudoku",
+        "2026-10-25 03:00:00",
+        None,
+        false,
+    )
+    .await;
+    ritual(
+        &pool,
+        guest,
+        "2026-10-26",
+        "sudoku",
+        "2026-10-25 17:00:00",
+        None,
+        false,
+    )
+    .await;
+
+    metrics::rollup(&pool, time("2026-10-25T16:17:00Z"))
+        .await
+        .unwrap();
+    let reports = metrics::reports(&pool).await.unwrap();
+    let day = |key: &str| {
+        reports
+            .iter()
+            .find(|(d, _)| d.day_key == key)
+            .unwrap()
+            .0
+            .clone()
+    };
+    let zero = day("2026-10-24");
+    assert_eq!(
+        (
+            zero.first_completers,
+            zero.first_completers_guest_entry,
+            zero.first_completers_signed_in_entry,
+            zero.first_completers_guest_entry_now_signed_in
+        ),
+        (4, 2, 1, 1)
+    );
+    assert_eq!(zero.daily_puzzle_completers, zero.first_completers);
+    let one = day("2026-10-25");
+    assert!(one.complete);
+    assert_eq!(
+        (
+            one.d1_cohort,
+            one.d1_returned,
+            one.d1_cohort_guest_entry,
+            one.d1_returned_guest_entry
+        ),
+        (4, 2, 2, 1)
+    );
+    assert_eq!(one.first_completers, 1);
+    // Today is censored: its D1 is provisional, not a final zero.
+    let today = day("2026-10-26");
+    assert!(!today.complete);
+    assert_eq!((today.d1_cohort, today.d1_returned), (1, 0));
+    // D7 is unchanged by the new cohorts.
+    assert_eq!((one.d7_cohort, one.d7_returned), (0, 0));
+}

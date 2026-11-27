@@ -240,6 +240,17 @@ message MetricDay {
   string release = 19;
   repeated string alerts = 20;
   string generated_at = 21;
+  // Day-zero cohort: first qualifying finish on this day, split by the
+  // identity that recorded it; unknown entry = total - guest - signed-in.
+  uint32 first_completers = 22;
+  uint32 first_completers_guest_entry = 23;
+  uint32 first_completers_signed_in_entry = 24;
+  uint32 first_completers_guest_entry_now_signed_in = 25;
+  // D1: previous day's first completers who finished again on this day.
+  uint32 d1_cohort = 26;
+  uint32 d1_returned = 27;
+  uint32 d1_cohort_guest_entry = 28;
+  uint32 d1_returned_guest_entry = 29;
 }
 message GetMetricsReportResponse {
   repeated MetricDay days = 1;

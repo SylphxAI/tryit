@@ -2,7 +2,10 @@
 //! not failures and missing observations are never fabricated as zero rates.
 use serde::{Deserialize, Serialize};
 
+// Reports persisted before a field existed must still decode (as "not
+// collected"), or the admin page and the rollup's history would fail closed.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Day {
     pub day_key: String,
     pub complete: bool,
@@ -24,6 +27,21 @@ pub struct Day {
     pub catalog_size: i64,
     pub release: String,
     pub alerts: Vec<String>,
+    /// Day-zero cohort: players whose first qualifying finish is on this day.
+    /// Entry identity is the identity that recorded that first finish
+    /// (guest credential or adopted guest row; signed-in account); the rest
+    /// are unknown (pre-credential rows), never folded into either side.
+    pub first_completers: i64,
+    pub first_completers_guest_entry: i64,
+    pub first_completers_signed_in_entry: i64,
+    /// Guest-entry first completers whose player is signed in at rollup time.
+    pub first_completers_guest_entry_now_signed_in: i64,
+    /// D1: first completers of the previous day and those who finished again
+    /// on this day. Final only once this day is `complete`.
+    pub d1_cohort: i64,
+    pub d1_returned: i64,
+    pub d1_cohort_guest_entry: i64,
+    pub d1_returned_guest_entry: i64,
 }
 
 pub fn alerts(
@@ -141,5 +159,12 @@ mod tests {
             ..Day::default()
         };
         assert!(alerts(&day, Some(&p), None, false).is_empty());
+    }
+
+    #[test]
+    fn a_report_persisted_before_the_cohort_fields_still_decodes() {
+        let old = r#"{"day_key":"2026-11-01","complete":true,"daily_puzzle_completers":3,"signed_in_completers":1,"daily_entertainment_completers":0,"weekly_ritualists":0,"d7_cohort":2,"d7_returned":1,"share_landings":0,"share_landing_completers":0,"shares":0,"free_finish_ok":0,"free_finish_failed":0,"paid_active":0,"paid_completers":0,"free_active":0,"free_completers":0,"catalog_size":19,"release":"","alerts":[]}"#;
+        let day: Day = serde_json::from_str(old).unwrap();
+        assert_eq!((day.catalog_size, day.d7_cohort, day.d1_cohort), (19, 2, 0));
     }
 }
