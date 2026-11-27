@@ -29,7 +29,7 @@ pub(super) fn pick_claim(
 ) -> daily_free_picks::Claim {
     daily_free_picks::Claim {
         via,
-        comparison: ctx.headers().contains_key("x-puzzled-verification"),
+        comparison: crate::shared::comparison::excluded(ctx.headers()),
     }
 }
 

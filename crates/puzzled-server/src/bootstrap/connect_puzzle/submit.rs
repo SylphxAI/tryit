@@ -262,12 +262,7 @@ impl PuzzleConnectService {
                     }),
                     // This header only removes a validated finish from comparisons.
                     // It grants no write/auth authority. Recognize older harnesses too.
-                    comparison_excluded: ctx.headers().contains_key("x-puzzled-verification")
-                        || ctx
-                            .headers()
-                            .get("user-agent")
-                            .and_then(|v| v.to_str().ok())
-                            .is_some_and(|v| v.starts_with("puzzled-verify-live/")),
+                    comparison_excluded: crate::shared::comparison::excluded(ctx.headers()),
                 },
             )
             .await
