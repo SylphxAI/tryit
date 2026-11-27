@@ -1,0 +1,30 @@
+/* Home's returning-player install offer: the result card's install nudge,
+   docked above the tab bar and the consent tray, clear of Play. */
+.home-install-dock {
+	--result-paper: #fff; --result-ink: #201e1a; --result-quiet: #5d584f;
+	--result-tile: #f7f5f0; --result-edge: rgba(20, 20, 19, .10); --result-button-edge: #cbc4b7;
+	position: fixed;
+	inset-inline: 1rem;
+	bottom: calc(var(--bottom-dock-clearance, 0px) + .75rem);
+	z-index: var(--z-index-popover);
+	max-inline-size: 28rem;
+	margin-inline: auto;
+	color: var(--result-ink);
+}
+.dark .home-install-dock {
+	--result-paper: #1d1c19; --result-ink: #f3efe7; --result-quiet: #c2bcb0;
+	--result-tile: #2a2824; --result-edge: #403d36; --result-button-edge: #6e675c;
+}
+.home-install-dock[hidden] { display: none; }
+.home-install-dock .result-install {
+	display: flex; gap: .625rem; justify-content: space-between; padding: .75rem;
+	border: 1px solid var(--result-edge); border-radius: .75rem; background: var(--result-tile);
+	box-shadow: 0 6px 24px rgba(20, 20, 19, .16); font-size: .8125rem;
+}
+.home-install-dock .result-install p + p { margin-block-start: .25rem; color: var(--result-quiet); }
+.home-install-dock .result-button {
+	display: inline-flex; align-items: center; justify-content: center; gap: .375rem;
+	min-block-size: 2.75rem; min-inline-size: 2.75rem; padding: .45rem .625rem;
+	border: 1px solid var(--result-button-edge); border-radius: 999px;
+	background: var(--result-paper); color: var(--result-ink); font-size: .875rem; font-weight: 700;
+}

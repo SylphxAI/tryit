@@ -13,7 +13,12 @@ import {
 } from '@/shared/components/pwa-install-event'
 import { dailyPlayerCopy } from '../lib/daily-player-copy'
 
-export function PwaInstallNudge(props: { locale: Locale; isGuest?: boolean }) {
+/** `trigger` names the placement; the result card is the default. */
+export function PwaInstallNudge(props: {
+	locale: Locale
+	isGuest?: boolean
+	trigger?: 'returning_home'
+}) {
 	const copy = dailyPlayerCopy(props.locale)
 	const t = createTranslator(props.locale)
 	const [available, setAvailable] = createSignal(false)
@@ -30,7 +35,7 @@ export function PwaInstallNudge(props: { locale: Locale; isGuest?: boolean }) {
 		trackBehavioralEvent({
 			event: 'pwa_install_prompted',
 			platform: visible,
-			trigger: 'post_first_win',
+			trigger: props.trigger ?? 'post_first_win',
 			is_guest: props.isGuest,
 		})
 	})
@@ -40,7 +45,7 @@ export function PwaInstallNudge(props: { locale: Locale; isGuest?: boolean }) {
 		trackBehavioralEvent({
 			event: 'pwa_installed',
 			platform,
-			trigger: 'post_first_win',
+			trigger: props.trigger ?? 'post_first_win',
 			is_guest: props.isGuest,
 		})
 	}

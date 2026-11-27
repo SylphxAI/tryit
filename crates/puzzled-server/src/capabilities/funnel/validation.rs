@@ -180,7 +180,7 @@ fn validate_behavior(input: &Incoming) -> Option<Row> {
         event @ ("pwa_install_prompted" | "pwa_installed") => {
             let mut params = json!({
                 "platform": allowed(input.platform.as_deref(), &PWA_PLATFORMS)?,
-                "trigger": allowed(input.trigger.as_deref(), &["post_first_win"])?,
+                "trigger": allowed(input.trigger.as_deref(), &["post_first_win", "returning_home"])?,
             });
             // Older callers omit guest status; that is not evidence of an account.
             if let Some(is_guest) = input.is_guest {
