@@ -112,6 +112,12 @@ Browser funnel stages for ad optimisation use the same gate as page views
 `purchase` uses a SHA-256 of the processor order id as its event id (stable,
 so a reload deduplicates); no order, player, auth or customer id is sent.
 
+GA4 `game_start` counts the first playable daily or archive board per visit,
+not a switch to explicit Play. It requires an effective analytics grant from
+an existing affirmative choice or a named opt-out market default. Delayed
+context can confirm either; a later opt-in cannot replay the event. Only GA4
+receives it, with game, mode, a query-free public URL and no referrer.
+
 ## First-party funnel counter
 
 Visits, plays, sign-ups and Core Web Vitals are counted in our own database,
@@ -122,7 +128,7 @@ counter runs without a consent choice. Google Analytics, when
 | Event | Written by |
 | --- | --- |
 | `landing` | browser, once per session (`FunnelReporter`) |
-| `game_start` | browser, when a playable board is shown (`GamePageClient`) |
+| `game_start` | browser, when a playable board is shown (`createDailyPlayState`) |
 | `signup` | api, in `RecordSignupAttribution`, once per new account |
 | `web_vitals` | browser, `LCP` `CLS` `INP` `FCP` `TTFB` (`useReportWebVitals`) |
 

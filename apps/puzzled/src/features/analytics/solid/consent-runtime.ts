@@ -124,6 +124,7 @@ export function ConsentRuntime() {
 		window.addEventListener('storage', storageChanged)
 		const abort = new AbortController()
 		void (async () => {
+			let ready = false
 			try {
 				const response = await fetch('/api/consent-context', {
 					cache: 'no-store',
@@ -175,8 +176,11 @@ export function ConsentRuntime() {
 					optOutMarket: data.optOutMarket === true,
 					stream,
 				})
+				ready = true
 			} catch {
 				// If the HTTP privacy signal could not be read, leave measurement off.
+			} finally {
+				if (!ready && !abort.signal.aborted) notifyConsentChange()
 			}
 		})()
 		onCleanup(() => {

@@ -8,8 +8,9 @@ import {
 	useParams,
 	useSearchParams,
 } from '@solidjs/router'
-import { createMemo, createSignal, Show } from 'solid-js'
+import { createMemo, createSignal, onCleanup, Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
+import { trackGa4GameStart } from '@/features/analytics/lib/ga4-game-start'
 import { buildGamePage } from '@/features/catalog/solid/game-data'
 import { GameLanding } from '@/features/catalog/solid/game-landing'
 import { asDifficulty } from '@/features/daily/lib/difficulty-completion'
@@ -113,7 +114,7 @@ export default function GamePage() {
 				needsEnglishWordNotice(page.data.locale, page.data.slug),
 		)
 	}
-	const playKey = createMemo(() => {
+	const visitKey = createMemo(() => {
 		const page = data()
 		return (
 			page &&
@@ -123,10 +124,26 @@ export default function GamePage() {
 				page.day.puzzleDate,
 				page.todayKey,
 				page.difficulty,
-				page.started,
 				page.practice,
 			])
 		)
+	})
+	const playKey = createMemo(() => {
+		const visit = visitKey()
+		return visit && JSON.stringify([visit, data()?.started])
+	})
+	// Passive → explicit play remounts DailyPlay, not the board visit. Count the
+	// first playable observation even if consent is off; never replay on grant.
+	const onPlayable = createMemo(() => {
+		visitKey()
+		let seen = false
+		let stop: (() => void) | undefined
+		onCleanup(() => stop?.())
+		return (slug: string, mode: 'daily' | 'archive') => {
+			if (seen) return
+			seen = true
+			stop = trackGa4GameStart(slug, mode)
+		}
 	})
 	return (
 		<Show when={data() !== undefined}>
@@ -162,6 +179,7 @@ export default function GamePage() {
 										todayKey={page().todayKey}
 										resetAt={page().resetAt}
 										onLocked={() => setLockedKey(_playKey)}
+										onPlayable={onPlayable()}
 										difficulty={page().difficulty}
 										initial={page().initialDaily}
 										started={page().started}

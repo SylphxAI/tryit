@@ -35,6 +35,7 @@ export type DailyPlayProps = {
 	todayKey: string
 	resetAt: number
 	onLocked: () => void
+	onPlayable: (slug: string, mode: 'daily' | 'archive') => void
 	difficulty?: PuzzleDifficulty
 	started: boolean
 	initial?: State
@@ -110,6 +111,7 @@ export function createDailyPlayState(
 		sendFunnel({ event: 'game_start', game_slug: slug })
 		trackGameStartStage(slug, archive ? 'archive' : 'daily')
 		if (!archive) rememberDailyLevel(value.puzzleDate, slug, props.difficulty)
+		props.onPlayable(slug, archive ? 'archive' : 'daily')
 	})
 	createEffect(() => {
 		if (snapshot('locked')) props.onLocked()
