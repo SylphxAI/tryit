@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test'
 import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
 import { buildCsp } from '@/lib/csp'
 import { signalStreamConfig } from '@/lib/signal-config'
-import { CONSENT_KEY, CONSENT_VERSION_KEY } from '@/lib/storage-keys'
+import { CONSENT_KEY, CONSENT_VERSION_KEY, SIGNAL_STORAGE_KEY } from '@/lib/storage-keys'
 import { GET } from '@/routes/api/consent-context'
 import { checkoutSignalHeaders, setCheckoutMeasurementId } from './checkout-signal'
 import {
@@ -12,6 +12,7 @@ import {
 	cookieConsent,
 	saveCookieChoice,
 	setConsentContext,
+	trackSignalEvent,
 	trackSignalPage,
 } from './consent'
 
@@ -51,7 +52,7 @@ function browser(legacy?: string) {
 	return store
 }
 
-async function context(country?: string, gpc?: string) {
+async function context(country?: string, gpc?: string, signalStream?: typeof stream) {
 	const headers = new Headers()
 	if (country) headers.set('CF-IPCountry', country)
 	if (gpc) headers.set('Sec-GPC', gpc)
@@ -59,7 +60,7 @@ async function context(country?: string, gpc?: string) {
 		request: new Request('https://tryit.fun/api/consent-context', { headers }),
 	})
 	expect(response.headers.get('Cache-Control')).toBe('private, no-store')
-	setConsentContext(await response.json())
+	setConsentContext({ ...(await response.json()), stream: signalStream })
 }
 
 function snapshot() {
@@ -276,12 +277,93 @@ test('Wave 1 stays off without a saved grant; EEA never captures the pre-grant l
 	expect(store.has('puzzled:signal.touch')).toBe(false)
 })
 
-test('ROW checkout defaults do not enable the opt-in SPA stream', () => {
-	const { requests } = signalBrowser()
-	setConsentContext({ region: 'ROW', gpc: false, stream })
+test.each(['US', 'CA', 'AU', 'NZ', 'JP', 'HK', 'TW', 'SG', 'AE', 'IL'])(
+	'%s sends one page view and one game start without a saved choice',
+	async (country) => {
+		const { store, requests } = signalBrowser()
+		await context(country, undefined, stream)
+		trackSignalPage('/pricing')
+		trackSignalPage('/pricing')
+		expect(trackSignalEvent('game_start', { game_slug: 'sudoku', mode: 'daily' })).toBe(true)
+		expect(requests.map((req) => req.body.events[0].event_name)).toEqual([
+			'page_view',
+			'game_start',
+		])
+		expect(store.has(CONSENT_KEY)).toBe(false)
+	},
+)
+
+test.each(['DE', 'GB', 'CH', 'KR', 'XX', 'T1', 'US, US', undefined, 'BR'])(
+	'%s does not ingest without a saved grant',
+	async (country) => {
+		const { requests, store } = signalBrowser()
+		await context(country, undefined, stream)
+		trackSignalPage('/pricing')
+		expect(trackSignalEvent('game_start', {})).toBe(false)
+		expect(requests).toHaveLength(0)
+		if (country === 'BR') {
+			// The broader ROW default for checkout isn't the browser stream policy.
+			expect(snapshot().fields).toMatchObject(campaign)
+			saveCookieChoice('analytics_only')
+			trackSignalPage('/pricing')
+			expect(requests).toHaveLength(1)
+		} else {
+			expect(store.size).toBe(0)
+		}
+	},
+)
+
+test('without context or readable storage, a default grant cannot enable ingestion', async () => {
+	const { requests, store } = signalBrowser()
+	store.set(CONSENT_KEY, 'granted')
 	trackSignalPage('/pricing')
+	expect(trackSignalEvent('game_start', {})).toBe(false)
+	await context('US', undefined, stream)
+	const { localStorage } = window
+	const read = localStorage.getItem
+	localStorage.getItem = () => {
+		throw new Error('Storage blocked')
+	}
+	try {
+		trackSignalPage('/pricing')
+		expect(trackSignalEvent('game_start', {})).toBe(false)
+		expect(requests).toHaveLength(0)
+	} finally {
+		localStorage.getItem = read
+	}
+})
+
+test('late refusal and context reset stop an eligible stream', async () => {
+	const { store, requests } = signalBrowser()
+	await context('US', undefined, stream)
+	trackSignalPage('/pricing')
+	expect(requests).toHaveLength(1)
+	setConsentContext(null)
+	trackSignalPage('/games')
+	expect(trackSignalEvent('game_start', {})).toBe(false)
+	expect(requests).toHaveLength(1)
+	await context('US', undefined, stream)
+	saveCookieChoice('denied')
+	trackSignalPage('/games')
+	expect(trackSignalEvent('game_start', {})).toBe(false)
+	expect(store.has(`${SIGNAL_STORAGE_KEY}.touch`)).toBe(false)
+	expect(requests).toHaveLength(1)
+})
+
+test('rechecks eligibility at dispatch if the saved grant disappears during encoding', async () => {
+	const { store, requests } = signalBrowser()
+	await context('BR', undefined, stream)
+	saveCookieChoice('granted')
+	expect(
+		trackSignalEvent('game_start', {
+			get game_slug() {
+				store.delete(CONSENT_KEY)
+				return 'sudoku'
+			},
+		}),
+	).toBe(true)
+	expect(store.has(CONSENT_KEY)).toBe(false)
 	expect(requests).toHaveLength(0)
-	expect(snapshot().fields).toMatchObject(campaign)
 })
 
 for (const choice of ['analytics_only', 'granted'] as const) {
@@ -336,7 +418,7 @@ for (const gpc of [true, false]) {
 		const { store, requests } = signalBrowser()
 		store.set(CONSENT_KEY, gpc ? 'granted' : 'denied')
 		store.set('puzzled:signal.touch', 'previous touch')
-		setConsentContext({ region: 'ROW', gpc, stream })
+		setConsentContext({ region: 'ROW', gpc, optOutMarket: true, stream })
 		trackSignalPage('/pricing')
 		expect(requests).toHaveLength(0)
 		expect(store.has('puzzled:signal.touch')).toBe(false)

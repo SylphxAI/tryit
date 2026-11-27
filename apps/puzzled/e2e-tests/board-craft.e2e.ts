@@ -47,6 +47,75 @@ async function start(page: Page, baseURL?: string, locale = 'en-US') {
 	return board
 }
 
+test.describe('browser Signal regional consent', () => {
+	// The fixture's fake collector is intentionally absent from production CSP.
+	test.use({ bypassCSP: true })
+
+	test('opt-out page and game events do not grant signup attribution', async ({
+		page,
+		baseURL,
+	}) => {
+		requireLocalFixture(baseURL)
+		const origin = new URL(baseURL ?? 'http://localhost:3000').origin
+		const collector = 'https://signal.example.test'
+		const eventNames: string[] = []
+		await page.route('**/*', (route) => {
+			const url = new URL(route.request().url())
+			return url.origin === origin ? route.fallback() : route.abort()
+		})
+		await page.route(`${collector}/v1/analytics/events:batch`, async (route) => {
+			if (route.request().method() === 'POST') {
+				const { events } = route.request().postDataJSON() as { events: { event_name: string }[] }
+				eventNames.push(...events.map((event) => event.event_name))
+			}
+			await route.fulfill({
+				status: 204,
+				headers: {
+					'access-control-allow-origin': origin,
+					'access-control-allow-methods': 'POST',
+					'access-control-allow-headers': 'content-type,x-sylphx-key',
+				},
+			})
+		})
+		await page.route('**/api/consent-context', async (route) => {
+			const response = await route.fetch()
+			await route.fulfill({
+				response,
+				json: {
+					...(await response.json()),
+					ids: {},
+					stream: { apiKey: 'sylphx_pk_fixture', baseUrl: collector },
+				},
+			})
+		})
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
+		await routeSudoku(page)
+		await page.goto('/en-US/games/sudoku?difficulty=easy&start=1&ref=fixture#play')
+		await expect.poll(() => eventNames).toContain('page_view')
+		await page.locator('[data-game-stage="start"]').getByRole('button').click()
+		await expect.poll(() => eventNames).toContain('game_start')
+		const signupCookie = async () =>
+			(await page.context().cookies()).find(({ name }) => name === 'puzzled_signup_attr')?.value
+		expect(await signupCookie()).toBeUndefined()
+		// The immersive play view omits the footer. Keep the same qualification
+		// and referral on the homepage, then exercise the real settings control.
+		const views = () => eventNames.filter((event) => event === 'page_view').length
+		const previousViews = views()
+		await page.goto('/?ref=fixture')
+		await expect.poll(views).toBeGreaterThan(previousViews)
+		expect(await signupCookie()).toBeUndefined()
+		await page
+			.locator('footer')
+			.getByRole('button', { name: 'Cookie settings', exact: true })
+			.click()
+		await page
+			.getByRole('dialog')
+			.getByRole('button', { name: 'Analytics only', exact: true })
+			.click()
+		await expect.poll(signupCookie).toBe(encodeURIComponent('r=fixture'))
+	})
+})
+
 async function dimensions(controls: Locator) {
 	for (const control of await controls.all()) {
 		const box = await control.boundingBox()
