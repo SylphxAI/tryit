@@ -38,6 +38,10 @@ form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
   adds Google's collection hosts to `connect-src` (`GOOGLE_TAG_CONNECT_HOSTS`). `script-src` does not
   change: the consent-gated loader in `src/features/analytics` inserts gtag.js, which `'strict-dynamic'`
   trusts. Unconfigured, nothing Google is allowed.
+- **Meta Pixel (only when configured).** With `META_PIXEL_ID` set, `buildCsp` adds
+  `connect.facebook.net` and `www.facebook.com` to `connect-src` (`META_PIXEL_CONNECT_HOSTS`).
+  The loader in `src/features/analytics/lib/meta-pixel.ts` inserts `fbevents.js` only after a saved
+  full ads consent and never under GPC. Unset or empty, nothing Meta is allowed.
 - **No other third-party scripts.** Checkout is a redirect to a hosted checkout page, and
   analytics and replays are gone, so Stripe, PostHog, Vercel, GTM, Neon and
   Cloudflare hosts are no longer listed.

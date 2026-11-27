@@ -227,7 +227,12 @@ Signal uses opt-in in EEA/UK/CH and unknown regions; elsewhere both purposes
 are enabled by default unless the user opts out. An affirmative analytics-only
 choice preserves GA but disables ads and ad identifiers. GPC disables both.
 Public page views omit queries and referrers; paid conversion delivery belongs
-to Money and Events. AdSense slots remain limited to explicit full consent.
+to Money and Events. The optional Meta Pixel (`META_PIXEL_ID`, empty means off)
+loads only after a saved full choice (ad storage and ad user data granted) and
+never under GPC. It sends `PageView` on public pages and `Purchase` from the
+api's settled receipt with `eventID` set to the Money order id, so Events' Meta
+Conversions API delivery of the same order deduplicates. It sends no advanced
+matching, email, or player, auth or customer id. AdSense slots remain limited to explicit full consent.
 
 ## 7. Metrics (supporting, not the North Star)
 

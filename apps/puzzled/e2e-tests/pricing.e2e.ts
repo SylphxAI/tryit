@@ -493,8 +493,10 @@ for (const viewport of VIEWPORTS) {
 			await expect(offer.getByRole('checkbox')).toHaveCount(0)
 			await offer.getByRole('button', { name: 'Start Tryit Plus' }).click()
 
-			await page.waitForURL(/\/settings\/subscription\?checkout=success&s=cs_e2e_guest_1/)
+			await page.waitForURL(/\/settings\/subscription\?checkout=success/)
 			await settle(page)
+			// The session id stays in page data, never in the address a tag can read.
+			await expect.poll(() => page.url()).not.toContain('cs_e2e_guest_1')
 
 			expect(capturedBody).toMatchObject({
 				planId: 'individual_yearly',

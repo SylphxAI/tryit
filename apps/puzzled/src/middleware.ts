@@ -1,5 +1,6 @@
 import { createMiddleware } from '@solidjs/start/middleware'
 import { googleTagIds } from '@/features/analytics/lib/google-tag'
+import { metaPixelId } from '@/features/analytics/lib/meta-pixel'
 import { dailyEntryRedirect } from '@/features/daily/lib/daily-entry'
 import { legacyChallengeRedirect } from '@/features/identity/solid/challenge-redirect'
 import { legacySignInRedirect } from '@/features/identity/solid/sign-in-redirect'
@@ -22,6 +23,7 @@ export default createMiddleware({
 				signalOrigin: signalStreamConfig()?.baseUrl,
 				ads: adsConfig(env) !== null,
 				googleTag: googleTagIds(env) !== null,
+				metaPixel: metaPixelId(env) !== null,
 			}),
 		)
 		headers.set('X-Frame-Options', 'DENY')

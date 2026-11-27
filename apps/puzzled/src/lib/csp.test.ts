@@ -34,3 +34,12 @@ test('Google tag admits collection and conversion endpoints only when configured
 	expect(hosts(noTag, 'frame-src')).toEqual(["'self'"])
 	expect(hosts(csp, 'script-src')).toEqual(hosts(noTag, 'script-src'))
 })
+
+test('Meta Pixel hosts appear only while META_PIXEL_ID is configured', () => {
+	expect(buildCsp('nonce')).not.toContain('facebook')
+	expect(hosts(buildCsp('nonce', { metaPixel: true }), 'connect-src')).toEqual([
+		"'self'",
+		'https://connect.facebook.net',
+		'https://www.facebook.com',
+	])
+})
