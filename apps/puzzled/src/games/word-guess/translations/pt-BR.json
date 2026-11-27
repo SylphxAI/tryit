@@ -13,6 +13,7 @@
 		"present": "Amarelo significa que a letra está na palavra, mas no lugar errado",
 		"absent": "Cinza significa que a letra não está na palavra"
 	},
+	"sound": "Som",
 	"keyboard": {
 		"enter": "Enter",
 		"delete": "Apagar"

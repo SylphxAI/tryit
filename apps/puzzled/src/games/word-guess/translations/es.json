@@ -13,6 +13,7 @@
 		"present": "Amarillo significa que la letra está en la palabra, pero en otra posición",
 		"absent": "Gris significa que la letra no está en la palabra"
 	},
+	"sound": "Sonido",
 	"keyboard": {
 		"enter": "Intro",
 		"delete": "Borrar"
