@@ -3,7 +3,7 @@ import { createAsync, query, type RouteDefinition, useParams } from '@solidjs/ro
 import { HttpHeader } from '@solidjs/start'
 import { Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
-import { SUPPORT_EMAIL } from '@/lib/config/app'
+import { PRIVACY_EMAIL } from '@/lib/config/app'
 import { defaultLocale, isValidLocale, type Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { pageMetadata } from '@/lib/seo/page-metadata'
@@ -66,7 +66,7 @@ export default function DeleteAccountPage() {
 function Instructions(props: { locale: Locale; signedIn: boolean }) {
 	const translate = createTranslator(props.locale)
 	const t = (key: string, values?: { email: string }) => translate(`settings.${key}`, values)
-	const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Tryit account deletion request')}`
+	const mailto = `mailto:${PRIVACY_EMAIL}?subject=${encodeURIComponent('Tryit account deletion request')}`
 	return (
 		<main id="main-content" tabIndex={-1} class="page-shell-wide max-w-3xl space-y-6 py-10">
 			<h1 class="font-display text-3xl font-semibold">{t('deletePage.title')}</h1>
@@ -104,7 +104,7 @@ function Instructions(props: { locale: Locale; signedIn: boolean }) {
 						{t('deletePage.recover')}
 					</a>
 					<a href={mailto} class="inline-flex min-h-11 items-center text-primary underline">
-						{t('deletePage.email', { email: SUPPORT_EMAIL })}
+						{t('deletePage.email', { email: PRIVACY_EMAIL })}
 					</a>
 				</div>
 			</section>
