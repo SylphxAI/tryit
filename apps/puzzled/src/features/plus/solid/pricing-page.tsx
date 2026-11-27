@@ -152,7 +152,9 @@ function PricingBody({ data }: { data: PricingData }) {
 							class="pressable inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card px-5 font-semibold transition-colors hover:bg-muted"
 						>
 							<Play class="h-4 w-4" aria-hidden="true" />
-							{data.fromDailyUnlock ? backToToday : t('playFree', { game: freeName })}
+							{data.fromDailyUnlock
+								? backToToday
+								: t('playFree', { game: freeName, count: gameCount })}
 						</a>
 					}
 				/>
@@ -203,7 +205,7 @@ function PricingBody({ data }: { data: PricingData }) {
 				</a>
 			) : null}
 			<a href={freeExitHref} class={styles.planLink}>
-				{data.fromDailyUnlock ? backToToday : t('notNowPlayFree')}
+				{data.fromDailyUnlock ? backToToday : t('notNowPlayFree', { count: gameCount })}
 			</a>
 		</div>
 	)

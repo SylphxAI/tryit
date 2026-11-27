@@ -82,6 +82,11 @@ export function PlusOffer(props: Props) {
 	onMount(() => trackPlusViewStage(props.checkoutTrigger))
 	const current = createMemo(() => options().find((card) => card.interval === interval()))
 	const price = (card: PlanCard) => formatPrice(card.amountMinor, card.currency, props.locale)
+	const chargeCadence = (card: PlanCard) => {
+		if (card.interval === 'once') return t('oneTime')
+		if (card.interval === 'year') return t(props.pricingPage ? 'billedYearly' : 'perYear')
+		return t(props.pricingPage ? 'billedMonthly' : 'perMonth')
+	}
 	const saving = () => pricingYearlySaving(props.monthly, props.yearly)
 	const features = () => props.features ?? []
 	const benefits = () =>
@@ -183,7 +188,7 @@ export function PlusOffer(props: Props) {
 														props.compact ? 'text-xs' : 'text-sm',
 													)}
 												>
-													{t('monthlyEquivalent', {
+													{t(props.pricingPage ? 'annualMonthlyEquivalent' : 'monthlyEquivalent', {
 														price: formatMonthlyEquivalentPrice(
 															card.amountMinor,
 															card.currency,
@@ -211,9 +216,7 @@ export function PlusOffer(props: Props) {
 											>
 												{price(card)}
 											</span>
-											<span class="block text-xs text-muted-foreground">
-												{isOnce ? t('oneTime') : isYear ? t('perYear') : t('perMonth')}
-											</span>
+											<span class="block text-xs text-muted-foreground">{chargeCadence(card)}</span>
 										</span>
 									</label>
 								)

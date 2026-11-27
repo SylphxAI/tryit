@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import killerGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/killer-sudoku.json'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
+import { getGameSlugs } from '../src/games/registry'
 import { nextProductDayStart, productDayKey } from '../src/lib/product-day'
 import {
 	CONSENT_KEY,
@@ -192,7 +193,7 @@ test('generic pricing, archive and unrelated callbacks keep the fresh-guest free
 	await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US' })
 	await fixture(page)
 	const freeExit = page.getByRole('link', {
-		name: 'Not now — play 3 free puzzles of 19 daily',
+		name: `Play 3 of ${getGameSlugs().length} daily puzzles free`,
 		exact: true,
 	})
 	await page.goto('/pricing')
