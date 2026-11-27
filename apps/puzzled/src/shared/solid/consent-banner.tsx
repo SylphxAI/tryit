@@ -7,6 +7,9 @@ type Copy = SiteShellData['consent']
 const action =
 	'chrome-control border border-muted-foreground/70 bg-background px-1.5 text-xs sm:min-w-24 sm:px-3 sm:text-sm'
 
+// Each mounted tray owns the dock marker until it unmounts.
+let dockOwners = 0
+
 /** Carry the reading position across a switch between window and shell scrolling. */
 function keepScroll(change: () => void) {
 	// The bar's ref runs before it is attached, so find the page's one shell now.
@@ -79,7 +82,7 @@ export function ConsentBanner(props: { copy: Copy }) {
 	const state = useCookieConsent()
 	function reserve(bar: HTMLElement) {
 		const root = document.documentElement
-		const token = crypto.randomUUID()
+		const token = String(++dockOwners)
 		const update = () =>
 			root.style.setProperty('--consent-bar-height', `${bar.getBoundingClientRect().height}px`)
 		const observer = new ResizeObserver(update)
