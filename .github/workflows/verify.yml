@@ -841,7 +841,7 @@ jobs:
         env:
           SKIP_ENV_VALIDATION: 'true'
           NODE_ENV: production
-          API_INTERNAL_URL: http://127.0.0.1:8787
+          API_INTERNAL_URL: http://127.0.0.1:8788
           SYLPHX_PUBLIC_URL: https://tryit.fun
           SOLID_AUTH_FIXTURE_URL: https://127.0.0.1:18875
           SYLPHX_AUTH_URL: https://127.0.0.1:18875
@@ -867,7 +867,7 @@ jobs:
             if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-auth.log" "$RUNNER_TEMP/serve-auth.log"; exit 1; fi
             sleep 1
           done
-          bun run test:e2e e2e-tests/auth.e2e.ts e2e-tests/solid-sign-in.e2e.ts --workers=1 --retries=0 --output=test-results/auth 2>&1 | tee "$RUNNER_TEMP/craft-auth.log"
+          bun run test:e2e e2e-tests/paid-touch.e2e.ts e2e-tests/auth.e2e.ts e2e-tests/solid-sign-in.e2e.ts --workers=1 --retries=0 --output=test-results/auth 2>&1 | tee "$RUNNER_TEMP/craft-auth.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-auth.log"; then echo "an auth test skipped"; exit 1; fi
 
       - name: Stop the served builds and fixture APIs

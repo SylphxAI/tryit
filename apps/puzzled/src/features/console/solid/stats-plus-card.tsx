@@ -54,10 +54,7 @@ export function renderStatsPlusCard(
 					) : null}
 				</div>
 				<a
-					href={localizedPath(
-						locale,
-						'/pricing?utm_source=tryit&utm_medium=stats_banner&entry_surface=stats_banner',
-					)}
+					href={localizedPath(locale, '/pricing?entry_surface=stats_banner')}
 					class="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-background px-4 text-sm font-semibold transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 				>
 					{t('plusCard.cta')}
