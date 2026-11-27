@@ -313,6 +313,10 @@ for (const viewport of [
 			const action = page.locator('[data-day-primary-action]')
 			await expect(action).toHaveCount(1)
 			await expect(action).toBeVisible()
+			// A fresh guest with no country header, GPC or stored choice resolves to
+			// the opt-in region, so the dock is required. It mounts only after the
+			// client reads /api/consent-context, so wait for it before measuring.
+			await expect(page.locator('[data-consent-banner]')).toBeVisible()
 			await settle(page)
 			const label = await action.evaluate((el) => {
 				const text = el.querySelector('span')!
