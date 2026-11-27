@@ -21,6 +21,29 @@ function keepScroll(change: () => void) {
 	else window.scrollTo(0, y)
 }
 
+/** Browsers restore only window scroll on Back, so keep the shell's offset in the history entry. */
+function rememberShellScroll() {
+	const shell = document.querySelector<HTMLElement>('.site-shell')
+	if (!shell || getComputedStyle(shell).overflowY === 'visible') return () => {}
+	const saved = Number((history.state as { consentShellY?: unknown } | null)?.consentShellY)
+	if (saved > 0) shell.scrollTop = saved
+	let timer: number | undefined
+	const save = () => {
+		const href = location.href
+		clearTimeout(timer)
+		timer = window.setTimeout(() => {
+			// Never write this page's offset into the entry a navigation just opened.
+			if (!shell.isConnected || location.href !== href) return
+			history.replaceState({ ...history.state, consentShellY: shell.scrollTop }, '')
+		}, 150)
+	}
+	shell.addEventListener('scroll', save, { passive: true })
+	return () => {
+		clearTimeout(timer)
+		shell.removeEventListener('scroll', save)
+	}
+}
+
 function useCookieConsent() {
 	// Keep the server and initial hydration independent of visitor state.
 	const [state, setState] = createSignal<ReturnType<typeof cookieConsent>>()
@@ -66,7 +89,9 @@ export function ConsentBanner(props: { copy: Copy }) {
 			root.dataset.consentDock = token
 			update()
 		})
+		const forget = rememberShellScroll()
 		onCleanup(() => {
+			forget()
 			observer.disconnect()
 			if (root.dataset.consentDock !== token) return
 			keepScroll(() => {
