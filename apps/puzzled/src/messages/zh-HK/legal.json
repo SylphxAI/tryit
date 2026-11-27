@@ -70,7 +70,7 @@
 			},
 			"cookies": {
 				"title": "Cookie",
-				"content": "我們使用必要 Cookie 來登入、維持安全和記住設定，並使用 Cloudflare 提供的國家代碼，而非你的語言。歐洲經濟區、英國、瑞士、相關歐洲屬地或地區不明時，分析和廣告要在你選擇接受後才啟用；其他地區預設啟用兩者，你可以拒絕。在頁尾或「設定 → 私隱」的 Cookie 設定，可選擇兩者、只限分析或兩者皆拒絕。只要瀏覽器或要求傳送 Global Privacy Control（GPC），即使你曾同意，兩者都會關閉。拒絕不影響使用 Tryit。",
+				"content": "我們使用必要 Cookie 來登入、維持安全和記住設定，並使用 Cloudflare 提供的國家代碼，而非你的語言。歐洲經濟區、英國、瑞士、南韓、相關歐洲屬地或地區不明時，分析和廣告要在你選擇接受後才啟用；其他地區預設啟用兩者，你可以拒絕。在頁尾或「設定 → 私隱」的 Cookie 設定，可選擇兩者、只限分析或兩者皆拒絕。只要瀏覽器或要求傳送 Global Privacy Control（GPC），即使你曾同意，兩者都會關閉。拒絕不影響使用 Tryit。",
 				"notices": "另有一個 Cookie 用來記住你已關閉或已看過哪些網站通知：puzzled_dismissed_notices。它屬必要 Cookie，由我們自己設定（第一方），保存一年，只記錄這些通知的編號，不含任何個人資料，所以毋須詢問即會設定，亦不會用於分析。另有一個必要的第一方 Cookie：puzzled_currency，用來記住你在價格頁選擇的貨幣（例如 GBP 或 USD），保存一年，只記錄貨幣代碼，不含任何個人資料，亦不會用於分析。",
 				"ga4": "Google Analytics page views use approved public paths only. To attribute visits and campaigns, the first page view after measurement is enabled may include allowlisted campaign parameters (`utm_*` — plus ad click parameters `gclid`, `gbraid`, and `wbraid` strictly when advertising measurement is enabled) and the external referrer's origin and path with its query string removed. Subsequent page views omit query strings and referrer URLs, and no measurement is dispatched when optional measurement is off or Global Privacy Control is active.",
 				"google": "啟用分析後，結帳成效量度會傳送推廣標記及 Google Analytics 識別碼；如果啟用廣告，也可能傳送廣告點擊及 Meta 瀏覽器識別碼，並允許廣告儲存、使用資料及個人化訊號。轉換報告可能包含方案和價格，但不包含姓名或電郵。",

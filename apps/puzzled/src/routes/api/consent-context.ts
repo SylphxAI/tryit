@@ -4,9 +4,9 @@ import { metaPixelId } from '@/features/analytics/lib/meta-pixel'
 import { env } from '@/lib/env'
 import { signalStreamConfig } from '@/lib/signal-config'
 
-// Treat European territories and ICU aliases/reserved regions as strict.
+// Tryit adds South Korea, European territories, and regional aliases to the SDK's opt-in set.
 const STRICT_TERRITORIES = new Set(
-	'AC AN AX CP DG EA EU EZ GF GG GI GP IC IM JE MF MQ RE SJ SU TA UK UN XK YT YU'.split(' '),
+	'AC AN AX CP DG EA EU EZ GF GG GI GP IC IM JE KR MF MQ RE SJ SU TA UK UN XK YT YU'.split(' '),
 )
 
 // Only a policy bucket leaves the server. Page HTML and cache keys stay geo-neutral.

@@ -70,7 +70,7 @@
 			},
 			"cookies": {
 				"title": "Cookie",
-				"content": "ログイン、セキュリティ、設定に必須の Cookie を使用します。言語ではなく Cloudflare が提供する国コードを使用します。EEA、英国、スイス、関連する欧州地域、または地域が不明な場合、分析と広告は同意まで無効です。それ以外ではオプトアウトするまで両方とも有効です。フッターまたは「設定 → プライバシー」の Cookie 設定から、両方を許可、分析のみ、両方を拒否のいずれかを選べます。以前同意していても、リクエストやブラウザーの Global Privacy Control（GPC）が有効なら両方を無効にします。拒否しても Tryit は利用できます。",
+				"content": "ログイン、セキュリティ、設定に必須の Cookie を使用します。言語ではなく Cloudflare が提供する国コードを使用します。EEA、英国、スイス、韓国、関連する欧州地域、または地域が不明な場合、分析と広告は同意まで無効です。それ以外ではオプトアウトするまで両方とも有効です。フッターまたは「設定 → プライバシー」の Cookie 設定から、両方を許可、分析のみ、両方を拒否のいずれかを選べます。以前同意していても、リクエストやブラウザーの Global Privacy Control（GPC）が有効なら両方を無効にします。拒否しても Tryit は利用できます。",
 				"notices": "もう 1 つ、閉じた、または確認済みのサイトのお知らせを記憶する Cookie として puzzled_dismissed_notices があります。これは必須の Cookie で、当社が設定し(ファーストパーティ)、1 年間保持されます。保存されるのはお知らせの ID のみで、個人データは含まれないため、同意をいただかずに設定され、分析には使用しません。また、必須のファーストパーティ Cookie である puzzled_currency は、料金ページで選択された通貨(GBP や USD など)を 1 年間記憶します。保存されるのは通貨コードのみで、個人データは含まれず、分析には使用しません。",
 				"ga4": "Google Analytics page views use approved public paths only. To attribute visits and campaigns, the first page view after measurement is enabled may include allowlisted campaign parameters (`utm_*` — plus ad click parameters `gclid`, `gbraid`, and `wbraid` strictly when advertising measurement is enabled) and the external referrer's origin and path with its query string removed. Subsequent page views omit query strings and referrer URLs, and no measurement is dispatched when optional measurement is off or Global Privacy Control is active.",
 				"google": "分析が有効な場合、購入の計測にキャンペーンタグと Google Analytics の識別子を送ります。広告が有効な場合は広告クリック ID や Meta のブラウザー識別子も送ることがあり、広告用の保存、ユーザーデータ利用、パーソナライズのシグナルを許可します。計測レポートにはプランと価格が含まれる場合がありますが、氏名やメールアドレスは含まれません。",

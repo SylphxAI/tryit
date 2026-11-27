@@ -78,9 +78,9 @@ async function expectLandingPageView(page: Page, path: string, query = '?gclid=f
 	expect(JSON.stringify(data)).not.toMatch(/private%40|example\.test|email|fixture-fragment/)
 }
 
-async function setGpc(page: Page, signal: 'header' | 'browser') {
+async function setGpc(page: Page, signal: 'header' | 'browser', country = 'HK') {
 	await page.setExtraHTTPHeaders({
-		'CF-IPCountry': 'HK',
+		'CF-IPCountry': country,
 		...(signal === 'header' ? { 'Sec-GPC': '1' } : {}),
 	})
 	await page.addInitScript(
@@ -253,6 +253,35 @@ for (const viewport of [
 	})
 }
 
+test('South Korea requires opt-in and persists refusal', async ({
+	page,
+	googleRequests: requests,
+}) => {
+	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'KR' })
+	await page.goto('/?gclid=fixture-g')
+	await expect(banner(page)).toBeVisible()
+	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+	await expectGoogleBlocked(page, requests)
+	await banner(page).getByRole('button', { name: 'Decline', exact: true }).click()
+	await expect(banner(page)).toBeHidden()
+	expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('denied')
+	await page.reload()
+	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+	await expect(banner(page)).toBeHidden()
+	await expectGoogleBlocked(page, requests)
+})
+
+test('South Korea GPC blocks Google even after a saved grant', async ({
+	page,
+	googleRequests: requests,
+}) => {
+	await setGpc(page, 'header', 'KR')
+	await page.goto('/')
+	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+	await expect(banner(page)).toBeHidden()
+	await expectGoogleBlocked(page, requests)
+})
+
 for (const path of ['/games/sudoku', '/games/word-guess']) {
 	test.describe(`direct entry at ${path}`, () => {
 		test('EEA Accept loads the tag and sends a clean landing page view', async ({
@@ -336,7 +365,11 @@ test('context is private no-store, only reads the CF header and never varies pag
 	request,
 }) => {
 	for (const [country, expected] of [
-		['US', 'ROW'],
+		...['US', 'CA', 'AU', 'NZ', 'JP', 'HK', 'TW', 'SG', 'AE', 'IL'].map((country) => [
+			country,
+			'ROW',
+		]),
+		['KR', 'EEA'],
 		['US, US', 'EEA'],
 		['XX', 'EEA'],
 		['', 'EEA'],
