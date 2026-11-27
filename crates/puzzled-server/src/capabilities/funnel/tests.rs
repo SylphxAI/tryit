@@ -97,6 +97,10 @@ fn behavioral_params_reject_wrong_values_and_missing_required_fields() {
             &[("platform", json!("ios")), ("trigger", json!("post_win"))][..],
         ),
         (
+            json!({"event":"pwa_installed","platform":"chromium","trigger":"returning_home"}),
+            &[("trigger", json!("home"))][..],
+        ),
+        (
             json!({"event":"push_opted_in","trigger":"post_win","result":"dismissed"}),
             &[
                 ("trigger", json!("post_first_win")),
