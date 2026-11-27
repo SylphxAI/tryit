@@ -3,6 +3,7 @@ import { ArrowRight, ExternalLink } from 'lucide-solid'
 import { createSignal, createUniqueId, onMount, Show } from 'solid-js'
 import { cookieConsent, hasAnalyticsConsent } from '@/features/analytics/lib/consent'
 import { trackGa4KeyEvent } from '@/features/analytics/lib/ga4-key-events'
+import { trackGa4PricingOffer } from '@/features/analytics/lib/ga4-pricing-offer'
 import { rememberCheckoutQuote } from '@/features/analytics/lib/google-tag'
 import { isOneTimePassPlan, minorUnitsToMajor, type PlanId } from '@/lib/billing/plus'
 import { startCheckout } from '@/lib/connect/billing-client'
@@ -113,10 +114,12 @@ export function SubscribeButton(props: Props) {
 				class={buttonClass}
 				aria-describedby={requiresWaiver || props.pricingPage ? termsId : undefined}
 				disabled={busy() || (requiresWaiver && !consent())}
-				onClick={async () => {
+				onClick={async (event) => {
 					if (busy() || (requiresWaiver && !consent())) return
 					setBusy(true)
 					setError(null)
+					if (props.pricingPage && event.isTrusted)
+						trackGa4PricingOffer('upgrade_cta_click', props.planId)
 					try {
 						const billingInterval = props.planId.endsWith('_yearly')
 							? 'year'
