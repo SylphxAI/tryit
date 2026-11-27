@@ -7,6 +7,46 @@ type Copy = SiteShellData['consent']
 const action =
 	'chrome-control border border-muted-foreground/70 bg-background px-1.5 text-xs sm:min-w-24 sm:px-3 sm:text-sm'
 
+// Each mounted tray owns the dock marker until it unmounts.
+let dockOwners = 0
+
+/** Carry the reading position across a switch between window and shell scrolling. */
+function keepScroll(change: () => void) {
+	// The bar's ref runs before it is attached, so find the page's one shell now.
+	const shell = document.querySelector<HTMLElement>('.site-shell')
+	const inner = () => !!shell && getComputedStyle(shell).overflowY !== 'visible'
+	const before = inner()
+	const y = before && shell ? shell.scrollTop : window.scrollY
+	change()
+	const after = inner()
+	if (before === after || !shell) return
+	if (after) shell.scrollTop = y
+	else window.scrollTo(0, y)
+}
+
+/** Browsers restore only window scroll on Back, so keep the shell's offset in the history entry. */
+function rememberShellScroll() {
+	const shell = document.querySelector<HTMLElement>('.site-shell')
+	if (!shell || getComputedStyle(shell).overflowY === 'visible') return () => {}
+	const saved = Number((history.state as { consentShellY?: unknown } | null)?.consentShellY)
+	if (saved > 0) shell.scrollTop = saved
+	let timer: number | undefined
+	const save = () => {
+		const href = location.href
+		clearTimeout(timer)
+		timer = window.setTimeout(() => {
+			// Never write this page's offset into the entry a navigation just opened.
+			if (!shell.isConnected || location.href !== href) return
+			history.replaceState({ ...history.state, consentShellY: shell.scrollTop }, '')
+		}, 150)
+	}
+	shell.addEventListener('scroll', save, { passive: true })
+	return () => {
+		clearTimeout(timer)
+		shell.removeEventListener('scroll', save)
+	}
+}
+
 function useCookieConsent() {
 	// Keep the server and initial hydration independent of visitor state.
 	const [state, setState] = createSignal<ReturnType<typeof cookieConsent>>()
@@ -42,14 +82,25 @@ export function ConsentBanner(props: { copy: Copy }) {
 	const state = useCookieConsent()
 	function reserve(bar: HTMLElement) {
 		const root = document.documentElement
+		const token = String(++dockOwners)
 		const update = () =>
 			root.style.setProperty('--consent-bar-height', `${bar.getBoundingClientRect().height}px`)
 		const observer = new ResizeObserver(update)
 		observer.observe(bar)
-		update()
+		// While the tray is up the shell scrolls above it, so no card paints behind it.
+		keepScroll(() => {
+			root.dataset.consentDock = token
+			update()
+		})
+		const forget = rememberShellScroll()
 		onCleanup(() => {
+			forget()
 			observer.disconnect()
-			root.style.removeProperty('--consent-bar-height')
+			if (root.dataset.consentDock !== token) return
+			keepScroll(() => {
+				delete root.dataset.consentDock
+				root.style.removeProperty('--consent-bar-height')
+			})
 		})
 	}
 	return (

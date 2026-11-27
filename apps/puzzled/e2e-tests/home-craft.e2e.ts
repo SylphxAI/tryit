@@ -376,3 +376,61 @@ for (const viewport of [
 		expect(await page.evaluate(() => window.scrollY)).toBe(0)
 	})
 }
+
+for (const viewport of [
+	{ width: 390, height: 844 },
+	{ width: 1440, height: 900 },
+]) {
+	test(`the open consent tray never covers a hub card at ${viewport.width}×${viewport.height}`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport)
+		await page.goto('/', { waitUntil: 'load' })
+		const dock = page.locator('[data-consent-banner]')
+		await expect(dock).toBeVisible()
+		await settle(page)
+		const consent = () => page.evaluate(() => localStorage.getItem('puzzled:signal.consent'))
+		// Every card centre painted between the sticky header and the dock is a direct hit,
+		// and no card paints under the dock: the page scrolls above it.
+		const covered = () =>
+			page.evaluate(() => {
+				const header = document.querySelector('.site-header')!.getBoundingClientRect().bottom
+				const dockTop = document.querySelector('[data-consent-banner]')!.getBoundingClientRect().top
+				const shell = document.querySelector('.site-shell')!.getBoundingClientRect()
+				const miss: string[] = []
+				let hits = 0
+				for (const card of document.querySelectorAll<HTMLElement>('[data-home-game]')) {
+					const r = card.getBoundingClientRect()
+					const y = r.y + r.height / 2
+					if (y <= header || y >= Math.min(innerHeight, shell.bottom)) continue
+					if (card.contains(document.elementFromPoint(r.x + r.width / 2, y))) hits++
+					else miss.push(card.dataset.homeGame!)
+				}
+				return { hits, miss, paintsUnderDock: shell.bottom > dockTop + 1 }
+			})
+		const first = await covered()
+		expect(first.hits).toBeGreaterThan(0)
+		expect(first).toMatchObject({ miss: [], paintsUnderDock: false })
+		for (const card of await page.locator('[data-home-game]').all()) {
+			// Playwright refuses a click whose point another element intercepts.
+			await card.click({ trial: true, timeout: 3000 })
+			expect((await covered()).miss).toEqual([])
+		}
+		if (viewport.width < 768) {
+			for (const box of await page
+				.locator('.category-chip')
+				.evaluateAll((chips) => chips.map((chip) => chip.getBoundingClientRect().height)))
+				expect(box).toBeGreaterThanOrEqual(44)
+		}
+		expect(await consent()).toBeNull()
+		await expect(dock).toBeVisible()
+
+		// A choice returns the page to window scrolling at the same reading position.
+		const shellTop = await page.evaluate(() => document.querySelector('.site-shell')!.scrollTop)
+		expect(shellTop).toBeGreaterThan(0)
+		await dock.getByRole('button', { name: 'Decline', exact: true }).click()
+		await expect(dock).toBeHidden()
+		expect(await consent()).toBe('denied')
+		expect(await page.evaluate(() => window.scrollY)).toBeCloseTo(shellTop, -1)
+	})
+}
