@@ -33,25 +33,20 @@ export function CatalogPage(props: {
 		<SiteShell data={props.data.shell} signedIn={props.signedIn}>
 			<PageMeta value={props.data.meta} />
 			<main id="main-content" tabIndex={-1} class="flex-1">
-				<section class="relative">
-					<div class="page-shell-wide pb-4 pt-6 md:pt-10">
-						<div class="grid items-end gap-x-10 gap-y-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+				<section>
+					<div class="page-shell-wide pb-3 pt-4 md:pt-8">
+						<div class="grid items-end gap-x-10 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
 							<div class="min-w-0">
-								<p class="eyebrow">{t().eyebrow}</p>
-								<h1 class="editorial-title mt-2">{t().title}</h1>
-								<p class="mt-3 max-w-2xl text-[16px] leading-relaxed text-muted-foreground sm:text-[17px]">
+								<h1 class="editorial-title">{t().title}</h1>
+								<p class="mt-1 max-w-2xl text-base leading-normal text-muted-foreground sm:text-[17px]">
 									{t().subtitle}
 								</p>
 							</div>
 							<search class="block">
-								<form method="get" action={props.data.path} class="relative w-full">
+								<form method="get" action={props.data.path} class="flex gap-1 min-[375px]:gap-2">
 									<label for="catalog-q" class="sr-only">
 										{t().searchLabel}
 									</label>
-									<Search
-										class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-										aria-hidden="true"
-									/>
 									<input
 										id="catalog-q"
 										type="search"
@@ -59,41 +54,44 @@ export function CatalogPage(props: {
 										value={query()}
 										placeholder={t().searchPlaceholder}
 										enterkeyhint="search"
-										class="h-12 w-full rounded-xl border border-border bg-card pl-10 pr-24 text-[16px] outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
+										class="min-h-12 min-w-0 flex-1 rounded-xl border border-border bg-card px-1 text-base placeholder:text-muted-foreground focus:border-ring min-[375px]:px-2 sm:px-3"
 									/>
 									<Show when={category() !== 'all'}>
 										<input type="hidden" name="category" value={category()} />
 									</Show>
 									<button
 										type="submit"
-										class="absolute right-0.5 top-0.5 inline-flex h-11 min-w-11 items-center rounded-lg px-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+										class="inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-card px-3 text-sm font-semibold hover:bg-accent"
 									>
-										{t().searchSubmit}
+										<Search class="size-4 min-[375px]:hidden" aria-hidden="true" />
+										<span class="sr-only min-[375px]:not-sr-only">{t().searchSubmit}</span>
 									</button>
 								</form>
 							</search>
 						</div>
-						<fieldset class="no-scrollbar min-w-0 -mx-4 mt-5 flex items-center gap-2 overflow-x-auto border-0 py-1 ps-4 pe-10 [mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)] md:mx-0 md:px-0 md:[mask-image:none]">
+						<fieldset class="mt-3 min-w-0 border-0">
 							<legend class="sr-only">{t().filterLabel}</legend>
-							<For each={props.data.filters}>
-								{(filter) => (
-									<a
-										href={filterHref(filter.value)}
-										aria-current={category() === filter.value ? 'page' : undefined}
-										class={`category-chip family-pill min-h-11 shrink-0 px-4 text-sm ${filter.value === 'all' ? '' : gameFamilyColor[filter.value]}`}
-										classList={{ 'category-chip-on': category() === filter.value }}
-									>
-										{filter.label}
-									</a>
-								)}
-							</For>
+							<div class="flex flex-wrap gap-1.5">
+								<For each={props.data.filters}>
+									{(filter) => (
+										<a
+											href={filterHref(filter.value)}
+											aria-current={category() === filter.value ? 'page' : undefined}
+											class={`category-chip family-pill min-h-12 min-w-12 justify-center px-2 text-sm sm:px-4 ${filter.value === 'all' ? '' : gameFamilyColor[filter.value]}`}
+											classList={{ 'category-chip-on': category() === filter.value }}
+										>
+											{filter.label}
+										</a>
+									)}
+								</For>
+							</div>
 						</fieldset>
-						<div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+						<div class="mt-2 flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
 							<output>{props.data.counts[visible().length]}</output>
 							<Show when={query() || category() !== 'all'}>
 								<a
 									href={props.data.path}
-									class="font-semibold text-foreground underline underline-offset-4"
+									class="inline-flex min-h-12 items-center font-semibold text-foreground underline underline-offset-4"
 								>
 									{t().clearFilter}
 								</a>
@@ -109,19 +107,19 @@ export function CatalogPage(props: {
 						<Show
 							when={visible().length}
 							fallback={
-								<div class="mt-5 rounded-3xl border border-dashed border-border px-6 py-12 text-center">
+								<div class="rounded-3xl border border-dashed border-border px-6 py-12 text-center">
 									<p class="font-display text-lg">{t().emptyTitle}</p>
 									<p class="mt-1 text-sm text-muted-foreground">{t().emptyDescription}</p>
 									<a
 										href={props.data.path}
-										class="pressable mt-4 inline-flex h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground"
+										class="pressable mt-4 inline-flex min-h-12 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground"
 									>
 										{t().clearFilter}
 									</a>
 								</div>
 							}
 						>
-							<ul class="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
+							<ul class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
 								<For each={visible()}>
 									{(entry) => (
 										<li class="h-full">

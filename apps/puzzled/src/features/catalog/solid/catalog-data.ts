@@ -62,7 +62,6 @@ export function buildCatalogPage(locale: Locale, origin: string, now: Date) {
 		labels: {
 			title: t('catalog.title'),
 			subtitle: t('catalog.subtitle', { count: entries.length }),
-			eyebrow,
 			searchLabel: t('catalog.searchLabel'),
 			searchPlaceholder: t('catalog.searchPlaceholder'),
 			searchSubmit: t('catalog.searchSubmit'),
