@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page } from '@playwright/test'
+import { START_INTENT_TTL_MS } from '../src/features/daily/lib/start-intent'
 import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
+import { START_INTENT_KEY } from '../src/lib/storage-keys'
 import { googleTagTest as test } from './google-tag-support'
 
 const wordGames = [
@@ -677,6 +679,144 @@ for (const recover of [true, false]) {
 	)
 }
 
+test.describe('Home Play at 390px', () => {
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+	const assets = '**/_build/assets/*.js'
+	const card = '[data-game-stage="start"] button'
+	const cookie = '__Host-puzzled_guest=cold-home-fixture'
+	const cookieHeader = `${cookie}; HttpOnly; Secure; Path=/`
+	const intent = (page: Page) =>
+		page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY)
+	async function fixture(page: Page, resume = false) {
+		const puzzleDate = productDayKey()
+		const starts: unknown[] = []
+		const guest = Promise.withResolvers<void>()
+		const context = page.context()
+		await context.route('**/v1/guest/session', async (route) => {
+			await guest.promise
+			await route.fulfill({ json: { issued: true }, headers: { 'Set-Cookie': cookieHeader } })
+		})
+		await context.route('**/puzzled.v1.PuzzleService/{GetDaily,StartDaily}', async (route) => {
+			const input = route.request().postDataJSON()
+			if (route.request().url().endsWith('/GetDaily')) {
+				const startable = { ...input, puzzleDate, canPlay: true, requiresStart: true }
+				return route.fulfill({
+					json: resume ? playable(input.gameSlug, input.difficulty) : startable,
+				})
+			}
+			starts.push(input)
+			expect(await route.request().headerValue('cookie')).toContain(cookie)
+			await route.fulfill({ json: { daily: playable(input.gameSlug, input.difficulty) } })
+		})
+		return { puzzleDate, starts, release: guest.resolve }
+	}
+	async function cold(page: Page, path = '/') {
+		// Stop Home's external scripts while retaining the streamed SSR and its nonce script.
+		await page.route(assets, (route) => route.abort())
+		await page.goto(path)
+		await page.unroute(assets)
+		return page.locator('[data-home-featured]')
+	}
+	for (const path of ['/', '/zh-HK', '/ja']) {
+		for (const hero of [true, false]) {
+			test(`${path}: cold ${hero ? 'hero' : 'lineup'} starts exactly once after the cookie`, async ({
+				page,
+			}) => {
+				const daily = await fixture(page)
+				const featured = await cold(page, path)
+				const featuredSlug = await featured.getAttribute('data-home-featured')
+				const slug = hero ? featuredSlug : featuredSlug === 'sudoku' ? 'number-path' : 'sudoku'
+				const play = hero ? featured : page.locator(`[data-home-game="${slug}"]`)
+				const dest = new URL((await play.getAttribute('href'))!, page.url())
+				const cookieRequest = page.waitForRequest('**/v1/guest/session')
+				try {
+					await play.tap()
+					await expect(page).toHaveURL(dest.href)
+					await expect(page.locator(card)).toBeDisabled()
+					await cookieRequest
+					expect(daily.starts).toEqual([])
+				} finally {
+					daily.release()
+				}
+				await expect(page.locator(stage)).toBeVisible()
+				const difficulty = dest.searchParams.get('difficulty') ?? undefined
+				expect(daily.starts).toEqual([{ gameSlug: slug, difficulty, puzzleDate: daily.puzzleDate }])
+				await page.reload()
+				await expect(page.locator(card)).toBeEnabled()
+				expect(daily.starts).toHaveLength(1)
+			})
+		}
+	}
+	for (const mode of ['Ctrl', 'middle', '_blank'] as const) {
+		test(`${mode} carries no Play intent`, async ({ page, context }) => {
+			const { starts, release } = await fixture(page)
+			release()
+			const play = await cold(page)
+			const href = new URL((await play.getAttribute('href'))!, page.url()).href
+			expect(href).toMatch(/[?&]start=1#play$/)
+			if (mode === '_blank') await play.evaluate((a) => a.setAttribute('target', '_blank'))
+			const next = context.waitForEvent('page')
+			await play.click({
+				button: mode === 'middle' ? 'middle' : 'left',
+				modifiers: mode === 'Ctrl' ? ['Control'] : [],
+			})
+			// A new tab opened; its background load is the browser's, so visit the URL here.
+			await (await next).close()
+			expect(await intent(page)).toBeNull()
+			await page.goto(href)
+			await expect(page.locator(card)).toBeEnabled()
+			expect(starts).toEqual([])
+		})
+	}
+	for (const mode of ['expired', 'storage blocked', 'reload/paste/share', 'resume']) {
+		test(`cold Home: ${mode} never claims a pick`, async ({ page, context }) => {
+			const { starts, release } = await fixture(page, mode === 'resume')
+			release()
+			if (mode === 'storage blocked') {
+				await page.addInitScript(() => {
+					const blocked = () => {
+						throw new DOMException('Blocked', 'SecurityError')
+					}
+					Object.defineProperty(window, 'sessionStorage', { get: blocked })
+				})
+			}
+			await cold(page)
+			const sudoku = page.locator('[data-home-game="sudoku"], [data-home-featured="sudoku"]')
+			const href = new URL((await sudoku.getAttribute('href'))!, page.url()).href
+			if (mode === 'expired') {
+				const at = Date.now() - START_INTENT_TTL_MS - 1
+				const record = { slug: 'sudoku', href, from: page.url(), at }
+				await page.evaluate(
+					({ key, record }) => sessionStorage.setItem(key, JSON.stringify(record)),
+					{ key: START_INTENT_KEY, record },
+				)
+				await page.goto(href, { referer: record.from })
+			} else if (mode === 'reload/paste/share') {
+				await page.route(assets, (route) => route.abort())
+				await sudoku.tap()
+				await expect(page).toHaveURL(href)
+				const raw = await intent(page)
+				expect(raw).not.toBeNull()
+				await page.unroute(assets)
+				await page.reload()
+				await expect(page.locator(card)).toBeEnabled()
+				await page.goto('/games')
+				const setIntent = ({ key, value }: { key: string; value: string }) =>
+					sessionStorage.setItem(key, value)
+				await page.evaluate(setIntent, { key: START_INTENT_KEY, value: raw! })
+				await page.goto(href)
+				const shared = await context.newPage()
+				await shared.goto(href.replace('#', '&utm_source=share#'))
+				await expect(shared.locator(card)).toBeEnabled()
+			} else await sudoku.tap()
+			await expect(page).toHaveURL(/\/games\/sudoku\?difficulty=medium&start=1#play$/)
+			if (mode === 'resume') await expect(page.locator(stage)).toBeVisible()
+			else await expect(page.locator(card)).toBeEnabled()
+			if (mode !== 'storage blocked') expect(await intent(page)).toBeNull()
+			expect(starts).toEqual([])
+		})
+	}
+})
 function holdResponse(page: Page, url: string | RegExp, json?: unknown) {
 	const release = Promise.withResolvers<void>()
 	const requested = Promise.withResolvers<void>()

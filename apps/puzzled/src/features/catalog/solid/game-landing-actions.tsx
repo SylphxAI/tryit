@@ -1,7 +1,6 @@
 /** @jsxImportSource solid-js */
 import { Play } from 'lucide-solid'
 import { Show } from 'solid-js'
-import { markStartIntent } from '@/features/daily/lib/start-intent'
 import { DEFAULT_DAILY_DIFFICULTY, todayPlayPath } from '@/features/daily/lib/today-play-path'
 import { isPracticeSupported, practicePath } from '@/features/practice/lib/practice'
 import type { PuzzleDifficulty } from '@/games/types'
@@ -32,17 +31,6 @@ function LandingPlayLink(props: {
 			href={props.href}
 			data-start-intent={props.daily ? props.slug : undefined}
 			class={props.class}
-			onClick={(event) => {
-				if (
-					props.daily &&
-					!event.defaultPrevented &&
-					!event.metaKey &&
-					!event.ctrlKey &&
-					!event.altKey &&
-					!event.shiftKey
-				)
-					markStartIntent(props.slug)
-			}}
 		>
 			<Play class="h-4 w-4" fill="currentColor" aria-hidden="true" />
 			{props.label}
