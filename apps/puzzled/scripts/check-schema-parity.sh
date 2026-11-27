@@ -51,7 +51,7 @@ command -v bun >/dev/null 2>&1 || die2 "bun is required to run drizzle-kit"
 # ---- 1. render the Drizzle schema to SQL -------------------------------------
 [ -x node_modules/.bin/drizzle-kit ] || die2 "drizzle-kit is not installed; run bun install first"
 say "rendering src/lib/db/schema.ts with drizzle-kit export"
-DOTENV_CONFIG_QUIET=true node_modules/.bin/drizzle-kit export > "$WORK/schema.sql" 2>"$WORK/drizzle-kit.stderr" || { echo "schema-parity: drizzle-kit export failed:" >&2; cat "$WORK/drizzle-kit.stderr" >&2; exit 2; }
+node_modules/.bin/drizzle-kit export > "$WORK/schema.sql" 2>"$WORK/drizzle-kit.stderr" || { echo "schema-parity: drizzle-kit export failed:" >&2; cat "$WORK/drizzle-kit.stderr" >&2; exit 2; }
 grep -q 'CREATE TABLE' "$WORK/schema.sql" || die2 "drizzle-kit export produced no CREATE TABLE statements; export looks broken"
 
 # ---- 2. locate the atlas binary: override, PATH, then pinned download --------

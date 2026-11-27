@@ -1,14 +1,8 @@
-import { config } from 'dotenv'
 import { defineConfig } from 'drizzle-kit'
 
-// Load .env.local for local development
-config({ path: '.env.local' })
-
+// Used only by `drizzle-kit export` (scripts/check-schema-parity.sh, atlas.hcl):
+// it renders schema.ts to SQL for the parity check and needs no database.
 export default defineConfig({
-	out: './drizzle',
 	schema: './src/lib/db/schema.ts',
 	dialect: 'postgresql',
-	dbCredentials: {
-		url: process.env.DATABASE_URL!,
-	},
 })
