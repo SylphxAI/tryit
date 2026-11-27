@@ -33,7 +33,6 @@ function harness(
 	choice: { analytics: boolean; marketing: boolean },
 	ids: GoogleTagIds = IDS,
 	currentConsent?: () => SignalConsent,
-	landing?: { search: string; referrer: string },
 ) {
 	const scripts: string[] = []
 	const calls: unknown[][] = []
@@ -54,7 +53,6 @@ function harness(
 		win,
 		doc,
 		consent: currentConsent ?? (() => consentSignals(state)),
-		landing,
 	})
 	return { tag, scripts, calls, state, store, win }
 }
@@ -228,95 +226,6 @@ describe('page views and addresses', () => {
 			/private%40|example\.test|secret|Private game title/,
 		)
 	})
-})
-
-describe('landing attribution', () => {
-	const AD_LANDING = {
-		search:
-			'?utm_source=google&utm_medium=cpc&utm_campaign=spring&utm_term=logic&utm_content=a1' +
-			'&utm_id=42&gclid=TEST123&gbraid=GB1&wbraid=WB1&junk=x&email=private%40example.test&fbclid=F',
-		referrer: 'https://www.google.com/search/path?q=private+query#frag',
-	}
-	const pageViews = (calls: unknown[][]) =>
-		calls.filter((c) => c[0] === 'event' && c[1] === 'page_view').map((c) => c[2])
-
-	test('the first page view keeps only allowlisted params and the external referrer origin and path', () => {
-		const h = harness({ analytics: true, marketing: true }, IDS, undefined, AD_LANDING)
-		h.tag.sync()
-		expect(h.tag.pageView('/', 'Home | Tryit')).toBe(true)
-		const first = pageViews(h.calls)[0] as Record<string, string>
-		const url = new URL(first.page_location ?? '')
-		expect(`${url.origin}${url.pathname}`).toBe('https://tryit.fun/')
-		expect([...url.searchParams.keys()]).toEqual([
-			'utm_source',
-			'utm_medium',
-			'utm_campaign',
-			'utm_term',
-			'utm_content',
-			'utm_id',
-			'gclid',
-			'gbraid',
-			'wbraid',
-		])
-		expect(url.searchParams.get('gclid')).toBe('TEST123')
-		expect(url.hash).toBe('')
-		expect(first.page_referrer).toBe('https://www.google.com/search/path')
-		expect(JSON.stringify(h.calls)).not.toMatch(/junk|email|private|example\.test|fbclid|frag/)
-
-		expect(h.tag.pageView('/games', 'Games | Tryit')).toBe(true)
-		expect(pageViews(h.calls)[1]).toMatchObject({
-			page_location: 'https://tryit.fun/games',
-			page_referrer: '',
-		})
-		expect(h.calls.at(-2)).toEqual([
-			'set',
-			{ page_location: 'https://tryit.fun/games', page_referrer: '', page_title: 'Games | Tryit' },
-		])
-	})
-
-	test('consent after SPA navigation still attributes the first view sent', () => {
-		const h = harness({ analytics: false, marketing: false }, IDS, undefined, AD_LANDING)
-		h.tag.sync()
-		expect(h.tag.pageView('/', 'Home | Tryit')).toBe(false)
-		h.state.analytics = true
-		h.tag.sync()
-		expect(h.tag.pageView('/games', 'Games | Tryit')).toBe(true)
-		expect(pageViews(h.calls)[0]).toMatchObject({
-			page_location:
-				'https://tryit.fun/games?utm_source=google&utm_medium=cpc&utm_campaign=spring' +
-				'&utm_term=logic&utm_content=a1&utm_id=42&gclid=TEST123&gbraid=GB1&wbraid=WB1',
-			page_referrer: 'https://www.google.com/search/path',
-		})
-	})
-
-	test('a same-origin or non-http referrer and an email-like value are not sent', () => {
-		for (const referrer of ['https://tryit.fun/games?x=1', 'android-app://x', 'not a url', '']) {
-			const h = harness({ analytics: true, marketing: false }, IDS, undefined, {
-				search: '?utm_source=a%40b.test&utm_medium=cpc',
-				referrer,
-			})
-			h.tag.sync()
-			h.tag.pageView('/', 'Home | Tryit')
-			expect(pageViews(h.calls)[0]).toMatchObject({
-				page_location: 'https://tryit.fun/?utm_medium=cpc',
-				page_referrer: '',
-			})
-		}
-	})
-
-	for (const [label, signals] of [
-		['refused', resolveEffectiveConsent({ storedChoice: 'denied' })],
-		['GPC', resolveEffectiveConsent({ region: 'ROW', gpc: true, storedChoice: 'granted' })],
-	] as const) {
-		test(`${label} sends no gtag event and loads nothing`, () => {
-			const h = harness({ analytics: false, marketing: false }, IDS, () => signals, AD_LANDING)
-			h.tag.sync()
-			expect(h.tag.pageView('/', 'Home | Tryit')).toBe(false)
-			expect(h.tag.pageView('/games', 'Games | Tryit')).toBe(false)
-			expect(h.scripts).toEqual([])
-			expect(h.calls.filter((c) => c[0] !== 'consent')).toEqual([])
-		})
-	}
 })
 
 describe('events', () => {

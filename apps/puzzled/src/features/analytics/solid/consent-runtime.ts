@@ -43,11 +43,6 @@ export function ConsentRuntime() {
 	const isRouting = useIsRouting()
 	let tag: GoogleTagController | null = null
 	let signup: SignUpMethod | null = null
-	// Read the landing URL once: consent may arrive after the SPA has navigated.
-	const landing =
-		typeof window === 'undefined'
-			? null
-			: { search: window.location.search, referrer: document.referrer }
 	function sync() {
 		const routing = isRouting()
 		const { pathname: path, search } = location
@@ -136,7 +131,6 @@ export function ConsentRuntime() {
 						win: window as unknown as TagWindow,
 						doc: document as unknown as TagDocument,
 						consent: () => cookieConsent().signals,
-						landing,
 					})
 					setActiveGoogleTag(tag)
 				}
