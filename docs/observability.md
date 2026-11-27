@@ -112,12 +112,13 @@ visit, a ROW visit without a saved grant, or GPC sends none of them:
 so a reload deduplicates); no order, player, auth or customer id is sent.
 
 GA4 separately records a custom `game_start` for the first playable daily or
-archive board of a visit, only if the visitor already saved an affirmative
-analytics choice. A delayed consent-context check can confirm that existing
-choice, but opting in after seeing the board does not replay it. Switching the
-same board from the landing view to explicit Play does not count again; a new
-visit can. Only GA4 receives it, with `game_slug`, `mode`, a query-free public
-game URL, and no referrer. It is not an Ads conversion.
+archive board of a visit. It requires an effective analytics grant: either an
+affirmative choice already present when the board appeared or the server's
+named opt-out market default with no saved choice. Delayed consent context can
+confirm that same basis; opting in after seeing the board does not replay it.
+Switching a board from the landing view to explicit Play does not count again;
+a new visit can. Only GA4 receives it, with `game_slug`, `mode`, a query-free
+public game URL, and no referrer. It is not an Ads conversion.
 
 ## First-party funnel counter
 

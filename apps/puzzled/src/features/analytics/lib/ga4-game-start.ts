@@ -8,8 +8,13 @@ export function trackGa4GameStart(
 	mode: 'daily' | 'archive',
 ): (() => void) | undefined {
 	if (typeof window === 'undefined' || !Object.hasOwn(PLAYER_TITLE, slug)) return
-	const consent = cookieConsent()
-	if (!consent.explicit || consent.gpc) return
+	const initial = cookieConsent()
+	if (initial.gpc || (!initial.explicit && !initial.unanswered)) return
+	const allowsStart = (consent: ReturnType<typeof cookieConsent>) =>
+		consent.ready &&
+		consent.analytics &&
+		!consent.gpc &&
+		(initial.explicit ? consent.explicit : consent.unanswered && consent.optOutMarket)
 	const send = () => {
 		// Don't inherit the tag's first page view context, which can contain click IDs.
 		sendGa4Event('game_start', {
@@ -19,22 +24,20 @@ export function trackGa4GameStart(
 			page_referrer: '',
 		})
 	}
-	if (consent.ready) {
-		if (consent.analytics) send()
+	if (initial.ready) {
+		if (allowsStart(initial)) send()
 		return
 	}
-	// An SSR board can paint before consent context loads. Only wait if the
-	// saved grant already existed at first observation, never for a new choice.
+	// An SSR board can paint before consent context loads. Resolve the policy
+	// for the choice state at first observation; a later opt-in can't backfill.
 	let cancelled = false
 	const stop = onConsentChange(() => {
 		stop()
-		const current = cookieConsent()
 		// Failure or a choice change before initialization cancels the attempt.
-		if (!current.ready || !current.explicit || !current.analytics || current.gpc) return
+		if (!allowsStart(cookieConsent())) return
 		// Let ConsentRuntime finish synchronizing the tag in this notification.
 		queueMicrotask(() => {
-			const live = cookieConsent()
-			if (!cancelled && live.ready && live.explicit && live.analytics && !live.gpc) send()
+			if (!cancelled && allowsStart(cookieConsent())) send()
 		})
 	})
 	return () => {

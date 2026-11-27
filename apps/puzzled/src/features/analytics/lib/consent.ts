@@ -52,6 +52,7 @@ export function cookieConsent() {
 		prompt: context?.region === 'EEA' && !gpc && !localDenial && choice === null,
 		analytics: signals.analytics_storage === 'granted',
 		marketing: signals.ad_storage === 'granted',
+		unanswered: choice === null && !localDenial,
 		explicit: choice === 'granted' || choice === 'analytics_only',
 	}
 }

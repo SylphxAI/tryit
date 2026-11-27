@@ -18,15 +18,30 @@ const boardObserved = (page: Page) =>
 
 async function fixture(
 	page: Page,
-	choice: 'granted' | 'denied' | null,
-	{ gpc = false, region = 'EEA', pending = Promise.resolve(), status = 200 } = {},
+	choice: 'granted' | 'analytics_only' | 'denied' | null,
+	{
+		gpc = false,
+		region = 'EEA',
+		optOutMarket = false,
+		pending = Promise.resolve(),
+		status = 200,
+		country = undefined as string | undefined,
+	} = {},
 ) {
 	await capture(page, false)
+	if (country) await page.setExtraHTTPHeaders({ 'CF-IPCountry': country })
 	await page.route('**/api/consent-context', async (route) => {
 		await pending
+		const policy = country ? await (await route.fetch()).json() : { region, gpc, optOutMarket }
+		// Stub all destinations and omit Signal even when reading the real policy.
 		await route.fulfill({
 			status,
-			json: { region, gpc, ids: { ga: id, ads: adsId, adsPurchaseLabel: purchaseLabel } },
+			json: {
+				region: policy.region,
+				gpc: policy.gpc,
+				optOutMarket: policy.optOutMarket,
+				ids: { ga: id, ads: adsId, adsPurchaseLabel: purchaseLabel },
+			},
 		})
 	})
 	await page.route(rpc('GetDaily'), (route) =>
@@ -56,55 +71,60 @@ async function fixture(
 
 test.afterEach(({ page }) => page.unrouteAll({ behavior: 'ignoreErrors' }))
 
-test('GA4 records the playable visit, not the explicit Play remount; a new visit counts', async ({
-	page,
-}) => {
-	const { promise, resolve } = Promise.withResolvers<void>()
-	await fixture(page, 'granted', { pending: promise })
-	await page.goto(`${daily}&gclid=fixture-click&email=fixture%40example.test`)
-	try {
-		await expect(page.locator(board)).toBeVisible()
-		// Wait for the mounted lifecycle effect, not just server-rendered HTML.
-		await expect.poll(() => boardObserved(page)).toBe(true)
-		expect(await starts(page)).toEqual([])
-	} finally {
-		resolve()
-	}
-	const start = [
-		'event',
-		'game_start',
-		{
-			game_slug: 'sudoku',
-			mode: 'daily',
-			page_location: new URL(game, page.url()).href,
-			page_referrer: '',
-			send_to: id,
-		},
-	]
-	// Both destinations are on; game_start is nevertheless GA4-only with no landing fields.
-	await expect.poll(() => commands(page)).toContainEqual(['config', adsId, expect.anything()])
-	await expect.poll(() => starts(page)).toEqual([start])
-	await expect
-		.poll(() => commands(page))
-		.toContainEqual([
+for (const [label, choice, country] of [
+	['existing affirmative choice', 'granted', undefined],
+	['named opt-out market default', null, 'US'],
+] as const) {
+	test(`${label}: late readiness counts once, a remount doesn't, and a new visit counts`, async ({
+		page,
+	}) => {
+		const { promise, resolve } = Promise.withResolvers<void>()
+		await fixture(page, choice, { pending: promise, country })
+		await page.goto(`${daily}&gclid=fixture-click&email=fixture%40example.test`)
+		try {
+			await expect(page.locator(board)).toBeVisible()
+			// Wait for the mounted lifecycle effect, not just server-rendered HTML.
+			await expect.poll(() => boardObserved(page)).toBe(true)
+			expect(await starts(page)).toEqual([])
+		} finally {
+			resolve()
+		}
+		const start = [
 			'event',
-			'page_view',
-			expect.objectContaining({ page_location: expect.stringContaining('gclid=fixture-click') }),
-		])
-	await page.locator('[data-start-intent="sudoku"]').first().click()
-	await expect(page).toHaveURL(/start=1/)
-	await expect(page.locator('[data-play-canvas] .play-board')).toBeVisible()
-	expect(await starts(page)).toEqual([start])
+			'game_start',
+			{
+				game_slug: 'sudoku',
+				mode: 'daily',
+				page_location: new URL(game, page.url()).href,
+				page_referrer: '',
+				send_to: id,
+			},
+		]
+		// Both destinations are on; game_start is nevertheless GA4-only with no landing fields.
+		await expect.poll(() => commands(page)).toContainEqual(['config', adsId, expect.anything()])
+		await expect.poll(() => starts(page)).toEqual([start])
+		await expect
+			.poll(() => commands(page))
+			.toContainEqual([
+				'event',
+				'page_view',
+				expect.objectContaining({ page_location: expect.stringContaining('gclid=fixture-click') }),
+			])
+		await page.locator('[data-start-intent="sudoku"]').first().click()
+		await expect(page).toHaveURL(/start=1/)
+		await expect(page.locator('[data-play-canvas] .play-board')).toBeVisible()
+		expect(await starts(page)).toEqual([start])
 
-	await page.getByRole('link', { name: 'Games', exact: true }).first().click()
-	await expect(page).toHaveURL(/\/games$/)
-	await page.locator(`a[href="${game}"]`).first().click()
-	await expect(page.locator('[data-start-intent="sudoku"]').first()).toBeVisible()
-	expect(await starts(page)).toEqual([start]) // chooser, not another playable board
-	await page.locator('[data-start-intent="sudoku"][href*="difficulty=easy"]').first().click()
-	await expect(page.locator(board)).toBeVisible()
-	await expect.poll(() => starts(page)).toEqual([start, start])
-})
+		await page.getByRole('link', { name: 'Games', exact: true }).first().click()
+		await expect(page).toHaveURL(/\/games$/)
+		await page.locator(`a[href="${game}"]`).first().click()
+		await expect(page.locator('[data-start-intent="sudoku"]').first()).toBeVisible()
+		expect(await starts(page)).toEqual([start]) // chooser, not another playable board
+		await page.locator('[data-start-intent="sudoku"][href*="difficulty=easy"]').first().click()
+		await expect(page.locator(board)).toBeVisible()
+		await expect.poll(() => starts(page)).toEqual([start, start])
+	})
+}
 
 test('granting after the passive board does not replay on the explicit Play remount', async ({
 	page,
@@ -124,13 +144,15 @@ test('granting after the passive board does not replay on the explicit Play remo
 	expect(await starts(page)).toEqual([])
 })
 
-for (const [label, choice, gpc, region] of [
-	['denied', 'denied', false, 'EEA'],
-	['GPC despite a saved grant', 'granted', true, 'EEA'],
-	['ROW without a saved grant', null, false, 'ROW'],
+for (const [label, choice, gpc, region, optOutMarket, country] of [
+	['named-market denial', 'denied', false, 'ROW', true, undefined],
+	['named-market GPC', null, true, 'ROW', true, undefined],
+	['GPC despite a saved grant', 'granted', true, 'EEA', false, undefined],
+	['other ROW without a saved grant', null, false, 'ROW', false, 'BR'],
+	['unknown market without a saved grant', null, false, 'EEA', false, 'XX'],
 ] as const) {
 	test(`a playable board emits no GA4 start under ${label}`, async ({ page }) => {
-		await fixture(page, choice, { gpc, region })
+		await fixture(page, choice, { gpc, region, optOutMarket, country })
 		await page.goto(explicit)
 		await expect(page.locator(board)).toBeVisible()
 		await expect
@@ -140,11 +162,13 @@ for (const [label, choice, gpc, region] of [
 	})
 }
 
-for (const scenario of ['GPC', 'config failure', 'route leave'] as const) {
+for (const scenario of ['GPC', 'denial', 'config failure', 'route leave'] as const) {
 	test(`a pending start is discarded on ${scenario}`, async ({ page }) => {
 		const { promise, resolve } = Promise.withResolvers<void>()
-		await fixture(page, 'granted', {
+		await fixture(page, null, {
 			pending: promise,
+			region: 'ROW',
+			optOutMarket: true,
 			gpc: scenario === 'GPC',
 			status: scenario === 'config failure' ? 503 : 200,
 		})
@@ -152,6 +176,8 @@ for (const scenario of ['GPC', 'config failure', 'route leave'] as const) {
 		try {
 			await page.goto(daily)
 			await expect.poll(() => boardObserved(page)).toBe(true)
+			if (scenario === 'denial')
+				await page.evaluate((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
 			if (scenario === 'route leave') {
 				await page.locator('a[href="/games"]').first().click()
 				await expect(page).toHaveURL(/\/games$/)
