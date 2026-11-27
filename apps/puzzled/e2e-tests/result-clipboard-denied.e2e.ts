@@ -104,7 +104,7 @@ for (const historical of [false, true]) {
 		await page.goto(
 			`/games/sudoku?difficulty=medium&start=1${historical ? `&mode=archive&date=${day}` : ''}#play`,
 		)
-		await page.getByRole('button', { name: 'Copy challenge', exact: true }).click()
+		await page.getByRole('button', { name: 'Share result', exact: true }).click()
 		const caption = () =>
 			page.evaluate(() => Reflect.get(window, 'sharedCaption') as string | undefined)
 		const gameLink = /https?:\/\/[^\s]+\/games\/sudoku\?[^\s]+/
