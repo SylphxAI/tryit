@@ -6,8 +6,9 @@ use serde_json::{json, Value};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use puzzled_core::puzzle_play::daily_time::product_day_key;
-use puzzled_core::puzzle_play::generate::{self, Generated, GENERATOR_NONOGRAM_V2, GENERATOR_V1};
+use puzzled_core::puzzle_play::generate::{
+    self, Generated, DAILY_SEED_V2_START, GENERATOR_NONOGRAM_V2, GENERATOR_V1,
+};
 
 use crate::capabilities::daily_pipeline::{self, store};
 use crate::test_support::fresh_database;
@@ -58,13 +59,35 @@ async fn unplayed_future_rows_are_remade_and_played_or_current_rows_are_not() {
     let Some(pool) = fresh_database().await else {
         return;
     };
-    let today = product_day_key(chrono::Utc::now());
+    let today = DAILY_SEED_V2_START - Duration::days(6);
     let day = |n: i64| today + Duration::days(n);
     // -1: past, 0: today, 1: unplayed, 2: session by day, 3: free pick,
     // 4: already the current output, 5: session by puzzle id.
     for n in -1..=5 {
         store_v1(&pool, day(n), n == 4).await;
     }
+    // 6: a buffered V1 row at cutover. Even unplayed, a different seed
+    // must not pass the existing refresh guard.
+    let old_seed = generate::seed_for(day(6), Some("easy"));
+    let (puzzle_data, solution) = generate::generate_seeded("nonogram", old_seed, Some("easy"))
+        .unwrap_or_else(|e| panic!("generate buffered row: {e}"));
+    let v2 = generate::generate("nonogram", day(6), Some("easy")).unwrap();
+    assert_ne!(v2.seed, old_seed);
+    assert_ne!((&v2.puzzle_data, &v2.solution), (&puzzle_data, &solution));
+    store::insert(
+        &pool,
+        "nonogram",
+        day(6),
+        Some("easy"),
+        &Generated {
+            puzzle_data,
+            solution,
+            seed: old_seed,
+            generator_version: GENERATOR_V1,
+        },
+    )
+    .await
+    .unwrap_or_else(|e| panic!("insert buffered row: {e}"));
     let before = rows(&pool).await;
     let id = |n: i64| before[usize::try_from(n + 1).unwrap_or_default()].0;
     let player = Uuid::now_v7();
@@ -99,8 +122,8 @@ async fn unplayed_future_rows_are_remade_and_played_or_current_rows_are_not() {
         (&made.puzzle_data, Some(&made.solution))
     );
     assert_eq!(fresh.4.as_deref(), Some(GENERATOR_NONOGRAM_V2));
-    // Past, today's, played, picked and already-current rows are untouched.
-    for i in [0, 1, 3, 4, 5, 6] {
+    // Past, today's, played, picked, current and different-seed rows are untouched.
+    for i in [0, 1, 3, 4, 5, 6, 7] {
         assert_eq!(after[i], before[i], "row {i}");
     }
     // Running again changes nothing.
