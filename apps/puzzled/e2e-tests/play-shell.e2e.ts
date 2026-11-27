@@ -476,7 +476,7 @@ test('all 19 games show one rules dialog and introductory copy in zh-TW', async 
 })
 
 const fiveNoticeCases = [
-	['zh-HK', '英文單詞謎題', '拒絕'],
+	['zh-HK', '英文單詞謎題', '拒絕分析及廣告'],
 	['es', 'Juego de palabras en inglés', 'Rechazar'],
 	['pt-BR', 'Jogo de palavras em inglês', 'Recusar'],
 ] as const
