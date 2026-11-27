@@ -212,9 +212,19 @@ message ResetFamilyInviteResponse {
   string invite_code = 1;
 }
 
+message GetPassEligibilityRequest {}
+
+message GetPassEligibilityResponse {
+  // Only true is affirmative: this verified account is known free and a
+  // priced one-time Pass is on sale. False or absent means do not offer it.
+  bool known_free = 1;
+}
+
 service BillingService {
   rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
   rpc GetSubscription(GetSubscriptionRequest) returns (GetSubscriptionResponse);
+  // Does not link accounts, claim checkout, grant a trial or record analytics.
+  rpc GetPassEligibility(GetPassEligibilityRequest) returns (GetPassEligibilityResponse);
   rpc CreateCheckout(CreateCheckoutRequest) returns (CreateCheckoutResponse);
   // The same normal checkout action with mandatory durable request identity.
   // An older server without this method refuses before creating a session.

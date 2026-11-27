@@ -23,11 +23,11 @@ use crate::proto::puzzled::v1::{
     BillingService, CancelSubscriptionRequest, CancelSubscriptionResponse, ClaimCheckoutRequest,
     ClaimCheckoutResponse, CreateCheckoutAttemptRequest, CreateCheckoutAttemptResponse,
     CreateCheckoutRequest, CreateCheckoutResponse, CreatePortalRequest, CreatePortalResponse,
-    GetCheckoutRequest, GetCheckoutResponse, GetSubscriptionRequest, GetSubscriptionResponse,
-    JoinFamilyRequest, JoinFamilyResponse, LeaveFamilyRequest, LeaveFamilyResponse,
-    ListPlansRequest, ListPlansResponse, RemoveFamilyMemberRequest, RemoveFamilyMemberResponse,
-    ResetFamilyInviteRequest, ResetFamilyInviteResponse, ResumeSubscriptionRequest,
-    ResumeSubscriptionResponse,
+    GetCheckoutRequest, GetCheckoutResponse, GetPassEligibilityRequest, GetPassEligibilityResponse,
+    GetSubscriptionRequest, GetSubscriptionResponse, JoinFamilyRequest, JoinFamilyResponse,
+    LeaveFamilyRequest, LeaveFamilyResponse, ListPlansRequest, ListPlansResponse,
+    RemoveFamilyMemberRequest, RemoveFamilyMemberResponse, ResetFamilyInviteRequest,
+    ResetFamilyInviteResponse, ResumeSubscriptionRequest, ResumeSubscriptionResponse,
 };
 
 mod catalog;
@@ -35,6 +35,7 @@ mod checkout;
 mod checkout_attempt;
 mod checkout_claim;
 mod family;
+mod pass_eligibility;
 mod subscription;
 
 #[cfg(test)]
@@ -119,6 +120,14 @@ impl BillingService for BillingConnectService {
         request: ServiceRequest<'_, GetSubscriptionRequest>,
     ) -> ServiceResult<impl Encodable<GetSubscriptionResponse> + Send + use<'a>> {
         subscription::get_subscription(self, ctx, request).await
+    }
+
+    async fn get_pass_eligibility<'a>(
+        &'a self,
+        ctx: RequestContext,
+        _request: ServiceRequest<'_, GetPassEligibilityRequest>,
+    ) -> ServiceResult<impl Encodable<GetPassEligibilityResponse> + Send + use<'a>> {
+        pass_eligibility::get(self, ctx).await
     }
 
     async fn create_checkout<'a>(

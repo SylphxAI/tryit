@@ -80,9 +80,13 @@ async fn spawn_fake_auth(calls: Arc<AtomicUsize>) -> String {
 }
 
 async fn subscription(app: &Router, headers: &[(&str, String)]) -> (StatusCode, Value) {
+    billing_rpc(app, "/puzzled.v1.BillingService/GetSubscription", headers).await
+}
+
+async fn billing_rpc(app: &Router, path: &str, headers: &[(&str, String)]) -> (StatusCode, Value) {
     let mut request = Request::builder()
         .method(Method::POST)
-        .uri("/puzzled.v1.BillingService/GetSubscription")
+        .uri(path)
         .header("content-type", "application/json");
     if !headers.iter().any(|(name, _)| *name == "user-agent") {
         request = request.header("user-agent", "Browser/1.0");
@@ -96,6 +100,12 @@ async fn subscription(app: &Router, headers: &[(&str, String)]) -> (StatusCode, 
         .await
         .unwrap();
     let status = response.status();
+    if path == crate::proto::puzzled::v1::BILLING_SERVICE_GET_PASS_ELIGIBILITY_SPEC.procedure {
+        assert!(!response.headers().contains_key("set-cookie"));
+        if status.is_success() {
+            assert_eq!(response.headers()["cache-control"], "private, no-store");
+        }
+    }
     let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
@@ -423,5 +433,154 @@ async fn admin_rpc_requires_a_live_admin_role_on_the_configured_auth_customer_or
     assert_eq!(
         privileged_rpc(&app, FREEZE_RPC, GOOD).await.0,
         StatusCode::FORBIDDEN
+    );
+}
+
+#[tokio::test]
+async fn pass_eligibility_through_router_proves_free_without_writes() {
+    use crate::capabilities::money::Money;
+    use crate::proto::puzzled::v1::BILLING_SERVICE_GET_PASS_ELIGIBILITY_SPEC;
+    use axum::routing::post;
+    use sqlx::postgres::PgPoolOptions;
+
+    const PLAYER: &str = "0199aa10-7b2c-7d3e-8f00-1234567890ab";
+    let Some(writer) = crate::test_support::fresh_database().await else {
+        return;
+    };
+    let read_only = (*writer.connect_options())
+        .clone()
+        .options([("default_transaction_read_only", "on")]);
+    let reader = PgPoolOptions::new().connect_with(read_only).await.unwrap();
+    let base = spawn_fake_auth(Arc::default()).await;
+    let seed = |sql: &'static str| sqlx::raw_sql(sql).execute(&writer);
+    // Update the fixture between reads to disprove reuse of cached denials.
+    let mode = Arc::new(AtomicUsize::new(0));
+    let seen = Arc::new(AtomicUsize::new(0));
+    let catalog_seen = seen.clone();
+    let money_router = Router::new()
+        .route(
+            "/v1/orgs/o/projects/p/envs/e/price_catalogs/default",
+            get(move || async move {
+                catalog_seen.fetch_add(1, Ordering::SeqCst);
+                Json(
+                    json!({"spec":{"products":[{"key":"pass","features":{"plus":"true"},
+                    "licence":{"term":{"unit":"days","count":3}},
+                    "prices":[{"key":"once","unit_amounts":{"USD":"299"}}]}]}}),
+                )
+            }),
+        )
+        .route(
+            "/v1/orgs/o/projects/p/envs/e/entitlement_grants:check",
+            post({
+                let (mode, seen) = (mode.clone(), seen.clone());
+                move |Json(body): Json<Value>| {
+                    let (mode, seen) = (mode.clone(), seen.clone());
+                    async move {
+                        seen.fetch_add(1, Ordering::SeqCst);
+                        let feature = body["feature"].as_str();
+                        let subject = body["subject"]["end_user"].as_str();
+                        match (mode.load(Ordering::SeqCst), feature, subject) {
+                            (1, Some("plus"), Some("linked-player")) | (3, Some("family"), _) => {
+                                (StatusCode::OK, Json(json!({"entitled":true})))
+                            }
+                            (2, Some("plus"), Some("linked-player"))
+                            | (4, Some("family"), _)
+                            | (5, Some("plus"), Some(PLAYER)) => {
+                                (StatusCode::SERVICE_UNAVAILABLE, Json(json!({})))
+                            }
+                            _ => (StatusCode::OK, Json(json!({}))),
+                        }
+                    }
+                }
+            }),
+        )
+        .fallback(|| async { panic!("unexpected Money route on presentation read") });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!(
+        "http://{}/v1/orgs/o/projects/p/envs/e",
+        listener.local_addr().unwrap()
+    );
+    let money = Money::new(&origin, KEY, "https://puzzled.test");
+    tokio::spawn(async move { axum::serve(listener, money_router).await.unwrap() });
+    let auth = AuthSessions::new(base, ORG.into(), KEY.into()).with_pool(Some(reader.clone()));
+    let app = router(
+        AppState::new(Some(reader.clone()))
+            .with_auth(auth)
+            .with_money(Some(money.clone())),
+    );
+    let read = |cookie| async {
+        let (status, body) = billing_rpc(
+            &app,
+            BILLING_SERVICE_GET_PASS_ELIGIBILITY_SPEC.procedure,
+            &[("cookie", cookie)],
+        )
+        .await;
+        (status, body["knownFree"] == true)
+    };
+    let cookie = || format!("puzzled_session={GOOD}");
+    for candidate in [
+        "__Host-puzzled_guest=fixture".into(),
+        format!("puzzled_session={FOREIGN}"),
+        cookie(),
+    ] {
+        assert_eq!(read(candidate).await, (StatusCode::UNAUTHORIZED, false));
+    }
+    assert_eq!(seen.load(Ordering::SeqCst), 0);
+
+    sqlx::query("INSERT INTO auth_subjects (subject,user_id) VALUES ('principal-' || $1,$1::uuid),('linked-player',$1::uuid)")
+        .bind(PLAYER).execute(&writer).await.unwrap();
+    assert_eq!(
+        read(format!("{}; puzzled_checkout_claim=", cookie())).await,
+        (StatusCode::OK, false)
+    );
+    assert_eq!(seen.load(Ordering::SeqCst), 0);
+    assert_eq!(read(cookie()).await, (StatusCode::OK, true));
+    assert!(!money.try_check(PLAYER, "plus").await.unwrap().entitled);
+    for (grant_mode, status) in [
+        (1, StatusCode::OK),
+        (2, StatusCode::SERVICE_UNAVAILABLE),
+        (5, StatusCode::SERVICE_UNAVAILABLE),
+    ] {
+        mode.store(grant_mode, Ordering::SeqCst);
+        assert_eq!(read(cookie()).await, (status, false));
+    }
+    let count = seen.load(Ordering::SeqCst);
+    assert!(!money.try_check(PLAYER, "plus").await.unwrap().entitled);
+    assert_eq!(
+        seen.load(Ordering::SeqCst),
+        count,
+        "presentation must not refresh grants"
+    );
+    sqlx::query("INSERT INTO family_members (member_user_id,owner_user_id) VALUES ($1::uuid,gen_random_uuid())")
+        .bind(PLAYER).execute(&writer).await.unwrap();
+    for (grant_mode, status) in [(3, StatusCode::OK), (4, StatusCode::SERVICE_UNAVAILABLE)] {
+        mode.store(grant_mode, Ordering::SeqCst);
+        assert_eq!(read(cookie()).await, (status, false));
+    }
+    mode.store(0, Ordering::SeqCst);
+    sqlx::query("INSERT INTO game_sessions (user_id,game_slug,day_key,is_ritual,status) SELECT $1::uuid,'sudoku',d,true,'won' FROM unnest(ARRAY['2026-11-24','2026-11-25','2026-11-26']) AS d")
+        .bind(PLAYER).execute(&writer).await.unwrap();
+    assert_eq!(
+        crate::capabilities::billing::service::known_free(&reader, &money, PLAYER, true).await,
+        Ok(false)
+    );
+    assert_eq!(sqlx::query_as::<_, (i64,i64,i64,i64)>(
+        "SELECT (SELECT count(*) FROM auth_subjects), (SELECT count(*) FROM plus_trials), (SELECT count(*) FROM tryit_conversions), (SELECT count(*) FROM metric_audiences)"
+    ).fetch_one(&writer).await.unwrap(), (2, 0, 0, 0));
+    seed("ALTER TABLE family_members RENAME TO unavailable_family")
+        .await
+        .unwrap();
+    assert_eq!(
+        read(cookie()).await,
+        (StatusCode::SERVICE_UNAVAILABLE, false)
+    );
+    seed("ALTER TABLE plus_trials RENAME TO unavailable_trials")
+        .await
+        .unwrap();
+    assert!(
+        crate::capabilities::billing::service::known_free(&reader, &money, PLAYER, true)
+            .await
+            .unwrap_err()
+            .contains("trial read failed")
     );
 }

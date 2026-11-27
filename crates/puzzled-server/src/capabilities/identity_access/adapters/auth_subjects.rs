@@ -92,24 +92,27 @@ pub async fn recorded_subjects(
 /// first, followed by any linked non-legacy Sylphx Auth subjects (`usr_...`) so
 /// guest checkouts claimed via Auth verified-email fallback resolve seamlessly.
 pub async fn money_subjects_for_player(pool: &PgPool, user_id: &str) -> Vec<String> {
+    try_money_subjects_for_player(pool, user_id)
+        .await
+        .unwrap_or_else(|_| vec![user_id.to_string()])
+}
+
+/// Strict variant: a failed lookup cannot be treated as having no linked Money subjects.
+pub async fn try_money_subjects_for_player(
+    pool: &PgPool,
+    user_id: &str,
+) -> Result<Vec<String>, sqlx::Error> {
     let mut out = vec![user_id.to_string()];
     let Ok(player) = Uuid::parse_str(user_id) else {
-        return out;
+        return Ok(out);
     };
-    if let Ok(subjects) = sqlx::query_scalar::<_, String>(
-        "SELECT subject FROM auth_subjects WHERE user_id = $1 ORDER BY subject",
-    )
-    .bind(player)
-    .fetch_all(pool)
-    .await
-    {
-        for subj in subjects {
-            if subj != user_id && !subj.starts_with("principal-") && !out.contains(&subj) {
-                out.push(subj);
-            }
+    let mut connection = pool.acquire().await?;
+    for subj in recorded_subjects(&mut connection, player).await? {
+        if subj != user_id && !subj.starts_with("principal-") && !out.contains(&subj) {
+            out.push(subj);
         }
     }
-    out
+    Ok(out)
 }
 
 /// The player an Auth subject names, without linking a new one: its map row,
@@ -120,7 +123,7 @@ pub async fn known_player(pool: &PgPool, subject: &str) -> Result<Option<Uuid>, 
         .or_else(|| legacy_player_id(subject)))
 }
 
-async fn lookup(pool: &PgPool, subject: &str) -> Result<Option<Uuid>, sqlx::Error> {
+pub(super) async fn lookup(pool: &PgPool, subject: &str) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar("SELECT user_id FROM auth_subjects WHERE subject = $1")
         .bind(subject)
         .fetch_optional(pool)
