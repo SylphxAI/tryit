@@ -15,7 +15,8 @@ import './home-install-offer.css'
  * The install offer for a returning player on Home: a finish on an earlier
  * Hong Kong product day than the server's current one. It is the result card's
  * install nudge (same prompt, same permanent dismissal), docked above the tab
- * bar. It stays hidden while Play is on screen, while the consent tray is
+ * bar. It sends no install events: those count result-card prompts only.
+ * It stays hidden while Play is on screen, while the consent tray is
  * docked, and once the server day key goes stale; the nudge hides standalone.
  */
 export function HomeInstallOffer(props: {
@@ -23,7 +24,6 @@ export function HomeInstallOffer(props: {
 	dayKey: string
 	servedAt: number
 	resetAt: number
-	isGuest?: boolean
 }) {
 	const [dayCurrent, setDayCurrent] = createSignal(false)
 	let eligible = false
@@ -81,7 +81,7 @@ export function HomeInstallOffer(props: {
 	return (
 		<Show when={mountedOnce() && dayCurrent()}>
 			<div class="home-install-dock" data-home-install hidden={!visible()}>
-				<PwaInstallNudge locale={props.locale} isGuest={props.isGuest} trigger="returning_home" />
+				<PwaInstallNudge locale={props.locale} track={false} />
 			</div>
 		</Show>
 	)

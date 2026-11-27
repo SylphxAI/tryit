@@ -59,7 +59,6 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 				dayKey={page.dayKey}
 				servedAt={page.servedAt}
 				resetAt={page.resetAt}
-				isGuest={props.facts() ? !props.facts()?.member : undefined}
 			/>
 		</SiteShell>
 	)

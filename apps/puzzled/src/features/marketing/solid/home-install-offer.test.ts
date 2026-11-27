@@ -35,10 +35,16 @@ const DISMISSED = 'puzzled:pwa:prompt-dismissed'
 const resetAt = Date.now() + 3_600_000
 const today = { dayKey: '2026-10-03', servedAt: resetAt - 3_600_000, resetAt }
 let reportPlay: ((onScreen: boolean) => void)[] = []
+let sentEvents: string[] = []
 
 beforeEach(() => {
 	GlobalRegistrator.register({ url: 'https://tryit.fun/' })
 	reportPlay = []
+	sentEvents = []
+	globalThis.fetch = (async (_url: unknown, init?: { body?: string }) => {
+		sentEvents.push(init?.body ?? '')
+		return new Response('{}')
+	}) as typeof fetch
 	globalThis.IntersectionObserver = class {
 		constructor(callback: IntersectionObserverCallback) {
 			reportPlay.push((isIntersecting) => {
@@ -85,7 +91,40 @@ test('a returning player sees the offer only while Play is off screen', async ()
 	expect(play(false)).toBe(true)
 	expect(offer()?.querySelector('button')?.textContent).toContain('Install')
 	expect(play(true)).toBe(false)
+	offer()?.querySelector('button')?.click()
+	await new Promise((resolve) => setTimeout(resolve, 0))
 	dispose()
+	// Shown, hidden and installed on Home: no install telemetry at all.
+	expect(sentEvents).toEqual([])
+})
+
+test('the result card still reports its prompt as post_first_win', async () => {
+	const { mountResultNudge, captureInstallPrompt } = await loadFixture()
+	captureInstallPrompt()
+	const prompt = { prompt: async () => {}, userChoice: Promise.resolve({ outcome: 'dismissed' }) }
+	window.dispatchEvent(Object.assign(new Event('beforeinstallprompt'), prompt))
+	const dispose = mountResultNudge(document.body.appendChild(document.createElement('div')))
+	dispose()
+	expect(sentEvents.map((body) => JSON.parse(body))).toEqual([
+		expect.objectContaining({
+			event: 'pwa_install_prompted',
+			platform: 'chromium',
+			trigger: 'post_first_win',
+			isGuest: true,
+		}),
+	])
+})
+
+test('a cold visitor or a standalone window shows nothing', async () => {
+	localStorage.removeItem(FIRST_FINISH)
+	expect(await shownOffScreenPlay()).toBe(false)
+	localStorage.setItem(FIRST_FINISH, '2026-10-02')
+	window.matchMedia = ((query: string) => ({
+		matches: query.includes('standalone'),
+		addEventListener() {},
+		removeEventListener() {},
+	})) as unknown as typeof window.matchMedia
+	expect(await shownOffScreenPlay()).toBe(false)
 })
 
 test('the first finish day and a stale or missing day key show nothing', async () => {
