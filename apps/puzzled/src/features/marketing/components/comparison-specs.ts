@@ -71,6 +71,8 @@ const countIn = (category: GameCategory) =>
 /** Query string that attributes a visit to one comparison page. */
 const entry = (slug: ComparisonSlug) => `entry_surface=seo_vs-${slug}`
 
+const passPricingHref = (entryQuery: string) => `/pricing?plan=individual_once&${entryQuery}#plus`
+
 /** Every registered game counted once, by category ("9 word, 4 logic, ..."). */
 const LINEUP = `${countIn('word')} word, ${countIn('logic')} logic, ${countIn('math')} number and ${countIn('spatial')} spatial`
 
@@ -151,7 +153,7 @@ export const COMPARISON_SPECS = {
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('nyt-games')}` },
 		secondaryCta: {
 			label: 'See the 3-Day Pass',
-			href: `/pricing?${entry('nyt-games')}`,
+			href: passPricingHref(entry('nyt-games')),
 		},
 		tableTitle: 'Tryit and NYT Games side by side',
 		tableSubtitle:
@@ -468,7 +470,7 @@ export const COMPARISON_SPECS = {
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('linkedin-games')}` },
 		secondaryCta: {
 			label: 'See the 3-Day Pass',
-			href: `/pricing?${entry('linkedin-games')}`,
+			href: passPricingHref(entry('linkedin-games')),
 		},
 		tableTitle: 'Tryit and LinkedIn Games side by side',
 		tableSubtitle:
@@ -779,7 +781,7 @@ export const COMPARISON_SPECS = {
 			'Or do both: finish the Cross|word, then pick three Tryit games for something different.',
 		],
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('puzzmo')}` },
-		secondaryCta: { label: 'See the 3-Day Pass', href: `/pricing?${entry('puzzmo')}` },
+		secondaryCta: { label: 'See the 3-Day Pass', href: passPricingHref(entry('puzzmo')) },
 		tableTitle: 'Tryit and Puzzmo side by side',
 		tableSubtitle:
 			'What each one offers a daily puzzle player today. Puzzmo details come from puzzmo.com, its FAQ and the US App Store.',
@@ -933,7 +935,7 @@ export const COMPARISON_SPECS = {
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('brilliant')}` },
 		secondaryCta: {
 			label: 'See the 3-Day Pass',
-			href: `/pricing?${entry('brilliant')}`,
+			href: passPricingHref(entry('brilliant')),
 		},
 		tableTitle: 'Tryit and Brilliant side by side',
 		tableSubtitle:
@@ -1103,7 +1105,7 @@ export const COMPARISON_SPECS = {
 		primaryCta: { label: 'Pick your 3 free games', href: `/?${entry('wordle')}` },
 		secondaryCta: {
 			label: 'See the 3-Day Pass',
-			href: `/pricing?${entry('wordle')}`,
+			href: passPricingHref(entry('wordle')),
 		},
 		tableTitle: 'Tryit and Wordle side by side',
 		tableSubtitle:
@@ -1299,7 +1301,7 @@ export const COMPARISON_HUB = {
 		'No account needed',
 	],
 	primaryCta: { label: 'Pick your 3 free games', href: `/?${HUB_ENTRY}` },
-	secondaryCta: { label: 'See the 3-Day Pass', href: `/pricing?${HUB_ENTRY}` },
+	secondaryCta: { label: 'See the 3-Day Pass', href: passPricingHref(HUB_ENTRY) },
 	masthead: [
 		`${COMPARISONS.length} comparisons`,
 		'Facts from their own pages',
