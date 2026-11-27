@@ -15,7 +15,6 @@ export function HomeLineup(props: {
 	t: Translate
 	href: (path: string) => string
 	games: readonly HomeGamePlayState[]
-	onStart: (event: MouseEvent, slug: string) => void
 }) {
 	const { page, t, href } = props
 	const bySlug = new Map(page.catalog.map((game) => [game.slug, game]))
@@ -62,7 +61,6 @@ export function HomeLineup(props: {
 								href={href(
 									kind === 'solved' ? todayResultPath(game.slug) : todayPlayPath(game.slug),
 								)}
-								onClick={(event) => kind !== 'solved' && props.onStart(event, game.slug)}
 								caption={
 									kind === 'solved'
 										? [t('gameResult.seeResult'), state.score].filter(Boolean).join(' · ')

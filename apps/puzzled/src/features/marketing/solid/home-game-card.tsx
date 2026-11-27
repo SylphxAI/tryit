@@ -9,7 +9,6 @@ export function HomeGameCard(props: {
 	status: ReturnType<typeof lineupStatus>
 	href: string
 	caption: string
-	onClick: (event: MouseEvent) => void
 }) {
 	return (
 		<li class={styles.slot}>
@@ -18,7 +17,7 @@ export function HomeGameCard(props: {
 				data-home-game={props.game.slug}
 				data-home-status={props.status}
 				href={props.href}
-				onClick={props.onClick}
+				data-start-intent={props.status === 'solved' ? undefined : props.game.slug}
 			>
 				<div class={`${styles.face} editorial-surface`}>
 					<div

@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page } from '@playwright/test'
+import { START_INTENT_TTL_MS } from '../src/features/daily/lib/start-intent'
 import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
+import { START_INTENT_KEY } from '../src/lib/storage-keys'
 import { googleTagTest as test } from './google-tag-support'
 
 const wordGames = [
@@ -676,6 +678,248 @@ for (const recover of [true, false]) {
 		},
 	)
 }
+
+test.describe('Home Play at 390px', () => {
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+
+	async function coldHome(page: Page, path: string) {
+		const requested = Promise.withResolvers<void>()
+		const release = Promise.withResolvers<void>()
+		await page.route('**/_build/assets/*.js', async (route) => {
+			if (new URL(route.request().frame().url()).pathname === path) {
+				requested.resolve()
+				await release.promise
+			}
+			await route.continue().catch(() => undefined) // the first document is gone
+		})
+		await page.goto(path, { waitUntil: 'commit' })
+		await requested.promise
+		return release.resolve
+	}
+
+	async function dailyFixture(page: Page, { resumed = false } = {}) {
+		const puzzleDate = productDayKey()
+		const starts: unknown[] = []
+		const bootstrap = Promise.withResolvers<void>()
+		const release = Promise.withResolvers<void>()
+		const cookie = '__Host-puzzled_guest=cold-home-fixture'
+		await page.context().route('**/v1/guest/session', async (route) => {
+			bootstrap.resolve()
+			await release.promise
+			await route.fulfill({
+				json: { issued: true },
+				headers: { 'Set-Cookie': `${cookie}; HttpOnly; Secure; Path=/` },
+			})
+		})
+		await page.context().route('**/puzzled.v1.PuzzleService/GetDaily', (route) => {
+			const { gameSlug, difficulty } = route.request().postDataJSON()
+			const snapshot = resumed
+				? playable(gameSlug, difficulty)
+				: { gameSlug, puzzleDate, canPlay: true, requiresStart: true }
+			return route.fulfill({ json: snapshot })
+		})
+		await page.context().route('**/puzzled.v1.PuzzleService/StartDaily', async (route) => {
+			const input = route.request().postDataJSON()
+			starts.push(input)
+			expect(await route.request().headerValue('cookie')).toContain(cookie)
+			return route.fulfill({ json: { daily: playable(input.gameSlug, input.difficulty) } })
+		})
+		return { starts, puzzleDate, bootstrap: bootstrap.promise, release: release.resolve }
+	}
+
+	async function homePlay(page: Page, surface: string) {
+		const featured = page.locator('[data-home-featured]')
+		if (surface === 'hero') return featured
+		const slug = await featured.getAttribute('data-home-featured')
+		return page.locator(`[data-home-game="${slug === 'sudoku' ? 'number-path' : 'sudoku'}"]`)
+	}
+
+	for (const path of ['/', '/zh-HK', '/ja']) {
+		for (const surface of ['hero', 'lineup']) {
+			test(`${path}: ${surface} Play before hydration starts once after guest bootstrap`, async ({
+				page,
+			}) => {
+				const daily = await dailyFixture(page)
+				const release = await coldHome(page, path)
+				const play = await homePlay(page, surface)
+				const dest = new URL((await play.getAttribute('href'))!, page.url())
+				const gameSlug = (await play.getAttribute(
+					surface === 'hero' ? 'data-home-featured' : 'data-home-game',
+				))!
+				try {
+					await play.tap({ noWaitAfter: true })
+					await expect(page).toHaveURL(dest.href)
+				} finally {
+					release()
+				}
+				try {
+					await expect(page.locator('[data-game-stage="start"] button')).toBeDisabled()
+					await daily.bootstrap
+					expect(daily.starts).toEqual([])
+				} finally {
+					daily.release()
+				}
+				await expect(page.locator(stage)).toBeVisible()
+				await twoFrames(page)
+				expect(daily.starts).toEqual([
+					{
+						gameSlug,
+						...(dest.searchParams.has('difficulty') && {
+							difficulty: dest.searchParams.get('difficulty'),
+						}),
+						puzzleDate: daily.puzzleDate,
+					},
+				])
+				await page.reload()
+				await expect(page.locator('[data-game-stage="start"] button')).toBeEnabled()
+				expect(daily.starts).toHaveLength(1)
+			})
+		}
+	}
+
+	test('copied Home href opens a start card when pasted, shared with UTMs, or expired', async ({
+		page,
+		context,
+	}) => {
+		const daily = await dailyFixture(page)
+		daily.release()
+		const releaseHome = await coldHome(page, '/')
+		const play = await homePlay(page, 'lineup')
+		const href = new URL((await play.getAttribute('href'))!, page.url())
+		const slug = (await play.getAttribute('data-home-game'))!
+		expect(await page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY)).toBeNull()
+		releaseHome()
+		await page.goto(href.href)
+		await expect(page.locator('[data-game-stage="start"] button')).toBeEnabled()
+		const otherTab = await context.newPage()
+		const shared = new URL(href)
+		shared.searchParams.set('utm_source', 'share')
+		await otherTab.goto(shared.href)
+		await expect(otherTab.locator('[data-game-stage="start"] button')).toBeEnabled()
+		// Supply matching navigation provenance so this case isolates expiration.
+		const from = new URL('/games', href).href
+		await page.goto(from)
+		await page.evaluate(
+			({ key, at, slug, href, from }) => {
+				sessionStorage.setItem(key, JSON.stringify({ at, slug, href, from }))
+			},
+			{
+				key: START_INTENT_KEY,
+				at: Date.now() - START_INTENT_TTL_MS - 1,
+				slug,
+				href: href.href,
+				from,
+			},
+		)
+		await page.goto(href.href, { referer: from })
+		await expect(page.locator('[data-game-stage="start"] button')).toBeEnabled()
+		expect(await page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY)).toBeNull()
+		expect(daily.starts).toEqual([])
+	})
+
+	for (const newTab of ['Control+click', 'target=_blank', 'middle click']) {
+		test(`${newTab} opens a start card and does not record an intent on Home`, async ({
+			page,
+			context,
+		}) => {
+			const daily = await dailyFixture(page)
+			daily.release()
+			const releaseHome = await coldHome(page, '/')
+			try {
+				const play = await homePlay(page, 'hero')
+				const dest = new URL((await play.getAttribute('href'))!, page.url())
+				if (newTab === 'target=_blank')
+					await play.evaluate((link) => link.setAttribute('target', '_blank'))
+				const next = context.waitForEvent('page')
+				await play.click({
+					button: newTab === 'middle click' ? 'middle' : 'left',
+					modifiers: newTab === 'Control+click' ? ['Control'] : [],
+				})
+				const tab = await next
+				await expect(tab).toHaveURL(dest.href)
+				await expect(page).toHaveURL(new URL('/', page.url()).href)
+				expect(
+					await page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY),
+				).toBeNull()
+				// Don't leave the opener's asset requests suspended while the tab hydrates.
+				releaseHome()
+				await expect(tab.locator('[data-game-stage="start"] button')).toBeEnabled()
+				expect(daily.starts).toEqual([])
+			} finally {
+				releaseHome()
+			}
+		})
+	}
+
+	test('reload before the destination hydrates discards a genuine unconsumed press', async ({
+		page,
+	}) => {
+		const daily = await dailyFixture(page)
+		daily.release()
+		await page.route('**/_build/assets/*.js', (route) => route.abort())
+		await page.goto('/', { waitUntil: 'load' })
+		const play = await homePlay(page, 'hero')
+		const href = new URL((await play.getAttribute('href'))!, page.url()).href
+		await play.tap({ noWaitAfter: true })
+		await expect(page).toHaveURL(href)
+		expect(
+			await page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY),
+		).not.toBeNull()
+		const raw = (await page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY))!
+		await page.unroute('**/_build/assets/*.js')
+		await page.reload()
+		const card = page.locator('[data-game-stage="start"] button')
+		await expect(card).toBeEnabled()
+		// A fresh orphan with a matching URL also cannot revive on an address-bar visit.
+		await page.evaluate(({ key, raw }) => sessionStorage.setItem(key, raw), {
+			key: START_INTENT_KEY,
+			raw,
+		})
+		await page.goto(href)
+		await expect(card).toBeEnabled()
+		expect(daily.starts).toEqual([])
+	})
+
+	test('cold Play with session storage unavailable leaves the start card', async ({ page }) => {
+		const daily = await dailyFixture(page)
+		daily.release()
+		await page.addInitScript(() => {
+			Object.defineProperty(window, 'sessionStorage', {
+				get: () => {
+					throw new DOMException('Blocked by browser', 'SecurityError')
+				},
+			})
+		})
+		const releaseHome = await coldHome(page, '/ja')
+		try {
+			await (await homePlay(page, 'hero')).tap({ noWaitAfter: true })
+			await expect(page).toHaveURL(/\?[^#]*start=1#play$/)
+		} finally {
+			releaseHome()
+		}
+		await expect(page.locator('[data-game-stage="start"] button')).toBeEnabled()
+		expect(daily.starts).toEqual([])
+	})
+
+	test('cold Home resumes the medium Sudoku board without a start and clears the intent', async ({
+		page,
+	}) => {
+		const daily = await dailyFixture(page, { resumed: true })
+		daily.release()
+		const releaseHome = await coldHome(page, '/')
+		const sudoku = page.locator('[data-home-game="sudoku"], [data-home-featured="sudoku"]')
+		try {
+			await sudoku.tap({ noWaitAfter: true })
+			await expect(page).toHaveURL(/\/games\/sudoku\?difficulty=medium&start=1#play$/)
+		} finally {
+			releaseHome()
+		}
+		await expect(page.locator(stage)).toBeVisible()
+		await twoFrames(page)
+		expect(await page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY)).toBeNull()
+		expect(daily.starts).toEqual([])
+	})
+})
 
 function holdResponse(page: Page, url: string | RegExp, json?: unknown) {
 	const release = Promise.withResolvers<void>()

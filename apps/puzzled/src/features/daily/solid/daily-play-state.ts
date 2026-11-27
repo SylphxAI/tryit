@@ -91,7 +91,8 @@ export function createDailyPlayState(
 		const value = state()
 		if (!value || handled || !props.started) return
 		handled = true
-		if (!archive && hasBoard && !choose && value.kind === 'startable' && takeStartIntent(slug))
+		const intent = takeStartIntent(slug)
+		if (intent && !archive && hasBoard && !choose && value.kind === 'startable')
 			void play(value.puzzleDate)
 	})
 	const snapshot = <K extends State['kind']>(kind: K) => {

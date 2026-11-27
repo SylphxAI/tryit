@@ -18,7 +18,6 @@ export function HomeDayLead(props: {
 	copy: Accessor<HomeDayCopy>
 	unread: boolean
 	completedCount: number
-	onStart: (event: MouseEvent, slug: string) => void
 }) {
 	const { page, t, href, copy, format } = props
 	const count = page.catalog.length
@@ -70,7 +69,7 @@ export function HomeDayLead(props: {
 							? todayResultPath(page.featured.slug)
 							: todayPlayPath(page.featured.slug),
 					)}
-					onClick={(event) => cta() === 'play' && props.onStart(event, page.featured.slug)}
+					data-start-intent={cta() === 'play' ? page.featured.slug : undefined}
 				>
 					{/* Wrap, never clip: the game name and "today" both stay readable on a
 					    phone. CJK breaks at the title brackets, not inside a word. The

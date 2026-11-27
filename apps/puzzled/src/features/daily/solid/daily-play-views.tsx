@@ -3,7 +3,6 @@ import { type Accessor, For, Show } from 'solid-js'
 import type { Translate } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
 import type { DailySnapshot } from '../lib/daily-fallback'
-import { markStartIntent } from '../lib/start-intent'
 import { todayPlayPath } from '../lib/today-play-path'
 import type { DailyPlayProps } from './daily-play-state'
 import { ResultActions } from './result-actions'
@@ -100,16 +99,6 @@ export function renderDailyDifficulty(
 								class="editorial-surface editorial-interactive block h-full rounded-2xl p-4"
 								href={localizedPath(props.data.locale, todayPlayPath(slug, level.level))}
 								data-start-intent={slug}
-								onClick={(event) => {
-									if (
-										!event.defaultPrevented &&
-										!event.shiftKey &&
-										!event.metaKey &&
-										!event.altKey &&
-										!event.ctrlKey
-									)
-										markStartIntent(slug)
-								}}
 							>
 								<span class="block font-display">{level.label}</span>
 								<span class="text-sm text-muted-foreground">{level.description}</span>
