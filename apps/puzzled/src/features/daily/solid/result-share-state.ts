@@ -118,6 +118,15 @@ export function createResultShare(
 			setPending(false)
 		}
 	}
+	/**
+	 * The rail's one primary gesture: the share sheet where the platform has
+	 * one, the clipboard otherwise. Decided at tap time so the label and the
+	 * action can't disagree, and called straight from the click so the share
+	 * sheet keeps its user activation.
+	 */
+	function sharePrimary(surface: ShareSurface) {
+		return shareChallenge(surface, nativeShareAvailable() ? 'native_share' : 'copy_challenge')
+	}
 	async function save() {
 		if (!beginShare()) return
 		try {
@@ -135,5 +144,15 @@ export function createResultShare(
 			setPending(false)
 		}
 	}
-	return { model, strings, mounted, nativeShareAvailable, pending, feedback, shareChallenge, save }
+	return {
+		model,
+		strings,
+		mounted,
+		nativeShareAvailable,
+		pending,
+		feedback,
+		shareChallenge,
+		sharePrimary,
+		save,
+	}
 }

@@ -8,7 +8,7 @@ export function createResultShareControls(
 	share: ReturnType<typeof createResultShare>,
 	t: Translate,
 ) {
-	const { feedback, nativeShareAvailable, pending, save, shareChallenge } = share
+	const { feedback, nativeShareAvailable, pending, save, shareChallenge, sharePrimary } = share
 	const status = (surface: ShareSurface) => {
 		const state = () => {
 			const current = feedback()
@@ -48,6 +48,21 @@ export function createResultShareControls(
 			{t('gameResult.copyChallenge')}
 		</button>
 	)
+	// One gesture shares the finish: the share sheet when the platform has one,
+	// the same Copy challenge button otherwise. Copy and Save PNG stay in the dialog.
+	const primaryButton = (surface: ShareSurface) => (
+		<Show when={nativeShareAvailable()} fallback={copyButton(surface)}>
+			<button
+				type="button"
+				class="result-button result-copy result-primary-share"
+				aria-disabled={pending() || undefined}
+				onClick={() => void sharePrimary(surface)}
+			>
+				<Share2 size={16} aria-hidden="true" />
+				{t('gameResult.shareResult')}
+			</button>
+		</Show>
+	)
 	const dialogActions = () => (
 		<div class="result-action-row">
 			{copyButton('dialog')}
@@ -73,5 +88,5 @@ export function createResultShareControls(
 			</Show>
 		</div>
 	)
-	return { copyButton, status, dialogActions }
+	return { primaryButton, status, dialogActions }
 }

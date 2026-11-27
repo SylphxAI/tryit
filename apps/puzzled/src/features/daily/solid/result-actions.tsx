@@ -96,7 +96,7 @@ export function ResultActions(props: {
 			// Still dismissed for the current view.
 		}
 	}
-	const { copyButton, status, dialogActions } = createResultShareControls(share, t)
+	const { primaryButton, status, dialogActions } = createResultShareControls(share, t)
 	let actionRow: HTMLDivElement | undefined
 	let revealed = false
 	createEffect(() => {
@@ -169,7 +169,7 @@ export function ResultActions(props: {
 				)}
 			</Show>
 			<div class="result-action-row" ref={actionRow}>
-				{copyButton('rail')}
+				{primaryButton('rail')}
 				<Show when={props.facts.mode === 'daily' && isPracticeSupported(props.facts.gameSlug)}>
 					<a
 						class="result-button"
