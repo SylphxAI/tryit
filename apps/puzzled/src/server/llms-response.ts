@@ -49,7 +49,7 @@ No ads are shown on a puzzle while it is being played.
 Tryit Plus (${usd.month}/mo or ${usd.year}/yr USD; ${gbp.month}/mo or ${gbp.year}/yr GBP) unlocks all ${total} games, the past-day archive, and ad-free play everywhere.
 Tryit Family covers up to ${FAMILY_SEATS} accounts (${usd.familyMonth}/mo or ${usd.familyYear}/yr USD; ${gbp.familyMonth}/mo or ${gbp.familyYear}/yr GBP).
 A one-time 3-Day Pass (${usd.pass} USD / ${gbp.pass} GBP) opens every game and the archive for 3 days, with no renewal.
-Prices include VAT.
+Prices include VAT where it applies.
 
 ## Play
 - [Home](https://tryit.fun/): Today's lineup; pick any 3 games to play free.
