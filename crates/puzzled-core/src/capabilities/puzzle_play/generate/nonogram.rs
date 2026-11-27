@@ -8,10 +8,11 @@
 //! transforms (none, horizontal flip, vertical flip, both). Every difficulty
 //! uses the 10x10 pool, as in TS.
 //!
-//! [`generate_line_solvable`] (`rust-nonogram-v2`) makes every new day: it
-//! skips forward from the seed's pattern to the next one that line logic
-//! solves, so each daily puzzle has exactly one solution and needs no guess.
-//! A transform never changes that, since it only mirrors the clues.
+//! [`generate_line_solvable`] (`rust-nonogram-v2`) makes every new day. A
+//! pattern that line logic does not solve is swapped for its own
+//! line-solvable stand-in, so each daily puzzle has exactly one solution and
+//! needs no guess. A transform never changes that, since it only mirrors the
+//! clues.
 
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -57,20 +58,44 @@ pub fn generate(seed: i64, _difficulty: Option<&str>) -> Result<(Value, Value), 
     build(seed, &pool[index])
 }
 
+/// The pattern each pool index is played as: itself when line logic solves
+/// it, otherwise a line-solvable stand-in that no other index uses, from about
+/// half the pool away and never within two places. A day's three difficulties
+/// use seeds `s`, `s+1`, `s+2`, so they never share a picture.
+fn stand_ins(pool: &[Pattern]) -> Result<Vec<usize>, String> {
+    let n = pool.len();
+    let solvable: Vec<bool> = pool
+        .iter()
+        .map(|p| has_one_line_solution(&pattern_grid(p)))
+        .collect();
+    let mut used = vec![false; n];
+    let mut out = Vec::with_capacity(n);
+    for i in 0..n {
+        if solvable[i] {
+            out.push(i);
+            continue;
+        }
+        let near = |j: usize| (i + n - j) % n <= 2 || (j + n - i) % n <= 2;
+        let pick = (0..n)
+            .map(|k| (i + n / 2 + k) % n)
+            .find(|&j| solvable[j] && !used[j] && !near(j))
+            .ok_or("too few line-solvable nonogram patterns")?;
+        used[pick] = true;
+        out.push(pick);
+    }
+    Ok(out)
+}
+
 /// V2 `(puzzle_data, solution)`: the V1 puzzle when line logic solves it,
-/// otherwise the same transform of the next pattern that line logic solves.
+/// otherwise the same transform of the pattern's stand-in ([`stand_ins`]).
 /// Refuses any result whose clues line logic does not solve to its solution.
 pub fn generate_line_solvable(
     seed: i64,
     _difficulty: Option<&str>,
 ) -> Result<(Value, Value), String> {
     let pool = patterns()?;
-    let start = seed_index(seed, &pool)?;
-    let pattern = (0..pool.len())
-        .map(|step| &pool[(start + step) % pool.len()])
-        .find(|p| has_one_line_solution(&pattern_grid(p)))
-        .ok_or("no nonogram pattern is line-solvable")?;
-    let (puzzle_data, solution) = build(seed, pattern)?;
+    let index = stand_ins(&pool)?[seed_index(seed, &pool)?];
+    let (puzzle_data, solution) = build(seed, &pool[index])?;
     let grid: Vec<Vec<bool>> = serde_json::from_value(solution["grid"].clone())
         .map_err(|e| format!("nonogram solution: {e}"))?;
     if !has_one_line_solution(&grid) {
@@ -149,6 +174,24 @@ mod tests {
         }
         // 12 of the 52 pictures need a guess (6 of them have two solutions).
         assert_eq!(replaced, 12 * 4);
+    }
+
+    #[test]
+    fn a_days_three_difficulties_never_share_a_picture() {
+        let first = chrono::NaiveDate::from_ymd_opt(2026, 11, 1).unwrap();
+        for day in first.iter_days().take(52 * 4) {
+            let themes: Vec<Value> = ["easy", "medium", "hard"]
+                .iter()
+                .map(|d| {
+                    let seed = super::super::seed_for(day, Some(d));
+                    generate_line_solvable(seed, Some(d)).unwrap().0["theme"].clone()
+                })
+                .collect();
+            assert!(
+                themes[0] != themes[1] && themes[1] != themes[2] && themes[0] != themes[2],
+                "{day}: {themes:?}"
+            );
+        }
     }
 
     #[test]
