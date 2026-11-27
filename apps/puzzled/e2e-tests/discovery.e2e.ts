@@ -94,6 +94,42 @@ for (const path of ['/terms', '/privacy']) {
 	})
 }
 
+const erasureLabels = [
+	['en-US', 'Request deletion by email: '],
+	['en-GB', 'Request deletion by email: '],
+	['zh-HK', '以電郵申請刪除：'],
+	['zh-TW', '以電郵申請刪除：'],
+	['zh-CN', '通过邮件申请删除：'],
+	['ja', 'メールで削除を申請：'],
+	['es', 'Solicita la eliminación por correo: '],
+	['pt-BR', 'Solicite a exclusão por e-mail: '],
+] as const
+
+test.describe('Signed-out erasure contact', () => {
+	test.use({ javaScriptEnabled: false })
+
+	for (const [locale, label] of erasureLabels) {
+		test(`${locale} routes the deletion email to the privacy mailbox`, async ({ page }) => {
+			const prefix = locale === 'en-US' ? '' : `/${locale}`
+			const response = await page.goto(`${prefix}/delete-account`)
+			expect(response?.status()).toBe(200)
+			await expect(page.locator('html')).toHaveAttribute('lang', locale)
+			const main = page.getByRole('main')
+			await expect(main.locator(`a[href="${prefix}/sign-in?recovery=1"]`)).toBeVisible()
+			await expect(
+				main.locator(`a[href="${prefix}/sign-in?callbackUrl=%2Fsettings%2Faccount"]`),
+			).toBeVisible()
+			await expect(main.locator(`a[href="${prefix}/privacy"]`)).toBeVisible()
+			const email = main.locator('a[href^="mailto:"]')
+			await expect(email).toBeVisible()
+			expect({ href: await email.getAttribute('href'), text: await email.textContent() }).toEqual({
+				href: 'mailto:legal@sylphx.com?subject=Tryit%20account%20deletion%20request',
+				text: `${label}legal@sylphx.com`,
+			})
+		})
+	}
+})
+
 const googlebot = { 'User-Agent': 'Googlebot/2.1' }
 
 test('all locale homepages serve an indexable Tryit Plus image in initial HTML', async ({
