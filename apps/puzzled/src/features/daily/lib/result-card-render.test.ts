@@ -5,6 +5,7 @@ import {
 	type ResultCardInput,
 	type ResultCardStrings,
 	resultCardTextAlternative,
+	WORD_GROUPS_RESULT_TILE_COLORS,
 } from './result-card'
 import {
 	paintResultCard,
@@ -226,6 +227,21 @@ describe('paintResultCard', () => {
 		expect(rec.fills).toContain(palette.tileHit)
 		expect(rec.fills).toContain(palette.tileNear)
 		expect(rec.fills).toContain(palette.tileMiss)
+	})
+
+	test('paints Quartet bands in the board colours and misses in the theme miss fill', () => {
+		const rec = recordingContext()
+		const model = buildResultCard(
+			baseInput({
+				gameSlug: 'word-groups',
+				pattern: [Array(4).fill('group2'), Array(4).fill('miss'), Array(4).fill('group0')],
+			}),
+		)
+		paintResultCard(rec.ctx, model, STRINGS)
+		expect(rec.fills).toContain(WORD_GROUPS_RESULT_TILE_COLORS.group2)
+		expect(rec.fills).toContain(WORD_GROUPS_RESULT_TILE_COLORS.group0)
+		expect(rec.fills).not.toContain(WORD_GROUPS_RESULT_TILE_COLORS.group1)
+		expect(rec.fills).toContain(resultCardPalette('emerald').tileMiss)
 	})
 
 	test('keeps one common chrome across modules: same text, different palette', () => {

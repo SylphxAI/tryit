@@ -1,10 +1,11 @@
 import { getGameColors } from '@/games/theme-colors'
 import { PRODUCTION_SITE_ORIGIN } from '@/lib/site-origin'
 import {
-	FIVE_RESULT_TILE_COLORS,
 	type ResultCardModel,
 	type ResultCardStrings,
+	type ResultCardTile,
 	resultCardChips,
+	resultTileFixedColor,
 } from './result-card'
 import {
 	FONT_FAMILY,
@@ -142,10 +143,9 @@ export function paintResultCard(
 
 	// Pattern: hit / near / miss tiles, capped by the model (12x12).
 	if (model.pattern) {
-		const tileColors =
-			model.gameSlug === 'word-guess'
-				? FIVE_RESULT_TILE_COLORS
-				: { hit: palette.tileHit, near: palette.tileNear, miss: palette.tileMiss }
+		const themed = { hit: palette.tileHit, near: palette.tileNear, miss: palette.tileMiss }
+		const tileColor = (tile: ResultCardTile) =>
+			resultTileFixedColor(model.gameSlug, tile) ?? themed[tile as keyof typeof themed]
 		const rows = model.pattern.length
 		let cols = 0
 		for (const row of model.pattern) cols = Math.max(cols, row.length)
@@ -174,7 +174,7 @@ export function paintResultCard(
 					tile,
 					tile * 0.2,
 				)
-				ctx.fillStyle = tileColors[value]
+				ctx.fillStyle = tileColor(value)
 				ctx.fill()
 			}
 		}

@@ -142,7 +142,8 @@ export function resultPatternSummary(
 ): string {
 	const count = { hit: 0, near: 0, miss: 0 }
 	for (const row of pattern) {
-		for (const cell of row) count[cell] += 1
+		// A found Quartet band is a hit; colour is never the only carrier of the result.
+		for (const cell of row) count[cell === 'near' || cell === 'miss' ? cell : 'hit'] += 1
 	}
 	return fillCardTemplate(strings.patternSummary, count)
 }
