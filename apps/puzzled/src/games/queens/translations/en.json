@@ -14,6 +14,7 @@
 	"startGame": "Start Game",
 	"region": "Region {index}",
 	"complete": "Puzzle Complete!",
+	"sound": "Sound",
 	"difficulty": {
 		"easy": "Easy",
 		"medium": "Medium",
