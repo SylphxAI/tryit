@@ -10,10 +10,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "6-digit code",
 				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
@@ -1126,10 +1122,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "6-digit code",
 				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
@@ -2240,10 +2232,6 @@
 					"settings.overview.moreAchievements",
 					"settings.playerCard.achievementsSection.more"
 				]
-			},
-			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
 				"value": "6 位數驗證碼",
@@ -3396,10 +3384,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "6 位數驗證碼",
 				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
@@ -4543,10 +4527,6 @@
 					"settings.overview.moreAchievements",
 					"settings.playerCard.achievementsSection.more"
 				]
-			},
-			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
 				"value": "6 位数字验证码",
@@ -5704,10 +5684,6 @@
 			}
 		],
 		"ja": [
-			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
 			{
 				"value": "2段階認証",
 				"keys": ["settings.security.twoFactorAuth", "settings.securityScore.checks.twoFactor"]
@@ -7008,10 +6984,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "Abrir el centro de cuenta",
 				"keys": ["settings.account.centreCta", "settings.security.protectionCta"]
 			},
@@ -8162,10 +8134,6 @@
 					"settings.overview.moreAchievements",
 					"settings.playerCard.achievementsSection.more"
 				]
-			},
-			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
 				"value": "Abre em uma nova guia.",

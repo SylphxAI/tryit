@@ -25,13 +25,13 @@ function getPath(obj: unknown, path: string[]): string {
 }
 
 describe('legal configuration and multi-locale invariants', () => {
-	test('separates routine support from formal legal/privacy intake and pins 2026-11-14', () => {
+	test('separates routine support from formal legal/privacy intake and pins the current revisions', () => {
 		expect(CONTACT_EMAIL).toBe('hi@tryit.fun')
 		expect(SUPPORT_EMAIL).toBe('hi@tryit.fun')
 		expect(LEGAL_EMAIL).toBe('legal@sylphx.com')
 		expect(PRIVACY_EMAIL).toBe('legal@sylphx.com')
 		expect(TERMS_VERSION).toBe('2026-11-14')
-		expect(PRIVACY_VERSION).toBe('2026-11-14')
+		expect(PRIVACY_VERSION).toBe('2026-11-27')
 	})
 
 	for (const locale of locales) {

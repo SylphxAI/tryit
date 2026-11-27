@@ -21,6 +21,7 @@ export function consentCopy(locale: Locale, t: Translate) {
 		full: t('consent.full'),
 		decline: t('consent.decline'),
 		change: t('consent.change'),
+		providers: t('consent.providers'),
 		close: t('consent.close'),
 		gpc: t('consent.gpc'),
 		enabled: t('consent.enabled'),
