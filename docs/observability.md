@@ -111,6 +111,14 @@ visit, a ROW visit without a saved grant, or GPC sends none of them:
 `purchase` uses a SHA-256 of the processor order id as its event id (stable,
 so a reload deduplicates); no order, player, auth or customer id is sent.
 
+GA4 separately records a custom `game_start` for the first playable daily or
+archive board of a visit, only if the visitor already saved an affirmative
+analytics choice. A delayed consent-context check can confirm that existing
+choice, but opting in after seeing the board does not replay it. Switching the
+same board from the landing view to explicit Play does not count again; a new
+visit can. Only GA4 receives it, with `game_slug`, `mode`, a query-free public
+game URL, and no referrer. It is not an Ads conversion.
+
 ## First-party funnel counter
 
 Visits, plays, sign-ups and Core Web Vitals are counted in our own database,
@@ -121,7 +129,7 @@ counter runs without a consent choice. Google Analytics, when
 | Event | Written by |
 | --- | --- |
 | `landing` | browser, once per session (`FunnelReporter`) |
-| `game_start` | browser, when a playable board is shown (`GamePageClient`) |
+| `game_start` | browser, when a playable board is shown (`createDailyPlayState`) |
 | `signup` | api, in `RecordSignupAttribution`, once per new account |
 | `web_vitals` | browser, `LCP` `CLS` `INP` `FCP` `TTFB` (`useReportWebVitals`) |
 
