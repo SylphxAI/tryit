@@ -168,33 +168,24 @@ revenue measure. Raw landings/audiences are not exposed through the report.
 
 ### First-finish cohorts and D1
 
-Each report day D also carries the **day-zero cohort**: players whose first
-qualifying finish (the same predicate as the North Star) is on D. One player is
-one member however many games they finish that day; a comparison-excluded or
-synthetic finish never starts a cohort. `first_completers` splits by **entry
-identity**, the identity that recorded that first finish: guest
-(`first_completers_guest_entry`: a server-issued guest credential, or a row
-adopted from one) or signed in (`first_completers_signed_in_entry`). The rest
-are **unknown** entry (rows from before guest credentials), never folded into
-either side. `first_completers_guest_entry_now_signed_in` is the claimed-guest
-share: guest entry whose player is signed in at rollup time. Current status is
-not entry status.
+Each report day D may carry `cohorts`: players whose first qualifying finish
+(the North Star predicate, so never synthetic or comparison rows) is on D,
+counted once per player. They are split by **entry identity**, the identity
+that recorded that first finish: guest (a server-issued guest credential, or a
+row adopted from one) or signed in; the rest are unknown, never folded into
+either. `first_guest_entry_now_signed_in` is current status, kept apart. D1 for
+D is D−1's cohort and those who finished again on D. Paid status plays no part.
 
-D1 for day D (`d1_cohort`, `d1_returned`, with `_guest_entry` splits) is D−1's
-day-zero cohort and those of them with a qualifying finish on D. It is final
-only when D is `complete`; today's D1 is provisional, not a zero. Paid status
-is not part of the cohort. Erasure removes a player from every cohort.
+An absent `cohorts` means the report was stored before collection: unknown, not
+zero. Present zeros are a computed empty cohort. Either is final only when the
+day is `complete`; today's D1 is provisional. This is all-source D1, not
+organic D1.
 
-**Not yet measurable** (do not report a number):
-
-- *Guest start → same-day first-game completion.* Finishes are the only
-  identity-stable record. `daily_free_picks` holds starts, but adoption moves a
-  guest's picks to the account without provenance, and a verification start is
-  indistinguishable from a real one, so neither guest-at-entry nor the
-  comparison exclusion holds for the denominator.
-- *Organic split.* No authoritative, point-in-time acquisition source exists
-  per player: share landings need analytics consent and last 41 days, and the
-  funnel counter is anonymous. Unknown attribution is not organic.
+Not yet measurable, so no number is reported: **guest start to same-day
+completion** (`daily_free_picks` loses guest provenance on adoption and has no
+comparison flag, so the denominator is not authoritative) and the **organic
+split** (no authoritative point-in-time acquisition source; unknown attribution
+is not organic).
 
 ### Initial stop-the-line thresholds
 

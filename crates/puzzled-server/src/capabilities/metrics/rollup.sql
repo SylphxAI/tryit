@@ -56,9 +56,9 @@ SELECT days.day_key,
   zero.*, d1.*
 FROM days
 CROSS JOIN LATERAL (SELECT count(*) AS first_completers,
-    count(*) FILTER (WHERE e.entry = 'guest') AS first_completers_guest_entry,
-    count(*) FILTER (WHERE e.entry = 'signed_in') AS first_completers_signed_in_entry,
-    count(*) FILTER (WHERE e.entry = 'guest' AND e.now_signed_in) AS first_completers_guest_entry_now_signed_in
+    count(*) FILTER (WHERE e.entry = 'guest') AS first_guest_entry,
+    count(*) FILTER (WHERE e.entry = 'signed_in') AS first_signed_in_entry,
+    count(*) FILTER (WHERE e.entry = 'guest' AND e.now_signed_in) AS first_guest_entry_now_signed_in
   FROM entries e WHERE e.first_day = days.day_key) zero
 CROSS JOIN LATERAL (SELECT count(*) AS d1_cohort,
     count(*) FILTER (WHERE c.returned) AS d1_returned,
