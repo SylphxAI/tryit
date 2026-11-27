@@ -5,6 +5,7 @@ import { isAlreadyPlayedError } from '@/lib/connect/already-played'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { checkHiveDraft, createInitialState, spellingBeeReducer } from './play-state'
 import { readHiveGrade } from './read-grade'
+import { wordHiveSharePattern } from './share-pattern'
 import type { SpellingBeeRank, WordHivePlayData } from './types'
 
 const slug = 'word-hive'
@@ -24,7 +25,12 @@ export function createHivePlay(props: DailyBoardProps & { data: WordHivePlayData
 		pangram: boolean
 		points: number
 	}>()
-	const [result, setResult] = createSignal<{ rank: SpellingBeeRank; score: number }>()
+	const [result, setResult] = createSignal<{
+		rank: SpellingBeeRank
+		score: number
+		/** Frozen at the finish, so words found afterwards never change the share. */
+		sharePattern: string
+	}>()
 	const dispatch = (action: Parameters<typeof spellingBeeReducer>[1]) =>
 		setState((current) => spellingBeeReducer(current, action))
 	const canPlay = () => state().gameStatus === 'playing' && !state().grading
@@ -86,7 +92,11 @@ export function createHivePlay(props: DailyBoardProps & { data: WordHivePlayData
 					!result() &&
 					(next.rank === 'genius' || next.rank === 'queen-bee' || next.gameStatus === 'won')
 				) {
-					setResult({ rank: next.rank, score: next.score })
+					setResult({
+						rank: next.rank,
+						score: next.score,
+						sharePattern: wordHiveSharePattern(next.foundWords, next.foundPangrams),
+					})
 					finish.finish({ foundWords: next.foundWords }, { attempts: next.foundWords.length })
 				}
 			})

@@ -53,14 +53,16 @@ function clipboard(writeText: (text: string) => Promise<void>) {
 }
 
 let dispose = () => {}
-async function mountShare() {
+async function mountShare(
+	input: Parameters<typeof createResultShare>[0] = {
+		facts,
+		locale: 'en-US',
+		shareText: 'Five 2/6\n🟨⬛⬛⬛⬛\n🟩🟩🟩🟩🟩',
+	},
+) {
 	const share = createRoot((d) => {
 		dispose = d
-		return createResultShare(
-			{ facts, locale: 'en-US', shareText: 'Five 2/6\n🟨⬛⬛⬛⬛\n🟩🟩🟩🟩🟩' },
-			createTranslator('en-US'),
-			() => false,
-		)
+		return createResultShare(input, createTranslator('en-US'), () => false)
 	})
 	// Let onMount and the share-id prefetch settle.
 	await new Promise((resolve) => setTimeout(resolve, 0))
@@ -178,4 +180,26 @@ test('the dialog keeps explicit Copy even where a share sheet exists', async () 
 	expect(copy.writeText).toHaveBeenCalledTimes(1)
 	expect(state.feedback()).toEqual({ surface: 'dialog', message: 'gameResult.challengeCopied' })
 	expect(taps()).toEqual(['copy_challenge'])
+})
+
+test('a Hive share and copy carry the grid and a words/pangrams key, not hit or near', async () => {
+	const hive = {
+		facts: { ...facts, gameSlug: 'word-hive', attempts: 11 },
+		locale: 'en-US',
+		shareText: '🟩🟩🟨🟩🟩🟩🟩🟩🟩🟨\n🟩',
+	} as const
+	const share = mock(async (_: ShareData) => {})
+	const copy = clipboard(async () => {})
+	setNavigator({ share, clipboard: copy })
+	const state = await mountShare(hive)
+	await state.sharePrimary('rail')
+	await state.shareChallenge('dialog', 'copy_challenge')
+	const native = share.mock.calls[0]?.[0].text ?? ''
+	const copied = String(copy.writeText.mock.calls[0]?.[0])
+	for (const text of [native, copied]) {
+		expect(text).toStartWith(hive.shareText)
+		expect(text).toContain('Words found: 11, pangrams: 2')
+		expect(text).not.toMatch(/\b(hit|near|miss)\b/)
+	}
+	expect(taps()).toEqual(['native_share', 'copy_challenge'])
 })

@@ -191,6 +191,7 @@ function Hive(props: DailyBoardProps & { data: WordHivePlayData }) {
 				finish={finish}
 				locale={props.locale}
 				message={`${rankLabel(result()?.rank ?? 'beginner')} · ${scoreLabel(result()?.score ?? 0)}`}
+				shareText={result()?.sharePattern || undefined}
 			/>
 		</div>
 	)

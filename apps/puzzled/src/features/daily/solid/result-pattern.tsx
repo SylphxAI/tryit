@@ -14,7 +14,7 @@ export function ResultPattern(props: { model: ResultCardModel; strings: ResultCa
 				<div
 					class="result-preview"
 					role="img"
-					aria-label={resultPatternSummary(pattern(), props.strings)}
+					aria-label={resultPatternSummary(pattern(), props.strings, props.model.gameSlug)}
 				>
 					<For each={pattern()}>
 						{(row) => (

@@ -25,6 +25,7 @@ const STRINGS: ResultCardStrings = {
 	scorePoints: '{score} points',
 	streakDays: '{days}-day streak',
 	patternSummary: 'Pattern: {hit} hit / {near} near / {miss} miss',
+	wordHivePatternSummary: 'Words found: {words}, pangrams: {pangrams}',
 	altOnDay: ' on {day}',
 	altTemplate: 'Tryit result - {game}{day}. {result}',
 	altDetailsTemplate: ' {details}.',

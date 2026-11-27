@@ -22,6 +22,8 @@ export interface ResultCardStrings {
 	scorePoints: string
 	streakDays: string
 	patternSummary: string
+	/** Hive's key: accepted words and how many were pangrams (never hit/near/miss). */
+	wordHivePatternSummary: string
 	altOnDay: string
 	altTemplate: string
 	altDetailsTemplate: string
@@ -139,7 +141,16 @@ export function resultCardChips(
 export function resultPatternSummary(
 	pattern: ResultCardTile[][],
 	strings: ResultCardStrings,
+	gameSlug?: string,
 ): string {
+	if (gameSlug === 'word-hive') {
+		// Every Hive square is an accepted word; a near (yellow) square is a pangram.
+		const cells = pattern.flat()
+		return fillCardTemplate(strings.wordHivePatternSummary, {
+			words: cells.length,
+			pangrams: cells.filter((cell) => cell === 'near').length,
+		})
+	}
 	const count = { hit: 0, near: 0, miss: 0 }
 	for (const row of pattern) {
 		// A found Quartet band is a hit; colour is never the only carrier of the result.
@@ -175,7 +186,7 @@ export function resultCardTextAlternative(
 	if (model.currentStreak != null) {
 		parts.push(fillCardTemplate(strings.streakDays, { days: model.currentStreak }))
 	}
-	if (model.pattern) parts.push(resultPatternSummary(model.pattern, strings))
+	if (model.pattern) parts.push(resultPatternSummary(model.pattern, strings, model.gameSlug))
 	const day = model.dayDisplay ? fillCardTemplate(strings.altOnDay, { day: model.dayDisplay }) : ''
 	const result = model.status === 'won' ? strings.statusWon : strings.statusLost
 	const details =

@@ -63,6 +63,7 @@ export function resultCardStringsFrom(
 		scorePoints: t('scorePoints'),
 		streakDays: t('streakDays'),
 		patternSummary: t('patternSummary'),
+		wordHivePatternSummary: t('wordHivePatternSummary'),
 		altOnDay: t('altOnDay'),
 		altTemplate: t('altTemplate'),
 		altDetailsTemplate: t('altDetailsTemplate'),
