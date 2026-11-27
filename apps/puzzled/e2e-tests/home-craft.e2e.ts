@@ -194,12 +194,12 @@ for (const viewport of [
 		expect(images.map(({ slug }) => slug)).toEqual(
 			expect.arrayContaining(['cryptogram', 'word-box', 'word-hive']),
 		)
-		for (const image of images) {
-			expect(image).toMatchObject({
-				src: `/motifs/${image.slug}-zoom.svg`,
-				alt: '',
-				loading: null,
-			})
+		// The first phone screen of cards carries its art in the page so it does
+		// not queue behind the module graph; the rest load the same file by URL.
+		for (const [index, image] of images.entries()) {
+			expect(image).toMatchObject({ alt: '', loading: null })
+			if (index < 4) expect(image.src, image.slug).toMatch(/^data:image\/svg\+xml,/)
+			else expect(image.src, image.slug).toBe(`/motifs/${image.slug}-zoom.svg`)
 			expect(image.width, image.slug).toBeGreaterThan(0)
 		}
 		expect(await page.evaluate(() => window.scrollY)).toBe(0)
@@ -313,6 +313,10 @@ for (const viewport of [
 			const action = page.locator('[data-day-primary-action]')
 			await expect(action).toHaveCount(1)
 			await expect(action).toBeVisible()
+			// A fresh guest with no country header, GPC or stored choice resolves to
+			// the opt-in region, so the dock is required. It mounts only after the
+			// client reads /api/consent-context, so wait for it before measuring.
+			await expect(page.locator('[data-consent-banner]')).toBeVisible()
 			await settle(page)
 			const label = await action.evaluate((el) => {
 				const text = el.querySelector('span')!

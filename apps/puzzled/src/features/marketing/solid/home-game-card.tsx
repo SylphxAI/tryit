@@ -9,6 +9,8 @@ export function HomeGameCard(props: {
 	status: ReturnType<typeof lineupStatus>
 	href: string
 	caption: string
+	/** Inline art for a card on the first phone screen; otherwise the file. */
+	motifSrc?: string
 }) {
 	return (
 		<li class={styles.slot}>
@@ -26,7 +28,7 @@ export function HomeGameCard(props: {
 					>
 						<img
 							class={styles.motif}
-							src={`/motifs/${props.game.slug}-zoom.svg`}
+							src={props.motifSrc ?? `/motifs/${props.game.slug}-zoom.svg`}
 							alt=""
 							width={132}
 							height={84}
