@@ -4,6 +4,7 @@ import { createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/fi
 import { checkGuess } from '@/lib/connect/puzzle-client'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { parseGrade, parseReveal } from './parse-client'
+import { wordGroupsSharePattern } from './share-pattern'
 import { type Category, MAX_MISTAKES, TOTAL_CATEGORIES, WORDS_PER_CATEGORY } from './types'
 
 const gameSlug = 'word-groups'
@@ -111,6 +112,8 @@ export function createWordGroupsPlay(props: DailyBoardProps & { words: string[] 
 		}
 	}
 
+	const sharePattern = () => wordGroupsSharePattern(history(), solved())
+
 	function deselect() {
 		setSelected([])
 		setFeedback(undefined)
@@ -131,6 +134,7 @@ export function createWordGroupsPlay(props: DailyBoardProps & { words: string[] 
 		shuffle,
 		deselect,
 		grade,
+		sharePattern,
 	}
 }
 

@@ -58,7 +58,7 @@ export function createResultShare(
 			gameName: props.shareTitle ?? t(`games.${slugToCamelCase(props.facts.gameSlug)}.name`),
 			theme: getGameMetadata(props.facts.gameSlug)?.display.theme ?? 'sky',
 			shareId: shareId(),
-			pattern: parseResultPattern(props.shareText),
+			pattern: parseResultPattern(props.shareText, props.facts.gameSlug),
 		})
 	})
 	const nativeShareAvailable = () => mounted() && typeof navigator.share === 'function'
