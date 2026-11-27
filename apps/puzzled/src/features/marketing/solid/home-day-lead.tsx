@@ -64,7 +64,7 @@ export function HomeDayLead(props: {
 				<a
 					data-day-primary-action=""
 					data-home-featured={page.featured.slug}
-					class="chrome-control chrome-primary mt-2 flex min-h-12 w-full gap-2 px-4 text-[15px] font-bold sm:mt-4 sm:text-[16px]"
+					class="chrome-control chrome-primary mt-2 flex min-h-12 w-full px-4 py-2 text-[15px] font-bold sm:mt-4 sm:text-[16px]"
 					href={href(
 						cta() === 'result'
 							? todayResultPath(page.featured.slug)
@@ -72,8 +72,17 @@ export function HomeDayLead(props: {
 					)}
 					onClick={(event) => cta() === 'play' && props.onStart(event, page.featured.slug)}
 				>
-					<Play size={16} fill="currentColor" class="shrink-0" aria-hidden="true" />
-					<span class="truncate">
+					{/* Wrap, never clip: the game name and "today" both stay readable on a
+					    phone. CJK breaks at the title brackets, not inside a word. The
+					    icon sits inline so it stays beside the first line however the
+					    label wraps. */}
+					<span class="min-w-0 text-balance text-center break-keep wrap-anywhere">
+						<Play
+							size={16}
+							fill="currentColor"
+							class="me-2 inline-block align-[-0.15em]"
+							aria-hidden="true"
+						/>
 						{cta() === 'result'
 							? t('gameResult.seeResult')
 							: t('home.day.playToday', { game: page.featured.name })}

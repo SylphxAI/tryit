@@ -233,6 +233,56 @@ test('the lineup cards keep a stationary hit target', async ({ page }) => {
 	}
 })
 
+// A long localized label wraps inside the amber action; it is never cut to
+// "Juega Cinco Letras de …". The featured game changes by day, so this checks
+// the rule, not one string.
+for (const viewport of [
+	{ width: 390, height: 844 },
+	{ width: 360, height: 740 },
+]) {
+	for (const locale of ['es', 'pt-BR', 'zh-HK', 'zh-TW', 'ja']) {
+		test(`${locale} home action shows its whole label at ${viewport.width}x${viewport.height}`, async ({
+			browser,
+		}) => {
+			const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true })
+			const page = await context.newPage()
+			await page.goto(`/${locale}`)
+			const action = page.locator('[data-day-primary-action]')
+			await expect(action).toHaveCount(1)
+			await expect(action).toBeVisible()
+			await settle(page)
+			const label = await action.evaluate((el) => {
+				const text = el.querySelector('span')!
+				const box = el.getBoundingClientRect()
+				const range = document.createRange()
+				range.selectNodeContents(text)
+				const lines = [...range.getClientRects()]
+				const dock = document.querySelector('[data-consent-banner]')!.getBoundingClientRect()
+				return {
+					clipped: text.scrollWidth > text.clientWidth || text.scrollHeight > text.clientHeight,
+					inside: lines.every(
+						(line) =>
+							line.left >= box.left &&
+							line.right <= box.right &&
+							line.top >= box.top &&
+							line.bottom <= box.bottom,
+					),
+					height: box.height,
+					clearOfDock: box.bottom <= dock.top,
+					pageWidth: document.documentElement.scrollWidth,
+				}
+			})
+			expect(label.clipped).toBe(false)
+			expect(label.inside).toBe(true)
+			expect(Math.round(label.height * 100) / 100).toBeGreaterThanOrEqual(48)
+			expect(label.clearOfDock).toBe(true)
+			expect(label.pageWidth).toBeLessThanOrEqual(viewport.width)
+			await action.tap({ trial: true })
+			await context.close()
+		})
+	}
+}
+
 test('Taiwan home and all 19 catalog tiles use local names and minute badges', async ({ page }) => {
 	await page.goto('/zh-TW')
 	const featured = page.locator('.home-featured-title')
