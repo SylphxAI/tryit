@@ -13,10 +13,12 @@ const getHome = query(async (value: string) => {
 	const { request } = event
 	event.response.headers.set('Cache-Control', 'private, no-store')
 	const { homeDocument, readHomeFacts } = await import('@/features/marketing/solid/home-data')
+	const { lineupMotifSvg } = await import('@/features/marketing/solid/home-lineup-art')
 	const page = homeDocument(
 		isValidLocale(value) ? value : defaultLocale,
 		canonicalSiteOrigin(request.headers),
 		new Date(),
+		lineupMotifSvg,
 	)
 	return { page, facts: await readHomeFacts(request, page.dayKey) }
 }, 'home-document')

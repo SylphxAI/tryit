@@ -33,7 +33,15 @@ import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
 import { projectStreakInfo } from '@/lib/streak-info'
 import { siteShellData } from '@/shared/solid/site-shell-data'
 
-export function homeDocument(locale: Locale, baseUrl: string, now: Date) {
+/** Lineup cards that fill the first phone screen (two columns, two rows). */
+const INLINE_MOTIF_CARDS = 4
+
+export function homeDocument(
+	locale: Locale,
+	baseUrl: string,
+	now: Date,
+	motifSvg: (slug: string) => string | undefined = () => undefined,
+) {
 	const t = createTranslator(locale)
 	const catalog = getAllGameMetadata().map(({ slug, sortOrder, category, display }) => ({
 		slug,
@@ -50,6 +58,13 @@ export function homeDocument(locale: Locale, baseUrl: string, now: Date) {
 	if (!featured) throw new Error('Today’s featured puzzle is not registered')
 	const title = t('home.metaTitle')
 	const description = t('home.metaDescription')
+	const fallbackOrder = deriveHomeExposure({
+		modules: catalog,
+		freeGameSlug,
+		completions: {},
+		dayKey,
+		limit: catalog.length,
+	}).slugs
 	return {
 		locale,
 		dayKey,
@@ -60,13 +75,19 @@ export function homeDocument(locale: Locale, baseUrl: string, now: Date) {
 		puzzleNumber: getPuzzleNumber(freeGameSlug, now),
 		tomorrow: catalog.find(({ slug }) => slug === getTomorrowsFreeGame(now))?.name ?? '',
 		season: seasonForInstant(now),
-		fallbackOrder: deriveHomeExposure({
-			modules: catalog,
-			freeGameSlug,
-			completions: {},
-			dayKey,
-			limit: catalog.length,
-		}).slugs,
+		fallbackOrder,
+		// The first phone screen of lineup art ships inside the page. As separate
+		// requests these small decorative SVGs queue behind the module graph, and
+		// one of them is Home's largest paint on a phone.
+		lineupArt: Object.fromEntries(
+			fallbackOrder
+				.filter((slug) => slug !== freeGameSlug)
+				.slice(0, INLINE_MOTIF_CARDS)
+				.flatMap((slug) => {
+					const svg = motifSvg(slug)
+					return svg ? [[slug, `data:image/svg+xml,${encodeURIComponent(svg)}`]] : []
+				}),
+		) as Record<string, string>,
 		shell: siteShellData(locale, '/', t, now),
 		meta: pageMetadata({
 			locale,

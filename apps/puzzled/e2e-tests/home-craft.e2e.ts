@@ -194,12 +194,12 @@ for (const viewport of [
 		expect(images.map(({ slug }) => slug)).toEqual(
 			expect.arrayContaining(['cryptogram', 'word-box', 'word-hive']),
 		)
-		for (const image of images) {
-			expect(image).toMatchObject({
-				src: `/motifs/${image.slug}-zoom.svg`,
-				alt: '',
-				loading: null,
-			})
+		// The first phone screen of cards carries its art in the page so it does
+		// not queue behind the module graph; the rest load the same file by URL.
+		for (const [index, image] of images.entries()) {
+			expect(image).toMatchObject({ alt: '', loading: null })
+			if (index < 4) expect(image.src, image.slug).toMatch(/^data:image\/svg\+xml,/)
+			else expect(image.src, image.slug).toBe(`/motifs/${image.slug}-zoom.svg`)
 			expect(image.width, image.slug).toBeGreaterThan(0)
 		}
 		expect(await page.evaluate(() => window.scrollY)).toBe(0)

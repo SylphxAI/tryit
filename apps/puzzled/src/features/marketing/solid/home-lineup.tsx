@@ -73,6 +73,7 @@ export function HomeLineup(props: {
 												? t('daily.englishWordPuzzle')
 												: game.duration
 								}
+								motifSrc={page.lineupArt[game.slug]}
 							/>
 						)
 					}}
