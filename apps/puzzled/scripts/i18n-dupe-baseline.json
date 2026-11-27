@@ -598,10 +598,6 @@
 				"keys": ["modes.archiveDesc", "onboarding.puzzleArchive"]
 			},
 			{
-				"value": "Play {game} (3 of 19 free daily)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "Played",
 				"keys": [
 					"calendar.played",
@@ -1704,10 +1700,6 @@
 			{
 				"value": "Play past puzzles",
 				"keys": ["modes.archiveDesc", "onboarding.puzzleArchive"]
-			},
-			{
-				"value": "Play {game} (3 of 19 free daily)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
 			},
 			{
 				"value": "Played",
@@ -2993,10 +2985,6 @@
 				"keys": ["admin.dlq.table.status", "gameResult.status"]
 			},
 			{
-				"value": "玩 {game}（每日 19 款任揀 3 款免費）",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "玩家卡",
 				"keys": ["settings.playerCard.eyebrow", "settings.playerCard.title"]
 			},
@@ -4141,10 +4129,6 @@
 			{
 				"value": "狀態",
 				"keys": ["admin.dlq.table.status", "gameResult.status"]
-			},
-			{
-				"value": "玩 {game}（每天 19 款任選 3 款免費）",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
 			},
 			{
 				"value": "玩家卡",
@@ -5778,10 +5762,6 @@
 			{
 				"value": "{days}日連続",
 				"keys": ["home.hero.streakChip", "share.card.streakDays", "stats.identity.streakChip"]
-			},
-			{
-				"value": "{game}を遊ぶ（毎日19種から3つ無料）",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
 			},
 			{
 				"value": "{min}文字以上",
@@ -7557,10 +7537,6 @@
 				]
 			},
 			{
-				"value": "Jugar {game} (3 de 19 gratis al día)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "Legal",
 				"keys": ["footer.legalHeading", "legal.privacy.eyebrow", "legal.terms.eyebrow"]
 			},
@@ -8674,10 +8650,6 @@
 			{
 				"value": "Jogar o desafio de hoje",
 				"keys": ["catalog.gamePage.playCta", "onboarding.playNow"]
-			},
-			{
-				"value": "Jogar {game} (3 de 19 grátis por dia)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
 			},
 			{
 				"value": "Jogos",
