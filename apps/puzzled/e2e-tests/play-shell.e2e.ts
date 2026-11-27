@@ -476,7 +476,7 @@ test('all 19 games show one rules dialog and introductory copy in zh-TW', async 
 })
 
 const fiveNoticeCases = [
-	['zh-HK', '英文單詞謎題', '拒絕'],
+	['zh-HK', '英文單詞謎題', '拒絕分析及廣告'],
 	['es', 'Juego de palabras en inglés', 'Rechazar'],
 	['pt-BR', 'Jogo de palavras em inglês', 'Recusar'],
 ] as const
@@ -752,20 +752,48 @@ test.describe('Home Play at 390px', () => {
 			const { starts, release } = await fixture(page)
 			release()
 			const play = await cold(page)
-			const href = new URL((await play.getAttribute('href'))!, page.url()).href
+			const from = page.url()
+			const href = new URL((await play.getAttribute('href'))!, from).href
 			expect(href).toMatch(/[?&]start=1#play$/)
 			if (mode === '_blank') await play.evaluate((a) => a.setAttribute('target', '_blank'))
-			const next = context.waitForEvent('page')
+			const tabs: string[] = []
+			context.on('page', (tab) => tabs.push(tab.url()))
+			// The capture listens on document, so window hears the same press after it. Cancel
+			// the new tab there: creating and loading it is the browser's job, not the app's.
+			const seen = await page.evaluateHandle(() => {
+				const events: unknown[] = []
+				for (const type of ['click', 'auxclick']) {
+					addEventListener(type, (e) => {
+						const { isTrusted, defaultPrevented, button, ctrlKey } = e as MouseEvent
+						const target = (e.target as Element).closest('a')?.target
+						events.push({ type, isTrusted, defaultPrevented, button, ctrlKey, target })
+						e.preventDefault()
+					})
+				}
+				return events
+			})
 			await play.click({
 				button: mode === 'middle' ? 'middle' : 'left',
 				modifiers: mode === 'Ctrl' ? ['Control'] : [],
 			})
-			// A new tab opened; its background load is the browser's, so visit the URL here.
-			await (await next).close()
+			// One trusted, uncancelled press reached the capture; only its button, key or target differ.
+			expect(await seen.jsonValue()).toEqual([
+				{
+					type: mode === 'middle' ? 'auxclick' : 'click',
+					isTrusted: true,
+					defaultPrevented: false,
+					button: mode === 'middle' ? 1 : 0,
+					ctrlKey: mode === 'Ctrl',
+					target: mode === '_blank' ? '_blank' : '',
+				},
+			])
+			expect(page.url()).toBe(from)
 			expect(await intent(page)).toBeNull()
-			await page.goto(href)
+			// The destination as the new tab would load it: referred by Home, with no recorded press.
+			await page.goto(href, { referer: from })
 			await expect(page.locator(card)).toBeEnabled()
 			expect(starts).toEqual([])
+			expect(tabs).toEqual([])
 		})
 	}
 	for (const mode of ['expired', 'storage blocked', 'reload/paste/share', 'resume']) {
@@ -1126,14 +1154,14 @@ test('Path restores only the same viewer and served puzzle', async ({ page, cont
 })
 
 for (const { width, height, difficulty } of [
-	{ width: 390, height: 844, difficulty: 'easy' },
-	{ width: 1440, height: 900, difficulty: 'medium' },
+	{ width: 390, height: 844, difficulty: 'hard' },
+	{ width: 1440, height: 900, difficulty: 'hard' },
 ]) {
 	test.describe(`Sudoku daily choice on ${width}×${height}`, () => {
 		const touch = width === 390
 		test.use({ viewport: { width, height }, isMobile: touch, hasTouch: touch })
 
-		test(`groups both direct starts and opens ${difficulty} in one action`, async ({ page }) => {
+		test(`shows one picker; choosing claims nothing and Play opens Hard`, async ({ page }) => {
 			// The browser wiring is real; the Rust pick cap and replay are covered by DB tests.
 			const slug = 'sudoku'
 			const puzzleDate = productDayKey()
@@ -1148,13 +1176,16 @@ for (const { width, height, difficulty } of [
 				starts.push(route.request().postDataJSON())
 				return route.fulfill({ json: { daily: playable(slug, difficulty) } })
 			})
-			await page.goto('/games/sudoku')
-			const choices = page.getByRole('group', { name: "Play today's puzzle", exact: true })
-			const medium = choices.getByRole('link', { name: 'Medium', exact: true })
-			const easy = choices.getByRole('link', { name: 'Easy', exact: true })
-			await expect(medium).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
-			await expect(easy).toHaveAttribute('href', '/games/sudoku?difficulty=easy&start=1#play')
-			for (const link of [medium, easy]) {
+			await page.goto(touch ? '/games/sudoku' : '/games/sudoku?start=1#play')
+			const choices = page.getByRole('group', { name: 'Select Difficulty', exact: true })
+			const medium = choices.getByRole('radio', { name: 'Medium', exact: true })
+			const hard = choices.getByRole('radio', { name: 'Hard', exact: true })
+			const play = choices.getByRole('link', { name: "Play today's puzzle", exact: true })
+			await expect(choices).toHaveCount(1)
+			await expect(choices.getByRole('radio')).toHaveCount(3)
+			await expect(medium).toBeChecked()
+			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
+			for (const link of await choices.locator('label').all()) {
 				await expect(link).toBeInViewport({ ratio: 1 })
 				expect(
 					await link.evaluate((element) => {
@@ -1167,28 +1198,28 @@ for (const { width, height, difficulty } of [
 					}),
 				).toBe(true)
 			}
-			await expect(page.locator('#play').getByRole('link', { name: /^Hard/ })).toHaveAttribute(
-				'href',
-				'/games/sudoku?difficulty=hard&start=1#play',
-			)
+			if (touch) await choices.getByText('Hard', { exact: true }).tap()
+			else {
+				await medium.focus()
+				await page.keyboard.press('ArrowRight')
+			}
+			await expect(hard).toBeChecked()
+			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=hard&start=1#play')
+			await expect(play).toBeInViewport({ ratio: 1 })
 			expect(starts).toEqual([])
 			if (touch) {
-				await easy.tap()
+				await play.tap()
 			} else {
-				await page
-					.getByRole('navigation', { name: 'Breadcrumb' })
-					.getByRole('link', { name: 'All games' })
-					.focus()
 				await page.keyboard.press('Tab')
-				await expect(medium).toBeFocused()
-				await expect(medium).toHaveCSS('outline-width', '2px')
+				await expect(play).toBeFocused()
+				await expect(play).toHaveCSS('outline-width', '2px')
 				await page.keyboard.press('Enter')
 			}
 			await expect(
 				page.locator(stage).getByRole('group', { name: 'Sudoku', exact: true }),
 			).toBeVisible()
 			await expect(page.locator('[data-game-stage="start"] button')).toHaveCount(0)
-			await expect(page.getByRole('heading', { name: 'Select Difficulty' })).toHaveCount(0)
+			await expect(choices).toHaveCount(0)
 			expect(starts).toEqual([{ gameSlug: slug, difficulty, puzzleDate }])
 		})
 	})

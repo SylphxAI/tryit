@@ -29,7 +29,7 @@
 	"notReadyTitle": "今天的{game}还没准备好",
 	"notReadyBody": "今天还没有{game}谜题。今日其余谜题仍可任选 3 款免费玩。",
 	"notReadyCta": "查看今日免费谜题",
-	"startUsesPick": "开始后会用掉今天 3 个免费名额中的 1 个，开始过的游戏全天都能玩。",
+	"startUsesPick": "每天任选 3 款游戏免费玩，开始后当天可以随时继续。",
 	"englishWordPuzzle": "英文单词谜题",
 	"cageSudokuCornerTotal": "角落小数字是虚线框内数字的总和。",
 	"cageSudokuExample": "示例（不是本局）：框内 3 + 5，角落就是 8。",

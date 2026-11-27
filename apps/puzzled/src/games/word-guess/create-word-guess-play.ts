@@ -5,6 +5,7 @@ import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
 import { ensureGuestSession } from '@/lib/connect/transport'
 import type { Translate } from '@/lib/i18n/translate'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
+import { createWordGuessSound } from './create-word-guess-sound'
 import {
 	type FiveRow,
 	type FiveRun,
@@ -20,12 +21,21 @@ import { createWordGuessKeyHandler } from './word-guess-physical-input'
 
 const gameSlug = 'word-guess'
 
+function canGiveFeedback(event: MouseEvent | KeyboardEvent) {
+	return (
+		event.isTrusted &&
+		document.visibilityState === 'visible' &&
+		!('repeat' in event && event.repeat)
+	)
+}
+
 export function createWordGuessPlay(props: DailyBoardProps, t: Translate) {
 	const config = props.puzzle.puzzleData as { wordLength?: unknown; maxAttempts?: unknown } | null
 	const playable = config?.wordLength === WORD_LENGTH && config.maxAttempts === MAX_GUESSES
 	const puzzle = { puzzleId: props.puzzle.puzzleId, puzzleDate: props.puzzle.puzzleDate }
 	const practice = props.mode === 'practice'
 	const finish = createBoardFinish(props, gameSlug)
+	const sound = createWordGuessSound()
 	const [rows, setRows] = finish.draft.signal<FiveRow[]>('rows', [])
 	const [draft, setDraft] = finish.draft.signal('draft', '')
 	const [pendingWord, setPendingWord] = createSignal<string>()
@@ -47,14 +57,23 @@ export function createWordGuessPlay(props: DailyBoardProps, t: Translate) {
 		setError(undefined)
 	}
 
-	function edit(key: string) {
+	function edit(key: string, event: MouseEvent | KeyboardEvent) {
 		if (inactive()) return
 		setError(undefined)
 		setShowInputHint(false)
-		triggerHaptic('keyPress')
-		if (key === 'BACKSPACE') setDraft((word) => word.slice(0, -1))
-		else if (/^[a-z]$/i.test(key))
-			setDraft((word) => (word + key.toLowerCase()).slice(0, WORD_LENGTH))
+		const word = draft()
+		const next =
+			key === 'BACKSPACE'
+				? word.slice(0, -1)
+				: /^[a-z]$/i.test(key) && word.length < WORD_LENGTH
+					? word + key.toLowerCase()
+					: word
+		if (next === word) return
+		setDraft(next)
+		if (canGiveFeedback(event)) {
+			triggerHaptic('keyPress')
+			void sound.tap()
+		}
 	}
 
 	function applyRun(run: FiveRun, scope: string | undefined) {
@@ -89,17 +108,17 @@ export function createWordGuessPlay(props: DailyBoardProps, t: Translate) {
 		}
 		if (!disposed) applyRun(run, scope)
 	}
-	async function grade() {
+	async function grade(event: MouseEvent | KeyboardEvent) {
 		if (inactive()) return
 		setShowInputHint(false)
 		const word = draft()
 		if (word.length !== WORD_LENGTH) {
-			triggerHaptic('error')
+			if (canGiveFeedback(event)) triggerHaptic('error')
 			setError(t('games.wordGuess.messages.notEnoughLetters'))
 			return
 		}
 		setError(undefined)
-		triggerHaptic('submit')
+		if (canGiveFeedback(event)) triggerHaptic('submit')
 		setCheckingScope(true)
 		try {
 			const send = (run: FiveRun) =>
@@ -176,6 +195,7 @@ export function createWordGuessPlay(props: DailyBoardProps, t: Translate) {
 	return {
 		playable,
 		finish,
+		sound,
 		rows,
 		draft,
 		pendingWord,

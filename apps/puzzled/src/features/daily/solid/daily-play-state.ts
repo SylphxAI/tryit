@@ -34,7 +34,8 @@ export type DailyPlayProps = {
 	day: GameDayRequest
 	todayKey: string
 	resetAt: number
-	onLocked: () => void
+	onLandingBlocked: () => void
+	chooseDifficulty: boolean
 	onPlayable: (slug: string, mode: 'daily' | 'archive') => void
 	difficulty?: PuzzleDifficulty
 	started: boolean
@@ -114,7 +115,8 @@ export function createDailyPlayState(
 		props.onPlayable(slug, archive ? 'archive' : 'daily')
 	})
 	createEffect(() => {
-		if (snapshot('locked')) props.onLocked()
+		if (snapshot('locked') || (choose && (snapshot('closed') || snapshot('completed'))))
+			props.onLandingBlocked()
 	})
 	const [claimedPicks] = createResource(
 		() => mounted() && !archive && snapshot('playable')?.puzzleDate,

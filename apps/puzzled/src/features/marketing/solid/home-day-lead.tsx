@@ -1,6 +1,8 @@
 /** @jsxImportSource solid-js */
 import { Play } from 'lucide-solid'
 import { type Accessor, Show, Suspense } from 'solid-js'
+import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
+import { needsEnglishWordNotice } from '@/features/daily/lib/english-word-puzzles'
 import { todayPlayPath, todayResultPath } from '@/features/daily/lib/today-play-path'
 import type { HomeDayCopy } from '@/features/home/lib/home-day-copy'
 import { homeParticipationCopy } from '@/features/home/lib/home-participation-copy'
@@ -21,6 +23,25 @@ export function HomeDayLead(props: {
 }) {
 	const { page, t, href, copy, format } = props
 	const count = page.catalog.length
+	const fiveNotice =
+		page.featured.slug === 'word-guess' && needsEnglishWordNotice(page.locale, page.featured.slug)
+	const headline = (key: HomeDayCopy['headlineKey']) => (
+		<div>
+			<h1 class="editorial-title max-w-xl">
+				{t(`home.day.${key}`, {
+					game: page.featured.name,
+					count,
+					picks: DAILY_FREE_PICKS,
+					days: key === 'titleMemberStreak' ? (props.facts()?.streak?.currentStreak ?? 0) : 0,
+				})}
+			</h1>
+			<Show when={key === 'guestTitle'}>
+				<p class="mt-1 text-sm text-muted-foreground sm:text-base">
+					{t('home.day.guestDetail', { count })}
+				</p>
+			</Show>
+		</div>
+	)
 	const featuredCard = (cta: Accessor<'play' | 'result'>) => (
 		<div
 			data-day-puzzle-card=""
@@ -39,14 +60,12 @@ export function HomeDayLead(props: {
 					height="100"
 					class="home-featured-motif block h-full w-full object-contain"
 				/>
-				<span class="absolute left-3 top-3 hidden rounded-full bg-card px-2.5 py-1 text-xs font-semibold text-foreground sm:block">
-					{t('home.lineup.freeToday')}
-				</span>
 				<span class="numeral absolute right-3 top-3 hidden rounded-full bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground sm:block">
 					#{format.format(page.puzzleNumber)}
 				</span>
 			</div>
 			<div class="home-featured-content p-3 sm:p-5">
+				<p class="text-xs font-semibold text-muted-foreground">{t('home.lineup.freeToday')}</p>
 				<div class="flex items-baseline justify-between gap-3">
 					<p class="home-featured-title font-display text-[1.5rem] leading-tight font-extrabold sm:text-[2rem]">
 						{page.featured.name}
@@ -57,9 +76,18 @@ export function HomeDayLead(props: {
 						</span>
 					</Show>
 				</div>
-				<p class="mt-0.5 line-clamp-1 text-[14px] text-muted-foreground sm:text-[15px]">
-					{page.featured.tagline}
-				</p>
+				<Show
+					when={fiveNotice}
+					fallback={
+						<p class="mt-0.5 line-clamp-1 text-[14px] text-muted-foreground sm:text-[15px]">
+							{page.featured.tagline}
+						</p>
+					}
+				>
+					<p class="mt-0.5 text-sm font-semibold text-muted-foreground">
+						{t('daily.englishWordPuzzle')}
+					</p>
+				</Show>
 				<a
 					data-day-primary-action=""
 					data-home-featured={page.featured.slug}
@@ -92,13 +120,7 @@ export function HomeDayLead(props: {
 	)
 	const lead = () => (
 		<div class="home-day-lead min-w-0 space-y-3 sm:space-y-4">
-			<h1 class="editorial-title max-w-xl">
-				{t(`home.day.${copy().headlineKey}`, {
-					game: page.featured.name,
-					count,
-					days: props.facts()?.streak?.currentStreak ?? 0,
-				})}
-			</h1>
+			{headline(copy().headlineKey)}
 			{featuredCard(() => copy().cta)}
 			<Show when={props.facts()?.hasIdentity && props.unread}>
 				<p class="text-sm text-muted-foreground">{t('home.hero.progressUnverified')}</p>
@@ -123,7 +145,7 @@ export function HomeDayLead(props: {
 		<Suspense
 			fallback={
 				<div class="home-day-lead min-w-0 space-y-3 sm:space-y-4">
-					<h1 class="editorial-title max-w-xl">{t('home.day.guestTitle', { count })}</h1>
+					{headline('guestTitle')}
 					{featuredCard(() => 'play')}
 				</div>
 			}

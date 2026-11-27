@@ -165,8 +165,8 @@ for (const historical of [false, true]) {
 				)
 			} else {
 				await friend
-					.getByRole('group', { name: "Play today's puzzle", exact: true })
-					.getByRole('link', { name: 'Medium', exact: true })
+					.getByRole('group', { name: 'Select Difficulty', exact: true })
+					.getByRole('link', { name: "Play today's puzzle", exact: true })
 					.click()
 				await expect(friend.getByRole('group', { name: 'Sudoku', exact: true })).toBeVisible()
 				await expect(friend.locator('[data-unlock-panel]')).toHaveCount(0)

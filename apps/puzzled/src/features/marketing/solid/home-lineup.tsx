@@ -2,6 +2,7 @@
 import { ArrowRight } from 'lucide-solid'
 import { For } from 'solid-js'
 import { CATALOG_CATEGORIES } from '@/features/catalog/lib/catalog'
+import { needsEnglishWordNotice } from '@/features/daily/lib/english-word-puzzles'
 import type { HomeGamePlayState } from '@/features/daily/lib/home-play-state'
 import { todayPlayPath, todayResultPath } from '@/features/daily/lib/today-play-path'
 import { lineupStatus } from '@/features/home/lib/home-day-copy'
@@ -54,6 +55,8 @@ export function HomeLineup(props: {
 						const game = bySlug.get(state.slug)
 						if (!game) return null
 						const kind = lineupStatus(state)
+						const fiveNotice =
+							game.slug === 'word-guess' && needsEnglishWordNotice(page.locale, game.slug)
 						return (
 							<HomeGameCard
 								game={game}
@@ -66,7 +69,9 @@ export function HomeLineup(props: {
 										? [t('gameResult.seeResult'), state.score].filter(Boolean).join(' · ')
 										: kind === 'free'
 											? t('home.lineup.freeToday')
-											: game.duration
+											: fiveNotice
+												? t('daily.englishWordPuzzle')
+												: game.duration
 								}
 							/>
 						)

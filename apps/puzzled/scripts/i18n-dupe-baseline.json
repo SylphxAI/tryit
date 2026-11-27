@@ -962,10 +962,6 @@
 				"keys": ["stats.streakCard.notPlayedToday", "stats.streakHintOpen"]
 			},
 			{
-				"value": "Today's pick",
-				"keys": ["catalog.freeToday", "home.lineup.freeToday"]
-			},
-			{
 				"value": "Total Users",
 				"keys": ["admin.dashboard.totalUsers", "admin.system.totalUsers", "admin.users.totalUsers"]
 			},
@@ -2070,10 +2066,6 @@
 				"keys": ["stats.streakCard.notPlayedToday", "stats.streakHintOpen"]
 			},
 			{
-				"value": "Today's pick",
-				"keys": ["catalog.freeToday", "home.lineup.freeToday"]
-			},
-			{
 				"value": "Total Users",
 				"keys": ["admin.dashboard.totalUsers", "admin.system.totalUsers", "admin.users.totalUsers"]
 			},
@@ -3060,7 +3052,12 @@
 			},
 			{
 				"value": "私隱政策",
-				"keys": ["auth.privacyPolicy", "consent.learnMore", "support.resources.privacy.title"]
+				"keys": [
+					"auth.privacyPolicy",
+					"consent.learnMore",
+					"legal.privacy.title",
+					"support.resources.privacy.title"
+				]
 			},
 			{
 				"value": "移除",
@@ -3298,10 +3295,6 @@
 					"settings.notifications.push.disable",
 					"streak.dismiss"
 				]
-			},
-			{
-				"value": "隱私權政策",
-				"keys": ["footer.privacy", "legal.privacy.title"]
 			},
 			{
 				"value": "雙重驗證",
