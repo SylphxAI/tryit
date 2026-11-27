@@ -1,6 +1,9 @@
+import { readdir, readFile } from 'node:fs/promises'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import { archiveDayKeys } from '../src/features/daily/lib/archive-days'
 import { productDayKey } from '../src/lib/product-day'
+import { CONSENT_KEY } from '../src/lib/storage-keys'
 import { settle, WCAG_TAGS } from './a11y-support'
 
 test.afterEach(async ({ page }) => {
@@ -127,5 +130,202 @@ for (const viewport of [
 				url.pathname === '/pricing' &&
 				url.search === '?callbackUrl=%2Farchive&trigger=archive_banner',
 		)
+	})
+}
+
+// Use the actual SolidStart serialization and Connect catalogue projection on the happy path.
+async function unlockPriceReference() {
+	const dir = '.output/server/_ssr'
+	for (const file of await readdir(dir)) {
+		if (!file.endsWith('.mjs')) continue
+		const match = (await readFile(`${dir}/${file}`, 'utf8')).match(
+			/createServerReference\("([^"]+)", async function readUnlockPrices\(/,
+		)
+		if (match) return match[1]
+	}
+	throw new Error('Missing built readUnlockPrices reference')
+}
+
+for (const scenario of [
+	'locked',
+	'pending',
+	'entitled',
+	'unknown',
+	'closed',
+	'missing-pass',
+	'price-failure',
+] as const) {
+	test(`dated archive lock buyer journey (${scenario})`, async ({
+		page,
+		context,
+		baseURL,
+	}, testInfo) => {
+		const url = new URL(baseURL ?? '')
+		expect(['localhost', '127.0.0.1']).toContain(url.hostname)
+		const origin = url.origin
+		const [date] = archiveDayKeys(productDayKey(), 1)
+		const prefix = scenario === 'locked' ? '/en-GB' : ''
+		const game = `${prefix}/games/number-path`
+		const callback = `${game}?date=${date}`
+		const trigger = 'game_unlock_archive'
+		const pricing = `${prefix}/pricing?callbackUrl=${encodeURIComponent(callback)}&trigger=${trigger}`
+		const passPricing = `${prefix}/pricing?plan=individual_once&callbackUrl=${encodeURIComponent(callback)}&trigger=${trigger}#plus`
+		await page.setViewportSize(
+			scenario === 'locked' ? { width: 375, height: 812 } : { width: 1440, height: 900 },
+		)
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': prefix ? 'GB' : 'US' })
+		await page.addInitScript((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
+		const billingWrites: string[] = []
+		await context.route('**/*', (route) => {
+			const request = route.request()
+			const target = new URL(request.url())
+			if (
+				target.pathname.startsWith('/puzzled.v1.BillingService/') &&
+				!target.pathname.endsWith('/ListPlans')
+			) {
+				billingWrites.push(target.pathname)
+				return route.abort()
+			}
+			return target.origin === origin ? route.continue() : route.abort()
+		})
+		if (scenario === 'missing-pass') {
+			await context.addCookies([
+				{
+					name: '__Host-puzzled_guest',
+					value: 'archive-no-pass',
+					domain: url.hostname,
+					path: '/',
+					secure: true,
+					httpOnly: true,
+				},
+			])
+		}
+		const priceId = await unlockPriceReference()
+		const allowOffer = Promise.withResolvers<void>()
+		let priceReads = 0
+		await page.route('**/_server', async (route) => {
+			if (route.request().headers()['x-server-id'] !== priceId) return route.fallback()
+			priceReads++
+			await allowOffer.promise
+			return scenario === 'price-failure' ? route.fulfill({ status: 503 }) : route.continue()
+		})
+		await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) => {
+			const input = route.request().postDataJSON()
+			if (!input.puzzleDate) return route.fallback()
+			expect(input).toEqual({ gameSlug: 'number-path', puzzleDate: date })
+			// Model the already-existing GetDaily boundary, not an entitlement lookup in the lock.
+			if (scenario === 'entitled' || scenario === 'closed') {
+				return route.fulfill({ json: { ...input, canPlay: true, requiresStart: true } })
+			}
+			return scenario === 'unknown'
+				? route.fulfill({ status: 503, json: { code: 'unavailable' } })
+				: route.fulfill({
+						status: 403,
+						json: { code: 'permission_denied', message: 'plus_required_archive' },
+					})
+		})
+		await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
+			route.fulfill({ json: { dayKey: productDayKey(), freePicks: { gameSlugs: [] } } }),
+		)
+		await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+		await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) =>
+			route.fulfill({ json: {} }),
+		)
+
+		const lock = page.locator('[data-unlock-panel="archive"]')
+		const plus = lock.getByRole('link', { name: 'See Tryit Plus' })
+		const free = lock.getByRole('link', { name: 'Back to today’s games' })
+		const pass = lock.getByRole('link', { name: /See the 3-day pass/i })
+		const playFree = async () => {
+			await free.click()
+			await expect(page).toHaveURL(`${origin}${prefix}/games`)
+			await page.locator('[data-game-tile="number-path"]').click()
+			await expect(page.locator('[data-game-stage="board"] .play-board')).toBeVisible()
+			await expect(lock).toHaveCount(0)
+			expect(billingWrites).toEqual([])
+		}
+		await page.goto(`${game}?mode=archive&date=${date}`)
+		try {
+			if (scenario === 'entitled' || scenario === 'unknown' || scenario === 'closed') {
+				await expect(
+					scenario === 'unknown'
+						? page.getByRole('heading', { name: 'Puzzle not available' })
+						: page.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' }),
+				).toBeVisible()
+				await expect(lock).toHaveCount(0)
+				expect(priceReads).toBe(0)
+				return
+			}
+
+			await expect.poll(() => priceReads).toBe(1)
+			await expect(plus).toHaveAttribute('href', pricing)
+			await expect(free).toHaveAttribute('href', `${prefix}/games`)
+			await free.click({ trial: true })
+			await plus.click({ trial: true })
+			await expect(pass).toHaveCount(0)
+			if (scenario === 'pending') {
+				await plus.click()
+				await expect(page).toHaveURL(origin + pricing)
+				await expect(page.locator('#plus')).toBeVisible()
+				await page.goBack()
+				await playFree()
+				return
+			}
+		} finally {
+			allowOffer.resolve()
+		}
+
+		if (scenario === 'locked') {
+			await expect(lock.locator('[data-unlock-plan="individual_yearly"]')).toContainText('£29.99')
+			await expect(lock.locator('[data-unlock-plan="individual_once"]')).toContainText('£2.99')
+			await expect(lock.locator('[data-unlock-plan="individual_once"]')).toContainText('one time')
+			await expect(pass).toHaveAttribute('href', passPricing)
+			await pass.focus()
+			await expect(pass).toBeFocused()
+			expect((await pass.boundingBox())!.height).toBeGreaterThanOrEqual(48)
+			expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
+			await settle(page)
+			expect((await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations).toEqual([])
+			await testInfo.attach('archive-lock-375px', {
+				body: await lock.screenshot(),
+				contentType: 'image/png',
+			})
+			expect(priceReads).toBe(1)
+			await page.setViewportSize({ width: 1440, height: 900 })
+			expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440)
+			await testInfo.attach('archive-lock-1440px', {
+				body: await lock.screenshot(),
+				contentType: 'image/png',
+			})
+			await pass.press('Enter')
+			await expect(page).toHaveURL(origin + passPricing)
+			await expect(page.locator('#plus input[type="radio"]:checked')).toHaveValue('once')
+			await expect(page.locator('#plus [data-checkout-trigger]')).toHaveAttribute(
+				'data-checkout-trigger',
+				trigger,
+			)
+			await expect(page.locator('#plus input[type="checkbox"]')).not.toBeChecked()
+			await expect(page.locator('#plus [data-checkout-trigger]')).toBeDisabled()
+			await page.goBack()
+			await plus.click()
+			await expect(page).toHaveURL(origin + pricing)
+			await expect(page.locator('#plus [data-checkout-trigger]')).toHaveAttribute(
+				'data-checkout-trigger',
+				trigger,
+			)
+			await page.goBack()
+		} else {
+			if (scenario === 'missing-pass') {
+				await expect(lock.locator('[data-unlock-plan="individual_yearly"]')).toContainText('$39.99')
+			} else {
+				await expect(lock.getByText('Tryit Plus plans are temporarily unavailable')).toBeVisible()
+			}
+			await expect(pass).toHaveCount(0)
+			await expect(lock.locator('[data-unlock-plan="individual_once"]')).toHaveCount(0)
+			await expect(plus).toHaveAttribute('href', pricing)
+			expect(priceReads).toBe(1)
+		}
+
+		await playFree()
 	})
 }
