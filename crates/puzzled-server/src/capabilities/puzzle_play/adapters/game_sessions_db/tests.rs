@@ -37,3 +37,75 @@ fn guest_logical_user_id_maps_to_storage_uuid() {
     assert_eq!(platform.to_string(), "f715210b-9df3-4945-b5bd-94fc4609bc30");
     assert!(parse_user_id("not-a-uuid").is_err());
 }
+
+#[tokio::test]
+async fn session_writers_saturate_elapsed_at_int4_ceiling() {
+    use super::{
+        persist_game_session, persist_validated_session, PersistGameSessionInput, ValidatedSession,
+    };
+    use puzzled_core::puzzle_play::game_flows::{ClaimedStatus, GameMode, SaveResultPlan};
+
+    let Some(pool) = crate::test_support::fresh_database().await else {
+        return;
+    };
+    let user = uuid::Uuid::now_v7().to_string();
+    for (elapsed, stored) in [
+        (0, 0),
+        (2_147_483_647, 2_147_483_647),
+        (2_147_483_648, 2_147_483_647),
+        (u64::MAX, 2_147_483_647),
+    ] {
+        let plan = SaveResultPlan {
+            game_slug: "sudoku".into(),
+            mode: GameMode::Practice,
+            status: ClaimedStatus::Won,
+            attempts: 1,
+            time_spent_ms: elapsed,
+            puzzle_id: String::new(),
+            puzzle_date: String::new(),
+            archive_date: None,
+            difficulty: None,
+        };
+        let regular = persist_game_session(
+            &pool,
+            PersistGameSessionInput {
+                user_id: &user,
+                score: None,
+                plan: &plan,
+            },
+        )
+        .await
+        .unwrap();
+        let validated = persist_validated_session(
+            &pool,
+            ValidatedSession {
+                user_id: &user,
+                game_slug: "sudoku",
+                difficulty: None,
+                mode: "archive",
+                status: "won",
+                score: None,
+                attempts: 1,
+                time_spent_ms: elapsed,
+                puzzle_id: None,
+                puzzle_date: None,
+                day_key: None,
+                at_ms: 0,
+                hints_used: None,
+                comparison_excluded: false,
+            },
+        )
+        .await
+        .unwrap();
+        for id in [regular, validated] {
+            let actual: i32 =
+                sqlx::query_scalar("SELECT time_spent_ms FROM game_sessions WHERE id=$1")
+                    .bind(uuid::Uuid::parse_str(&id).unwrap())
+                    .fetch_one(&pool)
+                    .await
+                    .unwrap();
+            assert_eq!(actual, stored, "elapsed={elapsed}");
+        }
+    }
+    pool.close().await;
+}
