@@ -6,6 +6,7 @@ import { playButton } from '@/features/catalog/solid/game-landing'
 import { gameBoards } from '@/games/shared/solid/board-registry'
 import { createTranslator } from '@/lib/i18n/translate'
 import { dailyPickCount } from '../lib/daily-picks'
+import { choosesDailyLevel, disclosesFreePick } from '../lib/pick-disclosure'
 import { BoardIntro } from './board-intro'
 import { createDailyPlayState, type DailyPlayProps } from './daily-play-state'
 import { renderDailyCompletion, renderDailyDifficulty } from './daily-play-views'
@@ -15,7 +16,11 @@ export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boo
 	const t = createTranslator(props.data.locale)
 	const slug = props.data.slug
 	const archive = props.day.mode === 'archive'
-	const choose = !archive && props.data.difficultyLevels.length > 0 && !props.difficulty
+	const choose = choosesDailyLevel({
+		archive,
+		levelCount: props.data.difficultyLevels.length,
+		difficulty: props.difficulty,
+	})
 	const board = gameBoards.get(slug)
 	const explicitPlay = props.started && !choose && Boolean(board)
 	const [resultOpen, setResultOpen] = createSignal(false)
@@ -41,6 +46,9 @@ export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boo
 			</button>
 		</div>
 	)
+
+	// One line, one placement: shown wherever Play is the next step that claims a pick.
+	const pickNotice = () => <p>{t('daily.startUsesPick')}</p>
 
 	const loading = () => (
 		<p class="play-entry text-center" role="status">
@@ -90,13 +98,18 @@ export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boo
 				<p role="status">{t('daily.completedNoResult')}</p>
 			</Match>
 			<Match when={choose}>
-				{renderDailyDifficulty(props, { t, slug, unavailable: () => snapshot('unavailable') })}
+				<div class="space-y-4">
+					<Show when={disclosesFreePick(state.latest?.kind)}>
+						<div class="play-entry mx-auto max-w-md text-center">{pickNotice()}</div>
+					</Show>
+					{renderDailyDifficulty(props, { t, slug, unavailable: () => snapshot('unavailable') })}
+				</div>
 			</Match>
 			<Match when={snapshot('startable')}>
 				{(value) =>
 					board ? (
 						<div class="play-entry mx-auto max-w-md space-y-4 text-center" data-game-stage="start">
-							<p>{t('daily.startUsesPick')}</p>
+							{pickNotice()}
 							<Show when={archive || props.started}>
 								<button
 									type="button"

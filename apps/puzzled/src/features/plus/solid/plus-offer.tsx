@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { Check } from 'lucide-solid'
-import { createEffect, createMemo, createSignal, For, type JSX, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, type JSX, onMount, Show } from 'solid-js'
+import { trackPlusViewStage } from '@/features/analytics/lib/signal-stages'
 import { formatMonthlyEquivalentPrice, formatPrice, type PlanCard } from '@/lib/billing/plus'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -70,6 +71,7 @@ export function PlusOffer(props: Props) {
 		(props.yearly ? 'year' : props.monthly ? 'month' : 'once')
 	const [interval, setInterval] = createSignal<PlanCard['interval']>(defaultInterval())
 	createEffect(() => setInterval(defaultInterval()))
+	onMount(() => trackPlusViewStage(props.checkoutTrigger))
 	const current = createMemo(() => options().find((card) => card.interval === interval()))
 	const price = (card: PlanCard) => formatPrice(card.amountMinor, card.currency, props.locale)
 	const saving = () => pricingYearlySaving(props.monthly, props.yearly)

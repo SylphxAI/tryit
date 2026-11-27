@@ -1,6 +1,7 @@
 import { ConnectError } from '@connectrpc/connect'
 import { createEffect, createResource, createSignal, onMount } from 'solid-js'
 import { sendFunnel } from '@/features/analytics/lib/funnel'
+import { trackGameStartStage } from '@/features/analytics/lib/signal-stages'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import type { PuzzleDifficulty } from '@/games/types'
 import { isPlusRequiredError } from '@/lib/billing/plus'
@@ -106,6 +107,7 @@ export function createDailyPlayState(
 		if (!value || seen || !hasBoard || choose) return
 		seen = true
 		sendFunnel({ event: 'game_start', game_slug: slug })
+		trackGameStartStage(slug, archive ? 'archive' : 'daily')
 		if (!archive) rememberDailyLevel(value.puzzleDate, slug, props.difficulty)
 	})
 	createEffect(() => {
