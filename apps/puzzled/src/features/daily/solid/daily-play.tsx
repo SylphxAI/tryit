@@ -6,21 +6,16 @@ import { playButton } from '@/features/catalog/solid/game-landing'
 import { gameBoards } from '@/games/shared/solid/board-registry'
 import { createTranslator } from '@/lib/i18n/translate'
 import { dailyPickCount } from '../lib/daily-picks'
-import { choosesDailyLevel, disclosesFreePick } from '../lib/pick-disclosure'
 import { BoardIntro } from './board-intro'
 import { createDailyPlayState, type DailyPlayProps } from './daily-play-state'
-import { renderDailyCompletion, renderDailyDifficulty } from './daily-play-views'
+import { renderDailyCompletion } from './daily-play-views'
 import { DailyUnlock } from './daily-unlock'
 
 export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boolean }) {
 	const t = createTranslator(props.data.locale)
 	const slug = props.data.slug
 	const archive = props.day.mode === 'archive'
-	const choose = choosesDailyLevel({
-		archive,
-		levelCount: props.data.difficultyLevels.length,
-		difficulty: props.difficulty,
-	})
+	const choose = props.chooseDifficulty
 	const board = gameBoards.get(slug)
 	const explicitPlay = props.started && !choose && Boolean(board)
 	const [resultOpen, setResultOpen] = createSignal(false)
@@ -50,11 +45,12 @@ export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boo
 	// One line, one placement: shown wherever Play is the next step that claims a pick.
 	const pickNotice = () => <p>{t('daily.startUsesPick')}</p>
 
-	const loading = () => (
-		<p class="play-entry text-center" role="status">
-			{t('daily.loadingPuzzle')}
-		</p>
-	)
+	const loading = () =>
+		!choose && (
+			<p class="play-entry text-center" role="status">
+				{t('daily.loadingPuzzle')}
+			</p>
+		)
 	const intro = (date: () => string | undefined) => (
 		<BoardIntro
 			data={props.data}
@@ -98,12 +94,7 @@ export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boo
 				<p role="status">{t('daily.completedNoResult')}</p>
 			</Match>
 			<Match when={choose}>
-				<div class="space-y-4">
-					<Show when={disclosesFreePick(state.latest?.kind)}>
-						<div class="play-entry mx-auto max-w-md text-center">{pickNotice()}</div>
-					</Show>
-					{renderDailyDifficulty(props, { t, slug, unavailable: () => snapshot('unavailable') })}
-				</div>
+				<Show when={snapshot('unavailable')}>{unavailable()}</Show>
 			</Match>
 			<Match when={snapshot('startable')}>
 				{(value) =>

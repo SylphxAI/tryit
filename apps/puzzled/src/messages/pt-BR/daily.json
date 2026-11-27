@@ -29,7 +29,7 @@
 	"notReadyTitle": "O {game} de hoje ainda não está pronto",
 	"notReadyBody": "Ainda não há um desafio de {game} para hoje. Escolha qualquer um dos seus 3 desafios grátis de hoje.",
 	"notReadyCta": "Ver desafios grátis de hoje",
-	"startUsesPick": "Começar usa uma das 3 escolhas grátis de hoje. O jogo que você começar fica liberado o dia todo.",
+	"startUsesPick": "Escolha 3 jogos grátis por dia. Depois de começar um jogo, ele fica disponível o dia todo.",
 	"englishWordPuzzle": "Jogo de palavras em inglês",
 	"cageSudokuCornerTotal": "O número no canto soma os dígitos da área tracejada.",
 	"cageSudokuExample": "Exemplo (outro tabuleiro): 3 + 5 dá 8 no canto.",
