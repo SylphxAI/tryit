@@ -4,13 +4,21 @@ import {
 	resolveEffectiveConsent,
 	type SignalConsentChoice,
 } from '@sylphx/sdk/signal'
-import { CONSENT_KEY, SIGNAL_STORAGE_KEY } from '@/lib/storage-keys'
+import { CONSENT_KEY, CONSENT_VERSION_KEY, SIGNAL_STORAGE_KEY } from '@/lib/storage-keys'
 
 export type SignalStream = { apiKey: string; baseUrl: string }
 export type ConsentContext = { region: 'EEA' | 'ROW'; gpc: boolean; stream?: SignalStream }
 const EVENT = 'consent-change'
 const TOUCH_KEY = `${SIGNAL_STORAGE_KEY}.touch`
 export const CHECKOUT_QUOTE_KEY = 'puzzled:ads:checkout-quote'
+/**
+ * The cookie-consent version every new save records. Meta (Pixel, and fbc/fbp
+ * in the Events binding) needs a saved grant at or after META_CONSENT_VERSION;
+ * an older grant keeps Google as it was and leaves Meta off until re-confirmed
+ * in Cookie settings. No banner is re-shown for it.
+ */
+export const CONSENT_VERSION = '2026-11-27'
+const META_CONSENT_VERSION = '2026-11-27'
 let context: ConsentContext | null = null
 let localDenial = false
 let browser: ReturnType<typeof createSignalBrowser> | undefined
@@ -61,6 +69,32 @@ export function hasExplicitAnalyticsConsent(): boolean {
 export function canStoreMarketing(): boolean {
 	const consent = cookieConsent()
 	return consent.marketing && consent.explicit
+}
+
+function savedConsentVersion(): string | null {
+	try {
+		return window.localStorage.getItem(CONSENT_VERSION_KEY)
+	} catch {
+		return null
+	}
+}
+
+/**
+ * Meta eligibility: a saved full grant (ad storage and ad user data) made at
+ * or after META_CONSENT_VERSION, never under GPC. Under-18 accounts would also
+ * be excluded here, but no account exposes an age signal today.
+ */
+export function canUseMeta(): boolean {
+	const { signals, gpc } = cookieConsent()
+	const version = savedConsentVersion()
+	return (
+		!gpc &&
+		canStoreMarketing() &&
+		signals.ad_user_data === 'granted' &&
+		version !== null &&
+		/^\d{4}-\d{2}-\d{2}$/.test(version) &&
+		version >= META_CONSENT_VERSION
+	)
 }
 
 export function notifyConsentChange(): void {
@@ -200,6 +234,7 @@ export function saveCookieChoice(choice: SignalConsentChoice): void {
 	if (!context || (choice !== 'denied' && (consent.gpc || !consent.storageAvailable))) return
 	try {
 		window.localStorage.setItem(CONSENT_KEY, choice)
+		window.localStorage.setItem(CONSENT_VERSION_KEY, CONSENT_VERSION)
 		localDenial = false
 	} catch {
 		if (choice === 'denied') localDenial = true

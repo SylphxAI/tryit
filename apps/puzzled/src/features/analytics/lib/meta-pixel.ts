@@ -6,7 +6,7 @@
  * player, auth or customer id reaches Meta. Purchase uses the Money order id
  * as eventID so Events' Conversions API delivery of the same order deduplicates.
  */
-import { canStoreMarketing, cookieConsent } from './consent'
+import { canUseMeta } from './consent'
 
 const PIXEL_ID = /^\d{6,20}$/
 const ORDER_ID = /^[A-Za-z0-9_-]{1,128}$/
@@ -17,11 +17,8 @@ export function metaPixelId(source: { META_PIXEL_ID?: string }): string | null {
 	return PIXEL_ID.test(id) ? id : null
 }
 
-/** Saved full grant only; GPC already resolves every ad flag to denied. */
-export function metaPixelAllowed(): boolean {
-	const { signals, gpc } = cookieConsent()
-	return !gpc && canStoreMarketing() && signals.ad_user_data === 'granted'
-}
+/** See canUseMeta: saved full grant at the Meta consent version, never under GPC. */
+export const metaPixelAllowed = canUseMeta
 
 type Fbq = ((...args: unknown[]) => void) & {
 	callMethod?: (...args: unknown[]) => void
@@ -110,9 +107,20 @@ export function createMetaPixel({
 			fbq('track', 'PageView')
 			return true
 		},
-		/** The api's Money-settled receipt only; eventID is the order id. */
+		/**
+		 * The api's Money-settled receipt only; eventID is the order id. Interim:
+		 * only payment ids (`pi_`). A subscription receipt can be an invoice id
+		 * (`in_`) while Events sends the payment id, which would not dedupe, so
+		 * Events' Conversions API carries those alone.
+		 */
 		purchase({ orderId, value, currency }: MetaPurchase): boolean {
-			if (!ORDER_ID.test(orderId) || !Number.isFinite(value) || value <= 0) return false
+			if (
+				!orderId.startsWith('pi_') ||
+				!ORDER_ID.test(orderId) ||
+				!Number.isFinite(value) ||
+				value <= 0
+			)
+				return false
 			if (!/^[A-Z]{3}$/.test(currency) || purchased.has(orderId) || !sync()) return false
 			purchased.add(orderId)
 			fbq('track', 'Purchase', { value, currency }, { eventID: orderId })

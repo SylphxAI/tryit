@@ -232,7 +232,18 @@ loads only after a saved full choice (ad storage and ad user data granted) and
 never under GPC. It sends `PageView` on public pages and `Purchase` from the
 api's settled receipt with `eventID` set to the Money order id, so Events' Meta
 Conversions API delivery of the same order deduplicates. It sends no advanced
-matching, email, or player, auth or customer id. AdSense slots remain limited to explicit full consent.
+matching, email, or player, auth or customer id.
+
+Meta eligibility (counsel, 2026-11-27): the Pixel and the `fbclid`/`fbc`/`fbp`
+sent to the Events binding need a choice saved at or after consent version
+`2026-11-27` (`CONSENT_VERSION`, stored beside the choice). A regional default
+that was never saved, or a grant saved earlier, keeps Google unchanged and Meta
+off until the visitor re-confirms in Cookie settings; no banner is re-shown.
+Under-18 accounts must stay off Meta too, but no account carries an age or
+minor signal today (only the terms' 13+ rule), so that gate has nothing to
+read yet. Interim dedup guard: the browser Purchase fires only for payment ids
+(`pi_`); an invoice-only id (`in_`, from subscription checkouts) is left to
+Events' Conversions API until Money and Events agree on one order id. AdSense slots remain limited to explicit full consent.
 
 ## 7. Metrics (supporting, not the North Star)
 

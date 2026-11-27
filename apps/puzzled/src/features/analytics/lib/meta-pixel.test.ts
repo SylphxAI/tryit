@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
-import { CONSENT_KEY } from '@/lib/storage-keys'
-import { setConsentContext } from './consent'
+import { CONSENT_KEY, CONSENT_VERSION_KEY } from '@/lib/storage-keys'
+import { CONSENT_VERSION, setConsentContext } from './consent'
 import {
 	createMetaPixel,
 	deleteMetaCookies,
@@ -15,9 +15,15 @@ import {
 const globals = globalThis as unknown as Record<string, unknown>
 const RECEIPT = { orderId: 'pi_3Fixture_Order-1', value: 4.99, currency: 'USD' }
 
-function page(choice: string | null, region: 'EEA' | 'ROW', gpc = false) {
+function page(
+	choice: string | null,
+	region: 'EEA' | 'ROW',
+	gpc = false,
+	version = CONSENT_VERSION,
+) {
 	const store = new Map<string, string>()
 	if (choice) store.set(CONSENT_KEY, choice)
+	if (choice) store.set(CONSENT_VERSION_KEY, version)
 	globals.window = {
 		localStorage: {
 			getItem: (k: string) => store.get(k) ?? null,
@@ -70,17 +76,19 @@ test('META_PIXEL_ID is optional: empty or malformed means off', () => {
 	expect(metaPixelId({ META_PIXEL_ID: ' 1234567890 ' })).toBe('1234567890')
 })
 
-const refused: [string, string | null, 'EEA' | 'ROW', boolean][] = [
+const refused: [string, string | null, 'EEA' | 'ROW', boolean, string?][] = [
 	['unset (EEA)', null, 'EEA', false],
 	['unset (ROW default grant is not a saved choice)', null, 'ROW', false],
 	['refused', 'denied', 'ROW', false],
 	['analytics-only', 'analytics_only', 'ROW', false],
 	['GPC over a saved grant', 'granted', 'ROW', true],
 	['GPC over a saved grant (EEA)', 'granted', 'EEA', true],
+	['EEA grant saved before the Meta consent version', 'granted', 'EEA', false, '2026-11-26'],
+	['ROW grant saved before the Meta consent version', 'granted', 'ROW', false, 'garbage'],
 ]
-for (const [name, choice, region, gpc] of refused) {
+for (const [name, choice, region, gpc, version] of refused) {
 	test(`${name}: zero pixel script, zero Meta calls`, () => {
-		const { pixel, scripts, calls, win } = page(choice, region, gpc)
+		const { pixel, scripts, calls, win } = page(choice, region, gpc, version)
 		setActiveMetaPixel(pixel)
 		expect(pixel.pageView('/')).toBe(false)
 		expect(trackMetaPurchase(RECEIPT)).toBe(false)
@@ -125,6 +133,17 @@ test('Purchase eventID equals the Money order id, once per order', () => {
 	]) {
 		expect(trackMetaPurchase(bad)).toBe(false)
 	}
+})
+
+test('interim dedup guard: payment ids (pi_) fire Purchase; invoice-only ids (in_) are left to CAPI', () => {
+	const { pixel, calls } = page('granted', 'ROW')
+	setActiveMetaPixel(pixel)
+	expect(trackMetaPurchase({ ...RECEIPT, orderId: 'in_1Fixture_Invoice' })).toBe(false)
+	expect(calls.some((call) => call[1] === 'Purchase')).toBe(false)
+	expect(trackMetaPurchase({ ...RECEIPT, orderId: 'pi_1Fixture_Payment' })).toBe(true)
+	expect(calls.filter((call) => call[1] === 'Purchase')).toEqual([
+		['track', 'Purchase', { value: 4.99, currency: 'USD' }, { eventID: 'pi_1Fixture_Payment' }],
+	])
 })
 
 test('withdrawal revokes, stops events and clears Meta cookies', () => {
