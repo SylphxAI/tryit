@@ -94,6 +94,14 @@
 		"keep": "すでに終えた記録は、すべて統計に残ります。",
 		"backToToday": "今日のゲームに戻る"
 	},
+	"passOffer": {
+		"title": "{days}日間すべてのゲーム",
+		"price": "{price}・1回払い・自動更新なし",
+		"cta": "{days}日間パスを購入",
+		"checkout": "{price}を1回支払う",
+		"free": "無料で遊び続ける",
+		"tomorrow": "また明日"
+	},
 	"offer": {
 		"resultTitle": "全{count}ゲームとアーカイブをプレイ",
 		"resultBody": "19種から毎日好きな3つのパズルを無料で遊べます。Tryit Plusなら、すべてのゲーム、過去の日のアーカイブ、各ゲームの統計をご利用いただけます。",
