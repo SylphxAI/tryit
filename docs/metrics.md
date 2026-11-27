@@ -78,6 +78,19 @@ Prefer server-emitted events over client analytics for finish counts. Client
 analytics may enrich funnels (time to first finish, rage clicks). Aggregate by
 default and keep raw events per the privacy policy.
 
+## Consent and the ad funnel
+
+Optional measurement (Google tags and the Signal stream, including the ad
+funnel stages `game_start`, `game_finish`, `plus_view`, `checkout_started`
+and `purchase`; [observability.md](observability.md#consented-signal-stream))
+needs a saved analytics grant and never runs under GPC. With consent denied,
+unanswered in the EEA, or GPC set, only these strictly necessary first-party
+aggregates are recorded: the anonymous `funnel_events` rows (no user id, IP or
+cookie; [observability.md](observability.md#first-party-funnel-counter)) and the
+server-side finish and revenue facts the product needs to operate
+(`game_sessions`, Money settlements). Ads are optimised on consented stages
+only; the gap to the first-party totals is the unconsented share, not loss.
+
 ## Stage targets
 
 Directional, not calendar commitments; recalibrate with live baselines and

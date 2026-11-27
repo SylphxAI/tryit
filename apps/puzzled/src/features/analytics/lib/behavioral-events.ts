@@ -2,6 +2,7 @@ import { canonicalizeGameSlug, PLAYER_TITLE } from '@/lib/game-slug'
 import { hasAnalyticsConsent } from './consent'
 import { sendFunnel } from './funnel'
 import { sendGa4Event } from './google-tag'
+import { trackGameFinishStage } from './signal-stages'
 
 const modes = ['daily', 'archive', 'practice'] as const
 const actions = ['copy_challenge', 'save_png', 'native_share'] as const
@@ -206,6 +207,11 @@ export function createGameBehavior(
 		complete(status: 'won' | 'lost', elapsedMs: number, pickIndex: number | null) {
 			if (terminal) return
 			terminal = true
+			try {
+				trackGameFinishStage(game_slug, mode, status)
+			} catch {
+				// Telemetry must not affect a finish.
+			}
 			const is_guest = isGuest()
 			if (is_guest === undefined) return
 			trackBehavioralEvent({
