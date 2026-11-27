@@ -687,7 +687,6 @@ test.describe('Home Play at 390px', () => {
 	const cookieHeader = `${cookie}; HttpOnly; Secure; Path=/`
 	const intent = (page: Page) =>
 		page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY)
-
 	async function fixture(page: Page, resume = false) {
 		const puzzleDate = productDayKey()
 		const starts: unknown[] = []
@@ -749,7 +748,7 @@ test.describe('Home Play at 390px', () => {
 		}
 	}
 	for (const mode of ['Ctrl', 'middle', '_blank'] as const) {
-		test(`cold ${mode} leaves no intent and opens only a start card`, async ({ page, context }) => {
+		test(`${mode} carries no Play intent`, async ({ page, context }) => {
 			const { starts, release } = await fixture(page)
 			release()
 			const play = await cold(page)
@@ -760,9 +759,12 @@ test.describe('Home Play at 390px', () => {
 				modifiers: mode === 'Ctrl' ? ['Control'] : [],
 			})
 			const tab = await next
-			await tab.bringToFront()
+			await expect(tab).toHaveURL(/[?&]start=1#play$/)
 			expect(await intent(page)).toBeNull()
-			await expect(tab.locator(card)).toBeEnabled({ timeout: 15_000 })
+			expect(await intent(tab)).toBeNull()
+			// Check the exact URL's passive card without racing popup RPC interception.
+			await page.goto(tab.url())
+			await expect(page.locator(card)).toBeEnabled()
 			expect(starts).toEqual([])
 		})
 	}
@@ -799,10 +801,9 @@ test.describe('Home Play at 390px', () => {
 				await page.reload()
 				await expect(page.locator(card)).toBeEnabled()
 				await page.goto('/games')
-				await page.evaluate(
-					([key, raw]) => sessionStorage.setItem(key, raw!),
-					[START_INTENT_KEY, raw],
-				)
+				const setIntent = ({ key, value }: { key: string; value: string }) =>
+					sessionStorage.setItem(key, value)
+				await page.evaluate(setIntent, { key: START_INTENT_KEY, value: raw! })
 				await page.goto(href)
 				const shared = await context.newPage()
 				await shared.goto(href.replace('#', '&utm_source=share#'))
@@ -816,7 +817,6 @@ test.describe('Home Play at 390px', () => {
 		})
 	}
 })
-
 function holdResponse(page: Page, url: string | RegExp, json?: unknown) {
 	const release = Promise.withResolvers<void>()
 	const requested = Promise.withResolvers<void>()
