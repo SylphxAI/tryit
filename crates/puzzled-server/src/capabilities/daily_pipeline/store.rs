@@ -1,7 +1,8 @@
-//! `daily_puzzles` SQL for the pipeline. Rows are only ever inserted; a
-//! stored puzzle is never replaced. `difficulty` is NULL for games without a
-//! difficulty choice, so matching uses `IS NOT DISTINCT FROM` (the unique
-//! index does not cover NULLs).
+//! `daily_puzzles` SQL for the pipeline. A stored puzzle is never replaced
+//! once anyone could have played it: only an unplayed future row made by a
+//! superseded generator is remade ([`replace_unplayed`]). `difficulty` is
+//! NULL for games without a difficulty choice, so matching uses
+//! `IS NOT DISTINCT FROM` (the unique index does not cover NULLs).
 
 use std::collections::HashSet;
 
@@ -116,4 +117,94 @@ pub async fn min_days_ahead(pool: &PgPool, today: NaiveDate, to: NaiveDate) -> R
         }
     }
     Ok(if min == i64::MAX { 0 } else { min })
+}
+
+/// A stored future row made by a superseded generator.
+#[derive(sqlx::FromRow)]
+pub struct StaleRow {
+    pub id: Uuid,
+    pub puzzle_date: NaiveDateTime,
+    pub difficulty: Option<String>,
+    pub seed: Option<i32>,
+    pub puzzle_data: Value,
+    pub solution: Option<Value>,
+}
+
+/// One game's rows made by `version`, dated after `today` up to `to`.
+pub async fn stale_future_rows(
+    pool: &PgPool,
+    game_slug: &str,
+    version: &str,
+    today: NaiveDate,
+    to: NaiveDate,
+) -> Result<Vec<StaleRow>, String> {
+    sqlx::query_as(
+        r#"SELECT id, puzzle_date, difficulty::text AS difficulty, seed, puzzle_data, solution
+           FROM daily_puzzles WHERE game_slug = $1 AND generator_version = $2
+             AND puzzle_date > $3 AND puzzle_date <= $4 ORDER BY puzzle_date, difficulty"#,
+    )
+    .bind(game_slug)
+    .bind(version)
+    .bind(midnight(today))
+    .bind(midnight(to))
+    .fetch_all(pool)
+    .await
+    .map_err(|e| format!("daily_puzzles stale scan failed: {e}"))
+}
+
+/// Why a stale row was or was not remade.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Refresh {
+    Replaced,
+    /// A session or free pick exists for the game and day.
+    RefusedPlayed,
+    /// The row's version or seed is not the one read.
+    RefusedChanged,
+}
+
+/// Remake one stale row in place (`puzzle_data`, `solution`,
+/// `generator_version`; id, seed and date stay) only while the row still has
+/// `old_version` and no session or free pick exists for its game and day. The
+/// row lock blocks a session that references it until this commits.
+pub async fn replace_unplayed(
+    pool: &PgPool,
+    row: &StaleRow,
+    old_version: &str,
+    generated: &Generated,
+) -> Result<Refresh, String> {
+    let fail = |e: sqlx::Error| format!("daily_puzzles refresh failed for {}: {e}", row.id);
+    let mut tx = pool.begin().await.map_err(fail)?;
+    // Lock the row (only if it still has `old_version`) and count its plays.
+    let counts: Option<(i64, i64)> = sqlx::query_as(
+        r#"SELECT
+             (SELECT count(*) FROM game_sessions
+               WHERE puzzle_id = p.id OR (game_slug = p.game_slug AND puzzle_date = p.puzzle_date)),
+             (SELECT count(*) FROM daily_free_picks
+               WHERE game_slug = p.game_slug AND day_key = p.puzzle_date::date)
+           FROM daily_puzzles p WHERE p.id = $1 AND p.generator_version = $2 FOR UPDATE OF p"#,
+    )
+    .bind(row.id)
+    .bind(old_version)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(fail)?;
+    let Some((sessions, picks)) = counts else {
+        return Ok(Refresh::RefusedChanged);
+    };
+    if sessions + picks > 0 {
+        return Ok(Refresh::RefusedPlayed);
+    }
+    sqlx::query(
+        "UPDATE daily_puzzles SET puzzle_data = $2, solution = $3, generator_version = $4
+         WHERE id = $1",
+    )
+    .bind(row.id)
+    .bind(&generated.puzzle_data)
+    .bind(&generated.solution)
+    .bind(generated.generator_version)
+    .execute(&mut *tx)
+    .await
+    .map_err(fail)?;
+    tx.commit().await.map_err(fail)?;
+    Ok(Refresh::Replaced)
 }
