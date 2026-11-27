@@ -104,9 +104,7 @@ export function HomeDailySection(props: {
 									<a
 										data-daily-picks={picks()}
 										class="picks-pill picks-pill-link"
-										href={href(
-											'/pricing?utm_source=tryit&utm_medium=picks_pill&entry_surface=picks_pill',
-										)}
+										href={href('/pricing?entry_surface=picks_pill')}
 									>
 										{pickSlots()}
 										{pickLabel()}

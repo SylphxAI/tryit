@@ -7,6 +7,7 @@ import catalogue from '../../../config/commercial/catalogue.json'
 import { frozenPuzzle } from '../src/games/test-fixtures'
 import type { PuzzleDifficulty } from '../src/games/types'
 import { isValidDayKey, productDayKey } from '../src/lib/product-day'
+import { fixtureToken } from './auth-fixture-facts'
 import { fixtureShareId } from './share-fixture-facts'
 
 const DIFFICULTIES = new Set<PuzzleDifficulty>(['easy', 'medium', 'hard'])
@@ -92,6 +93,28 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 					attempts: 1,
 					score: 37,
 				})
+			}
+			// Read-only facts for the first earned Plus prompt, with the Auth fixture member.
+			const fixtureMember = request.headers
+				.get('cookie')
+				?.split('; ')
+				.includes(`puzzled_session=${fixtureToken}`)
+			if (options.openPlans && fixtureMember && request.method === 'POST') {
+				if (url.pathname === '/puzzled.v1.GamificationService/GetStreakInfo') {
+					return Response.json({
+						info: {
+							currentStreak: 3,
+							maxStreak: 3,
+							totalGamesPlayed: 3,
+							playedDays: 3,
+							hasPlayedToday: true,
+							daysUntilNextFreeze: 4,
+						},
+					})
+				}
+				if (url.pathname === '/puzzled.v1.BillingService/GetSubscription') {
+					return Response.json({ salesOpen: true, entitled: false })
+				}
 			}
 			// Opt-in browser cap journey. The marker is a fixture-only cookie, never
 			// accepted as identity by the production API.

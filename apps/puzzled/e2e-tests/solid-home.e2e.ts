@@ -94,10 +94,7 @@ test('home mirrors the product day’s server picks and preserves localized navi
 	await page.reload()
 	const full = page.locator('a[data-daily-picks="3"]')
 	await expect(full).toHaveText('Hoy has usado 3 de tus 3 jugadas gratis')
-	await expect(full).toHaveAttribute(
-		'href',
-		'/es/pricing?utm_source=tryit&utm_medium=picks_pill&entry_surface=picks_pill',
-	)
+	await expect(full).toHaveAttribute('href', '/es/pricing?entry_surface=picks_pill')
 	await page.locator('#main-content a[href^="/es/games?category="]').first().click()
 	await expect(page).toHaveURL(/\/es\/games\?category=/)
 })

@@ -56,10 +56,7 @@ export function MilestonePrompt(props: {
 					{t('plus.offer.milestoneBody', { count: props.count })}
 				</p>
 				<a
-					href={localizedPath(
-						props.locale,
-						'/pricing?utm_source=tryit&utm_medium=milestone_prompt&entry_surface=milestone_prompt',
-					)}
+					href={localizedPath(props.locale, '/pricing?entry_surface=milestone_prompt')}
 					class="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-primary px-5 font-semibold text-primary-foreground"
 				>
 					{t('plus.unlock.cta')}
