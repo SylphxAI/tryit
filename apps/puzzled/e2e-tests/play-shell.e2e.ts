@@ -476,7 +476,7 @@ test('all 19 games show one rules dialog and introductory copy in zh-TW', async 
 })
 
 const fiveNoticeCases = [
-	['zh-HK', '英文單詞謎題', '拒絕'],
+	['zh-HK', '英文單詞謎題', '拒絕分析及廣告'],
 	['es', 'Juego de palabras en inglés', 'Rechazar'],
 	['pt-BR', 'Jogo de palavras em inglês', 'Recusar'],
 ] as const
@@ -752,20 +752,48 @@ test.describe('Home Play at 390px', () => {
 			const { starts, release } = await fixture(page)
 			release()
 			const play = await cold(page)
-			const href = new URL((await play.getAttribute('href'))!, page.url()).href
+			const from = page.url()
+			const href = new URL((await play.getAttribute('href'))!, from).href
 			expect(href).toMatch(/[?&]start=1#play$/)
 			if (mode === '_blank') await play.evaluate((a) => a.setAttribute('target', '_blank'))
-			const next = context.waitForEvent('page')
+			const tabs: string[] = []
+			context.on('page', (tab) => tabs.push(tab.url()))
+			// The capture listens on document, so window hears the same press after it. Cancel
+			// the new tab there: creating and loading it is the browser's job, not the app's.
+			const seen = await page.evaluateHandle(() => {
+				const events: unknown[] = []
+				for (const type of ['click', 'auxclick']) {
+					addEventListener(type, (e) => {
+						const { isTrusted, defaultPrevented, button, ctrlKey } = e as MouseEvent
+						const target = (e.target as Element).closest('a')?.target
+						events.push({ type, isTrusted, defaultPrevented, button, ctrlKey, target })
+						e.preventDefault()
+					})
+				}
+				return events
+			})
 			await play.click({
 				button: mode === 'middle' ? 'middle' : 'left',
 				modifiers: mode === 'Ctrl' ? ['Control'] : [],
 			})
-			// A new tab opened; its background load is the browser's, so visit the URL here.
-			await (await next).close()
+			// One trusted, uncancelled press reached the capture; only its button, key or target differ.
+			expect(await seen.jsonValue()).toEqual([
+				{
+					type: mode === 'middle' ? 'auxclick' : 'click',
+					isTrusted: true,
+					defaultPrevented: false,
+					button: mode === 'middle' ? 1 : 0,
+					ctrlKey: mode === 'Ctrl',
+					target: mode === '_blank' ? '_blank' : '',
+				},
+			])
+			expect(page.url()).toBe(from)
 			expect(await intent(page)).toBeNull()
-			await page.goto(href)
+			// The destination as the new tab would load it: referred by Home, with no recorded press.
+			await page.goto(href, { referer: from })
 			await expect(page.locator(card)).toBeEnabled()
 			expect(starts).toEqual([])
+			expect(tabs).toEqual([])
 		})
 	}
 	for (const mode of ['expired', 'storage blocked', 'reload/paste/share', 'resume']) {
