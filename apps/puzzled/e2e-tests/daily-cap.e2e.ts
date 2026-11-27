@@ -379,19 +379,29 @@ for (const viewport of [
 					(await lock.getByRole('link', { name: 'See Tryit Plus' }).getAttribute('href')) ??
 						'/pricing',
 				)
-				for (const price of prices)
-					await expect(
-						pricing.locator('#plus').getByText(price, { exact: true }).first(),
-					).toBeVisible()
-				const hero = lock.locator('[data-unlock-plan="individual_yearly"]')
-				const yearly = pricing.locator('#plus').getByRole('radio', { name: /^Yearly/ })
-				await expect(yearly).toBeChecked()
-				for (const pattern of [/Save \d+%/, /[^\s]+ a month/]) {
-					const chip = hero.getByText(pattern)
-					await expect(chip).toBeVisible()
-					const copy = (await chip.textContent()) ?? ''
-					await expect(pricing.locator('#plus').getByText(copy, { exact: true })).toBeVisible()
+				const plus = pricing.locator('#plus')
+				const offers = [
+					{ interval: 'year', cadence: 'billed yearly' },
+					{ interval: 'once', cadence: 'one time' },
+					{ interval: 'month', cadence: 'billed monthly' },
+				]
+				for (const [index, { interval, cadence }] of offers.entries()) {
+					const row = plus.locator(`input[value="${interval}"]`).locator('..')
+					const amount = prices[index].replace(/per (year|month)$/, '').trim()
+					await expect(row.getByText(amount, { exact: true })).toBeVisible()
+					await expect(row.getByText(cadence, { exact: true })).toBeVisible()
 				}
+				const hero = lock.locator('[data-unlock-plan="individual_yearly"]')
+				const yearly = plus.getByRole('radio', { name: /^Yearly/ })
+				await expect(yearly).toBeChecked()
+				const row = yearly.locator('..')
+				const saving = hero.getByText(/^Save \d+%$/)
+				await expect(saving).toBeVisible()
+				await expect(row.getByText(await saving.innerText(), { exact: true })).toBeVisible()
+				const equivalent = hero.getByText(/^[^\s]+ a month$/)
+				await expect(equivalent).toBeVisible()
+				const monthlyAmount = (await equivalent.innerText()).replace(/ a month$/, '')
+				await expect(row.getByText(`${monthlyAmount}/mo equivalent`, { exact: true })).toBeVisible()
 				await pricing.close()
 				await expect(lock.getByRole('link', { name: /^Resume:/ })).toHaveCount(2)
 				const hard = lock.getByRole('link', { name: 'Resume: Cage Sudoku' })
