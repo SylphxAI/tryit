@@ -20,7 +20,12 @@ async function loadFixture(): Promise<Fixture> {
 			logLevel: 'error',
 			resolve: { alias: { '@': fileURLToPath(new URL('../../../', import.meta.url)) } },
 			plugins: [solid],
-			build: { write: false, minify: false, lib: { entry, formats: ['es'], fileName: 'offer' } },
+			build: {
+				write: false,
+				minify: false,
+				lib: { entry, formats: ['es'], fileName: 'offer' },
+				rollupOptions: { output: { inlineDynamicImports: true } },
+			},
 		})
 		const output = (Array.isArray(result) ? result[0] : result) as { output: { code?: string }[] }
 		return output.output[0]?.code ?? ''
@@ -72,15 +77,17 @@ async function mount(day = today, offerInstall = true) {
 	const dispose = mountHomeInstallOffer(host, day)
 	const offer = () => host.querySelector<HTMLElement>('[data-home-install]')
 	const shown = () => !offer()?.hidden && !!offer()?.querySelector('[data-install-nudge]')
-	const play = (onScreen: boolean) => {
+	// The nudge loads lazily on first show; let that import settle.
+	const play = async (onScreen: boolean) => {
 		for (const report of reportPlay) report(onScreen)
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		return shown()
 	}
 	return { dispose, offer, shown, play }
 }
 async function shownOffScreenPlay(day = today, offerInstall = true) {
 	const offer = await mount(day, offerInstall)
-	const shown = offer.play(false)
+	const shown = await offer.play(false)
 	offer.dispose()
 	return shown
 }
@@ -88,9 +95,9 @@ async function shownOffScreenPlay(day = today, offerInstall = true) {
 test('a returning player sees the offer only while Play is off screen', async () => {
 	const { dispose, offer, shown, play } = await mount()
 	expect(shown()).toBe(false)
-	expect(play(false)).toBe(true)
+	expect(await play(false)).toBe(true)
 	expect(offer()?.querySelector('button')?.textContent).toContain('Install')
-	expect(play(true)).toBe(false)
+	expect(await play(true)).toBe(false)
 	offer()?.querySelector('button')?.click()
 	await new Promise((resolve) => setTimeout(resolve, 0))
 	dispose()
@@ -137,9 +144,9 @@ test('the first finish day and a stale or missing day key show nothing', async (
 
 test('dismissing is permanent, including the old dated value', async () => {
 	const { dispose, offer, play } = await mount()
-	play(false)
+	await play(false)
 	offer()?.querySelector<HTMLButtonElement>('button[aria-label]')?.click()
-	expect([play(false), localStorage.getItem(DISMISSED)]).toEqual([false, '1'])
+	expect([await play(false), localStorage.getItem(DISMISSED)]).toEqual([false, '1'])
 	dispose()
 	for (const value of ['1', '2026-09-01T00:00:00.000Z']) {
 		localStorage.setItem(DISMISSED, value)
@@ -150,10 +157,10 @@ test('dismissing is permanent, including the old dated value', async () => {
 test('the docked consent tray holds it back', async () => {
 	document.documentElement.setAttribute('data-consent-dock', '1')
 	const { dispose, play } = await mount()
-	expect(play(false)).toBe(false)
+	expect(await play(false)).toBe(false)
 	document.documentElement.removeAttribute('data-consent-dock')
 	await new Promise((resolve) => setTimeout(resolve, 0))
-	expect(play(false)).toBe(true)
+	expect(await play(false)).toBe(true)
 	dispose()
 })
 
