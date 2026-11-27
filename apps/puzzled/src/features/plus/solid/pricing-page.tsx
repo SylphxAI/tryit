@@ -54,6 +54,8 @@ function PricingBody({ data }: { data: PricingData }) {
 		translate(`plus.pricing.${key}`, { days: ARCHIVE_WINDOW_DAYS, ...values })
 	const tPlus = (key: string) => translate(`plus.${key}`)
 	const href = (path: string) => localizedPath(locale, path)
+	const freeExitHref = href(data.fromDailyUnlock ? '/games' : gamePath(freeSlug))
+	const backToToday = tPlus('unlock.backToToday')
 	const monthly = (family: boolean) =>
 		cards.find((card) => card.family === family && card.interval === 'month')
 	const yearly = (family: boolean) =>
@@ -146,11 +148,11 @@ function PricingBody({ data }: { data: PricingData }) {
 					lead={t('lead', { count: gameCount })}
 					actions={
 						<a
-							href={href(gamePath(freeSlug))}
+							href={freeExitHref}
 							class="pressable inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card px-5 font-semibold transition-colors hover:bg-muted"
 						>
 							<Play class="h-4 w-4" aria-hidden="true" />
-							{t('playFree', { game: freeName })}
+							{data.fromDailyUnlock ? backToToday : t('playFree', { game: freeName })}
 						</a>
 					}
 				/>
@@ -200,8 +202,8 @@ function PricingBody({ data }: { data: PricingData }) {
 					{t('familyLink', { count: familyMax })}
 				</a>
 			) : null}
-			<a href={href(gamePath(freeSlug))} class={styles.planLink}>
-				{t('notNowPlayFree')}
+			<a href={freeExitHref} class={styles.planLink}>
+				{data.fromDailyUnlock ? backToToday : t('notNowPlayFree')}
 			</a>
 		</div>
 	)

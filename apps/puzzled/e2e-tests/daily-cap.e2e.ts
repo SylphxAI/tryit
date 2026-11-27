@@ -123,6 +123,96 @@ async function fixture(
 	return { dayKey, started }
 }
 
+for (const { prefix, lang, backToToday } of [
+	{ prefix: '', lang: 'en-US', backToToday: 'Back to today’s games' },
+	{ prefix: '/zh-HK', lang: 'zh-HK', backToToday: '返回今日遊戲' },
+	{ prefix: '/ja', lang: 'ja', backToToday: '今日のゲームに戻る' },
+]) {
+	for (const viewport of [
+		{ width: 390, height: 844 },
+		{ width: 1440, height: 900 },
+	]) {
+		test(`pricing free exit at the cap: ${lang} ${viewport.width}px`, async ({
+			page,
+			context,
+			baseURL,
+		}) => {
+			const origin = new URL(baseURL ?? 'http://localhost:3000')
+			expect(['localhost', '127.0.0.1']).toContain(origin.hostname)
+			await page.setViewportSize(viewport)
+			await page.setExtraHTTPHeaders({ 'Accept-Language': lang })
+			const { started } = await fixture(page)
+			for (const pick of picks) started.add(pick)
+			await context.addCookies([
+				{
+					name: '__Host-puzzled_guest',
+					value: 'cap-fixture',
+					domain: origin.hostname,
+					path: '/',
+					secure: true,
+					httpOnly: true,
+				},
+			])
+			const writes: string[] = []
+			await page.route(
+				/\/puzzled\.v1\.(?:PuzzleService\/StartDaily|BillingService\/CreateCheckout)$/,
+				(route) => {
+					writes.push(route.request().url())
+					return route.abort()
+				},
+			)
+			const callback = `${prefix}/games/crowns`
+			const pricingUrl = `${prefix}/pricing?plan=individual_once&trigger=game_unlock&callbackUrl=${encodeURIComponent(callback)}#plus`
+			await page.goto(callback)
+			const lock = page.locator('[data-unlock-panel="picks"]')
+			await expect(lock.locator(`a[href^="${prefix}/games/number-path?start=1"]`)).toBeVisible()
+			await lock.locator('[data-pass-offer="pick_limit"] a').click()
+			await expect(page).toHaveURL(origin.origin + pricingUrl)
+			const exit = page.locator('#plus').getByRole('link', { name: backToToday, exact: true })
+			await expect(exit).toHaveAttribute('href', `${prefix}/games`)
+			await exit.click()
+			await expect(page).toHaveURL(`${origin.origin}${prefix}/games`)
+			await expect(page.locator('html')).toHaveAttribute('lang', lang)
+			await expect(page.locator('[data-game-stage], [data-unlock-panel]')).toHaveCount(0)
+			await page.locator('[data-game-tile="number-path"]').click()
+			await expect(page).toHaveURL(`${origin.origin}${prefix}/games/number-path`)
+			await expect(page.locator('[data-game-stage="board"] .play-board')).toBeVisible()
+			await expect(page.locator('[data-game-stage="start"], [data-unlock-panel]')).toHaveCount(0)
+			expect(writes).toEqual([])
+		})
+	}
+}
+
+test('generic pricing, archive and unrelated callbacks keep the fresh-guest free exit', async ({
+	page,
+	baseURL,
+}) => {
+	const origin = new URL(baseURL ?? 'http://localhost:3000')
+	expect(['localhost', '127.0.0.1']).toContain(origin.hostname)
+	await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US' })
+	await fixture(page)
+	const freeExit = page.getByRole('link', {
+		name: 'Not now — play 3 free puzzles of 19 daily',
+		exact: true,
+	})
+	await page.goto('/pricing')
+	const featured = await freeExit.getAttribute('href')
+	expect(featured).toMatch(/^\/games\/[^/?#]+$/)
+	for (const search of [
+		{ trigger: 'pricing_card', callbackUrl: '/games/crowns' },
+		{ trigger: 'game_unlock', callbackUrl: '/games/crowns?date=2026-01-01' },
+		{ trigger: 'game_unlock', callbackUrl: '/games/not-a-game' },
+		{ trigger: 'game_unlock', callbackUrl: '//example.invalid/games/crowns' },
+	]) {
+		await page.goto(`/pricing?${new URLSearchParams(search)}`)
+		await expect(freeExit).toHaveAttribute('href', featured ?? '')
+	}
+	await freeExit.click()
+	await expect(page).toHaveURL(origin.origin + featured)
+	await expect(page.locator('a[data-start-intent]').first()).toBeVisible()
+	await expect(page.locator('[data-unlock-panel]')).toHaveCount(0)
+})
+
 async function start(page: Page, path: string) {
 	await page.goto(path)
 	await page.locator('[data-game-stage="start"] button').click()

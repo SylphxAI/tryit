@@ -1,17 +1,19 @@
 import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
+import { PASS_OFFER_TRIGGER } from '@/features/plus-offer/lib/pass-offer'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
 import { PRACTICE_GAMES } from '@/features/practice/lib/practice'
 import { getAllGameMetadata } from '@/games/registry'
 import { readBillingPlans, requestBilling } from '@/lib/api/request-billing'
 import { showsCurrentPlan } from '@/lib/billing/plus'
 import { getTodaysFreeGame } from '@/lib/free-rotation'
-import { slugToCamelCase } from '@/lib/game-slug'
+import { gamePath, slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { safeCallbackPath } from '@/lib/identity/after-sign-up'
 import { requestUser } from '@/lib/identity/request-identity'
 import { withPresentationDeadline } from '@/lib/presentation-document'
 import { ogImagePath, pageMetadata } from '@/lib/seo/page-metadata'
+import { stripLocalePrefix } from '@/lib/seo/routes'
 import { canonicalSiteOrigin } from '@/lib/site-origin-request'
 import { siteShellData } from '@/shared/solid/site-shell-data'
 
@@ -25,7 +27,8 @@ export async function readPricingPage(
 	now = new Date(),
 ) {
 	const translate = createTranslator(locale)
-	const gameCount = getAllGameMetadata().length
+	const games = getAllGameMetadata()
+	const gameCount = games.length
 	const freeSlug = getTodaysFreeGame(now)
 	const t = (key: string, values?: Record<string, string | number>) =>
 		translate(`plus.pricing.${key}`, { days: ARCHIVE_WINDOW_DAYS, ...values })
@@ -49,6 +52,12 @@ export async function readPricingPage(
 			entrySurface: search.get('entry_surface') ?? undefined,
 			fallback,
 		})
+	// A daily unlock links back to a bare game path; archive unlocks include a date.
+	// Match a registered path exactly as a navigation hint, never as the exit URL.
+	const callbackPath = stripLocalePrefix(search.get('callbackUrl') ?? '')
+	const fromDailyUnlock =
+		search.get('trigger') === PASS_OFFER_TRIGGER.pick_limit &&
+		games.some(({ slug }) => callbackPath === gamePath(slug))
 	const familyMax = plans?.familyMaxMembers || 4
 	const meta = pageMetadata({
 		locale,
@@ -96,6 +105,7 @@ export async function readPricingPage(
 			familyMax,
 		}),
 		productJsonLd: pricingProductJsonLd(translate, meta, planState, cards),
+		fromDailyUnlock,
 	}
 }
 
