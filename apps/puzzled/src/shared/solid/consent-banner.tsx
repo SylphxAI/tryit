@@ -7,6 +7,20 @@ type Copy = SiteShellData['consent']
 const action =
 	'chrome-control border border-muted-foreground/70 bg-background px-1.5 text-xs sm:min-w-24 sm:px-3 sm:text-sm'
 
+/** Carry the reading position across a switch between window and shell scrolling. */
+function keepScroll(change: () => void) {
+	// The bar's ref runs before it is attached, so find the page's one shell now.
+	const shell = document.querySelector<HTMLElement>('.site-shell')
+	const inner = () => !!shell && getComputedStyle(shell).overflowY !== 'visible'
+	const before = inner()
+	const y = before && shell ? shell.scrollTop : window.scrollY
+	change()
+	const after = inner()
+	if (before === after || !shell) return
+	if (after) shell.scrollTop = y
+	else window.scrollTo(0, y)
+}
+
 function useCookieConsent() {
 	// Keep the server and initial hydration independent of visitor state.
 	const [state, setState] = createSignal<ReturnType<typeof cookieConsent>>()
@@ -42,14 +56,23 @@ export function ConsentBanner(props: { copy: Copy }) {
 	const state = useCookieConsent()
 	function reserve(bar: HTMLElement) {
 		const root = document.documentElement
+		const token = crypto.randomUUID()
 		const update = () =>
 			root.style.setProperty('--consent-bar-height', `${bar.getBoundingClientRect().height}px`)
 		const observer = new ResizeObserver(update)
 		observer.observe(bar)
-		update()
+		// While the tray is up the shell scrolls above it, so no card paints behind it.
+		keepScroll(() => {
+			root.dataset.consentDock = token
+			update()
+		})
 		onCleanup(() => {
 			observer.disconnect()
-			root.style.removeProperty('--consent-bar-height')
+			if (root.dataset.consentDock !== token) return
+			keepScroll(() => {
+				delete root.dataset.consentDock
+				root.style.removeProperty('--consent-bar-height')
+			})
 		})
 	}
 	return (
