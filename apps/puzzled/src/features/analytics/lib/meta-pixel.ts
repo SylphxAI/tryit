@@ -9,7 +9,7 @@
 import { canUseMeta } from './consent'
 
 const PIXEL_ID = /^\d{6,20}$/
-const ORDER_ID = /^[A-Za-z0-9_-]{1,128}$/
+const ORDER_ID = /^(?:pi|in)_[A-Za-z0-9_-]{1,125}$/
 export const META_PIXEL_SCRIPT = 'https://connect.facebook.net/en_US/fbevents.js'
 
 export function metaPixelId(source: { META_PIXEL_ID?: string }): string | null {
@@ -108,19 +108,11 @@ export function createMetaPixel({
 			return true
 		},
 		/**
-		 * The api's Money-settled receipt only; eventID is the order id. Interim:
-		 * only payment ids (`pi_`). A subscription receipt can be an invoice id
-		 * (`in_`) while Events sends the payment id, which would not dedupe, so
-		 * Events' Conversions API carries those alone.
+		 * Use the api's canonical Money receipt ID verbatim as eventID so Events'
+		 * server-side Purchase deduplicates; never use a checkout session ID.
 		 */
 		purchase({ orderId, value, currency }: MetaPurchase): boolean {
-			if (
-				!orderId.startsWith('pi_') ||
-				!ORDER_ID.test(orderId) ||
-				!Number.isFinite(value) ||
-				value <= 0
-			)
-				return false
+			if (!ORDER_ID.test(orderId) || !Number.isFinite(value) || value <= 0) return false
 			if (!/^[A-Z]{3}$/.test(currency) || purchased.has(orderId) || !sync()) return false
 			purchased.add(orderId)
 			fbq('track', 'Purchase', { value, currency }, { eventID: orderId })
