@@ -17,7 +17,7 @@
 //! - **Self-check:** before a puzzle is accepted, the game's own submission
 //!   validator must accept its solution (`self_check`).
 //! - **Versions:** every stored row records the generator that made it
-//!   ([`GENERATOR_V1`], [`GENERATOR_CROSSWORD_V2`]). A stored row is never
+//!   ([`GENERATOR_V1`], [`GENERATOR_CROSSWORD_V2`], [`GENERATOR_NONOGRAM_V2`]). A stored row is never
 //!   replaced, so each version keeps reproducing its own output; new rows use
 //!   the game's current version. [`generate_seeded`] is the V1 entry point.
 
@@ -60,12 +60,16 @@ pub const GENERATOR_V1: &str = "rust-v1";
 /// Crossword whose down clues describe the column words
 /// (`domain::crossword_v2`).
 pub const GENERATOR_CROSSWORD_V2: &str = "rust-crossword-v2";
+/// Nonogram whose clues line logic solves to exactly one grid
+/// (`nonogram::generate_line_solvable`).
+pub const GENERATOR_NONOGRAM_V2: &str = "rust-nonogram-v2";
 
 /// The generator version new rows of a game are made with.
 #[must_use]
 fn current_generator_version(game_slug: &str) -> &'static str {
     match super::domain::game_slugs::canonicalize_game_slug(game_slug) {
         "crossword" => GENERATOR_CROSSWORD_V2,
+        "nonogram" => GENERATOR_NONOGRAM_V2,
         _ => GENERATOR_V1,
     }
 }
@@ -133,6 +137,9 @@ fn generate_seeded_as(
         (GENERATOR_V1, _) => {}
         (GENERATOR_CROSSWORD_V2, "crossword") => {
             return Ok(generate_crossword_puzzle_v2(seed));
+        }
+        (GENERATOR_NONOGRAM_V2, "nonogram") => {
+            return nonogram::generate_line_solvable(seed, difficulty);
         }
         _ => return Err(format!("no generator version {version} for {slug}")),
     }
@@ -397,6 +404,20 @@ mod tests {
         // A version that does not belong to the game is refused.
         assert!(generate_seeded_as(GENERATOR_CROSSWORD_V2, "sudoku", 1, None).is_err());
         assert!(generate_seeded_as("rust-v0", "crossword", 1, None).is_err());
+    }
+
+    #[test]
+    fn new_nonogram_days_need_no_guess_and_v1_rows_still_reproduce() {
+        // 2026-11-27 medium: V1 served the Lightning, which has two solutions.
+        let day = NaiveDate::from_ymd_opt(2026, 11, 27).unwrap_or_default();
+        let made = generate("nonogram", day, Some("medium")).unwrap();
+        assert_eq!(made.generator_version, GENERATOR_NONOGRAM_V2);
+        let v1 = generate_seeded("nonogram", made.seed, Some("medium")).unwrap();
+        assert!(!nonogram::has_one_line_solution(
+            &serde_json::from_value::<Vec<Vec<bool>>>(v1.1["grid"].clone()).unwrap()
+        ));
+        assert_ne!(v1.1, made.solution);
+        assert!(generate_seeded_as(GENERATOR_NONOGRAM_V2, "sudoku", 1, None).is_err());
     }
 
     #[test]
