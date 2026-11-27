@@ -3,6 +3,7 @@
 	"pricing": {
 		"unavailableTitle": "Os planos do Tryit Plus estão temporariamente indisponíveis",
 		"unavailableBody": "Não conseguimos carregar os planos nem os preços. Tente novamente em instantes.",
+		"currencyPlanUnavailable": "Seu plano anterior não está disponível nesta moeda. Escolha um plano para continuar.",
 		"retryPlans": "Recarregar planos",
 		"metaTitle": "Tryit Plus: todos os jogos e os últimos {days} dias",
 		"metaDescription": "Jogue 3 jogos grátis por dia. O Tryit Plus libera todos os jogos e os desafios dos últimos {days} dias. Também há um plano família.",

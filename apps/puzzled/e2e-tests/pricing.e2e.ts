@@ -868,6 +868,125 @@ for (const mobile of [false, true]) {
 	})
 }
 
+test.describe('pricing currency switch keeps the chosen purchase', () => {
+	test.use({ serviceWorkers: 'block' })
+
+	test.beforeEach(async ({ page, context, baseURL }) => {
+		if (!baseURL || !['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname)) {
+			throw new Error('The loopback open-plan fixture URL is required')
+		}
+		const origin = new URL(baseURL).origin
+		await context.addCookies([{ name: CURRENCY_COOKIE, value: 'usd', url: origin }])
+		await page.addInitScript((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
+		await context.route('**/*', (route) =>
+			route.request().method() === 'GET' && new URL(route.request().url()).origin === origin
+				? route.continue()
+				: route.abort(),
+		)
+	})
+
+	async function switchToPounds(page: Page) {
+		const select = page.getByRole('combobox', { name: 'Currency', exact: true })
+		await expect(select).toHaveValue('usd')
+		const loaded = page.waitForEvent('domcontentloaded', { timeout: 10_000 })
+		await select.press('ArrowDown')
+		await loaded
+		await expect(select).toHaveValue('gbp')
+		return select
+	}
+
+	test('retains both Monthly selections, the localized quote, and keyboard focus', async ({
+		page,
+	}) => {
+		await page.setViewportSize(DESKTOP)
+		const original =
+			'/en-GB/pricing?plan=individual_once&trigger=practice_upsell&callbackUrl=%2Farchive&utm_medium=cpc#plus'
+		await page.goto(original)
+		const plus = page.locator('#plus')
+		const family = page.locator('#family')
+		await expect(plus.locator('input[value="once"]')).toBeChecked()
+		await plus.locator('input[value="month"]').check()
+		await family.locator('input[value="month"]').check()
+		const select = await switchToPounds(page)
+		await expect(plus.locator('input[value="month"]')).toBeChecked()
+		await expect(family.locator('input[value="month"]')).toBeChecked()
+		await expect(plus.getByText(/^Renews every month at £3\.99\b/)).toBeVisible()
+		await expect(family.getByText(/^Renews every month at £5\.99\b/)).toBeVisible()
+		await expect(plus.getByRole('button', { name: 'Start Tryit Plus' })).toHaveAttribute(
+			'data-checkout-trigger',
+			'practice_upsell',
+		)
+		const before = new URL(original, page.url())
+		const after = new URL(page.url())
+		expect(after.pathname).toBe(before.pathname)
+		expect(after.hash).toBe(before.hash)
+		for (const [key, value] of before.searchParams) expect(after.searchParams.get(key)).toBe(value)
+		await expect(select).toBeFocused()
+		await expect(select).toHaveCSS('outline-style', 'solid')
+		await expect(select).toBeInViewport()
+	})
+
+	for (const preset of [false, true]) {
+		test(`keeps the ${preset ? 'preset' : 'manually chosen'} pass but asks for fresh consent`, async ({
+			page,
+		}) => {
+			await page.setViewportSize(MOBILE)
+			const ready = page.waitForResponse('**/api/consent-context')
+			await page.goto(
+				`/pricing?${preset ? 'plan=individual_once&' : ''}entry_surface=seo_vs-wordle#plus`,
+			)
+			await ready
+			const plus = page.locator('#plus')
+			const pass = plus.locator('input[value="once"]')
+			const waiver = plus.getByRole('checkbox')
+			const pay = plus.getByRole('button', { name: 'Continue to payment' })
+			if (!preset) await pass.check()
+			await expect(pass).toBeChecked()
+			await expect(waiver).not.toBeChecked()
+			await expect(pay).toBeDisabled()
+			await waiver.check()
+			await expect(pay).toBeEnabled()
+			await switchToPounds(page)
+			await expect(pass).toBeChecked()
+			await expect(pass.locator('..')).toContainText('£2.99')
+			await expect(waiver).not.toBeChecked()
+			await expect(pay).toBeDisabled()
+			await waiver.check()
+			await expect(pay).toBeEnabled()
+		})
+	}
+
+	test('clears a missing plan rather than silently switching to Yearly', async ({
+		page,
+		context,
+	}) => {
+		await page.goto('/pricing?plan=family_monthly#family')
+		const family = page.locator('#family')
+		await expect(family.locator('input[value="month"]')).toBeChecked()
+		await context.addCookies([
+			{
+				name: '__Host-puzzled_guest',
+				value: 'pricing-catalogue-change',
+				domain: new URL(page.url()).hostname,
+				path: '/',
+				secure: true,
+			},
+		])
+		await switchToPounds(page)
+		await expect(family.locator('input[value="month"]')).toHaveCount(0)
+		await expect(family.locator('input[type="radio"]:checked')).toHaveCount(0)
+		await expect(family.getByRole('button', { name: 'Continue to payment' })).toHaveCount(0)
+		await expect(
+			page.getByText(
+				'Your previous plan isn’t available in this currency. Choose a plan to continue.',
+				{ exact: true },
+			),
+		).toBeVisible()
+		await family.locator('input[value="year"]').check()
+		await expect(family.getByRole('button', { name: 'Continue to payment' })).toBeEnabled()
+	})
+})
+
 test('zh-TW pricing starts in TWD despite geo and preserves the currency switcher override', async ({
 	page,
 	context,

@@ -80,12 +80,11 @@ default and keep raw events per the privacy policy.
 
 ## Consent and the ad funnel
 
-Optional measurement (Google tags and the Signal stream, including the ad
-funnel stages `game_start`, `game_finish`, `plus_view`, `checkout_started`
-and `purchase`; [observability.md](observability.md#consented-signal-stream))
-needs a saved analytics grant and never runs under GPC. With consent denied,
-unanswered in the EEA, or GPC set, only these strictly necessary first-party
-aggregates are recorded: the anonymous `funnel_events` rows (no user id, IP or
+Optional measurement follows regional consent rules and never runs under GPC.
+[Browser Signal](observability.md#consented-signal-stream) defaults on only in
+supported opt-out markets; elsewhere it requires a saved analytics grant.
+With consent denied, unanswered in an opt-in region, or GPC set, only these
+strictly necessary first-party aggregates are recorded: the anonymous `funnel_events` rows (no user id, IP or
 cookie; [observability.md](observability.md#first-party-funnel-counter)) and the
 server-side finish and revenue facts the product needs to operate
 (`game_sessions`, Money settlements). Ads are optimised on consented stages

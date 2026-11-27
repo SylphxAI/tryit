@@ -7,7 +7,12 @@ import {
 import { CONSENT_KEY, CONSENT_VERSION_KEY, SIGNAL_STORAGE_KEY } from '@/lib/storage-keys'
 
 export type SignalStream = { apiKey: string; baseUrl: string }
-export type ConsentContext = { region: 'EEA' | 'ROW'; gpc: boolean; stream?: SignalStream }
+export type ConsentContext = {
+	region: 'EEA' | 'ROW'
+	gpc: boolean
+	optOutMarket?: boolean
+	stream?: SignalStream
+}
 const EVENT = 'consent-change'
 const TOUCH_KEY = `${SIGNAL_STORAGE_KEY}.touch`
 export const CHECKOUT_QUOTE_KEY = 'puzzled:ads:checkout-quote'
@@ -54,6 +59,7 @@ export function cookieConsent() {
 		marketing: signals.ad_storage === 'granted',
 		unanswered: choice === null && !localDenial,
 		explicit: choice === 'granted' || choice === 'analytics_only',
+		optOutMarket: context?.region === 'ROW' && context.optOutMarket === true,
 	}
 }
 
@@ -154,6 +160,10 @@ function captureLanding() {
 	}
 }
 
+function canIngestSignal(consent = cookieConsent()): boolean {
+	return consent.analytics && (consent.explicit || consent.optOutMarket)
+}
+
 function syncBrowser() {
 	const consent = cookieConsent()
 	// A refusal or GPC discards the remembered landing; nothing was persisted.
@@ -169,9 +179,8 @@ function syncBrowser() {
 		}
 		return
 	}
-	// Keep the existing ROW checkout attribution default. Only configure
-	// ingestion after a real saved choice; EEA never initializes pre-grant.
-	const stream = consent.explicit ? context.stream : undefined
+	// Checkout can still capture a touch without enabling browser ingestion.
+	const stream = canIngestSignal(consent) ? context.stream : undefined
 	if (browser && Boolean(session) !== Boolean(stream)) resetBrowser()
 	if (browser) return
 	const id = stream ? uuidv7() : undefined
@@ -186,9 +195,7 @@ function syncBrowser() {
 						sessionId: id,
 						distinctId: id,
 						fetch: ((input, init) => {
-							const current = cookieConsent()
-							if (!current.analytics || !current.explicit)
-								return Promise.reject(new Error('Signal consent unavailable'))
+							if (!canIngestSignal()) return Promise.reject(new Error('Signal consent unavailable'))
 							return fetch(input, { ...init, signal: AbortSignal.timeout(10_000) })
 						}) as typeof fetch,
 					}
@@ -252,8 +259,7 @@ export function trackSignalPage(path: string | null): void {
 }
 
 /**
- * A funnel stage on the same opt-in stream as page views: nothing is sent
- * without a saved analytics grant, in EEA before a choice, or under GPC.
+ * A funnel stage uses the same Signal consent gate as page views.
  * Callers pass already-allowlisted properties (see signal-stages.ts).
  */
 export function trackSignalEvent(

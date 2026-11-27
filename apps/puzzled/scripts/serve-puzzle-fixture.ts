@@ -59,6 +59,42 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 		async fetch(request: Request) {
 			const url = new URL(request.url)
 			if (url.pathname === '/healthz') return new Response('ok')
+			const cookies = request.headers.get('cookie')?.split('; ') ?? []
+			// The completed-set browser case uses a fixture-issued guest marker.
+			// Admit it for play progress, never for the account-only billing read.
+			const completedSet = cookies.includes('__Host-puzzled_guest=completed-set-fixture')
+			const noPassPrice = cookies.includes('__Host-puzzled_guest=no-pass-price-fixture')
+			if ((completedSet || noPassPrice) && request.method === 'POST') {
+				const dayKey = productDayKey()
+				const gameSlugs = ['crowns', 'number-path', 'sudoku']
+				switch (url.pathname) {
+					case '/puzzled.v1.PuzzleService/GetDaily':
+						return Response.json({
+							gameSlug: 'sudoku',
+							puzzleDate: dayKey,
+							hasCompleted: true,
+							canPlay: false,
+							completedSession: { status: 'won', attempts: 1, score: 900, timeSpentMs: '78098' },
+						})
+					case '/puzzled.v1.PuzzleService/GetTodayProgress':
+						return Response.json({
+							dayKey,
+							freePicks: { gameSlugs },
+							games: gameSlugs.map((gameSlug) => ({ gameSlug, hasCompleted: true })),
+						})
+					case '/puzzled.v1.BillingService/GetSubscription':
+						return connectError(401, 'unauthenticated', 'identity_required')
+					case '/puzzled.v1.BillingService/ListPlans':
+						return Response.json(
+							noPassPrice
+								? {
+										...OPEN_PLANS,
+										plans: OPEN_PLANS.plans.filter((plan) => plan.id !== 'individual_once'),
+									}
+								: OPEN_PLANS,
+						)
+				}
+			}
 			if (url.pathname === '/v1/guest/session' && request.method === 'POST') {
 				return Response.json({ issued: true })
 			}
@@ -70,11 +106,19 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 			}
 			if (url.pathname === '/puzzled.v1.BillingService/ListPlans' && request.method === 'POST') {
 				// readUnlockPrices runs on the server; opt in only the test's guest context.
-				const cookies = request.headers.get('cookie')?.split('; ')
-				if (cookies?.includes('__Host-puzzled_guest=first-finish-fixture')) {
+				if (cookies.includes('__Host-puzzled_guest=first-finish-fixture')) {
 					const prices = [{ currency: 'eur', unitAmountMinor: '299' }]
 					const plans = [{ id: 'individual_once', accessDays: 3, prices }]
 					return Response.json({ salesOpen: true, plans })
+				}
+				if (
+					options.openPlans &&
+					cookies?.includes('__Host-puzzled_guest=pricing-catalogue-change')
+				) {
+					return Response.json({
+						...OPEN_PLANS,
+						plans: OPEN_PLANS.plans.filter((plan) => plan.id !== 'family_monthly'),
+					})
 				}
 				if (options.openPlans) return Response.json(OPEN_PLANS)
 			}

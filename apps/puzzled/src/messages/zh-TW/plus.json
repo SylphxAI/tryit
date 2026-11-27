@@ -2,6 +2,7 @@
 	"pricing": {
 		"unavailableTitle": "Tryit Plus 方案暫時無法顯示",
 		"unavailableBody": "無法載入方案和價格，請稍後再試。",
+		"currencyPlanUnavailable": "先前選擇的方案不支援此幣別。請選擇方案後繼續。",
 		"retryPlans": "重新載入方案",
 		"metaTitle": "Tryit Plus：全部遊戲與過去 {days} 天的題目",
 		"metaDescription": "每天任選 3 款遊戲免費玩。Tryit Plus 開放全部遊戲和過去 {days} 天的題目，另有家庭方案。",

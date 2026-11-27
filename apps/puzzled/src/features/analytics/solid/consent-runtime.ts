@@ -170,7 +170,12 @@ export function ConsentRuntime() {
 					typeof raw?.apiKey === 'string' && typeof raw.baseUrl === 'string'
 						? { apiKey: raw.apiKey, baseUrl: raw.baseUrl }
 						: undefined
-				setConsentContext({ region, gpc: data.gpc, stream })
+				setConsentContext({
+					region,
+					gpc: data.gpc,
+					optOutMarket: data.optOutMarket === true,
+					stream,
+				})
 				ready = true
 			} catch {
 				// If the HTTP privacy signal could not be read, leave measurement off.
