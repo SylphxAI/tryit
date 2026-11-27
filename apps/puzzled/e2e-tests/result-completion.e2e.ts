@@ -4,6 +4,7 @@ import { expect, type Page, test } from '@playwright/test'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import { fixtureShareId } from '../scripts/share-fixture-facts'
 import { freeGameForDayKey } from '../src/lib/free-rotation'
+import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
 import { WCAG_TAGS } from './a11y-support'
 
@@ -480,10 +481,13 @@ for (const viewport of [
 					await expect(dialog.locator('.result-steps > span')).toHaveCount(3)
 					await expect(dialog.locator('.result-steps [data-filled]')).toHaveCount(1)
 					const playNext = dialog.getByRole('link', { name: /^Play next:/ })
+					// The rotation picks the next game by product day; its link uses the
+					// public path (word-groups is /games/quartet) and the internal intent.
 					await expect(playNext).toHaveAttribute(
 						'href',
-						new RegExp(`/games/${next}\\?.*start=1#play$`),
+						new RegExp(`^${gamePath(next)}\\?.*start=1#play$`),
 					)
+					await expect(playNext).toHaveAttribute('data-start-intent', next)
 					await expect(dialog.getByRole('link', { name: 'All games' })).toHaveAttribute(
 						'href',
 						'/games',
@@ -589,7 +593,7 @@ for (const viewport of [
 						const started = page.waitForRequest((request) => request.url().endsWith('/StartDaily'))
 						await playNext.click()
 						expect((await started).postDataJSON()).toMatchObject({ gameSlug: next })
-						await expect(page).toHaveURL(new RegExp(`/games/${next}\\?.*start=1#play$`))
+						await expect(page).toHaveURL(new RegExp(`${gamePath(next)}\\?.*start=1#play$`))
 					}
 				},
 			)
