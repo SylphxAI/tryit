@@ -1,12 +1,12 @@
 /** @jsxImportSource solid-js */
 
 import { Check, Play } from 'lucide-solid'
-import { For } from 'solid-js'
+import { createSignal, For, Show } from 'solid-js'
 import { ARCHIVE_WINDOW_DAYS } from '@/features/daily/lib/archive-days'
 import { MarketingFaq } from '@/features/marketing/solid/marketing-faq'
 import { MarketingHero } from '@/features/marketing/solid/marketing-hero'
 import { MarketingSection } from '@/features/marketing/solid/marketing-section'
-import { formatPrice } from '@/lib/billing/plus'
+import { formatPrice, type PlanCard } from '@/lib/billing/plus'
 import { gamePath } from '@/lib/game-slug'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -44,6 +44,7 @@ function PricingBody({ data }: { data: PricingData }) {
 		signedIn,
 		checkout,
 		plan,
+		currencySwitch,
 		callbackUrl,
 		plusCheckoutTrigger,
 		familyCheckoutTrigger,
@@ -72,6 +73,40 @@ function PricingBody({ data }: { data: PricingData }) {
 	const plusMonth = monthly(false)
 	const familyYear = yearly(true)
 	const familyMonth = monthly(true)
+	const initial = (family: boolean, fallback: PlanCard | undefined) => {
+		if (!currencySwitch)
+			return cards.find((card) => card.family === family && card.id === plan) ?? fallback
+		if (currencySwitch.currency !== currency) return undefined
+		const id = family ? currencySwitch.family : currencySwitch.plus
+		return cards.find(
+			(card) =>
+				card.family === family && card.id === id && card.currency === currencySwitch.currency,
+		)
+	}
+	const initialPlus = plusMember ? undefined : initial(false, plusYear ?? plusMonth ?? plusOnce)
+	const initialFamily = initial(true, familyYear ?? familyMonth)
+	let plusChoice = initialPlus
+	let familyChoice = initialFamily
+	const [plusUnavailable, setPlusUnavailable] = createSignal(
+		Boolean(!plusMember && currencySwitch?.plus && !initialPlus),
+	)
+	const [familyUnavailable, setFamilyUnavailable] = createSignal(
+		Boolean(currencySwitch?.family && !initialFamily),
+	)
+	const rememberSelections = (nextCurrency: string, focused: boolean) => {
+		// Carry only plan identities, never prices, consent, or checkout state.
+		const url = new URL(window.location.href)
+		url.searchParams.set('quoteCurrency', nextCurrency)
+		url.searchParams.set('plusPlan', plusChoice?.id ?? '')
+		url.searchParams.set('familyPlan', familyChoice?.id ?? '')
+		window.history.replaceState({ ...window.history.state, pricingCurrencyFocus: focused }, '', url)
+	}
+	const restoreCurrencyFocus = () => {
+		if (!currencySwitch || !window.history.state?.pricingCurrencyFocus) return false
+		const { pricingCurrencyFocus: _, ...state } = window.history.state
+		window.history.replaceState(state, '')
+		return true
+	}
 	const memberButtonClass = [
 		'pressable inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full',
 		'bg-primary px-5 font-semibold text-primary-foreground transition-colors hover:bg-primary-hover',
@@ -181,7 +216,13 @@ function PricingBody({ data }: { data: PricingData }) {
 				) : null}
 				<div class={styles.intro}>
 					<div class={styles.currencyRow}>
-						<CurrencySwitcher locale={locale} currencies={currencies} current={currency} />
+						<CurrencySwitcher
+							locale={locale}
+							currencies={currencies}
+							current={currency}
+							beforeReload={rememberSelections}
+							restoreFocus={restoreCurrencyFocus}
+						/>
 						{locale === 'ja' ? (
 							<a
 								href={href('/tokushoho')}
@@ -201,6 +242,11 @@ function PricingBody({ data }: { data: PricingData }) {
 						{t('title')}
 					</h1>
 				</div>
+				<Show when={plusUnavailable() || familyUnavailable()}>
+					<output class="mb-3 block rounded-xl bg-muted px-4 py-3 text-sm">
+						{t('currencyPlanUnavailable')}
+					</output>
+				</Show>
 				<div class={styles.tray}>
 					{plusMember ? (
 						<div id="plus" class={cn('scroll-mt-24', styles.offer)}>
@@ -224,7 +270,11 @@ function PricingBody({ data }: { data: PricingData }) {
 							features={includes(false)}
 							radioName="plus-interval"
 							returnAnchor="plus"
-							initialPlan={plan}
+							initialPlan={initialPlus?.id ?? null}
+							onPlanChange={(card) => {
+								plusChoice = card
+								setPlusUnavailable(false)
+							}}
 							callbackUrl={callbackUrl}
 							checkoutTrigger={plusCheckoutTrigger}
 							once={plusOnce}
@@ -246,7 +296,11 @@ function PricingBody({ data }: { data: PricingData }) {
 							features={includes(true)}
 							radioName="family-interval"
 							returnAnchor="family"
-							initialPlan={plan}
+							initialPlan={initialFamily?.id ?? null}
+							onPlanChange={(card) => {
+								familyChoice = card
+								setFamilyUnavailable(false)
+							}}
 							callbackUrl={callbackUrl}
 							checkoutTrigger={familyCheckoutTrigger}
 							yearly={familyYear}

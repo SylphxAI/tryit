@@ -3,6 +3,7 @@
 	"pricing": {
 		"unavailableTitle": "現在、Tryit Plusのプランを表示できません",
 		"unavailableBody": "プランと料金を読み込めませんでした。しばらくしてからもう一度お試しください。",
+		"currencyPlanUnavailable": "以前選んだプランはこの通貨では利用できません。続けるにはプランを選んでください。",
 		"retryPlans": "プランを再読み込み",
 		"metaTitle": "Tryit Plus：全ゲームと過去{days}日分のパズル",
 		"metaDescription": "毎日、好きなゲームを3つ無料で遊べます。Tryit Plusなら全ゲームと過去{days}日分のパズルが遊べます。ファミリープランもあります。",

@@ -76,6 +76,15 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 					const plans = [{ id: 'individual_once', accessDays: 3, prices }]
 					return Response.json({ salesOpen: true, plans })
 				}
+				if (
+					options.openPlans &&
+					cookies?.includes('__Host-puzzled_guest=pricing-catalogue-change')
+				) {
+					return Response.json({
+						...OPEN_PLANS,
+						plans: OPEN_PLANS.plans.filter((plan) => plan.id !== 'family_monthly'),
+					})
+				}
 				if (options.openPlans) return Response.json(OPEN_PLANS)
 			}
 			if (

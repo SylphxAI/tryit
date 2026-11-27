@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { ChevronDown } from 'lucide-solid'
-import { createUniqueId, For, Show } from 'solid-js'
+import { createUniqueId, For, onMount, Show } from 'solid-js'
 import { currencyOptionLabel, serializeCurrencyCookie } from '@/lib/billing/currency'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -13,6 +13,8 @@ type Props = {
 	current: string
 	/** Compact inline selector for tight above-the-fold unlock cards. */
 	compact?: boolean
+	beforeReload?: (code: string, focused: boolean) => void
+	restoreFocus?: () => boolean
 }
 
 /**
@@ -24,10 +26,16 @@ export function CurrencySwitcher(props: Props) {
 	const t = createTranslator(props.locale)
 	const selectId = createUniqueId()
 
+	let select: HTMLSelectElement | undefined
+	onMount(() => {
+		if (props.restoreFocus?.() && document.activeElement === document.body) select?.focus()
+	})
+
 	const choose = (code: string) => {
 		if (!props.currencies.includes(code) || code === props.current) return
 		// biome-ignore lint/suspicious/noDocumentCookie: strictly necessary preference; the server reads it to render prices
 		document.cookie = serializeCurrencyCookie(code, window.location.protocol === 'https:')
+		props.beforeReload?.(code, select === document.activeElement)
 		window.location.reload()
 	}
 
@@ -49,6 +57,7 @@ export function CurrencySwitcher(props: Props) {
 				</label>
 				<div class="relative min-w-0 max-w-full">
 					<select
+						ref={select}
 						id={selectId}
 						value={props.current}
 						onChange={(event) => choose(event.currentTarget.value)}
