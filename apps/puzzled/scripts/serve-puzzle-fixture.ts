@@ -120,6 +120,12 @@ export function createPuzzleFixtureServer(port = 8787, options: { openPlans?: bo
 						plans: OPEN_PLANS.plans.filter((plan) => plan.id !== 'family_monthly'),
 					})
 				}
+				if (options.openPlans && cookies.includes('__Host-puzzled_guest=archive-no-pass')) {
+					return Response.json({
+						...OPEN_PLANS,
+						plans: OPEN_PLANS.plans.filter(({ id }) => id !== 'individual_once'),
+					})
+				}
 				if (options.openPlans) return Response.json(OPEN_PLANS)
 			}
 			if (
