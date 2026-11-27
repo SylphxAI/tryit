@@ -76,6 +76,7 @@ export function SubscribeButton(props: Props) {
 					<input
 						ref={waiverInput}
 						type="checkbox"
+						autocomplete={props.pricingPage ? 'off' : undefined}
 						class="mt-0.5 h-5 w-5 shrink-0 accent-primary"
 						onChange={(event) => setConsent(event.currentTarget.checked)}
 					/>

@@ -77,6 +77,13 @@ export async function readPricingPage(
 		signedIn: Boolean(viewer),
 		checkout: search.get('checkout'),
 		plan: search.get('plan') ?? undefined,
+		currencySwitch: search.has('quoteCurrency')
+			? {
+					currency: search.get('quoteCurrency'),
+					plus: search.get('plusPlan'),
+					family: search.get('familyPlan'),
+				}
+			: undefined,
 		callbackUrl: safeCallbackPath(search.get('callbackUrl')) ?? undefined,
 		plusCheckoutTrigger: trigger('pricing_card'),
 		familyCheckoutTrigger: trigger('pricing_family_card'),

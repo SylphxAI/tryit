@@ -37,7 +37,9 @@ type Props = {
 	locale: Locale
 	signedIn: boolean
 	subscribed: boolean
-	initialPlan?: string
+	/** null explicitly starts with no purchase selected. */
+	initialPlan?: string | null
+	onPlanChange?: (card: PlanCard) => void
 	/** Safe post-checkout return destination (e.g. from GameUnlockPanel). */
 	callbackUrl?: string
 	/** Distinct surface trigger label attributed on GA4 `begin_checkout`. */
@@ -67,9 +69,13 @@ export function PlusOffer(props: Props) {
 		[props.once, props.yearly, props.monthly].filter((card): card is PlanCard => Boolean(card)),
 	)
 	const defaultInterval = () =>
-		options().find((card) => card.id === props.initialPlan)?.interval ??
-		(props.yearly ? 'year' : props.monthly ? 'month' : 'once')
-	const [interval, setInterval] = createSignal<PlanCard['interval']>(defaultInterval())
+		props.initialPlan === null
+			? undefined
+			: (options().find((card) => card.id === props.initialPlan)?.interval ??
+				props.yearly?.interval ??
+				props.monthly?.interval ??
+				props.once?.interval)
+	const [interval, setInterval] = createSignal(defaultInterval())
 	createEffect(() => setInterval(defaultInterval()))
 	onMount(() => trackPlusViewStage(props.checkoutTrigger))
 	const current = createMemo(() => options().find((card) => card.interval === interval()))
@@ -91,7 +97,7 @@ export function PlusOffer(props: Props) {
 		) : null
 
 	return (
-		<Show when={current()}>
+		<Show when={options().length > 0}>
 			<div id={props.id} data-checkout-surface="" class={cn('scroll-mt-24', styles.offer)}>
 				{!props.compact ? props.headerSlot : null}
 				<div
@@ -139,10 +145,14 @@ export function PlusOffer(props: Props) {
 									>
 										<input
 											type="radio"
+											autocomplete={props.pricingPage ? 'off' : undefined}
 											name={props.radioName}
 											value={card.interval}
 											checked={checked()}
-											onChange={() => setInterval(card.interval)}
+											onChange={() => {
+												setInterval(card.interval)
+												props.onPlanChange?.(card)
+											}}
 											class="h-5 w-5 shrink-0 accent-primary"
 										/>
 										<span class="min-w-0 flex-1">

@@ -3,6 +3,7 @@
 	"pricing": {
 		"unavailableTitle": "Tryit Plus plans are temporarily unavailable",
 		"unavailableBody": "We couldn’t load plans or prices. Try again in a moment.",
+		"currencyPlanUnavailable": "Your previous plan isn’t available in this currency. Choose a plan to continue.",
 		"retryPlans": "Reload plans",
 		"metaTitle": "Tryit Plus: every game and the past {days} days",
 		"metaDescription": "Play any 3 games free every day. Tryit Plus unlocks every game and the past {days} days of puzzles, with a family plan available.",
