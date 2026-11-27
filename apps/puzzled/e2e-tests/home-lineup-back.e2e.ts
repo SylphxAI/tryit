@@ -113,40 +113,71 @@ for (const width of [1440, 390]) {
 	})
 }
 
-test('a modified card click and a pasted play URL both wait for Play', async ({
+test('a trusted modified card press leaves Home and Play intent untouched', async ({
 	page,
-	context,
 	baseURL,
 }) => {
 	const starts = await guardPlay(page, new URL(baseURL!).origin)
 	await page.clock.install()
 	await openHome(page, false)
+	const home = page.url()
 	const card = lastCard(page)
-	const target = new URL((await card.getAttribute('href'))!, baseURL!).href
+	const target = new URL((await card.getAttribute('href'))!, home).href
 	const freeze = new Date(await page.evaluate(() => Date.now() + 10_000))
 	await page.clock.pauseAt(freeze)
 	const original = await page.evaluate(() => history.state)
 	await card.evaluate((el) => el.scrollIntoView({ block: 'center' }))
 	const point = await cardPoint(card)
 	expect(point.hit).toBe(true)
-	const opened = context.waitForEvent('page')
+	// The shell and document handlers see the trusted press before window does.
+	// Cancel only the browser's new-tab default here; CI need not load a background tab.
+	const observed = await page.evaluateHandle(() => {
+		const presses: unknown[] = []
+		window.addEventListener(
+			'click',
+			(event) => {
+				const { isTrusted, button, ctrlKey, defaultPrevented } = event
+				const href = (event.target as Element).closest<HTMLAnchorElement>('a')?.href
+				presses.push({ isTrusted, button, ctrlKey, defaultPrevented, href })
+				event.preventDefault()
+			},
+			{ once: true },
+		)
+		return presses
+	})
 	await page.keyboard.down('Control')
 	await page.mouse.click(point.x, point.y)
 	await page.keyboard.up('Control')
-	const tab = await opened
+	expect(await observed.jsonValue()).toEqual([
+		{ isTrusted: true, button: 0, ctrlKey: true, defaultPrevented: false, href: target },
+	])
 	expect(await page.evaluate(() => history.state)).toEqual(original)
+	expect(await page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY)).toBeNull()
 	await page.clock.resume()
-	await expect(page).toHaveURL(new URL('/', baseURL!).href)
-	await expect(tab).toHaveURL(target)
-	await expect(
-		tab.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' }),
-	).toBeEnabled()
-	await page.goto(target)
-	await expect(
-		page.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' }),
-	).toBeEnabled()
+	await expect(page).toHaveURL(home)
+
+	// Model the new tab's destination and referrer without depending on popup startup.
+	await page.goto(target, { referer: home })
+	await expectPlayWithoutStart(page, target)
 	expect(starts).toEqual([])
 })
+
+test('a pasted lineup URL keeps the #play target but waits for Play', async ({ page, baseURL }) => {
+	const starts = await guardPlay(page, new URL(baseURL!).origin)
+	await openHome(page, false)
+	const target = new URL((await lastCard(page).getAttribute('href'))!, page.url()).href
+	await page.goto(target)
+	await expectPlayWithoutStart(page, target)
+	expect(starts).toEqual([])
+})
+
+async function expectPlayWithoutStart(page: Page, target: string) {
+	expect(new URL(target).hash).toBe('#play')
+	await expect(page).toHaveURL(target)
+	await expect(
+		page.locator('#play [data-game-stage="start"]').getByRole('button', { name: 'Play' }),
+	).toBeEnabled()
+}
 
 test('ordinary navigation home does not restore the departed lineup position', async ({
 	page,
