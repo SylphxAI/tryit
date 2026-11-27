@@ -37,6 +37,12 @@ export function progressCredentialCookies(headers: Headers): string[] {
 		.map(({ pair }) => pair)
 }
 
+/** A single browser guest credential candidate; the puzzle API owns validation. */
+export function hasGuestProgressCookie(headers: Headers): boolean {
+	const guests = cookieParts(headers.get('cookie')).filter(({ name }) => name === GUEST_COOKIE)
+	return guests.length === 1 && Boolean(guests[0]?.value)
+}
+
 export function hasProgressCookie(headers: Headers): boolean {
 	return cookieParts(headers.get('cookie')).some(
 		({ name, value }) => isProgressCookie(name) && !!value,

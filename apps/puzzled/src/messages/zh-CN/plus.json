@@ -94,6 +94,13 @@
 		"keep": "你已完成的题目会一直保留在统计中。",
 		"backToToday": "返回今日游戏"
 	},
+	"passOffer": {
+		"title": "{days} 天畅玩全部游戏",
+		"price": "{price} 一次性 · 不会续费",
+		"cta": "查看 {days} 天通行证",
+		"free": "继续免费玩",
+		"tomorrow": "明天再来"
+	},
 	"offer": {
 		"resultTitle": "畅玩全部 {count} 款游戏和往日题库",
 		"resultBody": "19 款谜题每天任选 3 款免费。Tryit Plus 开放每款游戏、往日题库，以及每款游戏的统计。",

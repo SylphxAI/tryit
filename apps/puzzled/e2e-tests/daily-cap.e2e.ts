@@ -7,6 +7,7 @@ import {
 	PWA_PROMPT_DISMISSED_KEY,
 	SAVE_STREAK_DISMISSED_DAY_KEY,
 } from '../src/lib/storage-keys'
+import { passReference } from './pass-offer-support'
 
 const picks = ['number-path', 'killer-sudoku', 'sudoku']
 const sudoku = Array.from({ length: 9 }, (_, r) =>
@@ -19,7 +20,10 @@ const installTitle = 'Add Tryit to your Home Screen'
 const won = '[data-board-finished]'
 const sudokuPath = '/games/sudoku?difficulty=easy&start=1#play'
 
-async function fixture(page: Page, options?: { ios?: boolean; standalone?: boolean }) {
+async function fixture(
+	page: Page,
+	options?: { ios?: boolean; standalone?: boolean; issueGuest?: boolean },
+) {
 	const dayKey = productDayKey()
 	const started = new Set<string>()
 	let finished = false
@@ -57,7 +61,17 @@ async function fixture(page: Page, options?: { ios?: boolean; standalone?: boole
 					: pathGoldens[0].puzzleData
 		return { gameSlug, puzzleDate: dayKey, canPlay: true, puzzleDataJson: JSON.stringify(data) }
 	}
-	await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+	await page.route('**/v1/guest/session', (route) =>
+		route.fulfill({
+			json: { issued: true },
+			headers: options?.issueGuest
+				? {
+						'Set-Cookie':
+							'__Host-puzzled_guest=cap-fixture; Path=/; HttpOnly; Secure; SameSite=Lax',
+					}
+				: undefined,
+		}),
+	)
 	await page.route(rpc('GetDaily'), (route) => {
 		const { gameSlug, difficulty } = route.request().postDataJSON()
 		if (!started.has(gameSlug) && started.size === 3)
@@ -71,7 +85,11 @@ async function fixture(page: Page, options?: { ios?: boolean; standalone?: boole
 				: { gameSlug, puzzleDate: dayKey, canPlay: true, requiresStart: true },
 		})
 	})
-	await page.route(rpc('StartDaily'), (route) => {
+	await page.route(rpc('StartDaily'), async (route) => {
+		if (options?.issueGuest) {
+			const cookies = await route.request().headerValue('cookie')
+			expect(cookies?.split('; ')).toContain('__Host-puzzled_guest=cap-fixture')
+		}
 		const { gameSlug, difficulty, puzzleDate } = route.request().postDataJSON()
 		expect(puzzleDate).toBe(dayKey)
 		expect(picks).toContain(gameSlug)
@@ -149,7 +167,7 @@ for (const viewport of [
 					'CF-IPCountry': colorScheme === 'dark' ? 'DE' : 'XX',
 					'Accept-Language': 'en-US',
 				})
-				const { started } = await fixture(page, { ios: viewport.width === 390 })
+				const { started } = await fixture(page, { ios: viewport.width === 390, issueGuest: true })
 				const installEvents: unknown[] = []
 				await page.route('**/puzzled.v1.FunnelService/RecordEvent', (route) => {
 					const body = route.request().postDataJSON()
@@ -159,7 +177,16 @@ for (const viewport of [
 				await page.goto('/')
 				await expect(page.getByText('0 of 3 free picks used today')).toBeVisible()
 				await expect(page.getByText(installTitle)).toHaveCount(0)
+				expect((await context.cookies()).some(({ name }) => name === '__Host-puzzled_guest')).toBe(
+					false,
+				)
 				await start(page, '/games/number-path?start=1#play')
+				expect(
+					(await context.cookies()).find(({ name }) => name === '__Host-puzzled_guest'),
+				).toMatchObject({
+					secure: true,
+					httpOnly: true,
+				})
 				await start(page, '/games/killer-sudoku?difficulty=hard&start=1#play')
 				await start(page, sudokuPath)
 				if (viewport.width === 1440) await dispatchInstallEvent(page)
@@ -204,16 +231,12 @@ for (const viewport of [
 				expect(
 					await dialog.evaluate((el) => getComputedStyle(el, '::backdrop').backgroundColor),
 				).toBe('rgba(20, 18, 15, 0.96)')
-				await context.addCookies([
-					{
-						name: '__Host-puzzled_guest',
-						value: 'cap-fixture',
-						domain: origin.hostname,
-						path: '/',
-						secure: true,
-						httpOnly: true,
-					},
-				])
+				const firstPass = dialog.locator('[data-pass-offer="first_finish"]')
+				const passPrice = colorScheme === 'dark' ? '€2.99' : '$2.99'
+				await expect(firstPass.getByText(`${passPrice} once · no renewal`)).toBeVisible()
+				await firstPass.getByRole('button', { name: 'Keep playing free' }).click()
+				await expect(firstPass).toHaveCount(0)
+				await expect(dialog.getByRole('button', { name: 'Copy challenge' })).toBeEnabled()
 				await page.goto('/')
 				await expect(page.locator('.home-day-masthead').getByText(counter)).toBeVisible()
 				await expect(page.getByText(installTitle)).toHaveCount(0)
@@ -222,6 +245,16 @@ for (const viewport of [
 				await expect(lock.getByRole('heading', { name: 'Tryit Plus' })).toBeVisible()
 				await expect(lock.getByText(counter)).toBeVisible()
 				await expect(page.getByRole('link', { name: "Play today's puzzle" })).toHaveCount(0)
+				const pass = lock.locator('[data-pass-offer="pick_limit"]')
+				await expect(pass.getByText(`${passPrice} once · no renewal`)).toBeVisible()
+				await expect(pass.getByRole('link', { name: 'See the 3-day pass' })).toHaveAttribute(
+					'href',
+					'/pricing?plan=individual_once&trigger=game_unlock&callbackUrl=%2Fgames%2Fcrowns#plus',
+				)
+				const exit = pass.locator('[data-pass-offer-exit]')
+				await expect(exit).toHaveText('Come back tomorrow')
+				await exit.click()
+				await expect(pass).toHaveCount(0)
 				const resetAt = nextProductDayStart().getTime()
 				await page.clock.install({ time: resetAt - 3 * 60_000 })
 				await page.clock.runFor(1_100)
@@ -299,4 +332,51 @@ test('a fresh win still keeps a previously dismissed iOS tip hidden', async ({ p
 	await finish(page)
 	await expect(page.locator(won).getByText('Current Streak: 4')).toBeVisible()
 	await expect(page.getByText(installTitle)).toHaveCount(0)
+})
+
+test('the pick limit hides the contextual pass when guest context is lost', async ({
+	page,
+	context,
+	baseURL,
+}) => {
+	const { started } = await fixture(page)
+	for (const pick of picks) started.add(pick)
+	const origin = new URL(baseURL ?? 'http://localhost:3000')
+	expect(['localhost', '127.0.0.1']).toContain(origin.hostname)
+	await context.addCookies([
+		{
+			name: '__Host-puzzled_guest',
+			value: 'cap-fixture',
+			domain: origin.hostname,
+			path: '/',
+			secure: true,
+			httpOnly: true,
+		},
+	])
+	// Render the server-confirmed lock, then lose the cookie before hydration.
+	await page.route(
+		'**/games/crowns',
+		async (route) => {
+			const response = await route.fetch()
+			await context.clearCookies({ name: '__Host-puzzled_guest' })
+			return route.fulfill({ response })
+		},
+		{ times: 1 },
+	)
+	const id = await passReference()
+	const offerResponse = page.waitForResponse(
+		(response) => response.request().headers()['x-server-id'] === id,
+	)
+	await page.goto('/games/crowns')
+	const lock = page.locator('[data-unlock-panel="picks"]')
+	await expect(lock.getByText(counter)).toBeVisible()
+	const response = await offerResponse
+	expect((await response.request().headerValue('cookie')) ?? '').not.toContain(
+		'__Host-puzzled_guest=',
+	)
+	expect(response.status()).toBe(200)
+	expect(response.headers()['cache-control']).toBe('private, no-store')
+	expect(await response.text()).not.toContain('"price"')
+	await expect(lock.locator('[data-pass-offer]')).toHaveCount(0)
+	await expect(lock.getByRole('link', { name: 'Back to today’s games', exact: true })).toBeVisible()
 })
