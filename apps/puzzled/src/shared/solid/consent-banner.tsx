@@ -31,19 +31,49 @@ function rememberShellScroll() {
 	const saved = Number((history.state as { consentShellY?: unknown } | null)?.consentShellY)
 	if (saved > 0) shell.scrollTop = saved
 	let timer: number | undefined
+	const checkpoint = (href: string) => {
+		// Never write this page's offset into the entry a navigation just opened.
+		if (!shell.isConnected || location.href !== href) return
+		history.replaceState({ ...history.state, consentShellY: shell.scrollTop }, '')
+	}
 	const save = () => {
 		const href = location.href
 		clearTimeout(timer)
-		timer = window.setTimeout(() => {
-			// Never write this page's offset into the entry a navigation just opened.
-			if (!shell.isConnected || location.href !== href) return
-			history.replaceState({ ...history.state, consentShellY: shell.scrollTop }, '')
-		}, 150)
+		timer = window.setTimeout(() => checkpoint(href), 150)
+	}
+	const leaveLineup = (event: MouseEvent) => {
+		if (
+			!event.isTrusted ||
+			event.defaultPrevented ||
+			event.button !== 0 ||
+			event.ctrlKey ||
+			event.metaKey ||
+			event.shiftKey ||
+			event.altKey ||
+			location.hash ||
+			!(event.target instanceof Element)
+		)
+			return
+		const card = event.target.closest<HTMLAnchorElement>('.home-lineup a[data-home-game][href]')
+		if (
+			!card ||
+			card.origin !== location.origin ||
+			card.pathname === location.pathname ||
+			(card.target && card.target.toLowerCase() !== '_self') ||
+			card.hasAttribute('download')
+		)
+			return
+		// The router can unmount the dock before its last scroll event is saved.
+		// Checkpoint the departing entry before the document handles the link.
+		clearTimeout(timer)
+		checkpoint(location.href)
 	}
 	shell.addEventListener('scroll', save, { passive: true })
+	shell.addEventListener('click', leaveLineup)
 	return () => {
 		clearTimeout(timer)
 		shell.removeEventListener('scroll', save)
+		shell.removeEventListener('click', leaveLineup)
 	}
 }
 

@@ -822,7 +822,7 @@ jobs:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/board
         run: |
           set -euo pipefail
-          bun run test:e2e e2e-tests/board-craft.e2e.ts e2e-tests/home-craft.e2e.ts e2e-tests/phone-first.e2e.ts e2e-tests/region-consent.e2e.ts e2e-tests/play-shell.e2e.ts e2e-tests/ga4-game-start.e2e.ts --workers=1 --retries=0 --output=test-results/board 2>&1 | tee "$RUNNER_TEMP/craft-board.log"
+          bun run test:e2e e2e-tests/board-craft.e2e.ts e2e-tests/home-craft.e2e.ts e2e-tests/home-lineup-back.e2e.ts e2e-tests/phone-first.e2e.ts e2e-tests/region-consent.e2e.ts e2e-tests/play-shell.e2e.ts e2e-tests/ga4-game-start.e2e.ts --workers=1 --retries=0 --output=test-results/board 2>&1 | tee "$RUNNER_TEMP/craft-board.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-board.log"; then echo "a craft spec skipped"; exit 1; fi
 
       - name: Pricing with the open store
