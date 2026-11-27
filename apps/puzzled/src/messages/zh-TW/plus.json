@@ -59,13 +59,6 @@
 		"benefits": "暢玩全部 {count} 款每日遊戲和過去 {days} 天的題目，完全無廣告",
 		"backToToday": "返回今天的遊戲"
 	},
-	"passOffer": {
-		"title": "{days} 天暢玩全部遊戲",
-		"price": "{price} 單次付款 · 不會續訂",
-		"cta": "購買 {days} 天通行證",
-		"checkout": "支付 {price}（單次）",
-		"tomorrow": "明天再來"
-	},
 	"offer": {
 		"resultTitle": "暢玩全部 {count} 款遊戲和過往題庫",
 		"resultBody": "19 款謎題每天任選 3 款免費。Tryit Plus 開放每款遊戲、過往題庫，以及每款遊戲的統計。",

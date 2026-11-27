@@ -4,7 +4,6 @@ import { createEffect, createResource, createSignal, For, onCleanup, onMount, Sh
 import { trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
-import { PassOfferCard } from '@/features/plus/solid/pass-offer-card'
 import { getAllGameMetadata } from '@/games/registry'
 import { currencyForLocale } from '@/lib/billing/plus'
 import { getTodayProgress } from '@/lib/connect/puzzle-client'
@@ -151,14 +150,6 @@ export function DailyUnlock(props: {
 			</Show>
 			<Show when={prices.latest}>
 				{(value) => <UnlockPlanList cards={value().cards} locale={locale} />}
-			</Show>
-			<Show when={!archive && remaining() !== 0}>
-				<PassOfferCard
-					locale={locale}
-					context="pick_limit"
-					dayKey={props.todayKey}
-					callbackUrl={callbackUrl}
-				/>
 			</Show>
 			<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
 				<a class={playButton} href={pricingHref}>

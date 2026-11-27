@@ -94,14 +94,6 @@
 		"keep": "Everything you have already finished stays in your stats.",
 		"backToToday": "Back to today’s games"
 	},
-	"passOffer": {
-		"title": "Every game for {days} days",
-		"price": "{price} once · no renewal",
-		"cta": "Get the {days}-day pass",
-		"checkout": "Pay {price} once",
-		"free": "Keep playing free",
-		"tomorrow": "Come back tomorrow"
-	},
 	"offer": {
 		"resultTitle": "Play all {count} games and the archive",
 		"resultBody": "Any 3 of 19 puzzles are free every day. Tryit Plus opens every game, the archive of past days and your stats for each.",

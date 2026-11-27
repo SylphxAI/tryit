@@ -94,14 +94,6 @@
 		"keep": "Todo lo que ya has completado se queda en tus estadísticas.",
 		"backToToday": "Volver a los juegos de hoy"
 	},
-	"passOffer": {
-		"title": "Todos los juegos durante {days} días",
-		"price": "{price} una vez · sin renovación",
-		"cta": "Conseguir el pase de {days} días",
-		"checkout": "Pagar {price} una vez",
-		"free": "Seguir jugando gratis",
-		"tomorrow": "Vuelve mañana"
-	},
 	"offer": {
 		"resultTitle": "Juega los {count} juegos y el archivo",
 		"resultBody": "3 de los 19 puzzles son gratis cada día. Tryit Plus desbloquea todos los juegos, el archivo de días anteriores y tus estadísticas de cada uno.",
