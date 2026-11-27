@@ -1,8 +1,9 @@
 /** @jsxImportSource solid-js */
-import { Crown } from 'lucide-solid'
+import { Crown, Volume2, VolumeX } from 'lucide-solid'
 import { createMemo, createSignal, For, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
+import { createCrownsFeedback } from './create-crowns-feedback'
 import { parseQueensClientPayload } from './parse-client'
 import {
 	conflictReasons,
@@ -45,6 +46,7 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 	const cells = regions.flatMap((line, row) => line.map((region, col) => ({ row, col, region })))
 	const empty = () => regions.map((line) => line.map(() => false))
 	const finish = createBoardFinish(props, 'crowns')
+	const feedback = createCrownsFeedback()
 	const [grid, setGrid] = finish.draft.signal('grid', empty())
 	const [tabStop, setTabStop] = createSignal(0)
 	const [cursor, setActiveCell] = createSignal<(typeof cells)[number]>()
@@ -63,19 +65,21 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 		const activeReasons = new Set([...conflicts().values()].flatMap((set) => [...set]))
 		return conflictReasons.filter((reason) => activeReasons.has(reason))
 	})
-	function change(row: number, col: number, place: boolean) {
+	function change(row: number, col: number, place: boolean, event: MouseEvent | KeyboardEvent) {
 		if (locked() || grid()[row][col] === place) return
 		const next = grid().slice()
 		next[row] = [...next[row]]
 		next[row][col] = place
 		setGrid(next)
+		feedback.cue(event)
 		if (isSolved(next, regions, size)) finish.finish({ finalGrid: next })
 	}
 	function onKey(event: KeyboardEvent, row: number, col: number) {
+		feedback.key(event)
 		if (locked()) return
 		if (event.key === 'Backspace' || event.key === 'Delete') {
 			event.preventDefault()
-			change(row, col, false)
+			change(row, col, false, event)
 			return
 		}
 		if (!Object.hasOwn(arrowMoves, event.key)) return
@@ -145,7 +149,8 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 									}}
 									onBlur={clearActiveCell}
 									onKeyDown={(event) => onKey(event, row, col)}
-									onClick={() => change(row, col, !pressed())}
+									onKeyUp={feedback.release}
+									onClick={(event) => change(row, col, !pressed(), event)}
 								>
 									<span
 										class="absolute top-0.5 left-0.5 text-[clamp(.45rem,1.7vw,.65rem)] leading-none"
@@ -171,6 +176,18 @@ function Board(props: DailyBoardProps & { data: QueensPuzzleData }) {
 						onClick={() => setGrid(empty())}
 					>
 						{t('common.reset')}
+					</button>
+					<button
+						type="button"
+						aria-pressed={feedback.enabled() === true}
+						disabled={feedback.enabled() === undefined}
+						class="pressable ml-auto inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 font-semibold text-foreground disabled:opacity-50 aria-pressed:bg-muted"
+						onClick={feedback.toggle}
+					>
+						<Show when={feedback.enabled()} fallback={<VolumeX size={18} aria-hidden="true" />}>
+							<Volume2 size={18} aria-hidden="true" />
+						</Show>
+						{t('games.crowns.sound')}
 					</button>
 				</Show>
 			</div>

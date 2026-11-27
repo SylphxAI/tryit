@@ -14,6 +14,7 @@
 	"startGame": "開始遊戲",
 	"region": "區域 {index}",
 	"complete": "謎題完成！",
+	"sound": "音效",
 	"difficulty": {
 		"easy": "簡單",
 		"medium": "中等",
