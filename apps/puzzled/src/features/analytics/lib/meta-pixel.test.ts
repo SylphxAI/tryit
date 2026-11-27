@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
 import { CONSENT_KEY, CONSENT_VERSION_KEY } from '@/lib/storage-keys'
-import { CONSENT_VERSION, setConsentContext } from './consent'
+import { CONSENT_VERSION, canUseMeta, setAccountUnder18, setConsentContext } from './consent'
 import {
 	createMetaPixel,
 	deleteMetaCookies,
@@ -13,17 +13,18 @@ import {
 } from './meta-pixel'
 
 const globals = globalThis as unknown as Record<string, unknown>
+const navigatorGpc = Object.getOwnPropertyDescriptor(navigator, 'globalPrivacyControl')
 const RECEIPT = { orderId: 'pi_3Fixture_Order-1', value: 4.99, currency: 'USD' }
 
 function page(
 	choice: string | null,
 	region: 'EEA' | 'ROW',
 	gpc = false,
-	version = CONSENT_VERSION,
+	version: string | null = CONSENT_VERSION,
 ) {
 	const store = new Map<string, string>()
 	if (choice) store.set(CONSENT_KEY, choice)
-	if (choice) store.set(CONSENT_VERSION_KEY, version)
+	if (choice && version !== null) store.set(CONSENT_VERSION_KEY, version)
 	globals.window = {
 		localStorage: {
 			getItem: (k: string) => store.get(k) ?? null,
@@ -64,6 +65,9 @@ function page(
 }
 
 afterEach(() => {
+	setAccountUnder18(false)
+	if (navigatorGpc) Object.defineProperty(navigator, 'globalPrivacyControl', navigatorGpc)
+	else Reflect.deleteProperty(navigator, 'globalPrivacyControl')
 	setConsentContext(null)
 	setActiveMetaPixel(null)
 	globals.window = undefined
@@ -76,20 +80,26 @@ test('META_PIXEL_ID is optional: empty or malformed means off', () => {
 	expect(metaPixelId({ META_PIXEL_ID: ' 1234567890 ' })).toBe('1234567890')
 })
 
-const refused: [string, string | null, 'EEA' | 'ROW', boolean, string?][] = [
-	['unset (EEA)', null, 'EEA', false],
-	['unset (ROW default grant is not a saved choice)', null, 'ROW', false],
-	['refused', 'denied', 'ROW', false],
-	['analytics-only', 'analytics_only', 'ROW', false],
-	['GPC over a saved grant', 'granted', 'ROW', true],
-	['GPC over a saved grant (EEA)', 'granted', 'EEA', true],
-	['EEA grant saved before the Meta consent version', 'granted', 'EEA', false, '2026-11-26'],
-	['ROW grant saved before the Meta consent version', 'granted', 'ROW', false, 'garbage'],
+type Case = [string, string | null, 'EEA' | 'ROW', boolean, (string | null)?]
+// [name, saved choice, region bucket, Sec-GPC, saved consent version]
+const refused: Case[] = [
+	['ROW + Sec-GPC', null, 'ROW', true],
+	['ROW + GPC over a saved grant', 'granted', 'ROW', true],
+	['ROW saved opt-out', 'denied', 'ROW', false],
+	['ROW saved analytics-only', 'analytics_only', 'ROW', false],
+	['EEA unset', null, 'EEA', false],
+	['EEA saved opt-out', 'denied', 'EEA', false],
+	['EEA analytics-only', 'analytics_only', 'EEA', false],
+	['EEA grant with no version (pre-2026-11-27)', 'granted', 'EEA', false, null],
+	['EEA grant saved under 2026-11-26', 'granted', 'EEA', false, '2026-11-26'],
+	['EEA grant with a garbage version', 'granted', 'EEA', false, 'garbage'],
+	['EEA + GPC over a current grant', 'granted', 'EEA', true],
 ]
 for (const [name, choice, region, gpc, version] of refused) {
 	test(`${name}: zero pixel script, zero Meta calls`, () => {
 		const { pixel, scripts, calls, win } = page(choice, region, gpc, version)
 		setActiveMetaPixel(pixel)
+		expect(canUseMeta()).toBe(false)
 		expect(pixel.pageView('/')).toBe(false)
 		expect(trackMetaPurchase(RECEIPT)).toBe(false)
 		expect(scripts).toEqual([])
@@ -97,6 +107,43 @@ for (const [name, choice, region, gpc, version] of refused) {
 		expect(win.fbq).toBeUndefined()
 	})
 }
+
+const allowed: Case[] = [
+	['ROW default (no saved choice)', null, 'ROW', false],
+	['ROW grant saved before the Meta version', 'granted', 'ROW', false, null],
+	['EEA grant saved at 2026-11-27', 'granted', 'EEA', false],
+]
+for (const [name, choice, region, gpc, version] of allowed) {
+	test(`${name}: Meta eligible`, () => {
+		const { pixel, scripts } = page(choice, region, gpc, version)
+		expect(canUseMeta()).toBe(true)
+		expect(pixel.pageView('/')).toBe(true)
+		expect(scripts).toEqual([META_PIXEL_SCRIPT])
+	})
+}
+
+test('navigator.globalPrivacyControl alone keeps ROW Meta off', () => {
+	Object.defineProperty(navigator, 'globalPrivacyControl', { value: true, configurable: true })
+	const { pixel, scripts } = page(null, 'ROW')
+	expect(canUseMeta()).toBe(false)
+	expect(pixel.pageView('/')).toBe(false)
+	expect(scripts).toEqual([])
+})
+
+test('the minor flag blocks Meta in every region, even with a current grant', () => {
+	for (const region of ['ROW', 'EEA'] as const) {
+		const { pixel, scripts, calls } = page('granted', region)
+		setActiveMetaPixel(pixel)
+		setAccountUnder18(true)
+		expect(canUseMeta()).toBe(false)
+		expect(pixel.pageView('/')).toBe(false)
+		expect(trackMetaPurchase(RECEIPT)).toBe(false)
+		expect(scripts).toEqual([])
+		expect(calls).toEqual([])
+		setAccountUnder18(false)
+		expect(canUseMeta()).toBe(true)
+	}
+})
 
 test('a saved full grant loads once and sends PageView without any user data', () => {
 	const { pixel, scripts, calls } = page('granted', 'EEA')

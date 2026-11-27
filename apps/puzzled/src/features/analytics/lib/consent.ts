@@ -12,10 +12,10 @@ const EVENT = 'consent-change'
 const TOUCH_KEY = `${SIGNAL_STORAGE_KEY}.touch`
 export const CHECKOUT_QUOTE_KEY = 'puzzled:ads:checkout-quote'
 /**
- * The cookie-consent version every new save records. Meta (Pixel, and fbc/fbp
- * in the Events binding) needs a saved grant at or after META_CONSENT_VERSION;
- * an older grant keeps Google as it was and leaves Meta off until re-confirmed
- * in Cookie settings. No banner is re-shown for it.
+ * The cookie-consent version every new save records. In EEA/UK/CH and unknown
+ * regions Meta (Pixel, and fbc/fbp in the Events binding) needs a saved grant
+ * at or after META_CONSENT_VERSION; an older grant keeps Google as it was and
+ * leaves Meta off until re-confirmed in Cookie settings. No banner is re-shown.
  */
 export const CONSENT_VERSION = '2026-11-27'
 const META_CONSENT_VERSION = '2026-11-27'
@@ -80,17 +80,33 @@ function savedConsentVersion(): string | null {
 }
 
 /**
- * Meta eligibility: a saved full grant (ad storage and ad user data) made at
- * or after META_CONSENT_VERSION, never under GPC. Under-18 accounts would also
- * be excluded here, but no account exposes an age signal today.
+ * Minor hook, fail closed: true for an account flagged under 18 (via support
+ * or legal). No account carries an age signal today, so nothing sets it yet;
+ * when Auth or the account exposes one, set it here and Meta stays off.
+ */
+let accountUnder18 = false
+
+export function setAccountUnder18(flagged: boolean): void {
+	accountUnder18 = flagged
+}
+
+/**
+ * The single Meta gate (Pixel load, fbclid/fbc/fbp to the Events binding).
+ * - Never under GPC (Sec-GPC or navigator.globalPrivacyControl) or for a
+ *   flagged minor.
+ * - ROW (known non-EEA/UK/CH region): eligible by default, like Google's click
+ *   ids; a saved refusal or analytics-only choice turns it off.
+ * - EEA/UK/CH and unknown regions: strictly opt-in, a saved full grant made at
+ *   or after META_CONSENT_VERSION. An older grant never unlocks Meta.
  */
 export function canUseMeta(): boolean {
 	const { signals, gpc } = cookieConsent()
+	if (gpc || accountUnder18 || !context) return false
+	if (signals.ad_storage !== 'granted' || signals.ad_user_data !== 'granted') return false
+	if (context.region === 'ROW') return true
 	const version = savedConsentVersion()
 	return (
-		!gpc &&
 		canStoreMarketing() &&
-		signals.ad_user_data === 'granted' &&
 		version !== null &&
 		/^\d{4}-\d{2}-\d{2}$/.test(version) &&
 		version >= META_CONSENT_VERSION

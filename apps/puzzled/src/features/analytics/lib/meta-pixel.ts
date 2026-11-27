@@ -1,8 +1,8 @@
 /**
- * Meta Pixel, off unless META_PIXEL_ID is set. It loads only after a saved
- * full ("granted") choice with ad storage and ad user data, never under GPC,
- * analytics-only, denial or an unanswered banner: before that there is no
- * script and no request. Init carries no advanced matching, so no email,
+ * Meta Pixel, off unless META_PIXEL_ID is set. It loads only when canUseMeta()
+ * allows it (ROW default unless refused; EEA/UK/CH/unknown only after a saved
+ * current-version grant; never under GPC or for a flagged minor): before that
+ * there is no script and no request. Init carries no advanced matching, so no email,
  * player, auth or customer id reaches Meta. Purchase uses the Money order id
  * as eventID so Events' Conversions API delivery of the same order deduplicates.
  */
@@ -17,7 +17,7 @@ export function metaPixelId(source: { META_PIXEL_ID?: string }): string | null {
 	return PIXEL_ID.test(id) ? id : null
 }
 
-/** See canUseMeta: saved full grant at the Meta consent version, never under GPC. */
+/** The single Meta gate; see canUseMeta in consent.ts. */
 export const metaPixelAllowed = canUseMeta
 
 type Fbq = ((...args: unknown[]) => void) & {

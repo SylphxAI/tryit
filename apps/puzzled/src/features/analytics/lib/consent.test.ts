@@ -82,30 +82,39 @@ afterEach(() => {
 })
 
 for (const country of ['US', 'CA', 'AU']) {
-	test(`${country} defaults to complete SDK consent and Google attribution, Meta only once saved`, async () => {
-		const store = browser()
+	test(`${country} defaults to complete SDK consent, Google and Meta attribution`, async () => {
+		browser()
 		await context(country)
-		const google = {
+		const all = {
 			ga_client_id: '12345.67890',
 			ga_session_id: '1234567890',
 			gclid: 'fixture_g',
 			utm_source: 'fixture',
-		}
-		// An unsaved regional default is not a Meta grant.
-		expect(snapshot()).toEqual({ consent: full, surface: 'pricing_card', fields: google })
-		saveCookieChoice('granted')
-		expect(store.get(CONSENT_VERSION_KEY)).toBe(CONSENT_VERSION)
-		expect(snapshot().fields).toEqual({
-			...google,
 			fbclid: 'fixture_fb',
 			fbp: 'fb.1.1234567890.444',
 			fbc: expect.stringMatching(/^fb\.1\.\d+\.fixture_fb$/),
-		})
+		}
+		// ROW: Meta is eligible by default, like Google's click ids.
+		expect(snapshot()).toEqual({ consent: full, surface: 'pricing_card', fields: all })
+		expect(canUseMeta()).toBe(true)
+	})
+
+	test(`${country} with Sec-GPC or a saved opt-out sends no Meta ids`, async () => {
+		browser()
+		await context(country, '1')
+		expect(canUseMeta()).toBe(false)
+		expect(snapshot().fields).toBeNull()
+		const store = browser()
+		await context(country)
+		saveCookieChoice('denied')
+		expect(store.get(CONSENT_KEY)).toBe('denied')
+		expect(canUseMeta()).toBe(false)
+		expect(snapshot().fields).toBeNull()
 	})
 }
 
-for (const country of ['DE', 'GB', 'CH', 'US']) {
-	test(`${country} grant saved before the Meta consent version keeps Google, not Meta`, async () => {
+for (const country of ['DE', 'GB', 'CH', 'XX', undefined]) {
+	test(`${String(country)} grant saved before the Meta consent version keeps Google, not Meta`, async () => {
 		const store = browser()
 		store.set(CONSENT_KEY, 'granted')
 		await context(country)
@@ -122,8 +131,15 @@ for (const country of ['DE', 'GB', 'CH', 'US']) {
 		store.set(CONSENT_VERSION_KEY, '2026-11-26')
 		expect(canUseMeta()).toBe(false)
 		saveCookieChoice('granted')
+		expect(store.get(CONSENT_VERSION_KEY)).toBe(CONSENT_VERSION)
 		expect(canUseMeta()).toBe(true)
 		expect(snapshot().fields.fbp).toBe('fb.1.1234567890.444')
+	})
+
+	test(`${String(country)} unset stays strictly opt-in for Meta`, async () => {
+		browser()
+		await context(country)
+		expect(canUseMeta()).toBe(false)
 	})
 }
 
@@ -253,9 +269,7 @@ test('ROW checkout defaults do not enable the opt-in SPA stream', () => {
 	setConsentContext({ region: 'ROW', gpc: false, stream })
 	trackSignalPage('/pricing')
 	expect(requests).toHaveLength(0)
-	const { fbclid: _meta, ...google } = campaign
-	expect(snapshot().fields).toMatchObject(google)
-	expect(snapshot().fields.fbclid).toBeUndefined()
+	expect(snapshot().fields).toMatchObject(campaign)
 })
 
 for (const choice of ['analytics_only', 'granted'] as const) {
