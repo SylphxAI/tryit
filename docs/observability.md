@@ -95,6 +95,22 @@ session, without player identifiers. Delivery is best effort with a 10 s timeout
 missing scopes, failed requests and exhausted capacity do not delay checkout.
 The existing settled-conversion outbox is unchanged.
 
+Funnel stages for ad optimisation ride the same browser gate as page views
+(`features/analytics/lib/signal-stages.ts`), so a refusal, an unanswered EEA
+visit, a ROW visit without a saved grant, or GPC sends none of them:
+
+| Stage | Sent when | Properties (allowlisted) |
+| --- | --- | --- |
+| `game_start` | a playable daily or archive board is first shown | `game_slug`, `mode` |
+| `game_finish` | the api accepted a finish (`valid`, matching status) | `game_slug`, `mode`, `status` |
+| `plus_view` | a Plus offer card mounts, once per surface per page load | `entry_surface` |
+| `checkout_started` | api, after Money creates the checkout (above) | `entry_surface` |
+| `purchase` | the return page received the api's Money-settled receipt | `value`, `currency` |
+
+`entry_surface` is the `trustedEntrySurface` enum; anything else is `other`.
+`purchase` uses a SHA-256 of the processor order id as its event id (stable,
+so a reload deduplicates); no order, player, auth or customer id is sent.
+
 ## First-party funnel counter
 
 Visits, plays, sign-ups and Core Web Vitals are counted in our own database,

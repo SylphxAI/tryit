@@ -14,7 +14,7 @@ export const CHECKOUT_QUOTE_KEY = 'puzzled:ads:checkout-quote'
 let context: ConsentContext | null = null
 let localDenial = false
 let browser: ReturnType<typeof createSignalBrowser> | undefined
-let session: { id: string; route?: string | null; navigation: number } | undefined
+let session: { id: string; route?: string | null; navigation: number; stages: number } | undefined
 
 function storedChoice(): SignalConsentChoice | null | undefined {
 	try {
@@ -111,7 +111,7 @@ function syncBrowser() {
 					}
 				: undefined,
 	})
-	if (id) session = { id, navigation: 0 }
+	if (id) session = { id, navigation: 0, stages: 0 }
 }
 
 export function setConsentContext(value: ConsentContext | null): void {
@@ -163,6 +163,29 @@ export function trackSignalPage(path: string | null): void {
 		void browser.track({ eventName: 'page_view', eventId, properties: { path } }).catch(() => {})
 	} catch {
 		// Measurement must never interrupt navigation.
+	}
+}
+
+/**
+ * A funnel stage on the same opt-in stream as page views: nothing is sent
+ * without a saved analytics grant, in EEA before a choice, or under GPC.
+ * Callers pass already-allowlisted properties (see signal-stages.ts).
+ */
+export function trackSignalEvent(
+	eventName: string,
+	properties: Record<string, string | number | boolean>,
+	options: { eventId?: string; numericValue?: number } = {},
+): boolean {
+	try {
+		syncBrowser()
+		if (!browser || !session) return false
+		const eventId = options.eventId ?? `${session.id}:${eventName}:${++session.stages}`
+		void browser
+			.track({ eventName, eventId, properties, numericValue: options.numericValue })
+			.catch(() => {})
+		return true
+	} catch {
+		return false
 	}
 }
 
