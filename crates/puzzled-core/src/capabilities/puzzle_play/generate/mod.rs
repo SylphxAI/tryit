@@ -74,6 +74,13 @@ fn current_generator_version(game_slug: &str) -> &'static str {
     }
 }
 
+/// The version a game's current generator superseded, whose unplayed future
+/// rows the pipeline remakes: V1 for a game that has moved past V1.
+#[must_use]
+pub fn superseded_version(game_slug: &str) -> Option<&'static str> {
+    (current_generator_version(game_slug) != GENERATOR_V1).then_some(GENERATOR_V1)
+}
+
 /// A generated puzzle ready to store.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Generated {
