@@ -194,8 +194,17 @@ impl PuzzleConnectService {
             }
         }
         if admission == Admission::FreePick {
-            self.claim_free_pick(&mut access, billing_user, game_slug, today)
-                .await?;
+            self.claim_free_pick(
+                &mut access,
+                billing_user,
+                game_slug,
+                today,
+                super::admission::pick_claim(
+                    &ctx,
+                    crate::capabilities::puzzle_play::adapters::daily_free_picks::Via::Finish,
+                ),
+            )
+            .await?;
         }
 
         let envelope = SubmissionEnvelope {

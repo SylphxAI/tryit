@@ -21,6 +21,18 @@ pub(super) enum Admission {
     FreePick,
 }
 
+/// Provenance for a pick claimed by this request; the verification header
+/// marks it as a comparison start exactly as it marks a finish.
+pub(super) fn pick_claim(
+    ctx: &RequestContext,
+    via: daily_free_picks::Via,
+) -> daily_free_picks::Claim {
+    daily_free_picks::Claim {
+        via,
+        comparison: ctx.headers().contains_key("x-puzzled-verification"),
+    }
+}
+
 impl PuzzleConnectService {
     /// Admit a request for a puzzle (the Tryit Plus gate, the one admission
     /// point).
@@ -105,6 +117,7 @@ impl PuzzleConnectService {
         user_id: Option<&str>,
         game_slug: &str,
         today: NaiveDate,
+        how: daily_free_picks::Claim,
     ) -> Result<(), ConnectError> {
         let player = access
             .primary()
@@ -118,7 +131,7 @@ impl PuzzleConnectService {
                 "free_pick_claim_failed",
             ));
         };
-        match daily_free_picks::claim(connection, player, today, game_slug).await {
+        match daily_free_picks::claim(connection, player, today, game_slug, how).await {
             Ok(true) => Ok(()),
             Ok(false) => self.paid_access(user_id, true).await,
             Err(error) => {
