@@ -1,4 +1,5 @@
 //! Write a game session and its derived ritual fields to the same row.
+//! `completed_at` stores the transaction instant as UTC wall time, without a zone.
 
 use sqlx::PgPool;
 
@@ -44,7 +45,7 @@ pub async fn persist_game_session(
             $4::game_mode,
             $5::game_status,
             $6, $7, $8,
-            now()
+            now() AT TIME ZONE 'UTC'
         )
         RETURNING id
         "#,
@@ -167,7 +168,7 @@ pub async fn persist_validated_session_on_connection(
             $6::game_mode,
             $7::game_status,
             $8, $9, $10,
-            now(),
+            now() AT TIME ZONE 'UTC',
             $11, $12, $13, $14, $15, $16
         )
         ON CONFLICT (user_id, puzzle_id) DO NOTHING
