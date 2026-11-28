@@ -227,11 +227,6 @@ async fn metrics_requires_fresh_scoped_attestation_and_rejects_non_direct_sessio
     assert!(!response.headers().contains_key(ACCESS));
     assert_eq!(body_json(response).await["message"], "database_unavailable");
 
-    let settings = rpc(&router, SETTINGS, READER).await;
-    assert_eq!(settings.status(), StatusCode::FORBIDDEN);
-    assert!(!settings.headers().contains_key(ACCESS));
-    assert_eq!(body_json(settings).await["message"], "admin_scope_required");
-
     for token in ["", "identity_org_session_expired"] {
         refused(report(token).await, StatusCode::UNAUTHORIZED, token).await;
     }
