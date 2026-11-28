@@ -6,4 +6,5 @@ pub mod verification_timing;
 pub mod dest_http;
 pub mod signals;
 
+pub mod comparison;
 pub mod public_origin;

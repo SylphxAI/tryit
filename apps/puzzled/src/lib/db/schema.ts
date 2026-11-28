@@ -1186,12 +1186,20 @@ export const dailyFreePicks = pgTable(
 		dayKey: date('day_key', { mode: 'string' }).notNull(),
 		gameSlug: text('game_slug').notNull(),
 		startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+		// Point-in-time start provenance, written only with a new pick; NULL = not collected.
+		claimedVia: text('claimed_via'),
+		guestEntry: boolean('guest_entry'),
+		comparisonExcluded: boolean('comparison_excluded'),
 	},
 	(table) => [
 		primaryKey({
 			name: 'daily_free_picks_pkey',
 			columns: [table.userId, table.dayKey, table.gameSlug],
 		}),
+		check(
+			'daily_free_picks_claimed_via_check',
+			sql`${table.claimedVia} IN ('start', 'guess', 'finish')`,
+		),
 	],
 )
 

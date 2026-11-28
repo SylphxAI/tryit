@@ -194,8 +194,17 @@ impl PuzzleConnectService {
             }
         }
         if admission == Admission::FreePick {
-            self.claim_free_pick(&mut access, billing_user, game_slug, today)
-                .await?;
+            self.claim_free_pick(
+                &mut access,
+                billing_user,
+                game_slug,
+                today,
+                super::admission::pick_claim(
+                    &ctx,
+                    crate::capabilities::puzzle_play::adapters::daily_free_picks::Via::Finish,
+                ),
+            )
+            .await?;
         }
 
         let envelope = SubmissionEnvelope {
@@ -253,12 +262,7 @@ impl PuzzleConnectService {
                     }),
                     // This header only removes a validated finish from comparisons.
                     // It grants no write/auth authority. Recognize older harnesses too.
-                    comparison_excluded: ctx.headers().contains_key("x-puzzled-verification")
-                        || ctx
-                            .headers()
-                            .get("user-agent")
-                            .and_then(|v| v.to_str().ok())
-                            .is_some_and(|v| v.starts_with("puzzled-verify-live/")),
+                    comparison_excluded: crate::shared::comparison::excluded(ctx.headers()),
                 },
             )
             .await

@@ -222,8 +222,17 @@ impl PuzzleConnectService {
             admission == Admission::FreePick && self.state.pool.is_some() && !has_completed;
         let requires_start = needs_pick && !start && !stub;
         if needs_pick && start {
-            self.claim_free_pick(&mut access, billing_user, game_slug, today)
-                .await?;
+            self.claim_free_pick(
+                &mut access,
+                billing_user,
+                game_slug,
+                today,
+                super::admission::pick_claim(
+                    ctx,
+                    crate::capabilities::puzzle_play::adapters::daily_free_picks::Via::Start,
+                ),
+            )
+            .await?;
         }
         let response = build_response(DailyResponse {
             game_slug,
