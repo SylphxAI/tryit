@@ -2,6 +2,7 @@ import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 import type { createBoardFinish } from '@/games/shared/solid/finish'
 import { brushCell, type Cell, createBrush, strokeCells } from './brush'
 import { findClueMismatches } from './mismatch'
+import type { FillEdit } from './mode-cue'
 import { type CellState, isGridClueComplete, type NonogramPuzzleData } from './types'
 
 export type NonogramPlay = ReturnType<typeof createNonogramPlay>
@@ -9,6 +10,7 @@ export type NonogramPlay = ReturnType<typeof createNonogramPlay>
 export function createNonogramPlay(
 	data: NonogramPuzzleData,
 	finish: ReturnType<typeof createBoardFinish>,
+	onMove: (before: CellState[][], after: CellState[][], edit: FillEdit) => void,
 ) {
 	const { width, height } = data
 	const rows = Array.from({ length: height }, (_, index) => index)
@@ -16,7 +18,7 @@ export function createNonogramPlay(
 	const emptyGrid = () => rows.map(() => cols.map((): CellState => 'empty'))
 	const [grid, setGrid] = finish.draft.signal('grid', emptyGrid())
 	const [history, setHistory] = finish.draft.signal<CellState[][][]>('history', [])
-	const [mode, setMode] = finish.draft.signal<'filled' | 'marked'>('mode', 'filled')
+	const [mode, writeMode] = finish.draft.signal<'filled' | 'marked'>('mode', 'filled')
 	const locked = () => finish.state() !== 'playing'
 	const [active, setActive] = createSignal<Cell | null>(null, {
 		equals: (previous, next) => previous?.row === next?.row && previous?.col === next?.col,
@@ -52,27 +54,44 @@ export function createNonogramPlay(
 		if (next !== current) setGrid(next)
 	}
 
-	function commit(before: CellState[][]) {
+	function fillEdit(brush: ReturnType<typeof createBrush>): FillEdit {
+		if (brush.alternate || brush.ink !== 'filled') return
+		return brush.target === 'filled' ? 'filled' : 'cleared'
+	}
+
+	function setMode(next: 'filled' | 'marked') {
+		if (next !== mode()) onMove(grid(), grid(), undefined)
+		writeMode(next)
+	}
+
+	function commit(before: CellState[][], edit: FillEdit) {
 		const after = grid()
-		if (after === before) return
+		if (after === before) return onMove(before, after, undefined)
 		setHistory((previous) => [...previous, before])
 		finishIfComplete(after)
+		onMove(before, after, edit)
 	}
 
 	function undo() {
 		if (locked() || stroke) return
 		const previous = history()
 		if (!previous.length) return
-		setGrid(previous[previous.length - 1])
+		const before = grid()
+		const restored = previous[previous.length - 1]
+		setGrid(restored)
 		setHistory(previous.slice(0, -1))
+		onMove(before, restored, undefined)
 	}
 
 	function startOver() {
 		if (locked()) return
 		clearStroke()
-		setGrid(emptyGrid())
+		const before = grid()
+		const empty = emptyGrid()
+		setGrid(empty)
 		setHistory([])
 		setDimmed({})
+		onMove(before, empty, undefined)
 	}
 
 	function cellAt(board: HTMLDivElement, target: EventTarget | null): Cell | undefined {
@@ -116,10 +135,10 @@ export function createNonogramPlay(
 
 	function endStroke(event: PointerEvent, commitEndpoint = false) {
 		if (stroke?.id !== event.pointerId) return
-		const { before } = stroke
+		const { before, brush } = stroke
 		if (commitEndpoint) extendStroke(event)
 		clearStroke()
-		if (!locked()) commit(before)
+		if (!locked()) commit(before, commitEndpoint ? fillEdit(brush) : undefined)
 	}
 	onCleanup(clearStroke)
 
@@ -155,8 +174,9 @@ export function createNonogramPlay(
 	function clickCell(event: MouseEvent, row: number, col: number) {
 		if (event.detail !== 0 || locked() || stroke) return
 		const before = grid()
-		applyBrush([{ row, col }], createBrush(before[row][col], mode()))
-		commit(before)
+		const brush = createBrush(before[row][col], mode())
+		applyBrush([{ row, col }], brush)
+		commit(before, fillEdit(brush))
 	}
 
 	// A manual toggle overrides automatic clue completion for that line only.

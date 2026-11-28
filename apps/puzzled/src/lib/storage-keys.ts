@@ -38,6 +38,7 @@ export const SAVE_STREAK_DISMISSED_DAY_KEY = 'puzzled:result:save-streak-dismiss
 /** Same-tab in-progress daily board state; strictly necessary for reload recovery. */
 export const DAILY_PLAY_DRAFT_PREFIX = 'puzzled:play-draft:v2:'
 export const DAILY_PLAY_DRAFT_TAB_KEY = 'puzzled:play-draft-tab'
+export const PAINT_MODE_CUE_SEEN_DAY_KEY = 'puzzled:paint:mode-cue-seen-day'
 
 /**
  * Same-tab, one-shot record of a pressed "Play" for one game

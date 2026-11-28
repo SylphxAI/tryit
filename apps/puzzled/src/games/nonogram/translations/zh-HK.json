@@ -15,6 +15,8 @@
 	"markMode": "標記",
 	"fillCue": "圖案入面嘅格",
 	"markCue": "要留空嘅格",
+	"currentMode": "而家模式：{mode}",
+	"switchToMark": "想留空，就轉去「標記」。",
 	"errors": "{count} 個錯誤",
 	"complete": "圖案完成！",
 	"messages": {
