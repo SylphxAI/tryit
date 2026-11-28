@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 import { productDayKey } from '../src/lib/product-day'
+import { PAINT_MODE_CUE_SEEN_DAY_KEY } from '../src/lib/storage-keys'
 
 const copy = {
 	'en-US': [
@@ -126,6 +127,74 @@ async function expectUncovered(target: Locator, consent: Locator, size: number) 
 }
 
 const path = (locale: string) => `/${locale}/games/nonogram?difficulty=medium&start=1#play`
+for (const touch of [false, true]) {
+	test.describe(touch ? '390×844' : '1440×900', () => {
+		test.use({
+			viewport: touch ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+			hasTouch: touch,
+			isMobile: touch,
+			serviceWorkers: 'block',
+		})
+		test('Paint mode cue stays off the grid and out of a same-day resume', async ({
+			page,
+			baseURL,
+		}, testInfo) => {
+			const { calls } = await fixture(page, baseURL, 'play')
+			const press = (target: Locator) => (touch ? target.tap() : target.click())
+			const cue = page.locator('[data-paint-mode-cue]')
+			const fill = buttons(page).getByRole('button', { name: 'Fill', exact: true })
+			const mark = buttons(page).getByRole('button', { name: 'Mark', exact: true })
+			const first = cell(page, 0, 0)
+			const second = cell(page, 0, 1)
+			const unblocked = async () => {
+				await expect(board(page)).toBeInViewport({ ratio: 1 })
+				await expectUncovered(first, banner(page), 26)
+				await expectUncovered(cell(page, 9, 9), banner(page), 26)
+				await expectUncovered(
+					cue.getByRole('button', { name: 'Dismiss', exact: true }),
+					banner(page),
+					44,
+				)
+				await expect(page.locator('dialog[open]')).toHaveCount(0)
+			}
+			const capture = async (name: string) =>
+				testInfo.attach(name, {
+					body: await page.screenshot({ animations: 'disabled' }),
+					contentType: 'image/png',
+				})
+			await page.goto(path('en-US'))
+			await press(page.locator('[data-game-stage="start"] button'))
+			await expect(cue.getByRole('status')).toHaveText('Mode: Fill')
+			await expect(fill).toHaveAttribute('aria-pressed', 'true')
+			await expect(fill.locator('svg').last()).toBeVisible()
+			await expect(mark.locator('svg').last()).toBeHidden()
+			await unblocked()
+			await capture('paint-mode-before-input')
+			await press(first)
+			await expect(cue).toBeHidden()
+			// Touch gets a new public row mismatch; desktop gets a keyboard self-clear.
+			const mistake = touch ? second : first
+			if (touch) await press(mistake)
+			else await mistake.press('Space')
+			await expect(cue.getByRole('status')).toHaveText('Switch to Mark for empty squares.')
+			await expect(mistake).toHaveAttribute('aria-pressed', touch ? 'true' : 'false')
+			await expect(fill).toHaveAttribute('aria-pressed', 'true')
+			await unblocked()
+			await capture('paint-mark-after-mistake')
+			await press(cue.getByRole('button', { name: 'Dismiss', exact: true }))
+			await expect(cue).toBeHidden()
+			await page.reload()
+			await expect(mistake).toHaveAttribute('aria-pressed', touch ? 'true' : 'false')
+			if (touch) await press(buttons(page).getByRole('button', { name: 'Undo', exact: true }))
+			else await press(first)
+			await press(mistake)
+			await expect(mistake).toHaveAttribute('aria-pressed', touch ? 'true' : 'false')
+			await expect(cue).toBeHidden()
+			expect(calls).toEqual({ starts: 1, submits: 0 })
+		})
+	})
+}
+
 for (const [
 	locale,
 	[fillLabel, markLabel, fillCue, markCue, undoLabel, resetLabel],
@@ -216,7 +285,10 @@ test('Paint locks the brushes while submitting and does not reopen a finished bo
 	}
 	await expect(page.locator('[data-board-finished]')).toBeVisible()
 	await expect(buttons(page).getByText(copy['en-US'][2], { exact: true })).toBeHidden()
+	await page.evaluate((key) => localStorage.removeItem(key), PAINT_MODE_CUE_SEEN_DAY_KEY)
 	await page.reload()
+	await expect(page.locator('[data-game-stage="completed"]')).toBeVisible()
+	await expect(page.locator('[data-paint-mode-cue]')).toHaveCount(0)
 	await expect(board(page)).toHaveCount(0)
 	await expect(page.locator('[data-game-stage="start"]')).toHaveCount(0)
 	expect(calls).toEqual({ starts: 1, submits: 1 })
