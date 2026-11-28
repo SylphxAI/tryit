@@ -91,10 +91,12 @@ Cite the ID column.
   the new form. Compute's signed tick receipts (EdDSA JWT, `aud` equal to the
   exact URL) are the only admission for JobsService and `/internal/compute/*`.
   The published `sylphx` Rust SDK's `Expect::callback` and `Verifier::verify`
-  own receipt verification and published-key handling. Puzzled only extracts
-  the bearer and public HTTPS host plus original path and query, then maps
-  invalid or missing receipts to 401 and key-provider failures to 503. The
-  existing `COMPUTE_TICK_RECEIPT_JWKS_URL` override changes the SDK's key URL,
+  own receipt verification and published-key handling. The callback uses the
+  HTTPS form of Hosting's injected `SYLPHX_SERVICE_PRIVATE_ORIGIN` plus the
+  original path and query; request headers never select the audience. Missing
+  or invalid receipts return 401. An absent or invalid private origin or
+  unavailable key provider returns 503. The existing
+  `COMPUTE_TICK_RECEIPT_JWKS_URL` override changes the SDK's key URL,
   not the required issuer or audience. Router tests use a local JWKS server
   through this same SDK path; no copied verifier or injected product key set
   remains. Schedule IDs, targets, calendars, retries and overlap policies are

@@ -62,7 +62,9 @@ impl Provider {
     }
 
     pub(super) fn state(&self) -> AppState {
-        AppState::new(None).with_tick_jwks_url(self.url.clone())
+        AppState::new(None)
+            .with_tick_jwks_url(self.url.clone())
+            .with_tick_private_origin(Some("http://api.env-test.sylphx.internal"))
     }
 }
 
@@ -72,7 +74,7 @@ pub(super) fn receipt(path: &str, overrides: Value, seed: u8) -> String {
         json!({"alg": "EdDSA", "typ": CALLBACK_RECEIPT_TYP, "kid": "compute-tick-1"}).to_string(),
     );
     let mut claims = json!({
-        "iss": CALLBACK_RECEIPT_ISSUER, "aud": format!("https://puzzled.test{path}"),
+        "iss": CALLBACK_RECEIPT_ISSUER, "aud": format!("https://api.env-test.sylphx.internal{path}"),
         "schedule_id": "puzzled-test", "tick_id": "tick-1", "iat": now, "exp": now + 300
     });
     for (key, value) in overrides
