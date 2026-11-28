@@ -2,6 +2,7 @@ export function createWordGuessKeyHandler(
 	inactive: () => boolean,
 	grade: (event: KeyboardEvent) => Promise<void>,
 	edit: (key: string, event: KeyboardEvent) => void,
+	hasFullGuess: () => boolean,
 ) {
 	return (event: KeyboardEvent) => {
 		if (
@@ -19,8 +20,9 @@ export function createWordGuessKeyHandler(
 		)
 			return
 		if (event.key === 'Enter') {
-			// Keep focused buttons and links natively activatable.
-			if (target instanceof HTMLElement && target.closest('button, a, summary')) return
+			// The active tile is an input hint, not a keyboard key. Once full, submit from it.
+			const control = target instanceof HTMLElement && target.closest('button, a, summary')
+			if (control && !(control.hasAttribute('data-five-input-hint') && hasFullGuess())) return
 			if (inactive()) return
 			event.preventDefault()
 			if (!event.repeat) void grade(event)

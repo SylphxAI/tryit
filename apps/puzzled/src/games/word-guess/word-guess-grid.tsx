@@ -18,7 +18,7 @@ type WordGuessGridProps = {
 	busy: Accessor<boolean>
 	tone: (grade: Feedback | undefined, fallback: string) => string
 	rules: (grade: Feedback) => string
-	onTileClick: (event: MouseEvent & { currentTarget: HTMLButtonElement }) => void
+	onTileClick: () => void
 }
 
 export function WordGuessGrid(props: WordGuessGridProps) {
@@ -58,6 +58,7 @@ export function WordGuessGrid(props: WordGuessGridProps) {
 											<Show when={row === rows().length && !outcome()} fallback={letter()}>
 												<button
 													type="button"
+													data-five-input-hint
 													class="grid size-full min-h-10 min-w-10 place-items-center rounded-md"
 													tabIndex={col === 0 ? 0 : -1}
 													aria-label={letter() || t('games.wordGuess.messages.useKeyboard')}
