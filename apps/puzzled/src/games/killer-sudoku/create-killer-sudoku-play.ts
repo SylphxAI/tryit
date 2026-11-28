@@ -45,7 +45,12 @@ export function createKillerSudokuPlay(
 		const next = killerSudokuReducer(previous, action, data)
 		if (next.cells !== previous.cells) setHistory((stack) => [...stack, previous])
 		setState(next)
-		if (cue.visible() && isFirstMove(action, previous, next, data.cages)) cue.dismiss()
+		if (
+			next.gameStatus === 'playing' &&
+			cue.visible() &&
+			isFirstMove(action, previous, next, data.cages)
+		)
+			cue.dismiss()
 		if (next.gameStatus === 'won') {
 			finish.finish({
 				finalGrid: next.cells.map((row) => row.map((cell) => cell.value)),

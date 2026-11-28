@@ -491,8 +491,16 @@ for (const [width, height] of [
 			await expect(note).toBeVisible()
 			expect((await total.boundingBox())!.y + 11).toBeLessThanOrEqual((await note.boundingBox())!.y)
 			await expect(tip).toBeVisible()
+			const beforeDismiss = await grid.boundingBox()
 			await tip.getByRole('button', { name: 'Dismiss' })[press]()
 			await expect(tip).toHaveCount(0)
+			expect(await grid.boundingBox()).toEqual(beforeDismiss)
+			if (width === 390) {
+				await info.attach('cage-sudoku-390-dismissed.png', {
+					body: await page.screenshot(),
+					contentType: 'image/png',
+				})
+			}
 			await page.reload()
 			await expect(grid.locator('[aria-pressed="true"]')).toHaveCount(1)
 			await expect(tip).toHaveCount(0)
@@ -514,7 +522,7 @@ test('Cage Sudoku cue retires on a conflict-free digit, not on a note or conflic
 	// 1 is not the solution here; it just has no conflict visible to the player.
 	await page.keyboard.press('1')
 	await expect(cell).not.toHaveAttribute('aria-invalid')
-	await expect(tip).toHaveCount(0)
+	await expect(tip).toBeHidden()
 	await page.reload()
 	await expect(cell).toHaveAccessibleName(/Column 2, 1,/)
 	await expect(tip).toHaveCount(0)

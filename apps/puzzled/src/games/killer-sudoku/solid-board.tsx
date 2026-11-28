@@ -33,7 +33,7 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	const dismiss = () => setCue(false)
 	const play = createKillerSudokuPlay(props.data, finish, { visible: cue, dismiss })
 	const target = createMemo(() => {
-		if (!cue()) return
+		if (!cue() || !play.playing()) return
 		const { cells } = play.state()
 		return firstMoveCage(
 			props.data.cages,
@@ -48,13 +48,13 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	})
 	return (
 		<div
-			class="play-split sudoku-layout mx-auto flex w-full max-w-[26rem] flex-col gap-1"
+			class="play-split sudoku-layout mx-auto flex w-full max-w-[26rem] flex-col"
 			data-killer-sudoku-board
 		>
-			<Show when={cue()}>
-				<FirstMoveCue t={t} dismiss={dismiss} />
-			</Show>
 			<KillerSudokuGrid cages={props.data.cages} cueCage={target()} play={play} t={t} />
+			<Show when={cue()}>
+				<FirstMoveCue t={t} dismiss={dismiss} visible={play.playing()} />
+			</Show>
 			<KillerSudokuControls play={play} t={t} />
 			<BoardFinish
 				finish={finish}

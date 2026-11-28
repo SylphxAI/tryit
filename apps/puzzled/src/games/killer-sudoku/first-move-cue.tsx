@@ -2,10 +2,12 @@
 import { X } from 'lucide-solid'
 import type { Translate } from '@/lib/i18n/translate'
 
-export function FirstMoveCue(props: { t: Translate; dismiss: () => void }) {
+export function FirstMoveCue(props: { t: Translate; dismiss: () => void; visible: boolean }) {
 	return (
 		<div
-			class="play-meta flex items-center gap-2 rounded-xl border border-accent-warm bg-accent-warm-soft ps-2 text-sm leading-tight sm:gap-3 sm:ps-3"
+			class="play-meta mt-1 flex items-center gap-2 rounded-xl border border-accent-warm bg-accent-warm-soft ps-2 text-sm leading-tight sm:gap-3 sm:ps-3"
+			classList={{ invisible: !props.visible }}
+			inert={!props.visible}
 			data-cage-first-move
 		>
 			<div class="shrink-0 text-center">
