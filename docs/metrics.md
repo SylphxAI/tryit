@@ -186,19 +186,25 @@ organic D1.
 `guest_start_cohort` counts the earliest canonical free pick per player after
 adoption, ordered by start time then day and game. An earlier pick bars later
 picks even if its provenance is unknown or excluded. The first pick must be an
-explicit guest start, not a comparison or synthetic row, with no earlier
-qualifying finish. The numerator requires a North Star finish for the same game
+explicit guest start, not a comparison or synthetic row. A qualifying finish
+strictly before the pick disqualifies it, regardless of game or stored day.
+This compares absolute instants using `completed_at_utc` and the pick clock,
+including qualifying history retained under adopted guest IDs. An exact tie
+is not earlier. The numerator requires a qualifying finish for the same game
 and server-assigned Hong Kong product day. There is no acquisition-source split:
 unknown attribution is not organic.
 
-The rollup defaults to absent. Set `PUZZLED_GUEST_START_WRITERS_VERIFIED_AT`
-only after verifying all pick writers persist provenance and all finish writer
-sessions use UTC for the legacy completion timestamp. The verified convergence
-instant (RFC 3339) opens collection on the following full Hong Kong product day.
-A day with any pick missing
-provenance is also absent, even if other picks are eligible. Present zeros
-mean computed empty; the usual 15-minute close grace applies. The report is
-recomputed on the existing schedule; historical picks are not changed.
+Both counts default to absent. Set `PUZZLED_GUEST_START_WRITERS_VERIFIED_AT`
+only after verifying all pick writers persist provenance and all finish writers
+persist the completion instant. The verified convergence instant (RFC 3339)
+opens collection on the following full Hong Kong product day. A day with any
+pick missing provenance is absent. Both counts are also absent if an otherwise
+eligible player has qualifying legacy finish history of unknown order (NULL
+`completed_at_utc`). A known earlier finish already excludes that player, so
+additional unknown history for them does not suppress the day's counts. Legacy
+wall times and stored day keys do not establish finish order. Present zeros
+mean computed empty; the usual 15-minute close grace applies. Reports are
+recomputed on the existing schedule; historical rows are not backfilled.
 
 ### Initial stop-the-line thresholds
 
