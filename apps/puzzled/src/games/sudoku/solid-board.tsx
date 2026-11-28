@@ -4,7 +4,6 @@ import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show }
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import styles from './components/sudoku-craft.module.css'
-import { firstBlank, firstMoveSquare } from './first-move'
 import { parseSudokuClientPayload } from './parse-client'
 import { createInitialState, type SudokuAction, sudokuReducer } from './state'
 import { BOX_SIZE, GRID_SIZE, hasCellConflict, type SudokuPuzzleClientData } from './types'
@@ -33,8 +32,8 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 	const t = createTranslator(props.locale)
 	const finish = createBoardFinish(props, 'sudoku')
 	const [state, setState] = finish.draft.signal('state', createInitialState(props.data))
-	const starter = props.data.difficulty === 'easy' ? firstMoveSquare(props.data.grid) : undefined
-	const entry = starter ?? firstBlank(props.data.grid)
+	const entryRow = props.data.grid.findIndex((row) => row.includes(null))
+	const entryCol = props.data.grid[entryRow]?.indexOf(null)
 	const cells: HTMLButtonElement[][] = Array.from({ length: GRID_SIZE }, () => [])
 	let board: HTMLDivElement | undefined
 	const [cue, setCue] = createSignal<'selectBlank' | 'lockedNumber' | null>(null)
@@ -125,11 +124,9 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 				dispatch({ type: 'SELECT_CELL', row, col })
 		}
 		const inTabOrder = () => {
-			const pos = selected() ?? entry
-			return pos?.row === row && pos.col === col
+			const pos = selected()
+			return pos ? pos.row === row && pos.col === col : entryRow === row && entryCol === col
 		}
-		const showStarter = () =>
-			!selected() && !state().isComplete && starter?.row === row && starter.col === col
 		return (
 			<button
 				type="button"
@@ -148,7 +145,6 @@ function Board(props: DailyBoardProps & { data: SudokuPuzzleClientData }) {
 					.filter(Boolean)
 					.join(', ')}
 				aria-pressed={selected()?.row === row && selected()?.col === col}
-				data-starter={showStarter() || undefined}
 				data-selected={(selected()?.row === row && selected()?.col === col) || undefined}
 				data-related={related() || undefined}
 				data-matching={matching() || undefined}

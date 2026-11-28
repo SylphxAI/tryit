@@ -29,7 +29,7 @@
 		"hard": "Só 29 células preenchidas — poucos pontos de partida"
 	},
 	"undo": "Desfazer",
-	"selectBlank": "Toque primeiro em uma casa vazia",
+	"selectBlank": "Selecione primeiro uma casa vazia",
 	"lockedNumber": "Esse número é fixo",
 	"confirmReset": "Recomeçar? Todos os seus números e anotações serão apagados."
 }
