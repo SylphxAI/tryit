@@ -26,7 +26,6 @@
 		"atlas:status": "atlas migrate status --env local",
 		"atlas:validate": "atlas migrate validate --env local",
 		"atlas:hash": "atlas migrate hash --env local",
-		"db:studio": "drizzle-kit studio",
 		"db:export": "drizzle-kit export"
 	},
 	"dependencies": {
@@ -45,7 +44,6 @@
 		"drizzle-orm": "^0.45.1",
 		"intl-messageformat": "11.1.2",
 		"lucide-solid": "0.577.0",
-		"pg": "^8.16.3",
 		"satori": "0.63.2",
 		"server-only": "^0.0.1",
 		"solid-js": "1.9.20",
@@ -60,9 +58,7 @@
 		"@tailwindcss/vite": "4.3.5",
 		"@types/bun": "1.4.4",
 		"@types/node": "^26.0.0",
-		"@types/pg": "^8.11.14",
 		"@types/ws": "^8.18.1",
-		"dotenv": "^17.2.3",
 		"drizzle-kit": "^0.31.8",
 		"happy-dom": "20.14.6",
 		"lightningcss": "1.33.0",
