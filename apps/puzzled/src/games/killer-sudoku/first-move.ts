@@ -28,18 +28,23 @@ export function firstMoveCage(cages: Cage[], canPlace: (row: number, col: number
 		.sort((a, b) => a.size - b.size || a.sets - b.sets || a.anchor - b.anchor)[0]?.index
 }
 
-export function openFirstMoveCue(
+export function canShowFirstMoveCue(
 	playingDaily: boolean,
-	storage: () => Pick<Storage, 'getItem' | 'setItem'>,
+	storage: () => Pick<Storage, 'getItem'>,
 ) {
 	if (!playingDaily) return false
 	try {
-		const local = storage()
-		if (local.getItem(CAGE_SUDOKU_CUE_SEEN_KEY) === '1') return false
-		local.setItem(CAGE_SUDOKU_CUE_SEEN_KEY, '1')
-		return true
+		return storage().getItem(CAGE_SUDOKU_CUE_SEEN_KEY) !== '1'
 	} catch {
 		return false // If persistence is unavailable, don't repeatedly interrupt play.
+	}
+}
+
+export function markFirstMoveCueSeen(storage: () => Pick<Storage, 'setItem'>) {
+	try {
+		storage().setItem(CAGE_SUDOKU_CUE_SEEN_KEY, '1')
+	} catch {
+		// A failed write must never stop play or dismissal.
 	}
 }
 

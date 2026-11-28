@@ -1,10 +1,61 @@
 /** @jsxImportSource solid-js */
 import { X } from 'lucide-solid'
+import { createEffect, onCleanup } from 'solid-js'
 import type { Translate } from '@/lib/i18n/translate'
 
-export function FirstMoveCue(props: { t: Translate; dismiss: () => void; visible: boolean }) {
+const exposureRatio = 0.75
+const exposureMs = 400
+
+export function FirstMoveCue(props: {
+	t: Translate
+	dismiss: () => void
+	visible: boolean
+	onExposure: () => void
+}) {
+	let cue!: HTMLDivElement
+	createEffect(() => {
+		if (!props.visible || typeof IntersectionObserver === 'undefined') return
+		let observer: IntersectionObserver | undefined
+		let dwell: ReturnType<typeof setTimeout> | undefined
+		const stopObserving = () => {
+			observer?.disconnect()
+			observer = undefined
+			clearTimeout(dwell)
+			dwell = undefined
+		}
+		const observeVisibleTab = () => {
+			stopObserving()
+			if (document.visibilityState !== 'visible') return
+			observer = new IntersectionObserver(
+				(entries, source) => {
+					if (observer !== source || document.visibilityState !== 'visible') return
+					const latest = entries.at(-1)
+					if (!latest?.isIntersecting || latest.intersectionRatio < exposureRatio) {
+						clearTimeout(dwell)
+						dwell = undefined
+						return
+					}
+					dwell ??= setTimeout(() => {
+						if (document.visibilityState !== 'visible') return
+						stopObserving()
+						document.removeEventListener('visibilitychange', observeVisibleTab)
+						props.onExposure()
+					}, exposureMs)
+				},
+				{ threshold: exposureRatio },
+			)
+			observer.observe(cue)
+		}
+		document.addEventListener('visibilitychange', observeVisibleTab)
+		observeVisibleTab()
+		onCleanup(() => {
+			stopObserving()
+			document.removeEventListener('visibilitychange', observeVisibleTab)
+		})
+	})
 	return (
 		<div
+			ref={cue}
 			class="play-meta mt-1 flex items-center gap-2 rounded-xl border border-accent-warm bg-accent-warm-soft ps-2 text-sm leading-tight sm:gap-3 sm:ps-3"
 			classList={{ invisible: !props.visible }}
 			inert={!props.visible}

@@ -3,7 +3,13 @@ import { create } from '@bufbuild/protobuf'
 import { classifyDailyResponse } from '@/features/daily/lib/daily-fallback'
 import { GetDailyResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { CAGE_SUDOKU_CUE_SEEN_KEY } from '@/lib/storage-keys'
-import { digitSetCount, firstMoveCage, isFirstMove, openFirstMoveCue } from './first-move'
+import {
+	canShowFirstMoveCue,
+	digitSetCount,
+	firstMoveCage,
+	isFirstMove,
+	markFirstMoveCueSeen,
+} from './first-move'
 import { createInitialState, killerSudokuReducer } from './state'
 import type { Cage } from './types'
 
@@ -26,7 +32,7 @@ test('skip the best-ranked cage when all its squares are givens; no eligible cag
 	expect(firstMoveCage(cages, () => false)).toBeUndefined()
 })
 
-test('only an unfinished daily board opens the cue, once even after reload', () => {
+test('only an unfinished daily board opens the cue, until explicitly recorded', () => {
 	const flags = new Map<string, string>()
 	const storage = () => ({
 		getItem: (key: string) => flags.get(key) ?? null,
@@ -40,11 +46,14 @@ test('only an unfinished daily board opens the cue, once even after reload', () 
 				puzzleDataJson: '{}',
 			}),
 		).kind === 'playable'
-	expect(openFirstMoveCue(playing(true), storage)).toBe(false)
+	expect(canShowFirstMoveCue(playing(true), storage)).toBe(false)
 	expect(flags.size).toBe(0)
-	expect(openFirstMoveCue(playing(false), storage)).toBe(true)
+	expect(canShowFirstMoveCue(playing(false), storage)).toBe(true)
+	expect(flags.size).toBe(0)
+	expect(canShowFirstMoveCue(playing(false), storage)).toBe(true)
+	markFirstMoveCueSeen(storage)
 	expect([...flags]).toEqual([[CAGE_SUDOKU_CUE_SEEN_KEY, '1']])
-	expect(openFirstMoveCue(playing(false), storage)).toBe(false)
+	expect(canShowFirstMoveCue(playing(false), storage)).toBe(false)
 })
 
 test('only a committed digit without visible conflicts retires the cue; reads do not alter game state', () => {
