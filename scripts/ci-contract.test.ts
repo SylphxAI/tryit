@@ -28,7 +28,7 @@ const reusable = new Set([
 	'SylphxAI/.github/.github/workflows/rust-check.yml@13890e5cc13e308f376748fd23f626b637a47771',
 	'./.github/workflows/verify.yml',
 ])
-const browserJobs = new Set(['a11y', 'lighthouse', 'craft', 'capture'])
+const browserJobs = new Set(['a11y', 'lighthouse', 'vitals', 'craft', 'capture'])
 const mergeLaneSelector =
 	/^\$\{\{\s*github\.event_name\s*==\s*'merge_group'\s*&&\s*'sylphx-linux-(?:standard|large|xlarge|2xlarge)-merge'\s*\|\|\s*'sylphx-linux-(?:standard|large|xlarge|2xlarge)'\s*\}\}$/
 const visibilityGuardedControl =
@@ -146,6 +146,7 @@ describe('self-hosted CI contract', () => {
 			'ms-playwright-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-captures',
 		)
 		expect(verify).toContain('ms-playwright-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-lighthouse')
+		expect(verify).toContain('ms-playwright-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-vitals')
 		expect(verify).toContain('ms-playwright-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-craft')
 		expect(verify).toContain("require('playwright').chromium.executablePath()")
 		expect(verify).not.toContain('$(find ')
@@ -209,6 +210,7 @@ const context = (event = 'pull_request', draft = false, supplied = true): Contex
 			'seo-contract',
 			'a11y',
 			'lighthouse',
+			'vitals',
 			'craft',
 		].map((name) => [
 			name,
@@ -265,6 +267,8 @@ const required = (job: Job, ctx: Context) => {
 describe('causal CI selection and verdicts', () => {
 	const ci = workflow('ci').jobs
 	const verify = workflow('verify').jobs
+	const builtWeb = ['seo-contract', 'a11y', 'lighthouse', 'vitals', 'craft']
+	const selectedJobs = ['build', 'rust-api', ...builtWeb]
 
 	test('the caller shares its resolved range and ready PRs use only the full Rust lane', () => {
 		expect(ci['fast-gate'].outputs).toEqual({
@@ -300,7 +304,7 @@ describe('causal CI selection and verdicts', () => {
 		const ctx = context()
 		ctx.needs.plan.result = 'skipped'
 		expect(enabled(verify.plan, ctx)).toBe(false)
-		for (const name of ['build', 'rust-api', 'seo-contract', 'a11y', 'lighthouse', 'craft']) {
+		for (const name of selectedJobs) {
 			expect(enabled(verify[name], ctx), name).toBe(true)
 		}
 		expect(required(verify.verified, ctx)).toEqual([
@@ -310,6 +314,7 @@ describe('causal CI selection and verdicts', () => {
 			'lighthouse',
 			'rust-api',
 			'seo-contract',
+			'vitals',
 		])
 	})
 
@@ -318,7 +323,7 @@ describe('causal CI selection and verdicts', () => {
 			const ctx = context(event, false, false)
 			expect(enabled(verify.plan, ctx)).toBe(true)
 			ctx.needs.plan.outputs.run = JSON.stringify({ build: true, rust: true, browser: false })
-			for (const name of ['build', 'rust-api', 'seo-contract', 'a11y', 'lighthouse', 'craft']) {
+			for (const name of selectedJobs) {
 				expect(enabled(verify[name], ctx), `${event}:${name}`).toBe(true)
 			}
 			expect(required(verify.verified, ctx)).toEqual([
@@ -329,6 +334,7 @@ describe('causal CI selection and verdicts', () => {
 				'plan',
 				'rust-api',
 				'seo-contract',
+				'vitals',
 			])
 		}
 	})
@@ -343,13 +349,36 @@ describe('causal CI selection and verdicts', () => {
 			ctx.inputs.run = JSON.stringify(lanes)
 			ctx.needs.plan.result = 'skipped'
 			ctx.needs.build.result = lanes.build ? 'success' : 'skipped'
-			for (const name of ['build', 'rust-api', 'seo-contract', 'a11y', 'lighthouse', 'craft']) {
+			for (const name of selectedJobs) {
 				expect(enabled(verify[name], ctx), name).toBe(
 					(selected as readonly string[]).includes(name),
 				)
 			}
 			expect(required(verify.verified, ctx)).toEqual([...selected].sort())
 		}
+	})
+
+	test('timing jobs share only plan and build, and both remain required when selected', () => {
+		const ctx = context('push', false, false)
+		for (const [name, command, report] of [
+			['lighthouse', 'bun run lighthouse', 'lighthouse-report'],
+			['vitals', 'bun run test:vitals', 'web-vitals-report'],
+		] as const) {
+			const job = verify[name]
+			expect(job.needs).toEqual(['plan', 'build'])
+			expect(verify.verified.needs).toContain(name)
+			const requiredJobs = required(verify.verified, ctx)
+			expect(requiredJobs).toContain(name)
+			expect(job.steps?.filter((step) => step.run === command)).toHaveLength(1)
+			expect(
+				job.steps?.some((step) => step.with?.mode === 'put' && step.with?.name === report),
+			).toBe(true)
+		}
+		const lighthouse = verify.lighthouse.steps?.find((step) => step.run === 'bun run lighthouse')
+		for (const event of ['pull_request', 'pull_request_target', 'merge_group']) {
+			expect(evaluate(lighthouse?.if || 'true', context(event))).toBe(false)
+		}
+		expect(evaluate(lighthouse?.if || 'false', ctx)).toBe(true)
 	})
 
 	test('failed, cancelled, skipped or missing selected evidence cannot become an intentional skip', () => {
@@ -361,7 +390,7 @@ describe('causal CI selection and verdicts', () => {
 			expect(required(verify.verified, standalone)).toContain('plan')
 			const supplied = context()
 			supplied.needs.build.result = result
-			for (const name of ['seo-contract', 'a11y', 'lighthouse', 'craft']) {
+			for (const name of builtWeb) {
 				expect(enabled(verify[name], supplied), name).toBe(false)
 				expect(required(verify.verified, supplied), name).toContain(name)
 			}
@@ -383,7 +412,7 @@ describe('causal CI selection and verdicts', () => {
 			)
 		}
 		const ctx = context()
-		for (const name of ['build', 'rust-api', 'seo-contract', 'a11y', 'lighthouse', 'craft']) {
+		for (const name of selectedJobs) {
 			expect(enabled(verify[name], ctx, true), name).toBe(false)
 		}
 	})
@@ -427,7 +456,7 @@ describe('causal CI selection and verdicts', () => {
 			'cargo test --locked -p puzzled-core -p puzzled-server',
 		)
 		expect(commands(verify.build)).not.toContain('cargo build')
-		for (const name of ['seo-contract', 'a11y', 'lighthouse', 'craft']) {
+		for (const name of builtWeb) {
 			expect(verify[name].needs).toContain('build')
 			expect(verify[name].if).toContain("needs.build.result == 'success'")
 			expect(
