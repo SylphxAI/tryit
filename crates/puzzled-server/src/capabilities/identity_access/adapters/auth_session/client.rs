@@ -13,6 +13,11 @@ use super::super::auth_subjects;
 use super::super::platform_jwt::VerifiedIdentity;
 use super::principal::{principal_from_session, session_token};
 
+mod metrics_access;
+
+pub(crate) use metrics_access::{MetricsAccess, MetricsAccessError};
+
+const AUTH_TIMEOUT: Duration = Duration::from_secs(5);
 const POSITIVE_TTL: Duration = Duration::from_secs(60);
 const NEGATIVE_TTL: Duration = Duration::from_secs(10);
 const CACHE_LIMIT: usize = 10_000;
@@ -30,6 +35,8 @@ pub struct AuthSessions {
     /// means no session is verified (fail closed).
     caller_key: String,
     cache: Arc<Mutex<Cache>>,
+    metrics_customer_organization: Option<String>,
+    metrics_http: Option<reqwest::Client>,
     /// Where the Auth subject to player map lives ([`auth_subjects`]).
     pool: Option<PgPool>,
     /// The operator-managed Auth customer organization for product-wide admin.
@@ -42,7 +49,7 @@ impl AuthSessions {
     pub fn new(auth_url: String, organization_id: String, caller_key: String) -> Self {
         Self {
             http: reqwest::Client::builder()
-                .timeout(Duration::from_secs(5))
+                .timeout(AUTH_TIMEOUT)
                 .build()
                 .unwrap_or_default(),
             auth_url: auth_url.trim_end_matches('/').to_string(),
@@ -51,6 +58,13 @@ impl AuthSessions {
             cache: Arc::new(Mutex::new(HashMap::new())),
             pool: None,
             admin_customer_organization: None,
+            metrics_customer_organization: None,
+            // Attestations must come from the exact Auth door; do not follow a redirect.
+            metrics_http: reqwest::Client::builder()
+                .timeout(AUTH_TIMEOUT)
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .ok(),
         }
     }
 
@@ -73,7 +87,7 @@ impl AuthSessions {
         })
     }
 
-    pub(super) fn from_settings(read: impl Fn(&str) -> Option<String>) -> Self {
+    pub(crate) fn from_settings(read: impl Fn(&str) -> Option<String>) -> Self {
         let organization_id = read("SYLPHX_AUTH_ORGANIZATION_ID").unwrap_or_else(|| {
             tracing::warn!(
                 target: super::LOG_TARGET,
@@ -95,7 +109,11 @@ impl AuthSessions {
             organization_id,
             caller_key,
         );
-        sessions.admin_customer_organization = read("PUZZLED_ADMIN_CUSTOMER_ORGANIZATION_ID");
+        sessions.admin_customer_organization =
+            read("PUZZLED_ADMIN_CUSTOMER_ORGANIZATION_ID").filter(|org| !org.trim().is_empty());
+        sessions.metrics_customer_organization = read("PUZZLED_METRICS_CUSTOMER_ORGANIZATION_ID")
+            .map(|org| org.trim().to_string())
+            .filter(|org| !org.is_empty());
         sessions
     }
 
@@ -166,12 +184,7 @@ impl AuthSessions {
         if self.caller_key.is_empty() {
             return None;
         }
-        let mut request = self
-            .http
-            .get(format!("{}/v1/sessions/current", self.auth_url))
-            .bearer_auth(token)
-            .header("x-sylphx-caller-key", &self.caller_key)
-            .header(axum::http::header::USER_AGENT, user_agent);
+        let mut request = self.current_session_request(&self.http, token, user_agent);
         if let Some(organization) = customer_organization {
             request = request.query(&[("customer_organization", organization)]);
         }
@@ -190,6 +203,31 @@ impl AuthSessions {
             return None;
         }
         response.json().await.ok()
+    }
+
+    fn current_session_request(
+        &self,
+        http: &reqwest::Client,
+        token: &str,
+        user_agent: &str,
+    ) -> reqwest::RequestBuilder {
+        self.session_request(
+            http.get(format!("{}/v1/sessions/current", self.auth_url)),
+            token,
+            user_agent,
+        )
+    }
+
+    fn session_request(
+        &self,
+        request: reqwest::RequestBuilder,
+        token: &str,
+        user_agent: &str,
+    ) -> reqwest::RequestBuilder {
+        request
+            .bearer_auth(token)
+            .header("x-sylphx-caller-key", &self.caller_key)
+            .header(axum::http::header::USER_AGENT, user_agent)
     }
 
     async fn fetch(&self, token: &str, user_agent: &str) -> Option<VerifiedIdentity> {

@@ -63,6 +63,11 @@ value = "https://tryit.fun"
 [env.PUZZLED_ADMIN_CUSTOMER_ORGANIZATION_ID]
 value = ""
 
+# Optional, independent Auth customer organization for metrics:report:read.
+# Empty disables metrics-only admission without affecting existing admins.
+[env.PUZZLED_METRICS_CUSTOMER_ORGANIZATION_ID]
+value = ""
+
 # Reverse trial (docs/monetization.md): after a player's third finished day the
 # api opens every game for 7 days, once per account. On together with Plus
 # sales; set "off" to stop new grants (running trials end on their own date).
