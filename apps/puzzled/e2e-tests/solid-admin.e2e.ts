@@ -102,9 +102,7 @@ test.describe('Solid admin console (built Nitro)', () => {
 			await page.screenshot({ path: testInfo.outputPath(`analytics-${width}.png`), fullPage: true })
 		}
 		expect((await trace()).map(({ method }) => method)).toEqual([
-			'GetSettings',
 			'GetMetricsReport',
-			'GetSettings',
 			'GetMetricsReport',
 		])
 	})
