@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use axum::http::{HeaderMap, StatusCode};
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -19,7 +21,7 @@ pub(crate) enum MetricsAccessError {
 
 #[derive(Deserialize)]
 struct Attestation {
-    allowed: bool,
+    allowed: BTreeMap<String, bool>,
     subject: AttestedSubject,
 }
 
@@ -89,7 +91,7 @@ impl AuthSessions {
             return Err(Denied);
         }
         let Attestation { allowed, subject } = response.json().await.map_err(|_| Denied)?;
-        if allowed
+        if allowed.get(READ_PERMISSION) == Some(&true)
             && subject.principal_id == principal.subject
             // The unscoped session above already established a valid instance ID.
             && auth_id_value(&subject.instance_id) == auth_id_value(&self.organization_id)
