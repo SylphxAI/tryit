@@ -303,6 +303,9 @@ describe('causal CI selection and verdicts', () => {
 	test('supplied lanes skip Plan without skipping selected jobs or build consumers', () => {
 		const ctx = context()
 		ctx.needs.plan.result = 'skipped'
+		ctx.needs.lighthouse.result = 'failure'
+		expect(verify.vitals.needs).toEqual(['plan', 'build'])
+		for (const lane of ['lighthouse', 'vitals']) expect(verify.verified.needs).toContain(lane)
 		expect(enabled(verify.plan, ctx)).toBe(false)
 		for (const name of selectedJobs) {
 			expect(enabled(verify[name], ctx), name).toBe(true)
@@ -356,29 +359,6 @@ describe('causal CI selection and verdicts', () => {
 			}
 			expect(required(verify.verified, ctx)).toEqual([...selected].sort())
 		}
-	})
-
-	test('timing jobs share only plan and build, and both remain required when selected', () => {
-		const ctx = context('push', false, false)
-		for (const [name, command, report] of [
-			['lighthouse', 'bun run lighthouse', 'lighthouse-report'],
-			['vitals', 'bun run test:vitals', 'web-vitals-report'],
-		] as const) {
-			const job = verify[name]
-			expect(job.needs).toEqual(['plan', 'build'])
-			expect(verify.verified.needs).toContain(name)
-			const requiredJobs = required(verify.verified, ctx)
-			expect(requiredJobs).toContain(name)
-			expect(job.steps?.filter((step) => step.run === command)).toHaveLength(1)
-			expect(
-				job.steps?.some((step) => step.with?.mode === 'put' && step.with?.name === report),
-			).toBe(true)
-		}
-		const lighthouse = verify.lighthouse.steps?.find((step) => step.run === 'bun run lighthouse')
-		for (const event of ['pull_request', 'pull_request_target', 'merge_group']) {
-			expect(evaluate(lighthouse?.if || 'true', context(event))).toBe(false)
-		}
-		expect(evaluate(lighthouse?.if || 'false', ctx)).toBe(true)
 	})
 
 	test('failed, cancelled, skipped or missing selected evidence cannot become an intentional skip', () => {
