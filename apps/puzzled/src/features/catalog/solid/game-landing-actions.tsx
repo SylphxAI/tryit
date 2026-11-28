@@ -115,7 +115,7 @@ export function renderPracticeLink(
 	return (
 		<Show when={props.daily && isPracticeSupported(d().slug)}>
 			<a
-				class="chrome-control min-h-12 font-semibold underline"
+				class="chrome-control -ms-2.5 min-h-12 font-semibold underline"
 				href={practicePath(d().canonicalPath, props.difficulty)}
 			>
 				{createTranslator(d().locale)('practice.label')}
