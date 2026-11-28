@@ -8,11 +8,17 @@ import { useTheme } from '@/shared/solid/theme'
 import { AdminDialog, control } from './admin-controls'
 import { type AdminSection, adminPath, adminSections } from './admin-routes'
 
-export function AdminNavigation(props: { section: AdminSection; locale: Locale; t: Translate }) {
+export function AdminNavigation(props: {
+	section: AdminSection
+	locale: Locale
+	t: Translate
+	analyticsOnly: boolean
+}) {
 	const theme = useTheme()
 	const [search, setSearch] = createSignal('')
+	const visibleSections = () => (props.analyticsOnly ? (['analytics'] as const) : adminSections)
 	const sections = () =>
-		adminSections.filter((section) =>
+		visibleSections().filter((section) =>
 			props
 				.t(`admin.sidebar.${section}`)
 				.toLocaleLowerCase(props.locale)
@@ -33,7 +39,13 @@ export function AdminNavigation(props: { section: AdminSection; locale: Locale; 
 	return (
 		<header class="border-b border-[var(--admin-border)] bg-[var(--admin-bg-elevated)]">
 			<div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-8">
-				<A href={localizedPath(props.locale, '/admin')} class="font-display text-lg font-bold">
+				<A
+					href={localizedPath(
+						props.locale,
+						adminPath(props.analyticsOnly ? 'analytics' : 'dashboard'),
+					)}
+					class="font-display text-lg font-bold"
+				>
 					{props.t('admin.sidebar.console')}
 				</A>
 				<div class="flex flex-wrap gap-2">
@@ -103,7 +115,7 @@ export function AdminNavigation(props: { section: AdminSection; locale: Locale; 
 				aria-label={props.t('admin.sidebar.navigation')}
 				class="mx-auto flex max-w-6xl flex-wrap gap-1 px-4 pb-3 sm:px-8"
 			>
-				<For each={adminSections}>
+				<For each={visibleSections()}>
 					{(section) => (
 						<A
 							end

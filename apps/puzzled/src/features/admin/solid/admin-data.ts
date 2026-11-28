@@ -13,10 +13,36 @@ import {
 	listDlq,
 	systemHealth,
 } from '@/lib/connect/admin-client'
-import { requestUser } from '@/lib/identity/request-identity'
+import { requestSessionToken, requestUser } from '@/lib/identity/request-identity'
 import { logger } from '@/lib/logger'
 import { withPresentationDeadline } from '@/lib/presentation-document'
 import { type AdminSection, adminOptions, adminPageSize } from './admin-routes'
+
+async function readAnalytics(request: Request, slug: string) {
+	if (!requestSessionToken(request)) return { kind: 'guest' as const }
+	try {
+		const client = createClient(AdminService, requestConnectTransport(request.headers))
+		let access: string | null = null
+		const report = await client.getMetricsReport(create(GetMetricsReportRequestSchema), {
+			onHeader: (headers) => {
+				access = headers.get('Tryit-Analytics-Access')
+			},
+		})
+		if (slug) return { kind: 'missing' as const }
+		// A successful legacy report (no header) was already admin-only.
+		return {
+			kind: 'analytics' as const,
+			report,
+			analyticsOnly: access !== null && access !== 'admin',
+		}
+	} catch (error) {
+		const code = ConnectError.from(error).code
+		if (code === Code.Unauthenticated) return { kind: 'guest' as const }
+		if (code === Code.PermissionDenied) return { kind: 'denied' as const }
+		logger.warn('admin.document-unavailable', { section: 'analytics', code })
+		return { kind: 'unavailable' as const }
+	}
+}
 
 export async function readAdminDocument(
 	request: Request,
@@ -24,6 +50,7 @@ export async function readAdminDocument(
 	slug: string,
 	params: URLSearchParams,
 ) {
+	if (section === 'analytics') return readAnalytics(request, slug)
 	if (!(await withPresentationDeadline(requestUser(request), null)))
 		return { kind: 'guest' as const }
 	let client: ReturnType<typeof createClient<typeof AdminService>>
@@ -42,7 +69,6 @@ export async function readAdminDocument(
 	if (slug && (section !== 'games' || !getGameConfig(slug))) return { kind: 'missing' as const }
 	const options = adminOptions(params)
 	const paging = { limit: adminPageSize, offset: (options.page - 1) * adminPageSize }
-	const metrics = () => client.getMetricsReport(create(GetMetricsReportRequestSchema))
 	try {
 		switch (section) {
 			case 'dashboard': {
@@ -64,8 +90,6 @@ export async function readAdminDocument(
 					databaseOk: health.status === 'fulfilled' ? health.value.databaseOk : null,
 				}
 			}
-			case 'analytics':
-				return { kind: section, report: await metrics() }
 			case 'announcements':
 				return { kind: section, rows: await listAnnouncements(client) }
 			case 'auditLogs':
