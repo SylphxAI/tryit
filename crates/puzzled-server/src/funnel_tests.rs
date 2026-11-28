@@ -2,6 +2,7 @@
 //! Needs `PUZZLED_TEST_DATABASE_URL` like the other database tests.
 
 mod daily_completion;
+mod pick_completion;
 
 use axum::{
     body::Body,
