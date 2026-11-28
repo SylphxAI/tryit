@@ -32,7 +32,14 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	const [cue, setCue] = createSignal(false)
 	const dismiss = () => setCue(false)
 	const play = createKillerSudokuPlay(props.data, finish, { visible: cue, dismiss })
-	const target = createMemo(() => (cue() ? firstMoveCage(props.data.cages) : undefined))
+	const target = createMemo(() => {
+		if (!cue()) return
+		const { cells } = play.state()
+		return firstMoveCage(
+			props.data.cages,
+			(row, col) => !cells[row][col].isGiven && cells[row][col].value === null,
+		)
+	})
 	onMount(() => {
 		// Completed daily snapshots already render a result instead of this board.
 		setCue(

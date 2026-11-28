@@ -11,15 +11,21 @@ export function digitSetCount(size: number, total: number, digit = 1): number {
 	return digitSetCount(size - 1, total - digit, digit + 1) + digitSetCount(size, total, digit + 1)
 }
 
-export function firstMoveCage(cages: Cage[]): number {
+export function firstMoveCage(cages: Cage[], canPlace: (row: number, col: number) => boolean) {
 	return cages
-		.map((cage, index) => ({
-			index,
-			size: cage.cells.length,
-			sets: digitSetCount(cage.cells.length, cage.sum),
-			anchor: cageAnchor(cage),
-		}))
-		.sort((a, b) => a.size - b.size || a.sets - b.sets || a.anchor - b.anchor)[0].index
+		.flatMap((cage, index) =>
+			cage.cells.some(([row, col]) => canPlace(row, col))
+				? [
+						{
+							index,
+							size: cage.cells.length,
+							sets: digitSetCount(cage.cells.length, cage.sum),
+							anchor: cageAnchor(cage),
+						},
+					]
+				: [],
+		)
+		.sort((a, b) => a.size - b.size || a.sets - b.sets || a.anchor - b.anchor)[0]?.index
 }
 
 export function openFirstMoveCue(

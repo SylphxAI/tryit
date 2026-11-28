@@ -15,8 +15,15 @@ const cage = (sum: number, ...indices: number[]): Cage => ({
 test('rank by public size, then number of distinct sets, then top-left square', () => {
 	expect([3, 17, 10, 2].map((total) => digitSetCount(2, total))).toEqual([1, 1, 4, 0])
 	const cages = [cage(6, 0, 1, 2), cage(10, 9, 10), cage(17, 36, 37), cage(3, 28, 27)]
-	expect(firstMoveCage(cages)).toBe(3)
-	expect([...cages].reverse()[firstMoveCage([...cages].reverse())]).toBe(cages[3])
+	expect(firstMoveCage(cages, () => true)).toBe(3)
+	expect([...cages].reverse()[firstMoveCage([...cages].reverse(), () => true)]).toBe(cages[3])
+})
+
+test('skip the best-ranked cage when all its squares are givens; no eligible cage means no highlight', () => {
+	const cages = [cage(3, 0, 1), cage(10, 2, 3)]
+	const givens = [true, true, true, false]
+	expect(firstMoveCage(cages, (_row, col) => !givens[col])).toBe(1)
+	expect(firstMoveCage(cages, () => false)).toBeUndefined()
 })
 
 test('only an unfinished daily board opens the cue, once even after reload', () => {

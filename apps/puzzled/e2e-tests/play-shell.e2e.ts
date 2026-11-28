@@ -511,11 +511,12 @@ test('Cage Sudoku cue retires on a conflict-free digit, not on a note or conflic
 	for (const key of ['n', '5', 'n', '2']) await page.keyboard.press(key)
 	await expect(cell).toHaveAttribute('aria-invalid', 'true')
 	await expect(tip).toBeVisible()
-	await page.keyboard.press('8')
+	// 1 is not the solution here; it just has no conflict visible to the player.
+	await page.keyboard.press('1')
 	await expect(cell).not.toHaveAttribute('aria-invalid')
 	await expect(tip).toHaveCount(0)
 	await page.reload()
-	await expect(cell).toHaveAccessibleName(/Column 2, 8,/)
+	await expect(cell).toHaveAccessibleName(/Column 2, 1,/)
 	await expect(tip).toHaveCount(0)
 })
 
