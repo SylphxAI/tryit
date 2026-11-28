@@ -195,15 +195,20 @@ already selected in your client environment. Both Hong Kong product day keys
 set -o pipefail
 {
   echo "BEGIN READ ONLY; SET LOCAL statement_timeout = '5s'; PREPARE pick_finishes(date, date) AS"
-  cat crates/puzzled-server/src/capabilities/funnel/pick_completions.sql
+  cat crates/puzzled-core/src/capabilities/puzzle_play/domain/ritual_completion/implausible_finish_players.sql \
+      crates/puzzled-server/src/capabilities/funnel/pick_completions.sql
   printf "EXECUTE pick_finishes('%s', '%s');\nROLLBACK;\n" '2026-11-19' '2026-11-25'
 } | psql -X -v ON_ERROR_STOP=1
 ```
 
 Use Nov 19–25, 2026 for the baseline, Nov 29 alone for the sanity check, and
-Nov 29–Dec 5 for the cue read. Each row gives free picks, matching daily wins or
-losses (`finishes`), and wins. A pick counts once even if multiple sessions
-match; games without counted picks are omitted. The report excludes all picks
+Nov 29–Dec 5 for the cue read. Each row gives `raw_picks` and `raw_finishes`
+(before the timing filter), then `picks`, `finishes` (matching daily wins or
+losses) and `wins` (after it). A pick counts once even if multiple sessions
+match. Games with only excluded fast players still show their raw counts.
+The shared [timing rule and floors](metrics.md#implausibly-fast-finishes) drop
+all of a player's picks if any matching daily finish is below its floor, even
+if the finish is outside the selected dates. Both sets of counts exclude picks
 by registered fixtures, owners of sessions adopted from fixtures, and players
 with any marked pick or finish, even if the mark is outside the selected dates.
 Before Nov 28, only a marked finish identifies historical harness starts, so a

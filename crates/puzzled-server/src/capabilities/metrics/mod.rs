@@ -100,6 +100,11 @@ pub async fn reports(pool: &PgPool) -> Result<Vec<(Day, String)>, String> {
         .collect()
 }
 
+pub(crate) const ROLLUP_SQL: &str = concat!(
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../puzzled-core/src/capabilities/puzzle_play/domain/ritual_completion/implausible_finish_players.sql")),
+    include_str!("rollup.sql"),
+);
+
 pub async fn rollup(pool: &PgPool, now: DateTime<Utc>) -> Result<usize, String> {
     let writers_verified_at = std::env::var("PUZZLED_GUEST_START_WRITERS_VERIFIED_AT").ok();
     rollup_with_guest_start_boundary(pool, now, writers_verified_at.as_deref()).await
@@ -148,7 +153,7 @@ pub(crate) async fn rollup_with_guest_start_boundary(
         let old: Vec<(String, serde_json::Value)> = sqlx::query_as("SELECT day_key,report FROM metric_days WHERE day_key >= $1")
             .bind(context_start.to_string()).fetch_all(&mut *tx).await?;
         let old: std::collections::BTreeMap<_, _> = old.into_iter().filter_map(|(k,v)| serde_json::from_value::<Day>(v).ok().map(|v|(k,v))).collect();
-        let rows = sqlx::query(include_str!("rollup.sql"))
+        let rows = sqlx::query(ROLLUP_SQL)
             .bind(context_start.to_string()).bind(today.to_string()).bind(first_collected_day)
             .fetch_all(&mut *tx).await?;
         let mut days = std::collections::BTreeMap::<String, Day>::new();

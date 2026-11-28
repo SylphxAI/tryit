@@ -1,5 +1,6 @@
 -- Ops read model. $1 and $2 are inclusive Hong Kong product day keys (YYYY-MM-DD).
-WITH excluded_players AS (
+-- Prepend the shared implausible_finish_players.sql CTE.
+, excluded_players AS (
   SELECT user_id FROM synthetic_fixtures
   UNION ALL
   SELECT s.user_id FROM game_sessions s
@@ -13,9 +14,12 @@ WITH excluded_players AS (
   -- Drop every pick by that player, even outside the marked finish's day.
   SELECT user_id FROM game_sessions WHERE comparison_excluded
 )
-SELECT p.game_slug, count(*) AS picks, count(f.won) AS finishes,
-  count(*) FILTER (WHERE f.won) AS wins
+SELECT p.game_slug, count(*) AS raw_picks, count(f.won) AS raw_finishes,
+  count(*) FILTER (WHERE fast.user_id IS NULL) AS picks,
+  count(f.won) FILTER (WHERE fast.user_id IS NULL) AS finishes,
+  count(*) FILTER (WHERE f.won AND fast.user_id IS NULL) AS wins
 FROM daily_free_picks p
+LEFT JOIN implausible_finish_players fast ON fast.user_id = p.user_id
 -- NULL means no matching finish; false means a loss. Reduce to one result per pick.
 CROSS JOIN LATERAL (
   SELECT bool_or(s.status = 'won') AS won

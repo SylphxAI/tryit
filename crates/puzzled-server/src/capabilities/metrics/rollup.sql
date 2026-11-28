@@ -1,12 +1,15 @@
-WITH qualified AS MATERIALIZED (
+-- Prepend the shared implausible_finish_players.sql CTE.
+, qualified AS MATERIALIZED (
   SELECT id, user_id, day_key, game_slug, completed_at, completed_at_utc, adopted_from_guest
   FROM game_sessions
   WHERE is_ritual = true AND module_class = 'puzzle_ritual' AND status IN ('won', 'lost')
     AND NOT comparison_excluded
     AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id=game_sessions.user_id)
+    AND NOT EXISTS (SELECT 1 FROM implausible_finish_players f WHERE f.user_id=game_sessions.user_id)
 ), audiences AS MATERIALIZED (
   SELECT * FROM metric_audiences a
   WHERE NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id=a.user_id)
+    AND NOT EXISTS (SELECT 1 FROM implausible_finish_players f WHERE f.user_id=a.user_id)
 ), daily AS MATERIALIZED (
   SELECT DISTINCT user_id, day_key FROM qualified
 ), firsts AS MATERIALIZED (
@@ -34,6 +37,7 @@ WITH qualified AS MATERIALIZED (
   SELECT p.user_id, p.day_key, p.game_slug, p.started_at
   FROM collected_picks p
   WHERE p.guest_entry IS TRUE AND p.claimed_via = 'start' AND p.comparison_excluded IS FALSE
+    AND NOT EXISTS (SELECT 1 FROM implausible_finish_players f WHERE f.user_id = p.user_id)
     -- Picks carry no origin ID, so refuse a canonical identity with any
     -- verified synthetic guest origin rather than attributing its start.
     AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures s WHERE s.user_id = p.user_id)
@@ -83,7 +87,8 @@ SELECT days.day_key,
   (SELECT count(DISTINCT user_id) FROM game_sessions g WHERE g.day_key = days.day_key
      AND g.is_ritual = true AND g.module_class = 'entertainment_oracle' AND g.status IN ('won','lost')
      AND NOT g.comparison_excluded
-     AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id=g.user_id)) AS daily_entertainment_completers,
+     AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id=g.user_id)
+     AND NOT EXISTS (SELECT 1 FROM implausible_finish_players f WHERE f.user_id=g.user_id)) AS daily_entertainment_completers,
   (SELECT count(*) FROM (SELECT user_id FROM daily q
      WHERE q.day_key BETWEEN to_char(days.day_key::date - 6, 'YYYY-MM-DD') AND days.day_key
      GROUP BY user_id HAVING count(*) >= 4) regulars) AS weekly_ritualists,
