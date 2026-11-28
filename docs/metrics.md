@@ -44,6 +44,7 @@ reported duration is not used. The provisional floors are:
 | ---: | --- |
 | 5 | Word Guess, Word Ladder, Arithmo |
 | 8 | Pattern Match, Word Groups, Number Path, Block Slide |
+| 10 | Quad Words |
 | 20 | Every other game |
 
 A finish exactly at the floor counts. A tie at zero (including a pick claimed
