@@ -62,8 +62,16 @@ WITH qualified AS MATERIALIZED (
     HAVING count(*) FILTER (WHERE q.completed_at < p.started_at AT TIME ZONE 'UTC'
       OR (q.completed_at IS NULL AND q.day_key <= p.day_key::text)) = 0
   ) outcomes GROUP BY day_key
-), days AS (
-  SELECT to_char(d, 'YYYY-MM-DD') AS day_key FROM generate_series($1::date, $2::date, interval '1 day') d
+), days AS MATERIALIZED (
+  SELECT to_char(d, 'YYYY-MM-DD') AS day_key,
+    to_char(d::date - 7, 'YYYY-MM-DD') AS week_ago
+  FROM generate_series($1::date, $2::date, interval '1 day') d
+), d7_returns AS (
+  -- Match the distinct player-days once, rather than rescanning daily for each cohort member.
+  SELECT d.day_key, count(*) AS returned
+  FROM days d JOIN firsts f ON f.first_day = d.week_ago
+  JOIN daily q ON q.user_id = f.user_id AND q.day_key = d.day_key
+  GROUP BY d.day_key
 )
 SELECT days.day_key,
   (SELECT count(*) FROM daily q WHERE q.day_key = days.day_key) AS daily_puzzle_completers,
@@ -76,9 +84,8 @@ SELECT days.day_key,
   (SELECT count(*) FROM (SELECT user_id FROM daily q
      WHERE q.day_key BETWEEN to_char(days.day_key::date - 6, 'YYYY-MM-DD') AND days.day_key
      GROUP BY user_id HAVING count(*) >= 4) regulars) AS weekly_ritualists,
-  (SELECT count(*) FROM firsts f WHERE f.first_day = to_char(days.day_key::date - 7, 'YYYY-MM-DD')) AS d7_cohort,
-  (SELECT count(*) FROM firsts f JOIN daily q ON q.user_id = f.user_id AND q.day_key = days.day_key
-     WHERE f.first_day = to_char(days.day_key::date - 7, 'YYYY-MM-DD')) AS d7_returned,
+  (SELECT count(*) FROM firsts f WHERE f.first_day = days.week_ago) AS d7_cohort,
+  COALESCE(d7_returns.returned, 0) AS d7_returned,
   (SELECT count(*) FROM funnel_events e WHERE e.event = 'share_landing'
      AND e.occurred_at >= days.day_key::date::timestamp AT TIME ZONE 'Asia/Hong_Kong'
      AND e.occurred_at < (days.day_key::date + 1)::timestamp AT TIME ZONE 'Asia/Hong_Kong') AS share_landings,
@@ -99,6 +106,7 @@ SELECT days.day_key,
     THEN coalesce(g.completed_same_day, 0) END AS guest_start_completed_same_day,
   zero.*, d1.*
 FROM days
+LEFT JOIN d7_returns USING (day_key)
 LEFT JOIN mixed_pick_days mixed ON mixed.day_key = days.day_key::date
 LEFT JOIN guest_starts g ON g.day_key = days.day_key::date
 CROSS JOIN LATERAL (SELECT count(*) AS first_completers,
