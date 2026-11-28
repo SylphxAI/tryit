@@ -192,10 +192,32 @@ impl AuthSessions {
         response.json().await.ok()
     }
 
+    /// Live verification for read-only admission. An unmapped subject is not linked.
+    pub(super) async fn verify_mapped(
+        &self,
+        token: &str,
+        user_agent: &str,
+    ) -> Option<VerifiedIdentity> {
+        self.resolve(token, user_agent, false).await
+    }
+
     async fn fetch(&self, token: &str, user_agent: &str) -> Option<VerifiedIdentity> {
+        self.resolve(token, user_agent, true).await
+    }
+
+    async fn resolve(
+        &self,
+        token: &str,
+        user_agent: &str,
+        allow_link: bool,
+    ) -> Option<VerifiedIdentity> {
         let body = self.current_session(token, user_agent, None).await?;
         let principal = principal_from_session(&body, &self.organization_id)?;
         let user_id = match &self.pool {
+            Some(pool) if !allow_link => auth_subjects::lookup(pool, &principal.subject)
+                .await
+                .ok()??,
+            None if !allow_link => return None,
             Some(pool) => auth_subjects::player_for(
                 pool,
                 &principal.subject,

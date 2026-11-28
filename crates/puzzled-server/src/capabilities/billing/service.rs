@@ -5,6 +5,7 @@ use puzzled_core::billing_access::reverse_trial;
 use sqlx::PgPool;
 
 use super::adapters::billing_db;
+use crate::capabilities::identity_access::adapters::auth_subjects;
 use crate::capabilities::money::{access, Money};
 
 /// Is `user_id` a Platform account (a UUID), not a guest-day id?
@@ -121,6 +122,67 @@ pub async fn access(
         });
     }
     Ok(Entitlement::default())
+}
+
+/// Read-only proof of the free tier. An unreadable grant, linked subject,
+/// family membership, or trial is never a denial of access.
+pub(crate) async fn known_free(
+    pool: &PgPool,
+    money: &Money,
+    user_id: &str,
+    trial_enabled: bool,
+) -> Result<bool, String> {
+    let granted = billing_db::trial_ends_at_ms(pool, user_id).await?;
+    let now = chrono::Utc::now().timestamp_millis();
+    if matches!(
+        reverse_trial::state_of(granted, now),
+        reverse_trial::TrialState::Active { .. }
+    ) {
+        return Ok(false);
+    }
+    if trial_enabled
+        && granted.is_none()
+        && reverse_trial::should_grant(
+            true,
+            granted,
+            billing_db::finished_days(pool, user_id).await?,
+        )
+    {
+        // Already earned: don't grant here, but don't offer an upgrade either.
+        return Ok(false);
+    }
+    if has_grant(pool, money, user_id, access::FEATURE_PLUS).await? {
+        return Ok(false);
+    }
+    if let Some(owner) = billing_db::family_owner_of(pool, user_id).await? {
+        if has_grant(pool, money, &owner, access::FEATURE_FAMILY).await? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+async fn has_grant(
+    pool: &PgPool,
+    money: &Money,
+    user_id: &str,
+    feature: &str,
+) -> Result<bool, String> {
+    for subject in auth_subjects::try_money_subjects_for_player(pool, user_id)
+        .await
+        .map_err(|error| error.to_string())?
+    {
+        // A cached denial may predate a purchase. Never use it to promote a sale.
+        if money
+            .check_uncached(&subject, feature)
+            .await
+            .map_err(|error| error.to_string())?
+            .entitled
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 #[cfg(test)]

@@ -7,6 +7,8 @@ use axum::response::Response;
 use base64::Engine;
 use serde_json::Value;
 
+use crate::proto::puzzled::v1::BILLING_SERVICE_GET_PASS_ELIGIBILITY_SPEC;
+
 use super::super::platform_jwt::{actor_from_claim, VerifiedIdentity};
 use super::client::{session_user_agent, AuthSessions};
 
@@ -188,12 +190,14 @@ pub async fn attach_auth_session(
         return next.run(request).await;
     }
     if let Some(token) = session_token(request.headers()) {
-        if let Some(value) = sessions
-            .verify(&token, session_user_agent(request.headers()))
-            .await
-            .as_ref()
-            .and_then(encode_identity)
-        {
+        let agent = session_user_agent(request.headers());
+        let identity =
+            if request.uri().path() == BILLING_SERVICE_GET_PASS_ELIGIBILITY_SPEC.procedure {
+                sessions.verify_mapped(&token, agent).await
+            } else {
+                sessions.verify(&token, agent).await
+            };
+        if let Some(value) = identity.as_ref().and_then(encode_identity) {
             request
                 .headers_mut()
                 .insert(VERIFIED_IDENTITY_HEADER, value);
