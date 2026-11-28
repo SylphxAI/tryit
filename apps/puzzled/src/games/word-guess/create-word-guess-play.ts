@@ -50,10 +50,8 @@ export function createWordGuessPlay(props: DailyBoardProps, t: Translate) {
 	let visibleRun: FiveRun | undefined
 	let visibleScope: string | undefined
 
-	function showKeyboardHint(event: MouseEvent & { currentTarget: HTMLButtonElement }) {
+	function showKeyboardHint() {
 		setShowInputHint(true)
-		// Let physical Enter submit after a pointer click.
-		if (event.detail > 0) event.currentTarget.blur()
 		setError(undefined)
 	}
 
@@ -163,7 +161,12 @@ export function createWordGuessPlay(props: DailyBoardProps, t: Translate) {
 		}
 	}
 
-	const handleKey = createWordGuessKeyHandler(inactive, grade, edit)
+	const handleKey = createWordGuessKeyHandler(
+		inactive,
+		grade,
+		edit,
+		() => draft().length === WORD_LENGTH,
+	)
 	onMount(() => {
 		if (!playable) return
 		window.addEventListener('keydown', handleKey)
