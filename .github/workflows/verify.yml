@@ -526,7 +526,8 @@ jobs:
     needs: [plan, build]
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - &checkout-performance
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The runner does not keep Playwright's browser cache under
       # $HOME/.cache/ms-playwright, so pin one path for this job: letting the
@@ -535,22 +536,26 @@ jobs:
       - name: Pin the Playwright browser cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-lighthouse" >> "$GITHUB_ENV"
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - &setup-performance-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: "1.4.4"
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - &setup-performance-node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
 
-      - name: Cache bun modules
+      - &cache-performance-bun
+        name: Cache bun modules
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: ${{ runner.os }}-bun-
 
-      - name: bun install
+      - &install-performance-bun
+        name: bun install
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5; do
@@ -584,17 +589,20 @@ jobs:
           "$bin" --version
           echo "CHROME_PATH=$bin" >> "$GITHUB_ENV"
 
-      - name: run-store get web-build
+      - &get-performance-build
+        name: run-store get web-build
         uses: SylphxAI/.github/.github/actions/run-store@90d88da2d60dcd6a3884899c273dd3a7f975be17
         with:
           mode: get
           name: web-build
           path: .
 
-      - name: Verify the web build checksum
+      - &verify-performance-build
+        name: Verify the web build checksum
         run: sha256sum -c web-build.tar.sha256
 
-      - name: Unpack the web build
+      - &unpack-performance-build
+        name: Unpack the web build
         run: tar -C apps/puzzled -xf web-build.tar
 
       # apps/puzzled/lighthouserc.json is used unchanged: the mobile profile
@@ -609,8 +617,8 @@ jobs:
       # inside run-to-run noise) and speed index <= 3000 ms, all at error.
       # Both browser harnesses need a real board, not the API-error fallback.
       # Serve the same frozen boards as the unit fixtures; no account or write.
-      - name: Start fixture GetDaily API
-        if: always()
+      - &start-performance-fixture
+        name: Start fixture GetDaily API
         working-directory: apps/puzzled
         run: |
           set -euo pipefail
@@ -642,13 +650,61 @@ jobs:
           SYLPHX_PUBLIC_URL: https://puzzled.gg
         run: bun run lighthouse
 
+      - name: Stop the fixture API
+        if: always()
+        run: |
+          if [ -n "${FIXTURE_API_PID:-}" ]; then kill "$FIXTURE_API_PID" 2>/dev/null || :; fi
+
+      - name: Store the Lighthouse report
+        if: always() && hashFiles('apps/puzzled/.lighthouseci/**') != ''
+        uses: SylphxAI/.github/.github/actions/run-store@724d4c9c87e736ced2068bc22eb57385adabd14d
+        with:
+          mode: put
+          name: lighthouse-report
+          path: apps/puzzled/.lighthouseci
+          retention-days: 1
+
+  vitals:
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+      id-token: write
+    name: Seeded-play Web Vitals
+    # Match the a11y acceptance lane, including browser infrastructure PRs.
+    if: always() && !cancelled() && needs.build.result == 'success' && fromJSON(inputs.run || needs.plan.outputs.run || '{}').build && (github.event_name != 'pull_request' || fromJSON(inputs.run || needs.plan.outputs.run || '{}').browser)
+    runs-on: sylphx-linux-standard
+    timeout-minutes: 30
+    needs: [plan, build]
+
+    steps:
+      - *checkout-performance
+
+      - name: Pin the Playwright browser cache
+        run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-vitals" >> "$GITHUB_ENV"
+
+      - *setup-performance-bun
+      - *setup-performance-node
+      - *cache-performance-bun
+      - *install-performance-bun
+
+      - name: Install Playwright Chromium
+        working-directory: apps/puzzled
+        env:
+          PLAYWRIGHT_INSTALL_BROWSERS: chromium
+        run: *install-playwright-browsers
+
+      - *get-performance-build
+      - *verify-performance-build
+      - *unpack-performance-build
+      - *start-performance-fixture
+
       # Seeded-play field-metric gate: five routes, the puzzle API answered from
       # a fixed seed, real taps and key presses, LCP and INP read from the
       # browser's own entries; the p75 per route is checked against the
       # budgets (LCP 2500 ms, INP 600 ms ratcheting to 200 ms) and written to the
       # job summary. Lighthouse only estimates INP (as TBT); this measures it.
       - name: Serve the build on :3016
-        if: always()
         working-directory: apps/puzzled
         env:
           SKIP_ENV_VALIDATION: 'true'
@@ -666,9 +722,7 @@ jobs:
           cat "$RUNNER_TEMP/serve-vitals.log"
           exit 1
 
-      # always(): a Lighthouse miss must not hide the vitals table.
       - name: Web vitals budget, seeded play (bun run test:vitals)
-        if: always()
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3016
@@ -690,15 +744,6 @@ jobs:
           mode: put
           name: web-vitals-report
           path: apps/puzzled/test-results/web-vitals
-          retention-days: 1
-
-      - name: Store the Lighthouse report
-        if: always() && hashFiles('apps/puzzled/.lighthouseci/**') != ''
-        uses: SylphxAI/.github/.github/actions/run-store@724d4c9c87e736ced2068bc22eb57385adabd14d
-        with:
-          mode: put
-          name: lighthouse-report
-          path: apps/puzzled/.lighthouseci
           retention-days: 1
 
   craft:
@@ -899,7 +944,7 @@ jobs:
   verified:
     name: verified
     if: always()
-    needs: [plan, build, rust-api, seo-contract, a11y, lighthouse, craft]
+    needs: [plan, build, rust-api, seo-contract, a11y, lighthouse, vitals, craft]
     runs-on: ${{ github.event.repository.visibility == 'public' && 'ubuntu-latest' || 'sylphx-linux-control' }}
     timeout-minutes: 5
     steps:
@@ -911,7 +956,7 @@ jobs:
             ${{ inputs.run == '' && 'plan' || '' }},
             ${{ fromJSON(inputs.run || needs.plan.outputs.run || '{}').build && 'build,seo-contract' || '' }},
             ${{ fromJSON(inputs.run || needs.plan.outputs.run || '{}').rust && 'rust-api' || '' }},
-            ${{ (fromJSON(inputs.run || needs.plan.outputs.run || '{}').build && (github.event_name != 'pull_request' || fromJSON(inputs.run || needs.plan.outputs.run || '{}').browser)) && 'a11y,lighthouse,craft' || '' }}
+            ${{ (fromJSON(inputs.run || needs.plan.outputs.run || '{}').build && (github.event_name != 'pull_request' || fromJSON(inputs.run || needs.plan.outputs.run || '{}').browser)) && 'a11y,lighthouse,vitals,craft' || '' }}
       - name: Cancellation is not a passing verdict
         if: cancelled()
         run: exit 1
