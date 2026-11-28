@@ -32,11 +32,6 @@
 			"dependsOn": ["^build"],
 			"outputs": [".output/**", "dist/**"]
 		},
-		"build:with-migrate": {
-			"dependsOn": ["^build"],
-			"outputs": [".output/**", "dist/**"],
-			"cache": false
-		},
 		"dev": {
 			"cache": false,
 			"persistent": true
