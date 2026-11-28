@@ -1254,6 +1254,14 @@ for (const { width, height, difficulty } of [
 				await page.keyboard.press('Tab')
 				await expect(practice).toBeFocused()
 				await expect(practice).toHaveCSS('outline-width', '2px')
+				const endPadding = await practice.evaluate(
+					(link) => getComputedStyle(link).paddingInlineEnd,
+				)
+				await expect(practice).toHaveCSS('padding-inline-start', endPadding)
+				if (touch)
+					expect(
+						await page.evaluate(() => document.documentElement.scrollWidth),
+					).toBeLessThanOrEqual(width)
 			}
 		})
 
