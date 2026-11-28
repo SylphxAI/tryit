@@ -21,41 +21,31 @@ import enUSAchievements from '@/messages/en-US/achievements.json'
 import enUSAnnouncements from '@/messages/en-US/announcements.json'
 import enUSArchive from '@/messages/en-US/archive.json'
 import enUSCalendar from '@/messages/en-US/calendar.json'
-import enUSCatalog from '@/messages/en-US/catalog.json'
-import enUSCommon from '@/messages/en-US/common.json'
 import enUSConsent from '@/messages/en-US/consent.json'
 import enUSCrossPromo from '@/messages/en-US/cross-promo.json'
-import enUSDaily from '@/messages/en-US/daily.json'
 import enUSFooter from '@/messages/en-US/footer.json'
-import enUSGameResult from '@/messages/en-US/game-result.json'
-import enUSHome from '@/messages/en-US/home.json'
 import enUSModes from '@/messages/en-US/modes.json'
 import enUSNav from '@/messages/en-US/nav.json'
 import enUSOnboarding from '@/messages/en-US/onboarding.json'
 import enUSPagination from '@/messages/en-US/pagination.json'
-import enUSPlus from '@/messages/en-US/plus.json'
 import enUSPractice from '@/messages/en-US/practice.json'
 import enUSPwa from '@/messages/en-US/pwa.json'
 import enUSShare from '@/messages/en-US/share.json'
 import enUSStreak from '@/messages/en-US/streak.json'
+import { messages as homeMessages } from './en-US-home'
 
 export const messages = {
-	common: enUSCommon,
+	...homeMessages,
 	nav: enUSNav,
-	home: enUSHome,
 	archive: enUSArchive,
 	pagination: enUSPagination,
-	plus: enUSPlus,
 	achievements: enUSAchievements,
 	announcements: enUSAnnouncements,
 	calendar: enUSCalendar,
-	catalog: enUSCatalog,
 	consent: enUSConsent,
 	crossPromo: enUSCrossPromo,
-	daily: enUSDaily,
 	practice: enUSPractice,
 	footer: enUSFooter,
-	gameResult: enUSGameResult,
 	modes: enUSModes,
 	onboarding: enUSOnboarding,
 	pwa: enUSPwa,

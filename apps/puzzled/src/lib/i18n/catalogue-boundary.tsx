@@ -1,20 +1,29 @@
 /** @jsxImportSource solid-js */
 import { useLocation } from '@solidjs/router'
 import { type Component, createMemo, lazy, type ParentProps, Show } from 'solid-js'
-import { prepareBrowserMessages, prepareExtendedBrowserMessages } from './browser-catalogue'
+import {
+	prepareBrowserMessages,
+	prepareExtendedBrowserMessages,
+	prepareHomeBrowserMessages,
+} from './browser-catalogue'
 import { defaultLocale, type Locale } from './config'
 import { localeFromPathname } from './page-locale'
 
 const boundaries = new Map<string, Component<ParentProps>>()
+const prepare = {
+	home: prepareHomeBrowserMessages,
+	core: prepareBrowserMessages,
+	extended: prepareExtendedBrowserMessages,
+}
 const ready: Component<ParentProps> = (props) => props.children
 
-function localeBoundary(locale: Locale, extended: boolean) {
-	const key = extended ? `${locale}:extended` : locale
+function localeBoundary(locale: Locale, scope: keyof typeof prepare) {
+	const key = `${locale}:${scope}`
 	let boundary = boundaries.get(key)
 	if (!boundary) {
 		boundary = lazy(async () => {
 			if (!import.meta.env.SSR) {
-				await (extended ? prepareExtendedBrowserMessages(locale) : prepareBrowserMessages(locale))
+				await prepare[scope](locale)
 			}
 			return { default: ready }
 		})
@@ -30,10 +39,8 @@ export function CatalogueBoundary(props: ParentProps) {
 		const prefix = localeFromPathname(pathname)
 		const locale = prefix ?? defaultLocale
 		const section = pathname.split('/')[prefix ? 2 : 1]?.toLowerCase()
-		// The home, catalog and game boards need only the core catalogue.
-		// All other routes retain access to the complete set of namespaces.
-		const extended = Boolean(section && section !== 'games')
-		return locale === defaultLocale && !extended ? ready : localeBoundary(locale, extended)
+		if (!section && locale === defaultLocale) return ready
+		return localeBoundary(locale, !section ? 'home' : section === 'games' ? 'core' : 'extended')
 	})
 	return (
 		<Show when={boundary()} keyed>
