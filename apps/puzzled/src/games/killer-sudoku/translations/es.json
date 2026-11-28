@@ -12,6 +12,11 @@
 	},
 	"startGame": "Empezar partida",
 	"complete": "¡Puzle completado!",
+	"firstMove": {
+		"sum": "Las cifras del recuadro marcado suman el número de la esquina.",
+		"example": "Ejemplo",
+		"action": "Toca una casilla y luego un número."
+	},
 	"cageTotal": "Total de la jaula: {sum}",
 	"notes": "Notas",
 	"notesMode": "Modo notas",

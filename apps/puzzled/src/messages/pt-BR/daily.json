@@ -31,8 +31,6 @@
 	"notReadyCta": "Ver desafios grátis de hoje",
 	"startUsesPick": "Escolha 3 jogos grátis por dia. Depois de começar um jogo, ele fica disponível o dia todo.",
 	"englishWordPuzzle": "Jogo de palavras em inglês",
-	"cageSudokuCornerTotal": "O número no canto soma os dígitos da área tracejada.",
-	"cageSudokuExample": "Exemplo (outro tabuleiro): 3 + 5 dá 8 no canto.",
 	"firstAction": {
 		"sudoku": "Toque numa casa vazia e escolha um número de 1 a 9.",
 		"nonogram": "Use as pistas numéricas para pintar a primeira casa.",
@@ -42,7 +40,6 @@
 		"duo": "Toque numa casa vazia para colocar um sol ou uma lua.",
 		"numberPath": "Comece no 1 e percorra as casas vizinhas em ordem.",
 		"wordGroups": "Toque em quatro palavras que tenham algo em comum.",
-		"killerSudoku": "Selecione uma casa vazia e insira um dígito.",
 		"wordLadder": "Troque uma letra para formar outra palavra.",
 		"wordGuess": "Digite uma palavra de cinco letras para obter pistas.",
 		"cryptogram": "Toque numa letra cifrada e descubra qual ela representa.",

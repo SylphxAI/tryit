@@ -29,6 +29,7 @@ export const SOUND_ENABLED_KEY = 'puzzled:sound:enabled'
 // ==========================================
 // PWA & Prompts
 // ==========================================
+export const CAGE_SUDOKU_CUE_SEEN_KEY = 'puzzled:game:killer-sudoku:cue-seen'
 export const PWA_PROMPT_DISMISSED_KEY = 'puzzled:pwa:prompt-dismissed'
 export const SAVE_STREAK_DISMISSED_DAY_KEY = 'puzzled:result:save-streak-dismissed-day'
 

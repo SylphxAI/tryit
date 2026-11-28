@@ -3,6 +3,7 @@ import { createMemo, For, Show } from 'solid-js'
 import styles from '@/games/sudoku/components/sudoku-craft.module.css'
 import type { Translate } from '@/lib/i18n/translate'
 import type { KillerSudokuPlay } from './create-killer-sudoku-play'
+import { cageAnchor } from './first-move'
 import cageStyles from './solid-cages.module.css'
 import { type Cage, getCellConflicts } from './types'
 
@@ -12,13 +13,15 @@ const boxes = coords.flatMap((br) => coords.map((bc) => ({ br, bc })))
 
 type GridProps = {
 	cages: Cage[]
+	cueCage?: number
 	play: Pick<KillerSudokuPlay, 'initial' | 'state' | 'playing' | 'registerCell' | 'dispatch'>
 	t: Translate
 }
 
-export function KillerSudokuGrid({ cages, play, t }: GridProps) {
+export function KillerSudokuGrid(props: GridProps) {
+	const { cages, play, t } = props
 	const { initial, state, playing, registerCell, dispatch } = play
-	const anchors = cages.map(({ cells }) => Math.min(...cells.map(([row, col]) => 9 * row + col)))
+	const anchors = cages.map(cageAnchor)
 
 	const selection = () => state().selectedCell
 	const selectedCell = createMemo(() => {
@@ -72,6 +75,7 @@ export function KillerSudokuGrid({ cages, play, t }: GridProps) {
 				data-selected={selected() || undefined}
 				data-related={related() || undefined}
 				data-matching={matching() || undefined}
+				data-cage-cue={props.cueCage === cageId || undefined}
 				data-given={cell().isGiven || undefined}
 				data-filled={cell().value !== null || undefined}
 				data-conflict={conflict() || undefined}
@@ -85,7 +89,7 @@ export function KillerSudokuGrid({ cages, play, t }: GridProps) {
 					data-left={initial.cells[row][col - 1]?.cageId !== cageId || undefined}
 				/>
 				<Show when={showTotal}>
-					<span class={cageStyles.total} aria-hidden="true">
+					<span class={cageStyles.total} data-cage-total aria-hidden="true">
 						{cage.sum}
 					</span>
 				</Show>

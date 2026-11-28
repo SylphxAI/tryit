@@ -12,6 +12,11 @@
 	},
 	"startGame": "Começar jogo",
 	"complete": "Desafio concluído!",
+	"firstMove": {
+		"sum": "Os números da área destacada somam o total no canto.",
+		"example": "Exemplo",
+		"action": "Toque numa casa e depois num número."
+	},
 	"cageTotal": "Total da gaiola: {sum}",
 	"notes": "Anotações",
 	"notesMode": "Modo de anotações",
