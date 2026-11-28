@@ -25,6 +25,7 @@ function Arithmo(props: DailyBoardProps) {
 		finish,
 		graded,
 		keyboard,
+		keypadEnter,
 		draft,
 		grading,
 		tileHelp,
@@ -76,6 +77,7 @@ function Arithmo(props: DailyBoardProps) {
 			</Show>
 			<ArithmoKeypad
 				keyboard={keyboard}
+				keypadEnter={keypadEnter}
 				inactive={inactive}
 				edit={edit}
 				grade={grade}
