@@ -20,6 +20,7 @@ mod principal;
 mod tests;
 
 pub use client::AuthSessions;
+pub(crate) use client::{MetricsAccess, MetricsAccessError};
 pub use principal::{
     attach_auth_session, auth_id_value, encode_identity, principal_from_session, session_token,
     verified_identity, SessionPrincipal, LEGACY_SESSION_COOKIE, SESSION_COOKIE,

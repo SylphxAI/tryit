@@ -4,6 +4,8 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+mod admission;
+
 fn time(raw: &str) -> DateTime<Utc> {
     DateTime::parse_from_rfc3339(raw)
         .unwrap()

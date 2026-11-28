@@ -14,7 +14,7 @@ use super::compute_ticks::{
     tryit_conversions_tick, AUDIT_RETENTION_PATH, DAILY_PUZZLES_PATH, DAILY_REMINDERS_PATH,
     METRICS_PATH, TRYIT_CONVERSIONS_PATH,
 };
-use super::connect_admin::admin_connect_service;
+use super::connect_admin::{admin_connect_service, METRICS_REPORT_PATH};
 use super::connect_announcements::announcement_connect_service;
 use super::connect_billing::billing_connect_service;
 use super::connect_gamification::gamification_connect_service;
@@ -40,7 +40,8 @@ pub fn router(state: AppState) -> Router {
         .add_service(jobs_connect_service(state.clone()))
         .add_service(preferences_connect_service(state.clone()))
         .add_service(puzzle_connect_service(state.clone()))
-        .add_service(stats_connect_service(state.clone()));
+        .add_service(stats_connect_service(state.clone()))
+        .into_axum_service();
 
     let auth = state.auth.clone();
     let guest_pool = state.pool.clone();
@@ -62,7 +63,7 @@ pub fn router(state: AppState) -> Router {
             post(super::signals_induce::signals_induce),
         )
         .with_state(state)
-        .fallback_service(connect.into_axum_service())
+        .fallback_service(connect.clone())
         .layer(axum::middleware::from_fn_with_state(
             guest_pool,
             crate::capabilities::identity_access::adapters::guest_credentials::attach_guest,
@@ -75,6 +76,9 @@ pub fn router(state: AppState) -> Router {
         .layer(axum::middleware::from_fn(
             crate::capabilities::identity_access::adapters::guest_credentials::bootstrap_guard,
         ))
+        // This exact RPC verifies a direct Auth principal without materializing
+        // a player or consulting guest credentials, even for an admin.
+        .route_service(METRICS_REPORT_PATH, connect)
         // Platform readiness must not pass through request identity middleware,
         // which can itself use the request pool when credentials are supplied.
         .route("/readyz", get(readyz).with_state(writer_readiness))

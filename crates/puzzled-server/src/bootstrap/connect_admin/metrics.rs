@@ -1,7 +1,9 @@
 use connectrpc::{ConnectError, ErrorCode, RequestContext, Response, ServiceResult};
 
-use super::super::identity::require_admin;
 use super::AdminConnectService;
+use crate::capabilities::identity_access::adapters::auth_session::{
+    MetricsAccess, MetricsAccessError,
+};
 use crate::capabilities::metrics::policy::{Cohorts, Day};
 use crate::proto::puzzled::v1::{
     FirstFinishCohorts, GetMetricsReportResponse, GuestStartCohort, MetricDay,
@@ -11,7 +13,19 @@ pub(super) async fn get_metrics_report(
     admin: &AdminConnectService,
     ctx: RequestContext,
 ) -> ServiceResult<GetMetricsReportResponse> {
-    require_admin(&ctx, &admin.state.auth).await?;
+    let access = admin
+        .state
+        .auth
+        .metrics_access(ctx.headers())
+        .await
+        .map_err(|error| match error {
+            MetricsAccessError::Unauthenticated => {
+                ConnectError::new(ErrorCode::Unauthenticated, "identity_required")
+            }
+            MetricsAccessError::Denied => {
+                ConnectError::new(ErrorCode::PermissionDenied, "metrics_scope_required")
+            }
+        })?;
     let rows = crate::capabilities::metrics::reports(admin.pool()?)
         .await
         .map_err(|_| ConnectError::new(ErrorCode::Unavailable, "metrics_unavailable"))?;
@@ -19,7 +33,11 @@ pub(super) async fn get_metrics_report(
         .first()
         .and_then(|(_, t)| chrono::DateTime::parse_from_rfc3339(t).ok())
         .is_none_or(|t| chrono::Utc::now().signed_duration_since(t).num_minutes() > 30);
-    Response::ok(GetMetricsReportResponse {
+    let access_header = match access {
+        MetricsAccess::Admin => "admin",
+        MetricsAccess::Reader => "reader",
+    };
+    Ok(Response::new(GetMetricsReportResponse {
         days: rows
             .into_iter()
             .map(|(day, at)| metric_day(day, at))
@@ -27,6 +45,8 @@ pub(super) async fn get_metrics_report(
         stale,
         ..Default::default()
     })
+    .with_header("cache-control", "no-store")
+    .with_header("tryit-analytics-access", access_header))
 }
 
 fn metric_day(d: Day, generated_at: String) -> MetricDay {
