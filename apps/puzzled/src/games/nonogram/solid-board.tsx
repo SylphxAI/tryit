@@ -57,7 +57,7 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 		<div class="play-split mx-auto w-full max-w-[30rem] space-y-3" data-nonogram-board>
 			<div
 				class="play-meta flex items-center justify-between gap-2 text-sm text-muted-foreground"
-				classList={{ 'min-h-11': reserveCue() && !play.locked() }}
+				classList={{ 'min-h-11': reserveCue() }}
 			>
 				<span>
 					{finish.state() === 'accepted'
@@ -69,11 +69,11 @@ function Board(props: DailyBoardProps & { data: NonogramPuzzleData }) {
 						class="flex items-center gap-1 rounded-xl bg-surface-muted ps-3 text-foreground"
 						data-paint-mode-cue
 					>
-						<p role="status" class="py-1 text-sm font-semibold leading-tight">
+						<div role="status" class="py-1 text-sm font-semibold leading-tight">
 							{cue()?.phase === 'mark' && play.mode() === 'filled'
 								? t('games.nonogram.switchToMark')
 								: t('games.nonogram.currentMode', { mode: modeLabel() })}
-						</p>
+						</div>
 						<button
 							type="button"
 							class="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground"
