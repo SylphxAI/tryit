@@ -1227,6 +1227,36 @@ for (const { width, height, difficulty } of [
 		const touch = width === 390
 		test.use({ viewport: { width, height }, isMobile: touch, hasTouch: touch })
 
+		test('Practice text aligns with Play and keeps its focus and hit area', async ({ page }) => {
+			for (const [path, playLabel, practiceLabel] of [
+				['/games/sudoku', "Play today's puzzle", 'Practice'],
+				['/zh-HK/games/sudoku', '開始今日謎題', '練習'],
+			]) {
+				await page.goto(path)
+				const play = page.getByRole('link', { name: playLabel, exact: true })
+				const practice = page.getByRole('link', { name: practiceLabel, exact: true })
+				const practiceTextLeft = await practice.evaluate((link) => {
+					const text = [...link.childNodes].find(
+						(node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+					)!
+					const range = document.createRange()
+					range.selectNodeContents(text)
+					return range.getBoundingClientRect().left
+				})
+				expect(
+					Math.abs(practiceTextLeft - (await play.boundingBox())!.x),
+					path,
+				).toBeLessThanOrEqual(1)
+				const box = (await practice.boundingBox())!
+				expect(box.width, path).toBeGreaterThanOrEqual(48)
+				expect(box.height, path).toBeGreaterThanOrEqual(48)
+				await play.focus()
+				await page.keyboard.press('Tab')
+				await expect(practice).toBeFocused()
+				await expect(practice).toHaveCSS('outline-width', '2px')
+			}
+		})
+
 		test(`shows one picker; choosing claims nothing and Play opens Hard`, async ({ page }) => {
 			// The browser wiring is real; the Rust pick cap and replay are covered by DB tests.
 			const slug = 'sudoku'
@@ -1251,17 +1281,6 @@ for (const { width, height, difficulty } of [
 			await expect(choices.getByRole('radio')).toHaveCount(3)
 			await expect(medium).toBeChecked()
 			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
-			const practice = page.getByRole('link', { name: 'Practice', exact: true })
-			const practiceTextLeft = await practice.evaluate((link) => {
-				const text = [...link.childNodes].find(
-					(node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
-				)!
-				const range = document.createRange()
-				range.selectNodeContents(text)
-				return range.getBoundingClientRect().left
-			})
-			expect(Math.abs(practiceTextLeft - (await play.boundingBox())!.x)).toBeLessThanOrEqual(1)
-			expect((await practice.boundingBox())!.height).toBeGreaterThanOrEqual(48)
 			for (const link of await choices.locator('label').all()) {
 				await expect(link).toBeInViewport({ ratio: 1 })
 				expect(
