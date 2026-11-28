@@ -4,6 +4,7 @@ import { gradeBoardGuess } from '@/games/shared/solid/grade-board-guess'
 import { isAlreadyPlayedError } from '@/lib/connect/already-played'
 import { triggerHaptic } from '@/shared/hooks/use-haptic'
 import { parseGrade, updateKeyboardStatus } from './feedback'
+import { createArithmoKeypadEnter } from './keypad-enter'
 import {
 	type CharStatus,
 	EQUATION_LENGTH,
@@ -17,6 +18,7 @@ type GradedRow = { guess: string; tiles: NonNullable<ReturnType<typeof parseGrad
 
 export function createArithmoPlay(props: DailyBoardProps) {
 	const finish = createBoardFinish(props, 'arithmo')
+	const keypadEnter = createArithmoKeypadEnter()
 	const [graded, setGraded] = finish.draft.signal<GradedRow[]>('graded', [])
 	const [keyboard, setKeyboard] = finish.draft.signal<Record<string, CharStatus>>('keyboard', {})
 	const [draft, setDraft] = finish.draft.signal('draft', '')
@@ -99,12 +101,7 @@ export function createArithmoPlay(props: DailyBoardProps) {
 		)
 			return
 		if (event.key === 'Enter') {
-			if (
-				target instanceof HTMLElement &&
-				target.closest('button, a, summary, [role="button"]') &&
-				!target.closest('[data-arithmo-keypad]')
-			)
-				return
+			if (target instanceof Element && keypadEnter.usesNativeEnter(target)) return
 			event.preventDefault()
 			if (!event.repeat) void grade()
 		} else if (event.key === 'Backspace' || VALID_CHARS.includes(event.key)) {
@@ -142,6 +139,7 @@ export function createArithmoPlay(props: DailyBoardProps) {
 		finish,
 		graded,
 		keyboard,
+		keypadEnter,
 		draft,
 		grading,
 		tileHelp,

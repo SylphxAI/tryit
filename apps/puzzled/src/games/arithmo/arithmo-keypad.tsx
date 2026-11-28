@@ -11,16 +11,23 @@ const keyStyle =
 
 type KeypadProps = Pick<
 	ReturnType<typeof createArithmoPlay>,
-	'keyboard' | 'inactive' | 'edit' | 'grade'
+	'keyboard' | 'keypadEnter' | 'inactive' | 'edit' | 'grade'
 > & {
 	text: (key: string) => string
 	feedbackText: (tile: CharStatus) => string | undefined
 }
 
 export function ArithmoKeypad(props: KeypadProps) {
-	const { keyboard, inactive, edit, grade, text, feedbackText } = props
+	const { keyboard, keypadEnter, inactive, edit, grade, text, feedbackText } = props
 	return (
-		<div data-arithmo-keypad data-play-control class="grid gap-1" dir="ltr">
+		<div
+			data-arithmo-keypad
+			data-play-control
+			class="grid gap-1"
+			dir="ltr"
+			on:click={keypadEnter.rememberClick}
+			on:focusout={keypadEnter.forgetFocus}
+		>
 			<For each={keys}>
 				{(row, index) => (
 					<div
