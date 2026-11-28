@@ -1,9 +1,15 @@
-import { type Cell, cellsEqual, isOrthogonalNeighbor, type NumberPathPuzzleData } from './types'
+import {
+	type Cell,
+	cellsEqual,
+	findClueCell,
+	isOrthogonalNeighbor,
+	type NumberPathPuzzleData,
+} from './types'
 
 type VisitResult =
 	| { kind: 'move'; path: Cell[] }
 	| { kind: 'wrongClue'; clue: number; expected: number }
-	| { kind: 'head' | 'outside' | 'startAtOne' | 'nextSquare' }
+	| { kind: 'head' | 'outside' | 'startAtOne' | 'nextSquare' | 'lockedClue' }
 
 /** Only a growing path counts as forward progress, not a rewind or the head. */
 export function isDeadEnd(puzzle: NumberPathPuzzleData, path: Cell[]): boolean {
@@ -38,5 +44,19 @@ export function visitCell(puzzle: NumberPathPuzzleData, path: Cell[], cell: Cell
 	if (!isOrthogonalNeighbor(path[path.length - 1], cell)) return { kind: 'nextSquare' }
 	const expected = path.length + 1
 	if (clue !== null && clue !== expected) return { kind: 'wrongClue', clue, expected }
+	if (clue === null && findClueCell(puzzle.clues, expected)) return { kind: 'lockedClue' }
 	return { kind: 'move', path: [...path, cell] }
+}
+
+/** Replay a draft through the same visit rules; stop before the first illegal placement. */
+export function restorePath(puzzle: NumberPathPuzzleData, saved: Cell[]): Cell[] {
+	let path: Cell[] = []
+	if (!Array.isArray(saved)) return path
+	for (const cell of saved) {
+		if (!cell || typeof cell !== 'object') break
+		const result = visitCell(puzzle, path, cell)
+		if (result.kind !== 'move' || result.path.length <= path.length) break
+		path = result.path
+	}
+	return path
 }

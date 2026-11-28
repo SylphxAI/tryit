@@ -16,7 +16,11 @@
 	"cellClue": "Pista {number}",
 	"cellStep": "Paso {number}",
 	"startAtOne": "Empieza en el 1",
-	"nextSquare": "Toca o arrastra hasta una casilla junto al {number}",
+	"nextSquare": "Elige una casilla junto al {number}, no en diagonal.",
 	"deadEnd": "Desde aquí no puedes avanzar. Pulsa Deshacer para retroceder.",
-	"wrongClue": "Esa casilla tiene un {clue}. Ahora toca el paso {expected}."
+	"wrongClue": "Esa casilla tiene un {clue}. Ahora toca el paso {expected}.",
+	"nextBlank": "Paso {number}: elige una casilla vacía junto al {previous}.",
+	"nextClue": "Paso {number}: usa su casilla fija.",
+	"lockedClue": "El paso {number} solo puede ir en su casilla fija.",
+	"unreachableClue": "La pista {number} no está al lado. Deshaz el último paso."
 }
