@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 mod admission;
+mod plausible_finishes;
 
 fn time(raw: &str) -> DateTime<Utc> {
     DateTime::parse_from_rfc3339(raw)
@@ -573,7 +574,7 @@ async fn only_unresolved_finish_order_for_an_eligible_pick_hides_the_whole_produ
     let Some(pool) = fresh_database().await else { return };
     let q = sqlx::query::<sqlx::Postgres>;
     let pick = "INSERT INTO daily_free_picks (user_id,day_key,game_slug,started_at,claimed_via,guest_entry,comparison_excluded) VALUES ($1,$2::text::date,'sudoku',$3::text::timestamptz,'start',true,false)";
-    let done = "INSERT INTO game_sessions (user_id,game_slug,day_key,is_ritual,module_class,status,completed_at,completed_at_utc) VALUES ($1,$2,$3,true,'puzzle_ritual','won','2026-10-25 07:00',$4::text::timestamptz)";
+    let done = "INSERT INTO game_sessions (user_id,game_slug,day_key,is_ritual,module_class,status,completed_at,completed_at_utc) VALUES ($1,$2,$3,true,'puzzle_ritual','won',$3::text::date + interval '7 hours',$4::text::timestamptz)";
     let [early, late, clean, unresolved] = std::array::from_fn(|_| Uuid::now_v7());
     let report = |day: &'static str| {
         let pool = &pool;
@@ -608,7 +609,7 @@ async fn only_unresolved_finish_order_for_an_eligible_pick_hides_the_whole_produ
     q(pick).bind(unresolved).bind(next).bind(next_start).execute(&pool).await.unwrap();
     q(done).bind(unresolved).bind("crossword").bind("2026-10-27").bind(None::<&str>).execute(&pool).await.unwrap();
     assert_eq!(report(next).await, None);
-    let rows = q(include_str!("capabilities/metrics/rollup.sql"))
+    let rows = q(metrics::ROLLUP_SQL)
         .bind("2026-10-25").bind("2026-10-27").bind(time("2026-10-25T00:00:00Z").date_naive())
         .fetch_all(&pool).await.unwrap();
     use sqlx::Row;

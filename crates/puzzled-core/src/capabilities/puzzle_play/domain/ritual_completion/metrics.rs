@@ -42,7 +42,9 @@ pub fn compute_drc(day_key: &str, rows: &[RitualCompletionRow]) -> u64 {
 /// SQL recipe (documentation + live ops) for Postgres daily puzzle completers recompute.
 ///
 /// Bound `$1` = day_key `YYYY-MM-DD`. Public metric field: `daily_puzzle_completers`.
-pub const DRC_RECOMPUTE_SQL: &str = r#"
+pub const DRC_RECOMPUTE_SQL: &str = concat!(
+    include_str!("implausible_finish_players.sql"),
+    r#"
 SELECT COUNT(DISTINCT user_id)::bigint AS daily_puzzle_completers
 FROM game_sessions
 WHERE day_key = $1
@@ -51,7 +53,9 @@ WHERE day_key = $1
   AND status IN ('won', 'lost')
   AND NOT comparison_excluded
   AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id = game_sessions.user_id)
-"#;
+  AND NOT EXISTS (SELECT 1 FROM implausible_finish_players f WHERE f.user_id = game_sessions.user_id)
+"#
+);
 
 /// One-snapshot overview: distinct completers and per-module ritual finish counts.
 ///
@@ -180,8 +184,10 @@ pub fn compute_weekly_ritualists(end_day_key: &str, rows: &[RitualCompletionRow]
 /// Bound `$1` = end day_key `YYYY-MM-DD`. Window is `$1-6` … `$1` inclusive;
 /// threshold is [`HABITUAL_MIN_DAYS`] distinct daily-puzzle-completer days.
 /// Public metric field: `weekly_ritualists`.
-pub const HRC_RECOMPUTE_SQL: &str = r#"
-WITH daily AS (
+pub const HRC_RECOMPUTE_SQL: &str = concat!(
+    include_str!("implausible_finish_players.sql"),
+    r#"
+, daily AS (
   SELECT user_id, day_key
   FROM game_sessions
   WHERE is_ritual = true
@@ -189,6 +195,7 @@ WITH daily AS (
     AND status IN ('won', 'lost')
     AND NOT comparison_excluded
     AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id = game_sessions.user_id)
+    AND NOT EXISTS (SELECT 1 FROM implausible_finish_players f WHERE f.user_id = game_sessions.user_id)
     AND day_key >= to_char(($1::date - 6), 'YYYY-MM-DD')
     AND day_key <= $1
   GROUP BY user_id, day_key
@@ -200,4 +207,5 @@ FROM (
   GROUP BY user_id
   HAVING COUNT(*) >= 4
 ) t
-"#;
+"#
+);

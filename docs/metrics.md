@@ -32,27 +32,41 @@ One finish counts per `(user, game, day_key)`: replaying is review, and the
 api rejects a second finish as already played. Guests count when their identity
 is stable for the day; report the total and the signed-in split.
 
+### Implausibly fast finishes
+
+The rollup and pick-to-finish report exclude the entire player if any terminal
+win or loss in daily mode took less than its game's floor. The elapsed time is
+server-recorded completion (`completed_at` interpreted as UTC) minus the free
+pick's `started_at`, matched on player, Hong Kong product day and game. Client
+reported duration is not used. The provisional floors are:
+
+| Seconds | Games |
+| ---: | --- |
+| 5 | Word Guess, Word Ladder, Arithmo |
+| 8 | Pattern Match, Word Groups, Number Path, Block Slide |
+| 20 | Every other game |
+
+A finish exactly at the floor counts. A tie at zero (including a pick claimed
+by the finish itself) is excluded because ordinary web play claims the pick
+before showing the board; negative intervals are below the floor too. Legacy
+picks need no provenance flag. Finishes without a matching pick (e.g. entitled
+play) or without a recorded completion time cannot be timed and do not trigger
+exclusion. This is a reporting filter, not a change to recorded finishes or
+player access. The [pick-to-finish report](observability.md#pick-to-finish-by-game)
+shows prior counts in its `raw_*` columns.
+
 Entertainment games (fun, random outcomes allowed) are reported separately as
 `daily_entertainment_completers` so they cannot inflate the brain-play number.
 
 ### Recomputing it
 
-`game_sessions` rows written by `PuzzleService.SubmitGuess` are the source:
-
-```sql
-SELECT COUNT(DISTINCT user_id)::bigint AS daily_puzzle_completers
-FROM game_sessions
-WHERE day_key = $1          -- YYYY-MM-DD in Asia/Hong_Kong
-  AND is_ritual = true
-  AND module_class = 'puzzle_ritual'
-  AND status IN ('won', 'lost')
-  AND NOT comparison_excluded
-  AND NOT EXISTS (SELECT 1 FROM synthetic_fixtures f WHERE f.user_id = game_sessions.user_id);
-```
-
-The pure oracle, `puzzled_core::puzzle_play::ritual_completion::compute_drc`, takes
-rows after verification finishes and synthetic fixtures have been filtered out.
-A dashboard number should match this within late-event lag (15 minutes).
+`game_sessions` rows written by `PuzzleService.SubmitGuess` are the source.
+Use `DRC_RECOMPUTE_SQL` in the [core metrics module](../crates/puzzled-core/src/capabilities/puzzle_play/domain/ritual_completion/metrics.rs)
+with a Hong Kong day key (`YYYY-MM-DD`). It uses the same implausible-finish
+exclusion as the scheduled rollup. The pure oracle `compute_drc` expects rows
+after verification finishes, synthetic fixtures and implausibly fast players
+have been filtered out. A dashboard number should match this within late-event
+lag (15 minutes).
 
 ## Supporting metrics
 
@@ -169,7 +183,7 @@ revenue measure. Raw landings/audiences are not exposed through the report.
 ### First-finish cohorts and D1
 
 Each report day D may carry `cohorts`: players whose first qualifying finish
-(the North Star predicate, so never synthetic or comparison rows) is on D,
+(the North Star predicate, including player exclusions) is on D,
 counted once per player. They are split by **entry identity**, the identity
 that recorded that first finish: guest (a server-issued guest credential, or a
 row adopted from one) or signed in; the rest are unknown, never folded into

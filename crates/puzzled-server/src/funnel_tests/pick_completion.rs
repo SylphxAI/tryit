@@ -17,8 +17,8 @@ const PAINT: &str = "nonogram";
 
 async fn pick(pool: &PgPool, user: Uuid, day: &str, game: &str, marked: Option<bool>) {
     sqlx::query(
-        "INSERT INTO daily_free_picks (user_id, day_key, game_slug, comparison_excluded)
-         VALUES ($1, $2::text::date, $3, $4)",
+        "INSERT INTO daily_free_picks (user_id, day_key, game_slug, comparison_excluded, started_at)
+         VALUES ($1, $2::text::date, $3, $4, $2::text::date::timestamp AT TIME ZONE 'UTC')",
     )
     .bind(user)
     .bind(day)
@@ -39,7 +39,8 @@ async fn finish(
 ) {
     sqlx::query(
         "INSERT INTO game_sessions (user_id, day_key, game_slug, mode, status, completed_at)
-         VALUES ($1, $2, $3, $4::text::game_mode, $5::text::game_status, now())",
+         VALUES ($1, $2, $3, $4::text::game_mode, $5::text::game_status,
+             $2::text::date + interval '12 hours')",
     )
     .bind(user)
     .bind(day)
@@ -51,8 +52,14 @@ async fn finish(
     .unwrap();
 }
 
-async fn report(pool: &PgPool, from: &str, to: &str) -> Vec<(String, i64, i64, i64)> {
-    sqlx::query_as(include_str!("../capabilities/funnel/pick_completions.sql"))
+type GameCounts = (String, i64, i64, i64, i64, i64);
+
+async fn report(pool: &PgPool, from: &str, to: &str) -> Vec<GameCounts> {
+    // Same two SQL files and order as the documented operator command.
+    sqlx::query_as(concat!(
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../puzzled-core/src/capabilities/puzzle_play/domain/ritual_completion/implausible_finish_players.sql")),
+        include_str!("../capabilities/funnel/pick_completions.sql"),
+    ))
         .bind(from.parse::<chrono::NaiveDate>().unwrap())
         .bind(to.parse::<chrono::NaiveDate>().unwrap())
         .fetch_all(pool)
@@ -131,13 +138,13 @@ async fn pick_completions_matches_daily_finishes_once_and_excludes_marked_player
     finish(&pool, guest, Some(LAST), PAINT, "daily", "won").await;
     assert_eq!(
         report(&pool, FIRST, FIRST).await,
-        vec![(CAGE.into(), 1, 0, 0), (PAINT.into(), 1, 1, 1)]
+        vec![(CAGE.into(), 1, 0, 1, 0, 0), (PAINT.into(), 1, 1, 1, 1, 1)]
     );
     assert_eq!(
         report(&pool, LAST, LAST).await,
-        vec![(PAINT.into(), 2, 2, 1)]
+        vec![(PAINT.into(), 2, 2, 2, 2, 1)]
     );
-    let expected = vec![(CAGE.into(), 1, 0, 0), (PAINT.into(), 3, 3, 2)];
+    let expected = vec![(CAGE.into(), 1, 0, 1, 0, 0), (PAINT.into(), 3, 3, 3, 3, 2)];
     assert_eq!(report(&pool, FIRST, LAST).await, expected);
 
     sqlx::query("INSERT INTO auth_subjects (subject, user_id) VALUES ('pick-account', $1)")
@@ -179,4 +186,72 @@ async fn pick_completions_matches_daily_finishes_once_and_excludes_marked_player
             .unwrap();
     assert_eq!(pick_owner, account);
     assert_eq!(report(&pool, FIRST, LAST).await, expected);
+}
+
+#[tokio::test]
+async fn pick_completions_keep_raw_counts_but_exclude_fast_players_across_dates_and_games() {
+    let Some(pool) = fresh_database().await else {
+        return;
+    };
+    let [fast, exact_floor, wrong_game, wrong_mode] = std::array::from_fn(|_| Uuid::now_v7());
+    for (user, start_game, finish_game, elapsed, mode, status) in [
+        (
+            fast,
+            "number-path",
+            "number-path",
+            "-1 second",
+            "daily",
+            "lost",
+        ),
+        (
+            exact_floor,
+            "number-path",
+            "number-path",
+            "8 seconds",
+            "daily",
+            "won",
+        ),
+        (wrong_game, "number-path", CAGE, "1 second", "daily", "won"),
+        (
+            wrong_mode,
+            "number-path",
+            "number-path",
+            "1 second",
+            "archive",
+            "won",
+        ),
+    ] {
+        // Evidence outside the report range (and a legacy pick with no provenance).
+        sqlx::query(
+            "INSERT INTO daily_free_picks (user_id, day_key, game_slug, started_at)
+            VALUES ($1, $2::text::date, $3, '2026-11-18 00:00Z')",
+        )
+        .bind(user)
+        .bind(BEFORE)
+        .bind(start_game)
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO game_sessions (user_id, day_key, game_slug, mode, status, completed_at)
+            VALUES ($1, $2, $3, $4::text::game_mode, $5::text::game_status,
+                timestamp '2026-11-18 00:00' + $6::text::interval)",
+        )
+        .bind(user)
+        .bind(BEFORE)
+        .bind(finish_game)
+        .bind(mode)
+        .bind(status)
+        .bind(elapsed)
+        .execute(&pool)
+        .await
+        .unwrap();
+        pick(&pool, user, FIRST, PAINT, None).await;
+        finish(&pool, user, Some(FIRST), PAINT, "daily", "won").await;
+    }
+    pick(&pool, fast, FIRST, CAGE, None).await;
+    assert_eq!(
+        report(&pool, FIRST, LAST).await,
+        vec![(CAGE.into(), 1, 0, 0, 0, 0), (PAINT.into(), 4, 4, 3, 3, 3)]
+    );
 }
