@@ -246,6 +246,10 @@
 	outline-offset: -3px;
 }
 
+.cell[data-selected]:not([data-conflict]):focus-visible {
+	box-shadow: none;
+}
+
 .cell[data-conflict]:focus-visible {
 	outline-offset: 0;
 }

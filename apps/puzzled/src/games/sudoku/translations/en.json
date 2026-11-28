@@ -29,7 +29,7 @@
 		"hard": "Only 29 cells filled — few places to begin"
 	},
 	"undo": "Undo",
-	"selectBlank": "Tap a blank square first",
+	"selectBlank": "Select a blank square first",
 	"lockedNumber": "That number is locked",
 	"confirmReset": "Start over? This clears all your numbers and notes."
 }
