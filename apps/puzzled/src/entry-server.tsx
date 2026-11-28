@@ -1,6 +1,7 @@
 /** @jsxImportSource solid-js */
 import { createHandler, StartServer } from '@solidjs/start/server'
 import { getRequestEvent } from 'solid-js/web'
+import { captureStartIntentScript } from '@/features/daily/lib/start-intent'
 import { defaultLocale } from '@/lib/i18n/config'
 import { pageLocale } from '@/lib/i18n/page-locale'
 import { initialThemeScript } from '@/shared/solid/theme'
@@ -25,6 +26,9 @@ export default createHandler(
 								nonce={typeof nonce === 'string' ? nonce : undefined}
 								innerHTML={initialThemeScript}
 							/>
+							{typeof nonce === 'string' && (
+								<script nonce={nonce} innerHTML={captureStartIntentScript} />
+							)}
 							{assets}
 						</head>
 						<body>

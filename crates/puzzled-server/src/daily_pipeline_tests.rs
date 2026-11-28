@@ -44,6 +44,92 @@ async fn call(app: &Router, path: &str, body: Value) -> (StatusCode, Value) {
 }
 
 #[tokio::test]
+async fn forward_fill_uses_v2_only_for_missing_difficulty_rows() {
+    use puzzled_core::puzzle_play::generate::{
+        self, Generated, DAILY_SEED_V2_START, DIFFICULTIES, DIFFICULTY_GAMES,
+        GENERATOR_DAILY_SEED_V2, GENERATOR_V1,
+    };
+
+    let Some(pool) = fresh_database().await else {
+        return;
+    };
+    let day = DAILY_SEED_V2_START;
+    let today = day.pred_opt().unwrap();
+    let seed = generate::seed_for(day, Some("medium"));
+    let (puzzle_data, solution) =
+        generate::generate_seeded("sudoku", seed, Some("medium")).unwrap();
+    let prefilled = Generated {
+        puzzle_data,
+        solution,
+        seed,
+        generator_version: GENERATOR_V1,
+    };
+    store::insert(&pool, "sudoku", day, Some("medium"), &prefilled)
+        .await
+        .unwrap();
+    let buffered_row = || {
+        sqlx::query_scalar::<_, Value>(
+            "SELECT to_jsonb(p) FROM daily_puzzles p WHERE game_slug = 'sudoku' AND difficulty = 'medium'",
+        )
+    };
+    let before = buffered_row().fetch_one(&pool).await.unwrap();
+    let report = daily_pipeline::fill_range(&pool, day, day, today)
+        .await
+        .unwrap();
+    assert!(report.failed.is_empty(), "{:?}", report.failed);
+    daily_pipeline::refresh_unplayed(&pool, today)
+        .await
+        .unwrap();
+    assert_eq!(before, buffered_row().fetch_one(&pool).await.unwrap());
+    let served = daily_pipeline::resolve(Some(&pool), "sudoku", day, None)
+        .await
+        .unwrap();
+    assert_eq!(served.id, before["id"].as_str().map(str::to_owned));
+    assert_eq!(served.puzzle_data, prefilled.puzzle_data);
+    assert_eq!(served.solution, prefilled.solution);
+
+    for game in DIFFICULTY_GAMES {
+        for (slot, difficulty) in DIFFICULTIES.into_iter().enumerate() {
+            if (game, difficulty) == ("sudoku", "medium") {
+                continue;
+            }
+            let stored: (i32, String) = sqlx::query_as(
+                "SELECT seed, generator_version FROM daily_puzzles
+                 WHERE game_slug = $1 AND difficulty::text = $2 AND puzzle_date::date = $3",
+            )
+            .bind(game)
+            .bind(difficulty)
+            .bind(day)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(
+                stored,
+                (
+                    102_219_886 + slot as i32,
+                    GENERATOR_DAILY_SEED_V2.to_owned()
+                ),
+                "{game} {difficulty}"
+            );
+        }
+    }
+    let next = day.succ_opt().unwrap();
+    let first = daily_pipeline::resolve(Some(&pool), "sudoku", next, None)
+        .await
+        .unwrap();
+    let expected = generate::generate("sudoku", next, Some("medium")).unwrap();
+    assert_eq!(first.puzzle_data, expected.puzzle_data);
+    assert_eq!(first.solution, expected.solution);
+    assert_eq!(
+        daily_pipeline::fill_range(&pool, day, day, next)
+            .await
+            .unwrap()
+            .generated,
+        0
+    );
+}
+
+#[tokio::test]
 async fn every_game_has_a_stored_puzzle_and_word_games_grade_without_the_answer() {
     let Some(pool) = fresh_database().await else {
         return;

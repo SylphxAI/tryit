@@ -1,10 +1,10 @@
 /** @jsxImportSource solid-js */
 import { For, Show } from 'solid-js'
 import {
-	FIVE_RESULT_TILE_COLORS,
 	type ResultCardModel,
 	type ResultCardStrings,
 	resultPatternSummary,
+	resultTileFixedColor,
 } from '@/features/daily/lib/result-card'
 
 export function ResultPattern(props: { model: ResultCardModel; strings: ResultCardStrings }) {
@@ -14,7 +14,7 @@ export function ResultPattern(props: { model: ResultCardModel; strings: ResultCa
 				<div
 					class="result-preview"
 					role="img"
-					aria-label={resultPatternSummary(pattern(), props.strings)}
+					aria-label={resultPatternSummary(pattern(), props.strings, props.model.gameSlug)}
 				>
 					<For each={pattern()}>
 						{(row) => (
@@ -24,10 +24,7 @@ export function ResultPattern(props: { model: ResultCardModel; strings: ResultCa
 										<span
 											data-tile={tile}
 											style={{
-												'background-color':
-													props.model.gameSlug === 'word-guess'
-														? FIVE_RESULT_TILE_COLORS[tile]
-														: undefined,
+												'background-color': resultTileFixedColor(props.model.gameSlug, tile),
 											}}
 										/>
 									)}

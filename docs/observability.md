@@ -86,18 +86,19 @@ on `SYLPHX_API_URL` (default `https://api.sylphx.com`). Both senders use
 `POST /v1/analytics/events:batch`, a fresh request with `X-Sylphx-Key`, and
 an explicit granted consent snapshot. GPC is enforced locally, not forwarded.
 
-The browser stream separately requires a saved analytics or full grant. Each
-committed public route visit sends one page view, with no raw query or referrer,
-one in-memory session per uninterrupted grant, and SDK deduplicated campaign
-storage. Analytics-only never emits or retains click IDs. Checkout-start events
+Browser Signal defaults on, subject to GPC and opt-out, only in US, CA, AU,
+NZ, JP, HK, TW, SG, AE and IL. All other or unknown markets require a saved
+analytics or full grant. The private consent context returns a policy flag,
+not the country. Each committed public route visit sends one page view, with
+no raw query or referrer, one in-memory session per uninterrupted period of
+eligibility, and SDK-deduplicated campaign storage. Analytics-only never emits or retains click IDs. Checkout-start events
 use the existing checkout consent snapshot and an ID derived from the Money
 session, without player identifiers. Delivery is best effort with a 10 s timeout;
 missing scopes, failed requests and exhausted capacity do not delay checkout.
 The existing settled-conversion outbox is unchanged.
 
-Funnel stages for ad optimisation ride the same browser gate as page views
-(`features/analytics/lib/signal-stages.ts`), so a refusal, an unanswered EEA
-visit, a ROW visit without a saved grant, or GPC sends none of them:
+Browser funnel stages for ad optimisation use the same gate as page views
+(`features/analytics/lib/signal-stages.ts`):
 
 | Stage | Sent when | Properties (allowlisted) |
 | --- | --- | --- |
@@ -111,6 +112,12 @@ visit, a ROW visit without a saved grant, or GPC sends none of them:
 `purchase` uses a SHA-256 of the processor order id as its event id (stable,
 so a reload deduplicates); no order, player, auth or customer id is sent.
 
+GA4 `game_start` counts the first playable daily or archive board per visit,
+not a switch to explicit Play. It requires an effective analytics grant from
+an existing affirmative choice or a named opt-out market default. Delayed
+context can confirm either; a later opt-in cannot replay the event. Only GA4
+receives it, with game, mode, a query-free public URL and no referrer.
+
 ## First-party funnel counter
 
 Visits, plays, sign-ups and Core Web Vitals are counted in our own database,
@@ -121,7 +128,7 @@ counter runs without a consent choice. Google Analytics, when
 | Event | Written by |
 | --- | --- |
 | `landing` | browser, once per session (`FunnelReporter`) |
-| `game_start` | browser, when a playable board is shown (`GamePageClient`) |
+| `game_start` | browser, when a playable board is shown (`createDailyPlayState`) |
 | `signup` | api, in `RecordSignupAttribution`, once per new account |
 | `web_vitals` | browser, `LCP` `CLS` `INP` `FCP` `TTFB` (`useReportWebVitals`) |
 

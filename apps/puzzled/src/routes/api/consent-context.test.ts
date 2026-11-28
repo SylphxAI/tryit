@@ -1,6 +1,30 @@
 import { expect, test } from 'bun:test'
 import { GET } from './consent-context'
 
+test.each([
+	['US', 'ROW', true],
+	['BR', 'ROW', false],
+	['XX', 'EEA', false],
+	['GB', 'EEA', false],
+])(
+	'returns policy decisions without exposing the region code %s',
+	async (country, region, optOutMarket) => {
+		const response = GET({
+			request: new Request('https://tryit.fun/api/consent-context', {
+				headers: { 'CF-IPCountry': country },
+			}),
+		})
+		const body = await response.json()
+		expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+		expect(
+			Object.keys(body)
+				.filter((key) => key !== 'stream')
+				.sort(),
+		).toEqual(['gpc', 'ids', 'optOutMarket', 'region'])
+		expect(body).toMatchObject({ region, optOutMarket })
+	},
+)
+
 test('returns validated Ads configuration on the private consent endpoint', async () => {
 	const config = {
 		GA_MEASUREMENT_ID: 'G-J5P11P794N',

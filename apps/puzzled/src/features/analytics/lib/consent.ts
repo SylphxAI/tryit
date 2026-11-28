@@ -7,13 +7,18 @@ import {
 import { CONSENT_KEY, CONSENT_VERSION_KEY, SIGNAL_STORAGE_KEY } from '@/lib/storage-keys'
 
 export type SignalStream = { apiKey: string; baseUrl: string }
-export type ConsentContext = { region: 'EEA' | 'ROW'; gpc: boolean; stream?: SignalStream }
+export type ConsentContext = {
+	region: 'EEA' | 'ROW'
+	gpc: boolean
+	optOutMarket?: boolean
+	stream?: SignalStream
+}
 const EVENT = 'consent-change'
 const TOUCH_KEY = `${SIGNAL_STORAGE_KEY}.touch`
 export const CHECKOUT_QUOTE_KEY = 'puzzled:ads:checkout-quote'
 /**
- * The cookie-consent version every new save records. In EEA/UK/CH and unknown
- * regions Meta (Pixel, and fbc/fbp in the Events binding) needs a saved grant
+ * The cookie-consent version every new save records. In opt-in regions (including
+ * unknown regions), Meta (Pixel and fbc/fbp in the Events binding) needs a saved grant
  * at or after META_CONSENT_VERSION; an older grant keeps Google as it was and
  * leaves Meta off until re-confirmed in Cookie settings. No banner is re-shown.
  */
@@ -52,7 +57,9 @@ export function cookieConsent() {
 		prompt: context?.region === 'EEA' && !gpc && !localDenial && choice === null,
 		analytics: signals.analytics_storage === 'granted',
 		marketing: signals.ad_storage === 'granted',
+		unanswered: choice === null && !localDenial,
 		explicit: choice === 'granted' || choice === 'analytics_only',
+		optOutMarket: context?.region === 'ROW' && context.optOutMarket === true,
 	}
 }
 
@@ -94,9 +101,9 @@ export function setAccountUnder18(flagged: boolean): void {
  * The single Meta gate (Pixel load, fbclid/fbc/fbp to the Events binding).
  * - Never under GPC (Sec-GPC or navigator.globalPrivacyControl) or for a
  *   flagged minor.
- * - ROW (known non-EEA/UK/CH region): eligible by default, like Google's click
- *   ids; a saved refusal or analytics-only choice turns it off.
- * - EEA/UK/CH and unknown regions: strictly opt-in, a saved full grant made at
+ * - Opt-out regions: eligible by default, like Google's click IDs; a saved
+ *   refusal or analytics-only choice turns it off.
+ * - Opt-in and unknown regions: require a saved full grant made at
  *   or after META_CONSENT_VERSION. An older grant never unlocks Meta.
  */
 export function canUseMeta(): boolean {
@@ -153,6 +160,10 @@ function captureLanding() {
 	}
 }
 
+function canIngestSignal(consent = cookieConsent()): boolean {
+	return consent.analytics && (consent.explicit || consent.optOutMarket)
+}
+
 function syncBrowser() {
 	const consent = cookieConsent()
 	// A refusal or GPC discards the remembered landing; nothing was persisted.
@@ -168,9 +179,8 @@ function syncBrowser() {
 		}
 		return
 	}
-	// Keep the existing ROW checkout attribution default. Only configure
-	// ingestion after a real saved choice; EEA never initializes pre-grant.
-	const stream = consent.explicit ? context.stream : undefined
+	// Checkout can still capture a touch without enabling browser ingestion.
+	const stream = canIngestSignal(consent) ? context.stream : undefined
 	if (browser && Boolean(session) !== Boolean(stream)) resetBrowser()
 	if (browser) return
 	const id = stream ? uuidv7() : undefined
@@ -185,9 +195,7 @@ function syncBrowser() {
 						sessionId: id,
 						distinctId: id,
 						fetch: ((input, init) => {
-							const current = cookieConsent()
-							if (!current.analytics || !current.explicit)
-								return Promise.reject(new Error('Signal consent unavailable'))
+							if (!canIngestSignal()) return Promise.reject(new Error('Signal consent unavailable'))
 							return fetch(input, { ...init, signal: AbortSignal.timeout(10_000) })
 						}) as typeof fetch,
 					}
@@ -251,8 +259,7 @@ export function trackSignalPage(path: string | null): void {
 }
 
 /**
- * A funnel stage on the same opt-in stream as page views: nothing is sent
- * without a saved analytics grant, in EEA before a choice, or under GPC.
+ * A funnel stage uses the same Signal consent gate as page views.
  * Callers pass already-allowlisted properties (see signal-stages.ts).
  */
 export function trackSignalEvent(

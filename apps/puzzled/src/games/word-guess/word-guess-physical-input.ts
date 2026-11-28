@@ -1,7 +1,7 @@
 export function createWordGuessKeyHandler(
 	inactive: () => boolean,
-	grade: () => Promise<void>,
-	edit: (key: string) => void,
+	grade: (event: KeyboardEvent) => Promise<void>,
+	edit: (key: string, event: KeyboardEvent) => void,
 ) {
 	return (event: KeyboardEvent) => {
 		if (
@@ -23,10 +23,10 @@ export function createWordGuessKeyHandler(
 			if (target instanceof HTMLElement && target.closest('button, a, summary')) return
 			if (inactive()) return
 			event.preventDefault()
-			if (!event.repeat) void grade()
+			if (!event.repeat) void grade(event)
 		} else if (!inactive() && /^[a-z]$|^Backspace$/i.test(event.key)) {
 			event.preventDefault()
-			edit(event.key.toUpperCase())
+			edit(event.key.toUpperCase(), event)
 		}
 	}
 }

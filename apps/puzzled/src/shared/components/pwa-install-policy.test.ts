@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import { isInstallOfferEligible, shouldShowInstallOffer } from './pwa-install-policy'
+import {
+	isInstallOfferEligible,
+	isServerDayCurrent,
+	shouldShowInstallOffer,
+} from './pwa-install-policy'
 
 const base = { firstFinishDay: '2026-10-01', today: '2026-10-02', pathname: '/' }
 
@@ -37,4 +41,13 @@ describe('install offer gate', () => {
 		expect(shouldShowInstallOffer({ ...gates, requested: false })).toBe(false)
 		expect(shouldShowInstallOffer({ ...gates, standalone: true })).toBe(false)
 	})
+})
+
+test('the server day key is current until the Hong Kong reset, never past it', () => {
+	const resetAt = Date.parse('2026-10-02T16:00:00Z')
+	const day = { dayKey: '2026-10-02', servedAt: resetAt - 1000, resetAt, clientNow: 0 }
+	expect(isServerDayCurrent({ ...day, sinceMountMs: 999 })).toBe(true)
+	expect(isServerDayCurrent({ ...day, sinceMountMs: 1000 })).toBe(false)
+	expect(isServerDayCurrent({ ...day, sinceMountMs: 0, clientNow: resetAt })).toBe(false)
+	expect(isServerDayCurrent({ ...day, sinceMountMs: 0, dayKey: undefined })).toBe(false)
 })

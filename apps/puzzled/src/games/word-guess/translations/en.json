@@ -13,6 +13,7 @@
 		"present": "Yellow means the letter is in the word but wrong spot",
 		"absent": "Gray means the letter is not in the word"
 	},
+	"sound": "Sound",
 	"keyboard": {
 		"enter": "Enter",
 		"delete": "Delete"

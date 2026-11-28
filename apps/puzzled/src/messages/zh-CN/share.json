@@ -23,6 +23,7 @@
 		"scorePoints": "{score} 分",
 		"streakDays": "连续 {days} 天",
 		"patternSummary": "图案：{hit} 中 / {near} 近 / {miss} 无",
+		"wordHivePatternSummary": "找到的单词：{words} 个，全字母句：{pangrams} 个",
 		"altOnDay": "（{day}）",
 		"altTemplate": "Tryit 成绩 — {game}{day}。{result}",
 		"altDetailsTemplate": " {details}。",

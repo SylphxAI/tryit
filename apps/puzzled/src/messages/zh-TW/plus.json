@@ -2,6 +2,7 @@
 	"pricing": {
 		"unavailableTitle": "Tryit Plus 方案暫時無法顯示",
 		"unavailableBody": "無法載入方案和價格，請稍後再試。",
+		"currencyPlanUnavailable": "先前選擇的方案不支援此幣別。請選擇方案後繼續。",
 		"retryPlans": "重新載入方案",
 		"metaTitle": "Tryit Plus：全部遊戲與過去 {days} 天的題目",
 		"metaDescription": "每天任選 3 款遊戲免費玩。Tryit Plus 開放全部遊戲和過去 {days} 天的題目，另有家庭方案。",
@@ -10,17 +11,22 @@
 		"closedBody": "Tryit Plus 尚未開賣，目前所有人都能玩全部遊戲和過去 {days} 天的題目。",
 		"checkoutFailed": "無法開啟付款頁面，請再試一次。",
 		"freeBody": "每天任選 3 款遊戲，不需註冊帳號。",
-		"playFree": "玩 {game}（每天 19 款任選 3 款免費）",
+		"playFree": "玩 {game}（每天 {count} 款任選 3 款免費）",
 		"weekendPass": "{days} 天通行證",
 		"oneTime": "單次付款",
+		"billedMonthly": "每月扣款",
+		"billedYearly": "每年扣款",
+		"annualMonthlyEquivalent": "換算每月約 {price}",
 		"passTerms": "單次付款，可使用 Tryit Plus {days} 天，不會自動續約。",
 		"currencyLabel": "幣別",
 		"saving": "省下 {percent}%",
+		"includesAllGames": "暢玩全部 {count} 款每日遊戲",
 		"includesPractice": "{practiceCount} 款遊戲，想練幾次就練幾次",
 		"includesArchive": "過去 {days} 天的題目",
 		"includesSync": "手機與電腦同步",
 		"trialLine": "免費試用 {days} 天，之後每年 {price}，首次扣款日為 {date}。可隨時在「設定」中一步取消。",
 		"startTrial": "開始 {days} 天免費試用",
+		"sellerNote": "價格已包含適用的增值稅。由 Sylphx Limited（於英格蘭及威爾斯註冊）銷售。",
 		"checkoutCancelled": "已取消付款，未向你扣款。",
 		"immediateSupplyConsent": "我同意立即開通使用，並了解將放棄 14 天取消權。",
 		"recurringSupplyTerms": "訂閱後可立即使用；如於 14 天內取消，你只需按已提供的服務比例支付費用。",
@@ -29,7 +35,7 @@
 		"familyMonthlyPerPerson": "用滿 {count} 個名額，每人每月約 {price}",
 		"renewsYearly": "每年以 {price} 自動續訂，直到你取消為止。可隨時在「設定」中取消。",
 		"renewsMonthly": "每月以 {price} 自動續訂，直到你取消為止。可隨時在「設定」中取消。",
-		"notNowPlayFree": "暫不訂閱，每天 19 款謎題任選 3 款免費玩",
+		"notNowPlayFree": "每天 {count} 款謎題任選 3 款免費玩",
 		"signInToGetPlus": "登入以訂閱 Plus",
 		"signInToStartFamily": "登入以啟用家庭方案",
 		"faq": {
@@ -58,6 +64,12 @@
 		"body": "每天 {count} 款謎題可任選 3 款免費玩（今天精選：{game}）。Tryit Plus 開放全部 {count} 款遊戲和所有過往題目。",
 		"benefits": "暢玩全部 {count} 款每日遊戲和過去 {days} 天的題目，完全無廣告",
 		"backToToday": "返回今天的遊戲"
+	},
+	"passOffer": {
+		"title": "{days} 天暢玩全部遊戲",
+		"price": "{price} 單次付款 · 不會續訂",
+		"cta": "查看 {days} 天通行證",
+		"tomorrow": "明天再來"
 	},
 	"offer": {
 		"resultTitle": "暢玩全部 {count} 款遊戲和過往題庫",

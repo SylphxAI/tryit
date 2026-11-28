@@ -24,6 +24,32 @@ pub struct Day {
     pub catalog_size: i64,
     pub release: String,
     pub alerts: Vec<String>,
+    /// `None`: stored before cohorts were collected, so unknown, not zero.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cohorts: Option<Cohorts>,
+    /// Absent on uncollected days or when provenance or finish order is unresolved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guest_start_cohort: Option<GuestStartCohort>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuestStartCohort {
+    pub started: i64,
+    pub completed_same_day: i64,
+}
+
+/// First-finish cohorts by entry identity (the identity that recorded the
+/// first qualifying finish); unknown entry = total - guest - signed in.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Cohorts {
+    pub first_completers: i64,
+    pub first_guest_entry: i64,
+    pub first_signed_in_entry: i64,
+    pub first_guest_entry_now_signed_in: i64,
+    pub d1_cohort: i64,
+    pub d1_returned: i64,
+    pub d1_cohort_guest_entry: i64,
+    pub d1_returned_guest_entry: i64,
 }
 
 pub fn alerts(

@@ -244,6 +244,83 @@ fn allowed_surface(value: &str) -> bool {
 mod tests {
     use super::*;
 
+    fn keys(value: &Value, out: &mut Vec<String>) {
+        match value {
+            Value::Object(map) => {
+                for (key, inner) in map {
+                    out.push(key.to_ascii_lowercase());
+                    keys(inner, out);
+                }
+            }
+            Value::Array(items) => items.iter().for_each(|inner| keys(inner, out)),
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn binding_never_carries_personal_identifier_keys_under_full_ads_grant() {
+        // The privacy policy promises no email, phone, name, user agent or
+        // external id in conversion data, even when the browser snapshot offers them.
+        let snapshot = json!({
+            "ga_client_id": "123.456",
+            "ga_session_id": "1700000000",
+            "gclid": "Cj0KCQ-test",
+            "fbc": "fb.1.1700000000000.IwAR-test",
+            "fbp": "fb.1.1700000000000.1234567890",
+            "utm_source": "newsletter",
+            "email": "player@example.test",
+            "em": "0f1e2d",
+            "phone": "+15551234567",
+            "ph": "0f1e2d",
+            "name": "Player Name",
+            "fn": "player",
+            "ln": "name",
+            "user_agent": "Mozilla/5.0",
+            "client_user_agent": "Mozilla/5.0",
+            "external_id": "player-123"
+        });
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-puzzled-signal-consent",
+            "granted,granted,granted,granted".parse().unwrap(),
+        );
+        headers.insert(
+            "x-puzzled-signal-attribution",
+            URL_SAFE_NO_PAD
+                .encode(snapshot.to_string())
+                .parse()
+                .unwrap(),
+        );
+        headers.insert("user-agent", "Mozilla/5.0".parse().unwrap());
+        let measurement = CheckoutAttribution::from_headers(&headers);
+        let payload = measurement
+            .binding("cs_test_123", "https://tryit.fun")
+            .expect("valid session id binds");
+        assert_eq!(payload["consent"]["ad_user_data"], "granted");
+        assert_eq!(payload["fbp"], "fb.1.1700000000000.1234567890");
+        let mut found = Vec::new();
+        keys(&payload, &mut found);
+        for forbidden in [
+            "email",
+            "em",
+            "phone",
+            "ph",
+            "name",
+            "fn",
+            "ln",
+            "user_agent",
+            "client_user_agent",
+            "external_id",
+        ] {
+            assert!(
+                !found.iter().any(|key| key == forbidden),
+                "binding carried {forbidden}: {payload}"
+            );
+        }
+        assert!(!payload.to_string().contains("player@example.test"));
+        assert!(!payload.to_string().contains("Mozilla"));
+    }
+
     #[test]
     fn entry_surface_enum_drops_even_token_shaped_private_values() {
         for value in [

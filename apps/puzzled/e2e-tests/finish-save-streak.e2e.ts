@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { devices, expect, type Page, test } from '@playwright/test'
 import { productDayKey } from '../src/lib/product-day'
 import { SAVE_STREAK_DISMISSED_DAY_KEY } from '../src/lib/storage-keys'
@@ -211,12 +211,19 @@ for (const mobile of [true, false]) {
 // Other Solid server functions share this URL. Match only the generated
 // reader so unrelated document and server-function requests stay healthy.
 async function guestStatusReference(): Promise<string> {
-	const ssr = await readFile('.output/server/_ssr/ssr.mjs', 'utf8')
-	const refs = Array.from(
-		ssr.matchAll(/createServerReference\("([^"]+)", async function readPlayGuestStatus\(/g),
-	)
-	expect(refs).toHaveLength(1)
-	return refs[0][1]
+	const dir = '.output/server/_ssr'
+	const refs = new Set<string>()
+	// A shared server reader can move out of the entry chunk when imported twice.
+	for (const file of await readdir(dir)) {
+		if (!file.endsWith('.mjs')) continue
+		const source = await readFile(`${dir}/${file}`, 'utf8')
+		for (const match of source.matchAll(
+			/createServerReference\("([^"]+)", async function readPlayGuestStatus\(/g,
+		))
+			refs.add(match[1])
+	}
+	expect(refs.size).toBe(1)
+	return [...refs][0]
 }
 
 for (const scenario of ['recover', 'fail-closed', 'signed-in', 'exit'] as const) {

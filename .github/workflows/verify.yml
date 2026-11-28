@@ -484,7 +484,7 @@ jobs:
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3015
-        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/global-readiness.e2e.ts e2e-tests/offline.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts e2e-tests/solid-editorial.e2e.ts --workers=1 --retries=0
+        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/global-readiness.e2e.ts e2e-tests/offline.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts e2e-tests/solid-editorial.e2e.ts e2e-tests/catalog-entry.e2e.ts --workers=1 --retries=0
 
       - name: Stage the Playwright report
         id: playwright-report
@@ -822,7 +822,7 @@ jobs:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/board
         run: |
           set -euo pipefail
-          bun run test:e2e e2e-tests/board-craft.e2e.ts e2e-tests/home-craft.e2e.ts e2e-tests/phone-first.e2e.ts e2e-tests/region-consent.e2e.ts e2e-tests/play-shell.e2e.ts --workers=1 --retries=0 --output=test-results/board 2>&1 | tee "$RUNNER_TEMP/craft-board.log"
+          bun run test:e2e e2e-tests/board-craft.e2e.ts e2e-tests/home-craft.e2e.ts e2e-tests/home-lineup-back.e2e.ts e2e-tests/phone-first.e2e.ts e2e-tests/region-consent.e2e.ts e2e-tests/play-shell.e2e.ts e2e-tests/ga4-game-start.e2e.ts --workers=1 --retries=0 --output=test-results/board 2>&1 | tee "$RUNNER_TEMP/craft-board.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-board.log"; then echo "a craft spec skipped"; exit 1; fi
 
       - name: Pricing with the open store
@@ -841,7 +841,7 @@ jobs:
         env:
           SKIP_ENV_VALIDATION: 'true'
           NODE_ENV: production
-          API_INTERNAL_URL: http://127.0.0.1:8787
+          API_INTERNAL_URL: http://127.0.0.1:8788
           SYLPHX_PUBLIC_URL: https://tryit.fun
           SOLID_AUTH_FIXTURE_URL: https://127.0.0.1:18875
           SYLPHX_AUTH_URL: https://127.0.0.1:18875
@@ -867,7 +867,7 @@ jobs:
             if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-auth.log" "$RUNNER_TEMP/serve-auth.log"; exit 1; fi
             sleep 1
           done
-          bun run test:e2e e2e-tests/auth.e2e.ts e2e-tests/solid-sign-in.e2e.ts --workers=1 --retries=0 --output=test-results/auth 2>&1 | tee "$RUNNER_TEMP/craft-auth.log"
+          bun run test:e2e e2e-tests/paid-touch.e2e.ts e2e-tests/auth.e2e.ts e2e-tests/solid-sign-in.e2e.ts --workers=1 --retries=0 --output=test-results/auth 2>&1 | tee "$RUNNER_TEMP/craft-auth.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-auth.log"; then echo "an auth test skipped"; exit 1; fi
 
       - name: Stop the served builds and fixture APIs

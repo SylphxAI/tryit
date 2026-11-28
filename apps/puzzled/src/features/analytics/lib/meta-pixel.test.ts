@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
+import { reportCheckoutReturn } from '@/features/plus/lib/checkout-return'
 import { CONSENT_KEY, CONSENT_VERSION_KEY } from '@/lib/storage-keys'
 import { CONSENT_VERSION, canUseMeta, setAccountUnder18, setConsentContext } from './consent'
 import {
@@ -182,15 +183,30 @@ test('Purchase eventID equals the Money order id, once per order', () => {
 	}
 })
 
-test('interim dedup guard: payment ids (pi_) fire Purchase; invoice-only ids (in_) are left to CAPI', () => {
+test('checkout return uses the exact Money settled order ID as Meta eventID, once per order', () => {
 	const { pixel, calls } = page('granted', 'ROW')
 	setActiveMetaPixel(pixel)
-	expect(trackMetaPurchase({ ...RECEIPT, orderId: 'in_1Fixture_Invoice' })).toBe(false)
-	expect(calls.some((call) => call[1] === 'Purchase')).toBe(false)
-	expect(trackMetaPurchase({ ...RECEIPT, orderId: 'pi_1Fixture_Payment' })).toBe(true)
+	const subscription = { orderId: 'in_recurring_fixture', value: 12.99, currency: 'USD' }
+	const oneTime = { orderId: 'pi_pass_fixture', value: 300, currency: 'JPY' }
+	for (const [receipt, session] of [
+		[subscription, 'cs_recurring_dual'],
+		[oneTime, 'cs_pass'],
+	] as const) {
+		reportCheckoutReturn(receipt, session)
+		reportCheckoutReturn(receipt, session)
+	}
 	expect(calls.filter((call) => call[1] === 'Purchase')).toEqual([
-		['track', 'Purchase', { value: 4.99, currency: 'USD' }, { eventID: 'pi_1Fixture_Payment' }],
+		['track', 'Purchase', { value: 12.99, currency: 'USD' }, { eventID: 'in_recurring_fixture' }],
+		['track', 'Purchase', { value: 300, currency: 'JPY' }, { eventID: 'pi_pass_fixture' }],
 	])
+})
+
+test('checkout session IDs and bare prefixes never fire a Meta Purchase', () => {
+	const { pixel, calls } = page('granted', 'ROW')
+	for (const orderId of ['cs_session_fallback', 'chk_recurring', 'pi_', 'in_']) {
+		expect(pixel.purchase({ ...RECEIPT, orderId })).toBe(false)
+	}
+	expect(calls).toEqual([])
 })
 
 test('withdrawal revokes, stops events and clears Meta cookies', () => {

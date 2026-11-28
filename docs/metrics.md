@@ -80,12 +80,11 @@ default and keep raw events per the privacy policy.
 
 ## Consent and the ad funnel
 
-Optional measurement (Google tags and the Signal stream, including the ad
-funnel stages `game_start`, `game_finish`, `plus_view`, `checkout_started`
-and `purchase`; [observability.md](observability.md#consented-signal-stream))
-needs a saved analytics grant and never runs under GPC. With consent denied,
-unanswered in the EEA, or GPC set, only these strictly necessary first-party
-aggregates are recorded: the anonymous `funnel_events` rows (no user id, IP or
+Optional measurement follows regional consent rules and never runs under GPC.
+[Browser Signal](observability.md#consented-signal-stream) defaults on only in
+supported opt-out markets; elsewhere it requires a saved analytics grant.
+With consent denied, unanswered in an opt-in region, or GPC set, only these
+strictly necessary first-party aggregates are recorded: the anonymous `funnel_events` rows (no user id, IP or
 cookie; [observability.md](observability.md#first-party-funnel-counter)) and the
 server-side finish and revenue facts the product needs to operate
 (`game_sessions`, Money settlements). Ads are optimised on consented stages
@@ -166,6 +165,46 @@ signed-in subscription viewer** that day, not all subscribers or all guests;
 reverse trials belong to the free audience, unanswerable Money reads are excluded.
 Plus includes Money grants/family seats; it is an access-segment proxy, not a
 revenue measure. Raw landings/audiences are not exposed through the report.
+
+### First-finish cohorts and D1
+
+Each report day D may carry `cohorts`: players whose first qualifying finish
+(the North Star predicate, so never synthetic or comparison rows) is on D,
+counted once per player. They are split by **entry identity**, the identity
+that recorded that first finish: guest (a server-issued guest credential, or a
+row adopted from one) or signed in; the rest are unknown, never folded into
+either. `first_guest_entry_now_signed_in` is current status, kept apart. D1 for
+D is D−1's cohort and those who finished again on D. Paid status plays no part.
+
+An absent `cohorts` means the report was stored before collection: unknown, not
+zero. Present zeros are a computed empty cohort. Either is final only when the
+day is `complete`; today's D1 is provisional. This is all-source D1, not
+organic D1.
+
+### First guest start to same-day completion
+
+`guest_start_cohort` counts the earliest canonical free pick per player after
+adoption, ordered by start time then day and game. An earlier pick bars later
+picks even if its provenance is unknown or excluded. The first pick must be an
+explicit guest start, not a comparison or synthetic row. A qualifying finish
+strictly before the pick disqualifies it, regardless of game or stored day.
+This compares absolute instants using `completed_at_utc` and the pick clock,
+including qualifying history retained under adopted guest IDs. An exact tie
+is not earlier. The numerator requires a qualifying finish for the same game
+and server-assigned Hong Kong product day. There is no acquisition-source split:
+unknown attribution is not organic.
+
+Both counts default to absent. Set `PUZZLED_GUEST_START_WRITERS_VERIFIED_AT`
+only after verifying all pick writers persist provenance and all finish writers
+persist the completion instant. The verified convergence instant (RFC 3339)
+opens collection on the following full Hong Kong product day. A day with any
+pick missing provenance is absent. Both counts are also absent if an otherwise
+eligible player has qualifying legacy finish history of unknown order (NULL
+`completed_at_utc`). A known earlier finish already excludes that player, so
+additional unknown history for them does not suppress the day's counts. Legacy
+wall times and stored day keys do not establish finish order. Present zeros
+mean computed empty; the usual 15-minute close grace applies. Reports are
+recomputed on the existing schedule; historical rows are not backfilled.
 
 ### Initial stop-the-line thresholds
 

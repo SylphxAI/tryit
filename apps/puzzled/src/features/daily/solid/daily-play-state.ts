@@ -34,7 +34,9 @@ export type DailyPlayProps = {
 	day: GameDayRequest
 	todayKey: string
 	resetAt: number
-	onLocked: () => void
+	onLandingBlocked: () => void
+	chooseDifficulty: boolean
+	onPlayable: (slug: string, mode: 'daily' | 'archive') => void
 	difficulty?: PuzzleDifficulty
 	started: boolean
 	initial?: State
@@ -91,7 +93,8 @@ export function createDailyPlayState(
 		const value = state()
 		if (!value || handled || !props.started) return
 		handled = true
-		if (!archive && hasBoard && !choose && value.kind === 'startable' && takeStartIntent(slug))
+		const intent = takeStartIntent(slug)
+		if (intent && !archive && hasBoard && !choose && value.kind === 'startable')
 			void play(value.puzzleDate)
 	})
 	const snapshot = <K extends State['kind']>(kind: K) => {
@@ -109,9 +112,11 @@ export function createDailyPlayState(
 		sendFunnel({ event: 'game_start', game_slug: slug })
 		trackGameStartStage(slug, archive ? 'archive' : 'daily')
 		if (!archive) rememberDailyLevel(value.puzzleDate, slug, props.difficulty)
+		props.onPlayable(slug, archive ? 'archive' : 'daily')
 	})
 	createEffect(() => {
-		if (snapshot('locked')) props.onLocked()
+		if (snapshot('locked') || (choose && (snapshot('closed') || snapshot('completed'))))
+			props.onLandingBlocked()
 	})
 	const [claimedPicks] = createResource(
 		() => mounted() && !archive && snapshot('playable')?.puzzleDate,

@@ -2,7 +2,7 @@ import { devices, expect, type Locator, type Page, test } from '@playwright/test
 import sudokuGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/sudoku.json'
 import { isPracticeSupported } from '../src/features/practice/lib/practice'
 import { productDayKey } from '../src/lib/product-day'
-import { SAVE_STREAK_DISMISSED_DAY_KEY } from '../src/lib/storage-keys'
+import { SAVE_STREAK_DISMISSED_DAY_KEY, SOUND_ENABLED_KEY } from '../src/lib/storage-keys'
 import { type FinishFixture, guestFinishFixtures } from './guest-finish-fixtures'
 
 const fivePath = '/en-US/games/word-guess?start=1#play'
@@ -46,6 +46,75 @@ async function start(page: Page, baseURL?: string, locale = 'en-US') {
 	await expect(board.locator('button')).toHaveCount(81)
 	return board
 }
+
+test.describe('browser Signal regional consent', () => {
+	// The fixture's fake collector is intentionally absent from production CSP.
+	test.use({ bypassCSP: true })
+
+	test('opt-out page and game events do not grant signup attribution', async ({
+		page,
+		baseURL,
+	}) => {
+		requireLocalFixture(baseURL)
+		const origin = new URL(baseURL ?? 'http://localhost:3000').origin
+		const collector = 'https://signal.example.test'
+		const eventNames: string[] = []
+		await page.route('**/*', (route) => {
+			const url = new URL(route.request().url())
+			return url.origin === origin ? route.fallback() : route.abort()
+		})
+		await page.route(`${collector}/v1/analytics/events:batch`, async (route) => {
+			if (route.request().method() === 'POST') {
+				const { events } = route.request().postDataJSON() as { events: { event_name: string }[] }
+				eventNames.push(...events.map((event) => event.event_name))
+			}
+			await route.fulfill({
+				status: 204,
+				headers: {
+					'access-control-allow-origin': origin,
+					'access-control-allow-methods': 'POST',
+					'access-control-allow-headers': 'content-type,x-sylphx-key',
+				},
+			})
+		})
+		await page.route('**/api/consent-context', async (route) => {
+			const response = await route.fetch()
+			await route.fulfill({
+				response,
+				json: {
+					...(await response.json()),
+					ids: {},
+					stream: { apiKey: 'sylphx_pk_fixture', baseUrl: collector },
+				},
+			})
+		})
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
+		await routeSudoku(page)
+		await page.goto('/en-US/games/sudoku?difficulty=easy&start=1&ref=fixture#play')
+		await expect.poll(() => eventNames).toContain('page_view')
+		await page.locator('[data-game-stage="start"]').getByRole('button').click()
+		await expect.poll(() => eventNames).toContain('game_start')
+		const signupCookie = async () =>
+			(await page.context().cookies()).find(({ name }) => name === 'puzzled_signup_attr')?.value
+		expect(await signupCookie()).toBeUndefined()
+		// The immersive play view omits the footer. Keep the same qualification
+		// and referral on the homepage, then exercise the real settings control.
+		const views = () => eventNames.filter((event) => event === 'page_view').length
+		const previousViews = views()
+		await page.goto('/?ref=fixture')
+		await expect.poll(views).toBeGreaterThan(previousViews)
+		expect(await signupCookie()).toBeUndefined()
+		await page
+			.locator('footer')
+			.getByRole('button', { name: 'Cookie settings', exact: true })
+			.click()
+		await page
+			.getByRole('dialog')
+			.getByRole('button', { name: 'Analytics only', exact: true })
+			.click()
+		await expect.poll(signupCookie).toBe(encodeURIComponent('r=fixture'))
+	})
+})
 
 async function dimensions(controls: Locator) {
 	for (const control of await controls.all()) {
@@ -145,6 +214,135 @@ test('dark CJK controls retain geometry and reduced-motion focus', async ({
 	await page.screenshot({ path: testInfo.outputPath('board-dark-zh-HK.png'), fullPage: false })
 })
 
+async function observeFiveFeedback(page: Page, unsupported = false) {
+	await page.addInitScript(
+		({ unsupported, key }) => {
+			if (unsupported) {
+				Object.defineProperty(window, 'AudioContext', { value: undefined })
+				Object.defineProperty(navigator, 'vibrate', { value: undefined })
+				localStorage.setItem(key, 'true')
+				return
+			}
+			const record = (name: string) => {
+				const metrics = document.documentElement.dataset
+				metrics[name] = String(Number(metrics[name] ?? 0) + 1)
+			}
+			const Context = window.AudioContext
+			window.AudioContext = class extends Context {
+				constructor() {
+					super()
+					record('contexts')
+				}
+			}
+			const start = OscillatorNode.prototype.start
+			OscillatorNode.prototype.start = function (when?: number) {
+				start.call(this, when)
+				record('cues')
+			}
+			Object.defineProperty(navigator, 'vibrate', {
+				value: (pattern: number[]) => {
+					if (pattern.join(',') === '5') record('pulses')
+					return true
+				},
+			})
+		},
+		{ unsupported, key: SOUND_ENABLED_KEY },
+	)
+}
+
+test.describe('Five board feedback', () => {
+	test.use({ hasTouch: true, viewport: { width: 390, height: 844 } })
+	test.beforeEach(async ({ page, baseURL }) => {
+		requireLocalFixture(baseURL)
+		const origin = new URL(baseURL ?? 'http://localhost:3000').origin
+		await page.route('**/*', (route) =>
+			new URL(route.request().url()).origin === origin ? route.fallback() : route.abort(),
+		)
+		await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+			route.fulfill({
+				json: {
+					gameSlug: 'word-guess',
+					puzzleDate: productDayKey(),
+					puzzleId: firstPuzzleId,
+					canPlay: true,
+					puzzleDataJson: '{"wordLength":5,"maxAttempts":6}',
+				},
+			}),
+		)
+	})
+
+	async function openFive(page: Page) {
+		await page.goto(fivePath)
+		const decline = page.getByRole('button', { name: 'Decline', exact: true })
+		if (await decline.isVisible()) await decline.click()
+		return {
+			root: page.locator('html'),
+			sound: page.getByRole('button', { name: 'Sound', exact: true }),
+			grid: page.getByRole('table', { name: 'Five' }).locator('tr').first(),
+			key: (name: string) =>
+				page.locator('fieldset[data-play-control]').getByRole('button', { name, exact: true }),
+		}
+	}
+
+	test('one cue per trusted edit and persistent Sound', async ({ page }, testInfo) => {
+		await observeFiveFeedback(page)
+		const { root, sound, grid, key } = await openFive(page)
+		await expect(sound).toBeEnabled()
+		await dimensions(sound)
+		await expect(sound).toHaveAttribute('aria-pressed', 'false')
+		await key('A').tap()
+		await expect(grid).toHaveText('A')
+		await expect(root).toHaveAttribute('data-pulses', '1')
+		await expect(root).not.toHaveAttribute('data-contexts')
+		await sound.focus()
+		await page.keyboard.press('Space')
+		await expect(sound).toHaveAttribute('aria-pressed', 'true')
+		await expect(root).not.toHaveAttribute('data-contexts')
+		await page.keyboard.down('b')
+		await expect(root).toHaveAttribute('data-cues', '1')
+		await page.keyboard.down('b')
+		await page.keyboard.up('b')
+		await key('C').dispatchEvent('click')
+		// Headless Chromium keeps tabs visible. Change only visibility; input is still trusted.
+		await page.evaluate(() =>
+			Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' }),
+		)
+		await page.keyboard.press('d')
+		await page.evaluate(() => Reflect.deleteProperty(document, 'visibilityState'))
+		await page.keyboard.press('e') // Full row.
+		await expect(grid).toHaveText('ABBCD')
+		await expect(root).toHaveAttribute('data-cues', '1')
+		await expect(root).toHaveAttribute('data-pulses', '2')
+		await page.reload()
+		await expect(sound).toHaveAttribute('aria-pressed', 'true')
+		await expect(grid).toBeEmpty()
+		await page.keyboard.press('Backspace')
+		await expect(root).not.toHaveAttribute('data-contexts')
+		await expect(root).not.toHaveAttribute('data-pulses')
+		await key('F').tap()
+		await expect(grid).toHaveText('F')
+		await expect(root).toHaveAttribute('data-cues', '1')
+		await expect(root).toHaveAttribute('data-pulses', '1')
+		await page.screenshot({ path: testInfo.outputPath('five-sound-390.png') })
+		await sound.tap()
+		await page.reload()
+		await expect(sound).toBeEnabled()
+		await expect(sound).toHaveAttribute('aria-pressed', 'false')
+		await page.keyboard.press('g')
+		await expect(grid).toHaveText('G')
+		await expect(root).not.toHaveAttribute('data-contexts')
+	})
+
+	test('silent and playable without feedback APIs', async ({ page }) => {
+		await observeFiveFeedback(page, true)
+		const { sound, grid, key } = await openFive(page)
+		await expect(sound).toBeDisabled()
+		await expect(sound).toHaveAttribute('aria-pressed', 'false')
+		await key('A').tap()
+		await expect(grid).toHaveText('A')
+	})
+})
+
 for (const scenario of [
 	'same run',
 	'guest run',
@@ -161,6 +359,7 @@ for (const scenario of [
 		const now = new Date()
 		const today = productDayKey(now)
 		const restore = scenario === 'same run' || scenario === 'guest run'
+		if (scenario === 'same run') await observeFiveFeedback(page)
 		let puzzleDate = today
 		let puzzleId = firstPuzzleId
 		const guesses: unknown[] = []
@@ -272,8 +471,12 @@ for (const scenario of [
 			release.resolve()
 			await acknowledged.promise
 			if (restore) {
+				if (scenario === 'same run')
+					await page.evaluate((key) => localStorage.setItem(key, 'true'), SOUND_ENABLED_KEY)
 				await goBack()
 				await expect(row(0).locator('[data-grade]')).toHaveCount(5)
+				if (scenario === 'same run')
+					await expect(page.locator('html')).not.toHaveAttribute('data-contexts')
 				await expect(letter(1)).toHaveAttribute('data-grade', 'present')
 				await expect(letter(2)).toHaveAttribute('data-grade', 'correct')
 				await expect(row(1)).toHaveAttribute('data-current', '')

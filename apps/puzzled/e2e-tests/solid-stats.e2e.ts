@@ -22,7 +22,7 @@ test.describe('Solid stats', () => {
 		)
 		await expect(page.getByRole('link', { name: 'See Tryit Plus' })).toHaveAttribute(
 			'href',
-			'/pricing?utm_source=tryit&utm_medium=stats_banner&entry_surface=stats_banner',
+			'/pricing?entry_surface=stats_banner',
 		)
 		await expect(page.getByText('Tryit Plus · $35 a year', { exact: true })).toBeVisible()
 		await page.goto('/es/stats')

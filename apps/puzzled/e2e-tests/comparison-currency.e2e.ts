@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test'
+import { CONSENT_KEY } from '../src/lib/storage-keys'
 
 const currencies = [
 	'usd',
@@ -109,5 +110,64 @@ test('switching currency persists across rivals, locale prefixes and pricing', a
 	await expect(select).toHaveValue('jpy')
 	for (const price of ['¥479', '¥799', '¥6,399', '¥1,279', '¥10,389']) {
 		await expect(page.getByText(price, { exact: true }).first()).toBeVisible()
+	}
+})
+
+test.describe('comparison pricing links', () => {
+	test.use({ serviceWorkers: 'block' })
+
+	const pages = [
+		{ slug: 'hub', pass: true },
+		{ slug: 'nyt-games', pass: true },
+		{ slug: 'linkedin-games', pass: true },
+		{ slug: 'puzzmo', pass: true },
+		{ slug: 'brilliant', pass: true },
+		{ slug: 'wordle', pass: true },
+		{ slug: 'wordle', pass: true, prefix: '/en-GB' },
+		{ slug: 'lumosity', pass: false },
+		{ slug: 'elevate', pass: false },
+	]
+
+	for (const { slug, pass, prefix = '' } of pages) {
+		const path = slug === 'hub' ? '/vs' : `/vs/${slug}`
+		test(`${prefix}${path} opens pricing with the advertised plan selected`, async ({
+			page,
+			context,
+			baseURL,
+		}) => {
+			if (!baseURL || !['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname)) {
+				throw new Error('The loopback open-plan fixture URL is required')
+			}
+			const origin = new URL(baseURL).origin
+			await page.addInitScript((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
+			await context.route('**/*', (route) =>
+				route.request().method() === 'GET' && new URL(route.request().url()).origin === origin
+					? route.continue()
+					: route.abort(),
+			)
+
+			await page.goto(`${prefix}${path}`)
+			const main = page.getByRole('main')
+			const entry = `entry_surface=seo_vs-${slug}`
+			const free = main.getByRole('link', { name: 'Pick your 3 free games', exact: true })
+			await expect(free).toHaveCount(2)
+			for (const link of await free.all()) {
+				await expect(link).toHaveAttribute('href', `${prefix || '/'}?${entry}`)
+			}
+			const pricing = main.getByRole('link', {
+				name: pass ? 'See the 3-Day Pass' : 'See Tryit Plus plans',
+				exact: true,
+			})
+			const href = `${prefix}/pricing?${pass ? `plan=individual_once&${entry}#plus` : entry}`
+			await expect(pricing).toHaveCount(2)
+			for (const link of await pricing.all()) {
+				await expect.soft(link).toHaveAttribute('href', href)
+			}
+			await pricing.first().click()
+			await expect(page.locator('#plus input[type="radio"]:checked')).toHaveValue(
+				pass ? 'once' : 'year',
+			)
+			await expect(page).toHaveURL(`${origin}${href}`)
+		})
 	}
 })

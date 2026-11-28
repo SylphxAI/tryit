@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, type Locator, type Page, test } from '@playwright/test'
 import { PRACTICE_GAMES } from '../src/features/practice/lib/practice'
+import { getGameSlugs } from '../src/games/registry'
 import { CURRENCY_COOKIE } from '../src/lib/billing/currency'
 import { defaultLocale } from '../src/lib/i18n/config'
 import { createTranslator } from '../src/lib/i18n/translate'
@@ -8,6 +9,7 @@ import { CONSENT_KEY } from '../src/lib/storage-keys'
 import { DESKTOP, MOBILE, settle, WCAG_TAGS } from './a11y-support'
 
 /** Pricing choices, benefits and guest return paths stay available at every size. */
+const dailyCount = getGameSlugs().length
 const practiceCount = PRACTICE_GAMES.length
 const VIEWPORTS = [
 	{ name: 'laptop-1440x757', width: 1440, height: 757 },
@@ -29,11 +31,9 @@ for (const [width, height] of [
 		await page.setViewportSize({ width, height })
 		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
 		await openPricing(page)
-		await expect(page.locator('[data-consent-banner]').getByRole('button')).toHaveText([
-			'Decline',
-			'Accept',
-			'Analytics only',
-		])
+		await expect(
+			page.locator('[data-consent-banner] [data-consent-choices]').getByRole('button'),
+		).toHaveText(['Decline', 'Accept', 'Analytics only'])
 		await page.evaluate(() => document.fonts.ready)
 		if (width === 390) await expect(page.locator('.site-tab-bar')).toBeVisible()
 		const family = page.getByRole('link', { name: /^Family plan for up to \d+ players$/ })
@@ -41,7 +41,7 @@ for (const [width, height] of [
 		else await expect(family).toHaveCount(0)
 		for (const name of [
 			...(width === 390 ? [/^Family plan for up to \d+ players$/] : []),
-			/^Not now — play 3 free puzzles of 19 daily$/,
+			`Play 3 of ${dailyCount} daily puzzles free`,
 		]) {
 			const link = page.getByRole('link', { name })
 			await expect(link).toHaveCSS('text-decoration-line', 'none')
@@ -78,7 +78,7 @@ test('pricing exits paint keyboard focus but no mouse focus ring', async ({ page
 	await openPricing(page)
 	const family = page.getByRole('link', { name: 'Family plan for up to 4 players', exact: true })
 	const freePlay = page.getByRole('link', {
-		name: 'Not now — play 3 free puzzles of 19 daily',
+		name: `Play 3 of ${dailyCount} daily puzzles free`,
 		exact: true,
 	})
 
@@ -106,51 +106,54 @@ const pricingLegalCases = [
 		locale: 'en-US',
 		currency: 'USD',
 		amounts: [2.99, 4.99, 39.99],
-		seller: 'Prices include VAT. Sold by Sylphx Limited, registered in England and Wales.',
+		seller:
+			'Prices include VAT where it applies. Sold by Sylphx Limited, registered in England and Wales.',
 	},
 	{
 		locale: 'en-GB',
 		currency: 'GBP',
 		amounts: [2.99, 3.99, 29.99],
-		seller: 'Prices include VAT. Sold by Sylphx Limited, registered in England and Wales.',
+		seller:
+			'Prices include VAT where it applies. Sold by Sylphx Limited, registered in England and Wales.',
 	},
 	{
 		locale: 'es',
 		currency: 'USD',
 		amounts: [2.99, 4.99, 39.99],
 		seller:
-			'Los precios incluyen IVA. Vendido por Sylphx Limited, registrada en Inglaterra y Gales.',
+			'Los precios incluyen el IVA cuando corresponda. Vendido por Sylphx Limited, registrada en Inglaterra y Gales.',
 	},
 	{
 		locale: 'ja',
 		currency: 'USD',
 		amounts: [2.99, 4.99, 39.99],
-		seller: '表示価格にはVATが含まれます。販売元：Sylphx Limited（イングランド・ウェールズ登録）。',
+		seller:
+			'表示価格には、適用される場合はVATが含まれます。販売元：Sylphx Limited（イングランド・ウェールズ登録）。',
 	},
 	{
 		locale: 'pt-BR',
 		currency: 'USD',
 		amounts: [2.99, 4.99, 39.99],
 		seller:
-			'Os preços incluem impostos (VAT). Vendido pela Sylphx Limited, registrada na Inglaterra e no País de Gales.',
+			'Os preços incluem impostos (VAT) quando aplicável. Vendido pela Sylphx Limited, registrada na Inglaterra e no País de Gales.',
 	},
 	{
 		locale: 'zh-CN',
 		currency: 'USD',
 		amounts: [2.99, 4.99, 39.99],
-		seller: '价格已含增值税。由 Sylphx Limited（在英格兰及威尔士注册）销售。',
+		seller: '价格已包含适用的增值税。由 Sylphx Limited（在英格兰及威尔士注册）销售。',
 	},
 	{
 		locale: 'zh-HK',
 		currency: 'HKD',
 		amounts: [29, 49, 319],
-		seller: '價格已包含增值稅。由 Sylphx Limited（於英格蘭及威爾斯註冊）出售。',
+		seller: '價格已包含適用的增值稅。由 Sylphx Limited（於英格蘭及威爾士註冊）出售。',
 	},
 	{
 		locale: 'zh-TW',
 		currency: 'USD',
 		amounts: [2.99, 4.99, 39.99],
-		seller: '價格已包含增值稅。由 Sylphx Limited（於英格蘭及威爾斯註冊）出售。',
+		seller: '價格已包含適用的增值稅。由 Sylphx Limited（於英格蘭及威爾斯註冊）銷售。',
 	},
 ] as const
 
@@ -203,9 +206,18 @@ for (const { locale, currency, amounts, seller } of pricingLegalCases) {
 				const radio = offer.locator(`input[value="${interval}"]`)
 				await radio.check()
 				await expect(radio).toBeChecked()
-				await expect(
-					offer.locator('label').filter({ has: page.locator(`input[value="${interval}"]`) }),
-				).toContainText(price(amount))
+				const row = radio.locator('..')
+				await expect(row.getByText(price(amount), { exact: true })).toBeVisible()
+				if (locale === 'en-US' || locale === 'en-GB') {
+					const cadence = { once: 'one time', month: 'billed monthly', year: 'billed yearly' }
+					await expect(row.getByText(cadence[interval], { exact: true })).toBeVisible()
+					if (interval === 'year') {
+						const equivalent = locale === 'en-GB' ? '£2.50' : '$3.33'
+						await expect(
+							row.getByText(`${equivalent}/mo equivalent`, { exact: true }),
+						).toBeVisible()
+					}
+				}
 				const once = interval === 'once'
 				const adjacent = cta.locator('xpath=preceding-sibling::p[1]')
 				await expect(adjacent).toHaveText(
@@ -315,9 +327,11 @@ for (const viewport of VIEWPORTS) {
 				}
 				for (const id of ['plus', 'family']) {
 					const offer = page.locator(`#${id}`)
-					await expect(offer.getByText('All 19 games, every day', { exact: true })).toBeVisible()
 					await expect(
-						offer.getByText(`Unlimited practice across ${practiceCount} games`, { exact: true }),
+						offer.getByText(`All ${dailyCount} daily games`, { exact: true }),
+					).toBeVisible()
+					await expect(
+						offer.getByText(`Unlimited practice in ${practiceCount} games`, { exact: true }),
 					).toBeVisible()
 					await expect(
 						offer.getByText('Puzzles from the past 30 days', { exact: true }),
@@ -362,7 +376,7 @@ for (const viewport of VIEWPORTS) {
 				}
 				// Pricing is a page, with a free-play escape link rather than a modal close button.
 				const freePlay = page.getByRole('link', {
-					name: 'Not now — play 3 free puzzles of 19 daily',
+					name: `Play 3 of ${dailyCount} daily puzzles free`,
 					exact: true,
 				})
 				await expect(freePlay).toHaveAttribute('href', /^\/games\/[^/?#]+$/)
@@ -410,7 +424,9 @@ for (const viewport of VIEWPORTS) {
 			const offer = page.locator('#plus')
 			test.skip((await offer.getByRole('radio').count()) === 0, 'sales are closed')
 
-			const freePlay = page.getByRole('link', { name: 'Not now — play 3 free puzzles of 19 daily' })
+			const freePlay = page.getByRole('link', {
+				name: `Play 3 of ${dailyCount} daily puzzles free`,
+			})
 			await expect(freePlay).toHaveCount(1)
 			await freePlay.evaluate((el) => el.scrollIntoView({ block: 'center' }))
 			await expect(freePlay).toBeInViewport({ ratio: 1 })
@@ -870,6 +886,125 @@ for (const mobile of [false, true]) {
 	})
 }
 
+test.describe('pricing currency switch keeps the chosen purchase', () => {
+	test.use({ serviceWorkers: 'block' })
+
+	test.beforeEach(async ({ page, context, baseURL }) => {
+		if (!baseURL || !['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname)) {
+			throw new Error('The loopback open-plan fixture URL is required')
+		}
+		const origin = new URL(baseURL).origin
+		await context.addCookies([{ name: CURRENCY_COOKIE, value: 'usd', url: origin }])
+		await page.addInitScript((key) => localStorage.setItem(key, 'denied'), CONSENT_KEY)
+		await context.route('**/*', (route) =>
+			route.request().method() === 'GET' && new URL(route.request().url()).origin === origin
+				? route.continue()
+				: route.abort(),
+		)
+	})
+
+	async function switchToPounds(page: Page) {
+		const select = page.getByRole('combobox', { name: 'Currency', exact: true })
+		await expect(select).toHaveValue('usd')
+		const loaded = page.waitForEvent('domcontentloaded', { timeout: 10_000 })
+		await select.press('ArrowDown')
+		await loaded
+		await expect(select).toHaveValue('gbp')
+		return select
+	}
+
+	test('retains both Monthly selections, the localized quote, and keyboard focus', async ({
+		page,
+	}) => {
+		await page.setViewportSize(DESKTOP)
+		const original =
+			'/en-GB/pricing?plan=individual_once&trigger=practice_upsell&callbackUrl=%2Farchive&utm_medium=cpc#plus'
+		await page.goto(original)
+		const plus = page.locator('#plus')
+		const family = page.locator('#family')
+		await expect(plus.locator('input[value="once"]')).toBeChecked()
+		await plus.locator('input[value="month"]').check()
+		await family.locator('input[value="month"]').check()
+		const select = await switchToPounds(page)
+		await expect(plus.locator('input[value="month"]')).toBeChecked()
+		await expect(family.locator('input[value="month"]')).toBeChecked()
+		await expect(plus.getByText(/^Renews every month at £3\.99\b/)).toBeVisible()
+		await expect(family.getByText(/^Renews every month at £5\.99\b/)).toBeVisible()
+		await expect(plus.getByRole('button', { name: 'Start Tryit Plus' })).toHaveAttribute(
+			'data-checkout-trigger',
+			'practice_upsell',
+		)
+		const before = new URL(original, page.url())
+		const after = new URL(page.url())
+		expect(after.pathname).toBe(before.pathname)
+		expect(after.hash).toBe(before.hash)
+		for (const [key, value] of before.searchParams) expect(after.searchParams.get(key)).toBe(value)
+		await expect(select).toBeFocused()
+		await expect(select).toHaveCSS('outline-style', 'solid')
+		await expect(select).toBeInViewport()
+	})
+
+	for (const preset of [false, true]) {
+		test(`keeps the ${preset ? 'preset' : 'manually chosen'} pass but asks for fresh consent`, async ({
+			page,
+		}) => {
+			await page.setViewportSize(MOBILE)
+			const ready = page.waitForResponse('**/api/consent-context')
+			await page.goto(
+				`/pricing?${preset ? 'plan=individual_once&' : ''}entry_surface=seo_vs-wordle#plus`,
+			)
+			await ready
+			const plus = page.locator('#plus')
+			const pass = plus.locator('input[value="once"]')
+			const waiver = plus.getByRole('checkbox')
+			const pay = plus.getByRole('button', { name: 'Continue to payment' })
+			if (!preset) await pass.check()
+			await expect(pass).toBeChecked()
+			await expect(waiver).not.toBeChecked()
+			await expect(pay).toBeDisabled()
+			await waiver.check()
+			await expect(pay).toBeEnabled()
+			await switchToPounds(page)
+			await expect(pass).toBeChecked()
+			await expect(pass.locator('..')).toContainText('£2.99')
+			await expect(waiver).not.toBeChecked()
+			await expect(pay).toBeDisabled()
+			await waiver.check()
+			await expect(pay).toBeEnabled()
+		})
+	}
+
+	test('clears a missing plan rather than silently switching to Yearly', async ({
+		page,
+		context,
+	}) => {
+		await page.goto('/pricing?plan=family_monthly#family')
+		const family = page.locator('#family')
+		await expect(family.locator('input[value="month"]')).toBeChecked()
+		await context.addCookies([
+			{
+				name: '__Host-puzzled_guest',
+				value: 'pricing-catalogue-change',
+				domain: new URL(page.url()).hostname,
+				path: '/',
+				secure: true,
+			},
+		])
+		await switchToPounds(page)
+		await expect(family.locator('input[value="month"]')).toHaveCount(0)
+		await expect(family.locator('input[type="radio"]:checked')).toHaveCount(0)
+		await expect(family.getByRole('button', { name: 'Continue to payment' })).toHaveCount(0)
+		await expect(
+			page.getByText(
+				'Your previous plan isn’t available in this currency. Choose a plan to continue.',
+				{ exact: true },
+			),
+		).toBeVisible()
+		await family.locator('input[value="year"]').check()
+		await expect(family.getByRole('button', { name: 'Continue to payment' })).toBeEnabled()
+	})
+})
+
 test('zh-TW pricing starts in TWD despite geo and preserves the currency switcher override', async ({
 	page,
 	context,
@@ -947,19 +1082,19 @@ for (const [locale, path, label] of [
 	})
 }
 
-const practiceBenefitCopy = {
-	'en-US': `Unlimited practice across ${practiceCount} games`,
-	'en-GB': `Unlimited practice across ${practiceCount} games`,
-	es: `Práctica sin límites en ${practiceCount} juegos`,
-	ja: `${practiceCount}種類のゲームで何度でも練習`,
-	'pt-BR': `Treino ilimitado em ${practiceCount} jogos`,
-	'zh-CN': `${practiceCount} 款游戏，不限次数练习`,
-	'zh-HK': `${practiceCount} 款遊戲，想練幾多次都得`,
-	'zh-TW': `${practiceCount} 款遊戲，想練幾次就練幾次`,
+const gameBenefitCopy = {
+	'en-US': [`All ${dailyCount} daily games`, `Unlimited practice in ${practiceCount} games`],
+	'en-GB': [`All ${dailyCount} daily games`, `Unlimited practice in ${practiceCount} games`],
+	es: [`Los ${dailyCount} juegos diarios`, `Práctica ilimitada en ${practiceCount} juegos`],
+	ja: [`全${dailyCount}種類の日替わりゲーム`, `${practiceCount}種類のゲームで練習し放題`],
+	'pt-BR': [`Todos os ${dailyCount} jogos diários`, `Prática ilimitada em ${practiceCount} jogos`],
+	'zh-CN': [`全部 ${dailyCount} 款每日游戏`, `${practiceCount} 款游戏可不限次数练习`],
+	'zh-HK': [`玩齊每日 ${dailyCount} 款遊戲`, `${practiceCount} 款遊戲，想練幾多次都得`],
+	'zh-TW': [`暢玩全部 ${dailyCount} 款每日遊戲`, `${practiceCount} 款遊戲，想練幾次就練幾次`],
 }
 
-for (const [locale, copy] of Object.entries(practiceBenefitCopy)) {
-	test(`practice paywall shows the localized benefit for Plus and Family (${locale})`, async ({
+for (const [locale, [daily, practice]] of Object.entries(gameBenefitCopy)) {
+	test(`pricing distinguishes daily play from practice for Plus and Family (${locale})`, async ({
 		page,
 	}) => {
 		const prefix = locale === 'en-US' ? '' : `/${locale}`
@@ -967,7 +1102,8 @@ for (const [locale, copy] of Object.entries(practiceBenefitCopy)) {
 		await expect(page.locator('html')).toHaveAttribute('lang', locale)
 		for (const id of ['plus', 'family']) {
 			const offer = page.locator(`#${id}`)
-			await expect(offer.getByText(copy, { exact: true })).toBeVisible()
+			await expect(offer.getByText(daily, { exact: true })).toBeVisible()
+			await expect(offer.getByText(practice, { exact: true })).toBeVisible()
 			await expect(offer.locator('[data-checkout-trigger]')).toHaveAttribute(
 				'data-checkout-trigger',
 				'practice_upsell',

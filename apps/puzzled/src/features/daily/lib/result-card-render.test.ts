@@ -5,6 +5,7 @@ import {
 	type ResultCardInput,
 	type ResultCardStrings,
 	resultCardTextAlternative,
+	WORD_GROUPS_RESULT_TILE_COLORS,
 } from './result-card'
 import {
 	paintResultCard,
@@ -33,6 +34,7 @@ const STRINGS: ResultCardStrings = {
 	scorePoints: '{score} points',
 	streakDays: '{days}-day streak',
 	patternSummary: 'Pattern: {hit} hit / {near} near / {miss} miss',
+	wordHivePatternSummary: 'Words found: {words}, pangrams: {pangrams}',
 	altOnDay: ' on {day}',
 	altTemplate: 'Tryit result - {game}{day}. {result}',
 	altDetailsTemplate: ' {details}.',
@@ -226,6 +228,43 @@ describe('paintResultCard', () => {
 		expect(rec.fills).toContain(palette.tileHit)
 		expect(rec.fills).toContain(palette.tileNear)
 		expect(rec.fills).toContain(palette.tileMiss)
+	})
+
+	test('paints Quartet bands in the board colours and misses in the theme miss fill', () => {
+		const rec = recordingContext()
+		const model = buildResultCard(
+			baseInput({
+				gameSlug: 'word-groups',
+				pattern: [Array(4).fill('group2'), Array(4).fill('miss'), Array(4).fill('group0')],
+			}),
+		)
+		paintResultCard(rec.ctx, model, STRINGS)
+		expect(rec.fills).toContain(WORD_GROUPS_RESULT_TILE_COLORS.group2)
+		expect(rec.fills).toContain(WORD_GROUPS_RESULT_TILE_COLORS.group0)
+		expect(rec.fills).not.toContain(WORD_GROUPS_RESULT_TILE_COLORS.group1)
+		expect(rec.fills).toContain(resultCardPalette('emerald').tileMiss)
+	})
+
+	test('paints Hive words in the theme fill and pangrams in the near fill, never as misses', () => {
+		const rec = recordingContext()
+		const model = buildResultCard(
+			baseInput({
+				gameSlug: 'word-hive',
+				theme: 'amber',
+				attempts: 3,
+				maxAttempts: undefined,
+				pattern: [['hit', 'near', 'hit']],
+			}),
+		)
+		paintResultCard(rec.ctx, model, STRINGS)
+		const palette = resultCardPalette('amber')
+		expect(rec.fills).toContain(palette.tileHit)
+		expect(rec.fills).toContain(palette.tileNear)
+		expect(rec.fills).not.toContain(palette.tileMiss)
+		expect(palette.tileHit).not.toBe(palette.tileNear)
+		const alt = resultCardTextAlternative(model, STRINGS)
+		expect(alt).toContain('Words found: 3, pangrams: 1')
+		expect(alt).not.toMatch(/hit|near|miss/)
 	})
 
 	test('keeps one common chrome across modules: same text, different palette', () => {

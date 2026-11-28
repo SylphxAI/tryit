@@ -17,6 +17,13 @@ mod daily_picks;
 mod game_fixtures;
 #[path = "practice_rpc_tests/grading.rs"]
 mod grading;
+#[path = "practice_rpc_tests/start_provenance.rs"]
+mod start_provenance;
+
+#[tokio::test]
+async fn accepted_starts_record_provenance_and_refused_starts_record_nothing() {
+    start_provenance::accepted_starts_record_provenance_and_refused_starts_record_nothing().await;
+}
 
 const SEED: i64 = 20_261_125;
 const PRACTICE_RPCS: [&str; 3] = ["GetPracticePuzzle", "CheckPracticeGuess", "SubmitPractice"];

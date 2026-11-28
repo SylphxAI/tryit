@@ -28,7 +28,14 @@ export const PRIVACY_EMAIL = LEGAL_EMAIL
 export const TERMS_VERSION = '2026-11-14' as const
 
 /** Published Privacy Policy revision / clickwrap version (ISO date). */
-export const PRIVACY_VERSION = '2026-11-14' as const
+export const PRIVACY_VERSION = '2026-11-27' as const
+
+/**
+ * The revision before PRIVACY_VERSION. The change is prospective, so a sign-in
+ * started on a page or OAuth flow served before the deploy still completes and
+ * records the revision that visitor was shown. Update it with each bump.
+ */
+export const PREVIOUS_PRIVACY_VERSION = '2026-11-14' as const
 
 /** Company telephone (Sylphx Limited), shown in the footer and legal pages. */
 export const COMPANY_PHONE = '+44 7537 188 188'

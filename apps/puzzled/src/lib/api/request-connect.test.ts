@@ -2,7 +2,11 @@ import { expect, test } from 'bun:test'
 import { createClient } from '@connectrpc/connect'
 import { PuzzleService } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { getDaily } from '@/lib/connect/puzzle-client'
-import { hasProgressCookie, requestConnectTransport } from './request-connect'
+import {
+	hasGuestProgressCookie,
+	hasProgressCookie,
+	requestConnectTransport,
+} from './request-connect'
 
 // Fetch-level test: exercise the generated Connect consumer with two concurrent requests.
 test('request transport keeps whitelisted cookie bytes and browser agents separate', async () => {
@@ -62,4 +66,16 @@ test('request transport keeps whitelisted cookie bytes and browser agents separa
 		if (originalBase === undefined) delete process.env.API_INTERNAL_URL
 		else process.env.API_INTERNAL_URL = originalBase
 	}
+})
+
+test('only one nonempty guest cookie establishes a guest credential candidate', () => {
+	for (const cookie of [
+		'',
+		'puzzled_guest_id=legacy',
+		'__Host-puzzled_guest=',
+		'__Host-puzzled_guest=one; __Host-puzzled_guest=two',
+	]) {
+		expect(hasGuestProgressCookie(new Headers({ cookie }))).toBe(false)
+	}
+	expect(hasGuestProgressCookie(new Headers({ cookie: '__Host-puzzled_guest=guest' }))).toBe(true)
 })

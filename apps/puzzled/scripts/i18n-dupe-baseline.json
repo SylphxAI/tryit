@@ -10,10 +10,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "6-digit code",
 				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
@@ -602,10 +598,6 @@
 				"keys": ["modes.archiveDesc", "onboarding.puzzleArchive"]
 			},
 			{
-				"value": "Play {game} (3 of 19 free daily)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "Played",
 				"keys": [
 					"calendar.played",
@@ -968,10 +960,6 @@
 			{
 				"value": "Today is still open",
 				"keys": ["stats.streakCard.notPlayedToday", "stats.streakHintOpen"]
-			},
-			{
-				"value": "Today's pick",
-				"keys": ["catalog.freeToday", "home.lineup.freeToday"]
 			},
 			{
 				"value": "Total Users",
@@ -1126,10 +1114,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "6-digit code",
 				"keys": ["auth.unified.code", "auth.unified.codeLabel"]
 			},
@@ -1718,10 +1702,6 @@
 				"keys": ["modes.archiveDesc", "onboarding.puzzleArchive"]
 			},
 			{
-				"value": "Play {game} (3 of 19 free daily)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "Played",
 				"keys": [
 					"calendar.played",
@@ -2086,10 +2066,6 @@
 				"keys": ["stats.streakCard.notPlayedToday", "stats.streakHintOpen"]
 			},
 			{
-				"value": "Today's pick",
-				"keys": ["catalog.freeToday", "home.lineup.freeToday"]
-			},
-			{
 				"value": "Total Users",
 				"keys": ["admin.dashboard.totalUsers", "admin.system.totalUsers", "admin.users.totalUsers"]
 			},
@@ -2240,10 +2216,6 @@
 					"settings.overview.moreAchievements",
 					"settings.playerCard.achievementsSection.more"
 				]
-			},
-			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
 				"value": "6 位數驗證碼",
@@ -3013,10 +2985,6 @@
 				"keys": ["admin.dlq.table.status", "gameResult.status"]
 			},
 			{
-				"value": "玩 {game}（每日 19 款任揀 3 款免費）",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "玩家卡",
 				"keys": ["settings.playerCard.eyebrow", "settings.playerCard.title"]
 			},
@@ -3084,7 +3052,12 @@
 			},
 			{
 				"value": "私隱政策",
-				"keys": ["auth.privacyPolicy", "consent.learnMore", "support.resources.privacy.title"]
+				"keys": [
+					"auth.privacyPolicy",
+					"consent.learnMore",
+					"legal.privacy.title",
+					"support.resources.privacy.title"
+				]
 			},
 			{
 				"value": "移除",
@@ -3324,10 +3297,6 @@
 				]
 			},
 			{
-				"value": "隱私權政策",
-				"keys": ["footer.privacy", "legal.privacy.title"]
-			},
-			{
 				"value": "雙重驗證",
 				"keys": ["settings.security.twoFactorAuth", "settings.securityScore.checks.twoFactor"]
 			},
@@ -3394,10 +3363,6 @@
 					"settings.overview.moreAchievements",
 					"settings.playerCard.achievementsSection.more"
 				]
-			},
-			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
 				"value": "6 位數驗證碼",
@@ -4166,10 +4131,6 @@
 				"keys": ["admin.dlq.table.status", "gameResult.status"]
 			},
 			{
-				"value": "玩 {game}（每天 19 款任選 3 款免費）",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "玩家卡",
 				"keys": ["settings.playerCard.eyebrow", "settings.playerCard.title"]
 			},
@@ -4543,10 +4504,6 @@
 					"settings.overview.moreAchievements",
 					"settings.playerCard.achievementsSection.more"
 				]
-			},
-			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
 			},
 			{
 				"value": "6 位数字验证码",
@@ -5705,10 +5662,6 @@
 		],
 		"ja": [
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "2段階認証",
 				"keys": ["settings.security.twoFactorAuth", "settings.securityScore.checks.twoFactor"]
 			},
@@ -5809,10 +5762,6 @@
 			{
 				"value": "{days}日連続",
 				"keys": ["home.hero.streakChip", "share.card.streakDays", "stats.identity.streakChip"]
-			},
-			{
-				"value": "{game}を遊ぶ（毎日19種から3つ無料）",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
 			},
 			{
 				"value": "{min}文字以上",
@@ -7008,10 +6957,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "Abrir el centro de cuenta",
 				"keys": ["settings.account.centreCta", "settings.security.protectionCta"]
 			},
@@ -7592,10 +7537,6 @@
 				]
 			},
 			{
-				"value": "Jugar {game} (3 de 19 gratis al día)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
-			},
-			{
 				"value": "Legal",
 				"keys": ["footer.legalHeading", "legal.privacy.eyebrow", "legal.terms.eyebrow"]
 			},
@@ -8164,10 +8105,6 @@
 				]
 			},
 			{
-				"value": "2026-11-14",
-				"keys": ["legal.privacy.revision", "legal.terms.revision"]
-			},
-			{
 				"value": "Abre em uma nova guia.",
 				"keys": ["settings.account.centreNote", "settings.privacy.centreNote"]
 			},
@@ -8713,10 +8650,6 @@
 			{
 				"value": "Jogar o desafio de hoje",
 				"keys": ["catalog.gamePage.playCta", "onboarding.playNow"]
-			},
-			{
-				"value": "Jogar {game} (3 de 19 grátis por dia)",
-				"keys": ["archive.playFreeToday", "plus.pricing.playFree"]
 			},
 			{
 				"value": "Jogos",

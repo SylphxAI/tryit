@@ -4,7 +4,6 @@ import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
 import { summarizeDailyProgress } from '@/features/daily/lib/daily-progress'
 import { deriveHomeExposure } from '@/features/daily/lib/home-exposure'
 import { deriveHomePlayState, scopeHomePlayState } from '@/features/daily/lib/home-play-state'
-import { markStartIntent } from '@/features/daily/lib/start-intent'
 import { DailyPickCount } from '@/features/daily/solid/daily-pick-count'
 import { formatCountdown } from '@/features/home/lib/day-boundary'
 import { homeDayCopy } from '@/features/home/lib/home-day-copy'
@@ -12,17 +11,6 @@ import type { Translate } from '@/lib/i18n/translate'
 import type { HomeDocument, HomeFacts } from './home-data'
 import { HomeDayLead } from './home-day-lead'
 import { HomeLineup } from './home-lineup'
-
-function markStart(event: MouseEvent, slug: string) {
-	if (
-		!event.defaultPrevented &&
-		!event.metaKey &&
-		!event.ctrlKey &&
-		!event.shiftKey &&
-		!event.altKey
-	)
-		markStartIntent(slug)
-}
 
 export function HomeDailySection(props: {
 	page: HomeDocument
@@ -104,9 +92,7 @@ export function HomeDailySection(props: {
 									<a
 										data-daily-picks={picks()}
 										class="picks-pill picks-pill-link"
-										href={href(
-											'/pricing?utm_source=tryit&utm_medium=picks_pill&entry_surface=picks_pill',
-										)}
+										href={href('/pricing?entry_surface=picks_pill')}
 									>
 										{pickSlots()}
 										{pickLabel()}
@@ -141,15 +127,8 @@ export function HomeDailySection(props: {
 						copy={copy}
 						unread={status().unread}
 						completedCount={status().progress.completedCount}
-						onStart={markStart}
 					/>
-					<HomeLineup
-						page={page}
-						t={t}
-						href={href}
-						games={status().renderedGames}
-						onStart={markStart}
-					/>
+					<HomeLineup page={page} t={t} href={href} games={status().renderedGames} />
 				</div>
 			</div>
 		</section>

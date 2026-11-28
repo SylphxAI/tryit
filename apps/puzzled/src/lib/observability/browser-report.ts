@@ -48,6 +48,7 @@ const routes = [
 	'/unsubscribe',
 	'/use-cases/daily-word-and-logic-puzzles-online',
 	'/use-cases/family-brain-games-no-ads',
+	'/use-cases/quick-brain-break-no-sign-up',
 	'/verify-email',
 	'unknown',
 ] as const

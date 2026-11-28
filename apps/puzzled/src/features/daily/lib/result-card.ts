@@ -27,6 +27,10 @@ export {
 	RESULT_CARD_PATTERN_MAX_COLS,
 	RESULT_CARD_PATTERN_MAX_ROWS,
 	type ResultCardTile,
+	resultTileFixedColor,
+	WORD_GROUPS_RESULT_TILE_COLORS,
+	WORD_GROUPS_TILE_EMOJI,
+	type WordGroupsTile,
 } from './result-card-pattern'
 
 /**
@@ -59,6 +63,7 @@ export function resultCardStringsFrom(
 		scorePoints: t('scorePoints'),
 		streakDays: t('streakDays'),
 		patternSummary: t('patternSummary'),
+		wordHivePatternSummary: t('wordHivePatternSummary'),
 		altOnDay: t('altOnDay'),
 		altTemplate: t('altTemplate'),
 		altDetailsTemplate: t('altDetailsTemplate'),

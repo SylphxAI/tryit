@@ -46,12 +46,14 @@ const afterKeys: Record<string, string> = {
 	thirdParty: 'others',
 	rights: 'response',
 }
-const providers = [
+// A null name means the description carries its own bold label (counsel's verbatim text).
+const providers: readonly (readonly [string | null, string])[] = [
 	['Stripe', 'stripe'],
 	['Google', 'google'],
 	['Google Analytics, Google Ads', 'googleMeasurement'],
+	[null, 'meta'],
 	['Sylphx Limited', 'mail'],
-] as const
+]
 
 export const readPolicy = query(async (localeParam: string, kind: Policy) => {
 	'use server'
@@ -71,7 +73,13 @@ export const readPolicy = query(async (localeParam: string, kind: Policy) => {
 						.map((key) => t(`${path}.items.${key}`))
 				: []
 		const paragraphs = [t(`${path}.content`)]
-		if (id === 'cookies') paragraphs.push(t(`${path}.notices`), t(`${path}.google`))
+		if (id === 'cookies')
+			paragraphs.push(
+				t(`${path}.notices`),
+				t(`${path}.ga4`),
+				t(`${path}.google`),
+				t(`${path}.meta`),
+			)
 		const afterKey = afterKeys[id]
 		return {
 			id,

@@ -54,6 +54,7 @@ function Board(props: DailyBoardProps & { words: string[] }) {
 			<BoardFinish
 				finish={play.finish}
 				locale={props.locale}
+				shareText={play.sharePattern() || undefined}
 				message={
 					play.left() ? t('gameResult.congratulations') : t('games.wordGroups.messages.gameOver')
 				}

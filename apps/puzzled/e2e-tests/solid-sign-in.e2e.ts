@@ -69,7 +69,7 @@ function expectConsentWriteAfterProof(
 				),
 				project_id: 'organization-00000000-0000-4000-8000-000000000123',
 				principal_id: 'fixture-user',
-				purpose: 'policy_acceptance:terms=2026-11-14;privacy=2026-11-14;surface=puzzled_web',
+				purpose: 'policy_acceptance:terms=2026-11-14;privacy=2026-11-27;surface=puzzled_web',
 				state: 'granted',
 				legal_basis: 'consent',
 				occurred_at_unix_seconds: expect.any(Number),
@@ -313,10 +313,13 @@ test('mobile OTP stays inline, masks recipient, preserves rejected input, and re
 	await continueButton.click()
 	await expect(page.locator('#email')).toHaveAttribute('aria-invalid', 'true')
 	expect((await fixture()).filter(({ path }) => path === startPath)).toHaveLength(0)
-	for (const path of ['terms', 'privacy']) {
+	for (const [path, revision] of [
+		['terms', '2026-11-14'],
+		['privacy', '2026-11-27'],
+	]) {
 		const policy = await page.request.get(`/${path}`)
 		expect(policy.status()).toBe(200)
-		expect(await policy.text()).toContain('2026-11-14')
+		expect(await policy.text()).toContain(revision)
 	}
 	await page.locator('#email').fill('synthetic@example.test')
 	await page.getByRole('button', { name: 'Continue', exact: true }).click()

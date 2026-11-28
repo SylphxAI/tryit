@@ -75,8 +75,16 @@ pub(super) async fn issued_cookie_is_fresh_host_only_and_progress_adopts_without
         sqlx::query("INSERT INTO game_sessions(user_id,game_slug,status,attempts,mode,is_ritual,day_key) VALUES ($1,'word-guess','won',1,'daily',true,'2026-09-30')")
             .bind(player).execute(&pool).await.unwrap();
     }
-    sqlx::query("INSERT INTO game_sessions(user_id,game_slug,status,attempts,mode,is_ritual,day_key) VALUES ($1,'word-guess','won',1,'daily',true,'2026-09-29')")
-        .bind(guest).execute(&pool).await.unwrap();
+    // Preserve the stored wall time of a pre-existing finish, not a newly derived instant.
+    let (old_id, old_clock): (Uuid, chrono::NaiveDateTime) = sqlx::query_as(
+        "INSERT INTO game_sessions (user_id, game_slug, status, attempts, mode, is_ritual, day_key, completed_at)
+         VALUES ($1,'word-guess','won',1,'daily',true,'2026-09-29', TIMESTAMP '2026-09-28 23:45:00.123456')
+         RETURNING id, completed_at",
+    )
+    .bind(guest)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
     assert_eq!(
         request(
             &app,
@@ -116,6 +124,17 @@ pub(super) async fn issued_cookie_is_fresh_host_only_and_progress_adopts_without
     .await
     .unwrap();
     assert_eq!(adopted, 1);
+    let adopted_row: (Uuid, Uuid, chrono::NaiveDateTime, String) = sqlx::query_as(
+        "SELECT user_id, adopted_from_guest, completed_at, day_key FROM game_sessions WHERE id = $1",
+    )
+    .bind(old_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        adopted_row,
+        (account, guest, old_clock, "2026-09-29".into())
+    );
     assert!(guest_credentials::lookup_hash(&pool, &hash)
         .await
         .unwrap()

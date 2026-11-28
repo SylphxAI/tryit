@@ -114,7 +114,17 @@ Bun.serve({
 				return Response.json({ databaseOk: true, uptime: 'fixture uptime' })
 			case 'GetMetricsReport':
 				return Response.json({
-					days: [{ dayKey: day, dailyPuzzleCompleters: 8, signedInCompleters: 2 }],
+					days: [
+						{
+							dayKey: day,
+							dailyPuzzleCompleters: 8,
+							signedInCompleters: 2,
+							cohorts: { d1Cohort: 20, d1Returned: 4, d1CohortGuestEntry: 8 },
+							guestStartCohort: { started: 10, completedSameDay: 4 },
+						},
+						{ dayKey: '2026-11-20', complete: true, cohorts: {}, guestStartCohort: {} },
+						{ dayKey: '2026-11-19', complete: true },
+					],
 					stale: true,
 				})
 			default:

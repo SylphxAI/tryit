@@ -6,7 +6,7 @@
 		},
 		"sections": {
 			"cookies": {
-				"google": "Google Analytics page views use approved public paths only and omit query strings and referrer URLs. When analytics are on, we send campaign tags and Google Analytics identifiers with checkout attribution. With advertising enabled, checkout attribution can also include ad click IDs and Meta browser identifiers, and we permit advertising storage, user data and personalisation signals. Conversion reports can include the plan and price, not your name or email."
+				"google": "When analytics are on, we send campaign tags and Google Analytics identifiers with checkout attribution. With advertising enabled, checkout attribution can also include ad click IDs and Meta browser identifiers, and we permit advertising storage, user data and personalisation signals. Conversion reports can include the plan and price, not your name or email."
 			},
 			"thirdParty": {
 				"others": "We may also share data with our hosting providers, professional advisers, authorities where the law requires it, and a buyer or successor if our business or Tryit is sold or reorganised."

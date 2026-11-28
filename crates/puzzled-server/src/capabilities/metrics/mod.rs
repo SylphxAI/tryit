@@ -101,8 +101,24 @@ pub async fn reports(pool: &PgPool) -> Result<Vec<(Day, String)>, String> {
 }
 
 pub async fn rollup(pool: &PgPool, now: DateTime<Utc>) -> Result<usize, String> {
+    let writers_verified_at = std::env::var("PUZZLED_GUEST_START_WRITERS_VERIFIED_AT").ok();
+    rollup_with_guest_start_boundary(pool, now, writers_verified_at.as_deref()).await
+}
+
+pub(crate) async fn rollup_with_guest_start_boundary(
+    pool: &PgPool,
+    now: DateTime<Utc>,
+    writers_verified_at: Option<&str>,
+) -> Result<usize, String> {
     use puzzled_core::puzzle_play::{daily_time::product_day_key, game_slugs::all_game_slugs};
     let today = product_day_key(now);
+    // Rollout supplies this only after every writer is verified. The HK day
+    // containing convergence can be mixed even with no surviving NULL picks.
+    let first_collected_day = writers_verified_at
+        .and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
+        .map(|at| at.with_timezone(&Utc))
+        .filter(|at| *at <= now)
+        .and_then(|at| product_day_key(at).succ_opt());
     let closed = product_day_key(now - Duration::minutes(15)) - Duration::days(1);
     let start = today - Duration::days(34);
     let release = [
@@ -133,7 +149,8 @@ pub async fn rollup(pool: &PgPool, now: DateTime<Utc>) -> Result<usize, String> 
             .bind(context_start.to_string()).fetch_all(&mut *tx).await?;
         let old: std::collections::BTreeMap<_, _> = old.into_iter().filter_map(|(k,v)| serde_json::from_value::<Day>(v).ok().map(|v|(k,v))).collect();
         let rows = sqlx::query(include_str!("rollup.sql"))
-            .bind(context_start.to_string()).bind(today.to_string()).fetch_all(&mut *tx).await?;
+            .bind(context_start.to_string()).bind(today.to_string()).bind(first_collected_day)
+            .fetch_all(&mut *tx).await?;
         let mut days = std::collections::BTreeMap::<String, Day>::new();
         for r in rows {
             let key: String = r.try_get("day_key")?;
@@ -152,6 +169,19 @@ pub async fn rollup(pool: &PgPool, now: DateTime<Utc>) -> Result<usize, String> 
                 shares: r.try_get("shares")?, free_finish_ok: r.try_get("free_finish_ok")?, free_finish_failed: r.try_get("free_finish_failed")?,
                 paid_active: r.try_get("paid_active")?, paid_completers: r.try_get("paid_completers")?,
                 free_active: r.try_get("free_active")?, free_completers: r.try_get("free_completers")?,
+                cohorts: Some(policy::Cohorts {
+                    first_completers: r.try_get("first_completers")?, first_guest_entry: r.try_get("first_guest_entry")?,
+                    first_signed_in_entry: r.try_get("first_signed_in_entry")?, first_guest_entry_now_signed_in: r.try_get("first_guest_entry_now_signed_in")?,
+                    d1_cohort: r.try_get("d1_cohort")?, d1_returned: r.try_get("d1_returned")?,
+                    d1_cohort_guest_entry: r.try_get("d1_cohort_guest_entry")?, d1_returned_guest_entry: r.try_get("d1_returned_guest_entry")?,
+                }),
+                guest_start_cohort: match r.try_get::<Option<i64>, _>("guest_starts")? {
+                    Some(started) => Some(policy::GuestStartCohort {
+                        started,
+                        completed_same_day: r.try_get("guest_start_completed_same_day")?,
+                    }),
+                    None => None,
+                },
                 day_key: key.clone(), ..Day::default()
             };
             let date = chrono::NaiveDate::parse_from_str(&key, "%Y-%m-%d").map_err(|e| sqlx::Error::Decode(Box::new(e)))?;

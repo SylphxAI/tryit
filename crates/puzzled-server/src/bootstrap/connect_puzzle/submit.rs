@@ -17,7 +17,7 @@ use super::{
 };
 use crate::capabilities::puzzle_play::adapters::game_sessions_db::{
     has_completed_session_on_connection, has_ritual_completion_on_connection,
-    persist_validated_session_on_connection, ValidatedSession,
+    persist_validated_session_on_connection, storage_elapsed_ms, ValidatedSession,
 };
 use crate::proto::puzzled::v1::{SubmitGuessRequest, SubmitGuessResponse};
 
@@ -194,14 +194,23 @@ impl PuzzleConnectService {
             }
         }
         if admission == Admission::FreePick {
-            self.claim_free_pick(&mut access, billing_user, game_slug, today)
-                .await?;
+            self.claim_free_pick(
+                &mut access,
+                billing_user,
+                game_slug,
+                today,
+                super::admission::pick_claim(
+                    &ctx,
+                    crate::capabilities::puzzle_play::adapters::daily_free_picks::Via::Finish,
+                ),
+            )
+            .await?;
         }
 
         let envelope = SubmissionEnvelope {
             status,
             attempts: req.attempts,
-            time_spent_ms: req.time_spent_ms,
+            time_spent_ms: storage_elapsed_ms(req.time_spent_ms) as u64,
             data,
         };
         let verdict = validate_submission(game_slug, &puzzle_data, &solution, &envelope);
@@ -237,7 +246,7 @@ impl PuzzleConnectService {
                     status: status_label(verdict.status.unwrap_or(status)),
                     score: Some(i32::try_from(score).unwrap_or(i32::MAX)),
                     attempts: req.attempts,
-                    time_spent_ms: req.time_spent_ms,
+                    time_spent_ms: envelope.time_spent_ms,
                     puzzle_id: resolved_id.as_deref(),
                     puzzle_date: Some(date),
                     day_key: ritual_day_key,
@@ -253,12 +262,7 @@ impl PuzzleConnectService {
                     }),
                     // This header only removes a validated finish from comparisons.
                     // It grants no write/auth authority. Recognize older harnesses too.
-                    comparison_excluded: ctx.headers().contains_key("x-puzzled-verification")
-                        || ctx
-                            .headers()
-                            .get("user-agent")
-                            .and_then(|v| v.to_str().ok())
-                            .is_some_and(|v| v.starts_with("puzzled-verify-live/")),
+                    comparison_excluded: crate::shared::comparison::excluded(ctx.headers()),
                 },
             )
             .await
