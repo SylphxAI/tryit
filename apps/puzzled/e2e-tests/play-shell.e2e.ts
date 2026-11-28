@@ -1251,6 +1251,17 @@ for (const { width, height, difficulty } of [
 			await expect(choices.getByRole('radio')).toHaveCount(3)
 			await expect(medium).toBeChecked()
 			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
+			const practice = page.getByRole('link', { name: 'Practice', exact: true })
+			const practiceTextLeft = await practice.evaluate((link) => {
+				const text = [...link.childNodes].find(
+					(node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+				)!
+				const range = document.createRange()
+				range.selectNodeContents(text)
+				return range.getBoundingClientRect().left
+			})
+			expect(Math.abs(practiceTextLeft - (await play.boundingBox())!.x)).toBeLessThanOrEqual(1)
+			expect((await practice.boundingBox())!.height).toBeGreaterThanOrEqual(48)
 			for (const link of await choices.locator('label').all()) {
 				await expect(link).toBeInViewport({ ratio: 1 })
 				expect(
