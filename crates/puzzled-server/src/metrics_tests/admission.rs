@@ -39,7 +39,7 @@ const KEY: &str = "pk_fixture";
 
 fn allowed() -> Value {
     json!({
-        "allowed": true,
+        "allowed": {"metrics:report:read": true},
         "subject": {
             "instance_id": "org_01k6n10yscfmz8y00000001g6y",
             "session_id": "ses_fixture",
@@ -266,8 +266,10 @@ async fn metrics_requires_fresh_scoped_attestation_and_rejects_non_direct_sessio
     );
 
     for (pointer, value) in [
-        ("/allowed", json!(false)),
-        ("/allowed", json!("true")),
+        ("/allowed", json!(true)),
+        ("/allowed", json!({"metrics:report:other": true})),
+        ("/allowed/metrics:report:read", json!(false)),
+        ("/allowed/metrics:report:read", json!("true")),
         ("/subject/principal_id", json!("usr_different")),
         (
             "/subject/instance_id",
