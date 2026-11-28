@@ -2,7 +2,7 @@ import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 import type { createBoardFinish } from '@/games/shared/solid/finish'
 import { isFirstMove } from './first-move'
 import { createInitialState, type KillerSudokuAction, killerSudokuReducer } from './state'
-import { isCageSumValid, type KillerSudokuGameState, type KillerSudokuPuzzleData } from './types'
+import { getCellConflicts, type KillerSudokuGameState, type KillerSudokuPuzzleData } from './types'
 
 const moves = {
 	ArrowUp: [-1, 0],
@@ -20,9 +20,28 @@ export function createKillerSudokuPlay(
 	const [state, setState] = finish.draft.signal('state', initial)
 	const [history, setHistory] = finish.draft.signal<KillerSudokuGameState[]>('history', [])
 	const [feedback, setFeedback] = createSignal<'selectBlank' | 'lockedClue' | 'notesNeedBlank'>()
-	const wrongCage = createMemo(() =>
-		data.cages.find((cage) => isCageSumValid(state().cells, cage) === false),
+	const cells = createMemo(() => state().cells)
+	const conflicts = createMemo(() =>
+		cells().map((row, r) =>
+			row.map((_, c) => getCellConflicts(cells(), data.cages, r, c).values().next().value),
+		),
 	)
+	const conflictAt = (r: number, c: number) => conflicts()[r][c]
+	const conflict = createMemo(() => {
+		const selected = state().selectedCell
+		const issueAt = (r: number, c: number) => {
+			const rule = conflictAt(r, c)
+			return rule ? { rule, sum: data.cages[cells()[r][c].cageId].sum } : undefined
+		}
+		if (selected) {
+			const issue = issueAt(...selected)
+			if (issue) return issue
+		}
+		for (const [r, row] of conflicts().entries()) {
+			const c = row.findIndex(Boolean)
+			if (c >= 0) return issueAt(r, c)
+		}
+	})
 	const playing = () => state().gameStatus === 'playing'
 	const refs: HTMLButtonElement[][] = Array.from({ length: 9 }, () => [])
 	const registerCell = (row: number, col: number, element: HTMLButtonElement) => {
@@ -111,7 +130,18 @@ export function createKillerSudokuPlay(
 		onCleanup(() => window.removeEventListener('keydown', keydown))
 	})
 
-	return { initial, state, feedback, wrongCage, playing, registerCell, canUndo, dispatch, undo }
+	return {
+		initial,
+		state,
+		feedback,
+		conflict,
+		conflictAt,
+		playing,
+		registerCell,
+		canUndo,
+		dispatch,
+		undo,
+	}
 }
 
 export type KillerSudokuPlay = ReturnType<typeof createKillerSudokuPlay>

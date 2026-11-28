@@ -5,7 +5,7 @@ import type { Translate } from '@/lib/i18n/translate'
 import type { KillerSudokuPlay } from './create-killer-sudoku-play'
 import { cageAnchor } from './first-move'
 import cageStyles from './solid-cages.module.css'
-import { type Cage, getCellConflicts } from './types'
+import type { Cage } from './types'
 
 const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const coords = [0, 1, 2]
@@ -14,13 +14,17 @@ const boxes = coords.flatMap((br) => coords.map((bc) => ({ br, bc })))
 type GridProps = {
 	cages: Cage[]
 	cueCage?: number
-	play: Pick<KillerSudokuPlay, 'initial' | 'state' | 'playing' | 'registerCell' | 'dispatch'>
+	statusId: string
+	play: Pick<
+		KillerSudokuPlay,
+		'initial' | 'state' | 'conflictAt' | 'playing' | 'registerCell' | 'dispatch'
+	>
 	t: Translate
 }
 
 export function KillerSudokuGrid(props: GridProps) {
 	const { cages, play, t } = props
-	const { initial, state, playing, registerCell, dispatch } = play
+	const { initial, state, conflictAt, playing, registerCell, dispatch } = play
 	const anchors = cages.map(cageAnchor)
 
 	const selection = () => state().selectedCell
@@ -32,7 +36,7 @@ export function KillerSudokuGrid(props: GridProps) {
 	const cellAt = (row: number, col: number) => {
 		const cell = () => state().cells[row][col]
 		const selected = () => selection()?.[0] === row && selection()?.[1] === col
-		const conflict = createMemo(() => getCellConflicts(state().cells, cages, row, col).size > 0)
+		const conflict = createMemo(() => Boolean(conflictAt(row, col)))
 		const { cageId } = initial.cells[row][col]
 		const cage = cages[cageId]
 		const related = () => {
@@ -59,6 +63,7 @@ export function KillerSudokuGrid(props: GridProps) {
 				onClick={() => dispatch({ type: 'SELECT_CELL', row, col })}
 				aria-pressed={selected()}
 				aria-invalid={conflict() || undefined}
+				aria-describedby={selected() && conflict() ? props.statusId : undefined}
 				disabled={!playing()}
 				aria-label={[
 					t('common.cellRow', { index: row + 1 }),

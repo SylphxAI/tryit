@@ -32,6 +32,13 @@
 	},
 	"startOver": "Recomeçar",
 	"messages": {
+		"row": "Não repita números na mesma linha.",
+		"col": "Não repita números na mesma coluna.",
+		"box": "Não repita números no mesmo bloco de 3×3.",
+		"cage": "Não repita números no mesmo grupo.",
+		"cage_unreachable": "Este grupo não pode somar {sum} sem repetir números.",
+		"undoOrChange": "Desfaça a jogada ou altere um número.",
+		"changeEntry": "Altere um número.",
 		"wrongSum": "Os números deste grupo devem somar {sum}.",
 		"selectBlank": "Toque primeiro em um quadrado vazio",
 		"lockedClue": "Pista bloqueada",

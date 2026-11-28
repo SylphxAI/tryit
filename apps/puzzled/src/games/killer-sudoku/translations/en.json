@@ -32,6 +32,13 @@
 	},
 	"startOver": "Start over",
 	"messages": {
+		"row": "No repeats in a row.",
+		"col": "No repeats in a column.",
+		"box": "No repeats in a 3×3 box.",
+		"cage": "No repeats in a cage.",
+		"cage_unreachable": "This cage can’t reach {sum} without repeats.",
+		"undoOrChange": "Undo or change an entry.",
+		"changeEntry": "Change an entry.",
 		"wrongSum": "This cage must add up to {sum}.",
 		"selectBlank": "Tap a blank square first",
 		"lockedClue": "Locked clue",

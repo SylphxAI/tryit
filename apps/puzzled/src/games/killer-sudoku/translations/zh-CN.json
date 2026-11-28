@@ -32,6 +32,13 @@
 	},
 	"startOver": "重新开始",
 	"messages": {
+		"row": "同一行不能有重复的数字。",
+		"col": "同一列不能有重复的数字。",
+		"box": "同一个 3×3 宫不能有重复的数字。",
+		"cage": "同一组方格不能有重复的数字。",
+		"cage_unreachable": "这组方格不重复使用数字就无法凑成 {sum}。",
+		"undoOrChange": "撤销或更改一个填入的数字。",
+		"changeEntry": "更改一个填入的数字。",
 		"wrongSum": "这组方格的数字之和必须为 {sum}。",
 		"selectBlank": "请先点击空白格",
 		"lockedClue": "提示数字不可修改",

@@ -3,15 +3,9 @@ import { create } from '@bufbuild/protobuf'
 import { classifyDailyResponse } from '@/features/daily/lib/daily-fallback'
 import { GetDailyResponseSchema } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { CAGE_SUDOKU_CUE_SEEN_KEY } from '@/lib/storage-keys'
-import {
-	canShowFirstMoveCue,
-	digitSetCount,
-	firstMoveCage,
-	isFirstMove,
-	markFirstMoveCueSeen,
-} from './first-move'
+import { canShowFirstMoveCue, firstMoveCage, isFirstMove, markFirstMoveCueSeen } from './first-move'
 import { createInitialState, killerSudokuReducer } from './state'
-import type { Cage } from './types'
+import { type Cage, digitSetCount } from './types'
 
 const cage = (sum: number, ...indices: number[]): Cage => ({
 	cells: indices.map((i) => [Math.floor(i / 9), i % 9]),
