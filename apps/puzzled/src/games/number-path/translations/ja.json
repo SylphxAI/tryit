@@ -16,7 +16,11 @@
 	"cellClue": "ヒント {number}",
 	"cellStep": "{number} 手目",
 	"startAtOne": "1 から始めてください",
-	"nextSquare": "{number} の隣のマスをタップするか、そこまでドラッグしてください",
+	"nextSquare": "{number} の上下左右に隣接するマスを選んでください。",
 	"deadEnd": "ここから先には進めません。「元に戻す」で一手戻りましょう。",
-	"wrongClue": "このマスは {clue}。次は {expected} 手目です。"
+	"wrongClue": "このマスは {clue}。次は {expected} 手目です。",
+	"nextBlank": "{number} 手目：{previous} に隣接する空白マスを選んでください。",
+	"nextClue": "{number} 手目：その数字の固定マスに進んでください。",
+	"lockedClue": "{number} 手目はその数字の固定マスにしか進めません。",
+	"unreachableClue": "ヒント {number} は隣接していません。「元に戻す」で一手戻ってください。"
 }

@@ -16,7 +16,11 @@
 	"cellClue": "提示 {number}",
 	"cellStep": "第 {number} 步",
 	"startAtOne": "請先從 1 開始",
-	"nextSquare": "請點按或拖拉到相鄰格子",
+	"nextSquare": "請選擇與 {number} 上下左右相鄰的一格，不能走對角。",
 	"deadEnd": "這一步走不下去了，按「復原」退回上一步。",
-	"wrongClue": "這格是 {clue}，接下來是第 {expected} 步。"
+	"wrongClue": "這格是 {clue}，接下來是第 {expected} 步。",
+	"nextBlank": "第 {number} 步：選 {previous} 旁邊的空格。",
+	"nextClue": "第 {number} 步：走到標有這個數字的固定格。",
+	"lockedClue": "第 {number} 步只能走到標有這個數字的固定格。",
+	"unreachableClue": "固定數字 {number} 不在相鄰格。按「復原」退回上一步。"
 }

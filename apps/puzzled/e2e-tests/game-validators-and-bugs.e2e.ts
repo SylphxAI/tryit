@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, type Page, test } from '@playwright/test'
 import frameFixtures from '../../../crates/puzzled-core/tests/fixtures/generate/word-box.json'
 import { productDayKey } from '../src/lib/product-day'
+import { DAILY_PLAY_DRAFT_PREFIX } from '../src/lib/storage-keys'
 
 const service = '**/puzzled.v1.PuzzleService/'
 
@@ -58,16 +59,16 @@ test.describe('Path recovery on touch', () => {
 		await expect(undo).toBeDisabled()
 		await start.tap()
 		await expect(progress).toHaveText('1/9')
-		await expect(status).toBeEmpty()
+		await expect(status).toHaveText('Step 2: choose a blank next to 1.')
 		await enterDeadEnd()
 		await undo.tap()
 		await expect(progress).toHaveText('1/9')
-		await expect(status).toBeEmpty()
+		await expect(status).toHaveText('Step 2: choose a blank next to 1.')
 
 		await enterDeadEnd()
 		await start.tap()
 		await expect(progress).toHaveText('1/9')
-		await expect(status).toBeEmpty()
+		await expect(status).toHaveText('Step 2: choose a blank next to 1.')
 
 		await enterDeadEnd()
 		await board.getByRole('button', { name: 'Start over', exact: true }).tap()
@@ -76,6 +77,142 @@ test.describe('Path recovery on touch', () => {
 		await expect(undo).toBeDisabled()
 	})
 })
+
+for (const phone of [true, false]) {
+	test.describe(phone ? 'Path phone' : 'Path desktop', () => {
+		test.use({
+			viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+			isMobile: phone,
+			hasTouch: phone,
+		})
+
+		test('keeps locked numbers unique through Undo, old drafts, and a guest finish', async ({
+			page,
+			baseURL,
+		}, info) => {
+			const origin = new URL(baseURL ?? 'http://localhost:3000')
+			expect(['localhost', '127.0.0.1']).toContain(origin.hostname)
+			const [one, badTwo, offClue] = [
+				{ row: 1, col: 2 },
+				{ row: 2, col: 2 },
+				{ row: 2, col: 3 },
+			]
+			const legal = [6, 7, 3, 2, 1, 0, 4, 5, 9, 8, 12, 13, 14, 10, 11, 15].map((i) => ({
+				row: Math.floor(i / 4),
+				col: i % 4,
+			}))
+			const daily = {
+				gameSlug: 'number-path',
+				puzzleDate: productDayKey(),
+				canPlay: true,
+				puzzleId: '11a198bc-8079-4830-8c07-0d397aaabc73',
+				puzzleDataJson: JSON.stringify({
+					size: 4,
+					clues: [
+						[null, 5, null, 3],
+						[null, null, 1, null],
+						[null, null, null, null],
+						[null, null, null, 16],
+					],
+				}),
+			}
+			await page.route('**/v1/guest/session', (route) =>
+				route.fulfill({
+					json: { issued: true },
+					headers: {
+						'Set-Cookie': '__Host-puzzled_guest=path-draft-fixture; Secure; HttpOnly; Path=/',
+					},
+				}),
+			)
+			await page.route(/\/(?:StartDaily|CheckGuess|SubmitGuess)$/, (route) => route.abort())
+			let started = false
+			await page.route(`${service}GetDaily`, (route) =>
+				route.fulfill({
+					json: started ? daily : { ...daily, puzzleDataJson: undefined, requiresStart: true },
+				}),
+			)
+			await page.route(`${service}StartDaily`, (route) => {
+				started = true
+				return route.fulfill({ json: { daily } })
+			})
+			let submissions = 0
+			await page.route(`${service}SubmitGuess`, (route) => {
+				submissions++
+				const body = route.request().postDataJSON()
+				expect(body).toMatchObject({ status: 'won', puzzleId: daily.puzzleId })
+				expect(JSON.parse(body.submissionJson)).toEqual({ path: legal })
+				return route.fulfill({ json: { gameSlug: daily.gameSlug, valid: true, status: 'won' } })
+			})
+			await page.goto('/en-US/games/number-path?start=1#play')
+			const decline = page.getByRole('button', { name: 'Decline', exact: true })
+			if (await decline.isVisible()) await decline.click()
+			await page.locator('[data-game-stage="start"]').getByRole('button').click()
+			const board = page.locator('[data-number-path-board]')
+			const status = board.locator('.play-tools').getByRole('status')
+			const progress = board.locator('output')
+			const cells = board.locator('fieldset button')
+			const cell = ({ row, col }: { row: number; col: number }) => cells.nth(row * 4 + col)
+			const undo = board.getByRole('button', { name: 'Undo', exact: true })
+			const activate = (button: ReturnType<typeof cell>) => (phone ? button.tap() : button.click())
+			const warning = 'Clue 3 isn’t adjacent. Undo the last step.'
+			await activate(cell(one))
+			await expect(status).toHaveText('Step 2: choose a blank next to 1.')
+			if (phone) await cell(badTwo).tap()
+			else {
+				await cell(one).press('ArrowDown')
+				await expect(cell(badTwo)).toBeFocused()
+				await page.keyboard.press('Enter')
+			}
+			await expect(status).toBeInViewport({ ratio: 1 })
+			await expect(status).toHaveText(warning)
+			await expect(progress).toHaveText('2/16')
+			await page.screenshot({ path: info.outputPath('path-unreachable.png') })
+			await activate(cell(offClue))
+			await expect(progress).toHaveText('2/16')
+			await expect(cell(offClue)).toBeEmpty()
+			await expect(status).toHaveText(warning)
+
+			// Seed a legacy continuation just before hydration; pagehide can still save the current draft.
+			await page.addInitScript(
+				({ prefix, oldPath }) => {
+					const key = Object.keys(sessionStorage).find((key) => key.startsWith(prefix))
+					if (!key || sessionStorage.getItem('old-path-seeded')) return
+					sessionStorage.setItem(
+						key,
+						JSON.stringify({ elapsedMs: 6000, fields: { path: oldPath } }),
+					)
+					sessionStorage.setItem('old-path-seeded', 'yes')
+				},
+				{ prefix: DAILY_PLAY_DRAFT_PREFIX, oldPath: [one, badTwo, offClue] },
+			)
+			await page.reload()
+			expect(await page.evaluate(() => sessionStorage.getItem('old-path-seeded'))).toBe('yes')
+			await expect(progress).toHaveText('2/16')
+			await expect(cell(offClue)).toBeEmpty()
+			await expect(status).toHaveText(warning)
+			await activate(undo)
+			await expect(progress).toHaveText('1/16')
+			await activate(cell(legal[1]))
+			await expect(status).toHaveText('Step 3: use its locked tile.')
+			await expect(cell(legal[2]).locator('[data-next-clue]')).toHaveCSS('outline-style', 'solid')
+			await page.screenshot({ path: info.outputPath('path-locked-next.png') })
+			await activate(cell(offClue))
+			await expect(status).toHaveText('Step 3 can only go on its locked tile.')
+			await expect(progress).toHaveText('2/16')
+			await expect(cell(offClue)).toBeEmpty()
+			await page.reload()
+			await expect(progress).toHaveText('2/16')
+			await expect(cell(legal[1])).toHaveText('2')
+			await expect(status).toHaveText('Step 3: use its locked tile.')
+			await activate(cell(one))
+			await expect(progress).toHaveText('1/16')
+			expect(submissions).toBe(0)
+			for (const step of legal.slice(1)) await activate(cell(step))
+			await expect(page.locator('[data-board-finished]')).toBeVisible()
+			expect(submissions).toBe(1)
+		})
+	})
+}
 
 for (const viewport of [
 	{ width: 1440, height: 900 },

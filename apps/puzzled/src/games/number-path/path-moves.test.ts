@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { isDeadEnd, visitCell } from './path-moves'
+import { isDeadEnd, restorePath, visitCell } from './path-moves'
 
 const puzzle = {
 	size: 3,
@@ -71,6 +71,11 @@ describe('Path visits', () => {
 		const path = [start, empty]
 		expect(visitCell(puzzle, [start], empty)).toEqual({ kind: 'move', path })
 		expect(visitCell(puzzle, path, three)).toEqual({ kind: 'move', path: [start, empty, three] })
+		expect(
+			visitCell(puzzle, [start, empty, three, { row: 1, col: 2 }, five], { row: 2, col: 1 }),
+		).toEqual({
+			kind: 'lockedClue',
+		})
 		expect(path).toEqual([start, empty])
 	})
 
@@ -87,4 +92,15 @@ describe('Path visits', () => {
 		expect(visitCell(puzzle, [start], { row: 0, col: 3 })).toEqual({ kind: 'outside' })
 		expect(visitCell(puzzle, [start], { row: 0.5, col: 0 })).toEqual({ kind: 'outside' })
 	})
+})
+
+test('restores the longest legal draft prefix without losing legal steps', () => {
+	const path = [start, empty, three, { row: 1, col: 2 }, five]
+	expect(restorePath(puzzle, path)).toEqual(path)
+	// Old clients could continue from 5 without placing the fixed 6.
+	const misplaced = { row: 2, col: 1 }
+	const oldDraft = [...path, misplaced, { row: 2, col: 0 }]
+	expect(isDeadEnd(puzzle, path)).toBe(false)
+	expect(restorePath(puzzle, oldDraft)).toEqual(path)
+	expect(restorePath(puzzle, [...path, empty])).toEqual(path)
 })

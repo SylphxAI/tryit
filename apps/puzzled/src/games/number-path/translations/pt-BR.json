@@ -16,7 +16,11 @@
 	"cellClue": "Pista {number}",
 	"cellStep": "Passo {number}",
 	"startAtOne": "Comece pelo 1",
-	"nextSquare": "Toque ou arraste até uma casa ao lado do {number}",
+	"nextSquare": "Escolha uma casa ao lado do {number}, não na diagonal.",
 	"deadEnd": "Não dá para avançar daqui. Use Desfazer para voltar uma jogada.",
-	"wrongClue": "Essa casa tem o número {clue}. Agora é o passo {expected}."
+	"wrongClue": "Essa casa tem o número {clue}. Agora é o passo {expected}.",
+	"nextBlank": "Passo {number}: escolha uma casa vazia ao lado do {previous}.",
+	"nextClue": "Passo {number}: vá para a casa fixa desse número.",
+	"lockedClue": "O passo {number} só pode ir na casa fixa desse número.",
+	"unreachableClue": "A pista {number} não está ao lado. Desfaça o último passo."
 }

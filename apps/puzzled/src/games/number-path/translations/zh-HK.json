@@ -16,7 +16,11 @@
 	"cellClue": "提示 {number}",
 	"cellStep": "第 {number} 步",
 	"startAtOne": "請先由 1 開始",
-	"nextSquare": "請點按或拖到隔籬一格",
+	"nextSquare": "請揀 {number} 上下左右隔籬一格，唔可以打斜行。",
 	"deadEnd": "呢度行唔落去喇，撳「復原」退返一步。",
-	"wrongClue": "呢格係 {clue}，下一步係第 {expected} 步。"
+	"wrongClue": "呢格係 {clue}，下一步係第 {expected} 步。",
+	"nextBlank": "第 {number} 步：揀 {previous} 隔籬嘅空格。",
+	"nextClue": "第 {number} 步：行去印住呢個數字嘅固定格。",
+	"lockedClue": "第 {number} 步只可以行去印住呢個數字嘅固定格。",
+	"unreachableClue": "固定數字 {number} 唔喺隔籬。撳「復原」退返一步。"
 }

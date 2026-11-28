@@ -3,8 +3,15 @@ import { createMemo, createSignal, For, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseNumberPathClientPayload } from './parse-client'
-import { isDeadEnd, visitCell } from './path-moves'
-import { type Cell, cellKey, isSolved, type NumberPathPuzzleData } from './types'
+import { isDeadEnd, restorePath, visitCell } from './path-moves'
+import {
+	type Cell,
+	cellKey,
+	findClueCell,
+	isOrthogonalNeighbor,
+	isSolved,
+	type NumberPathPuzzleData,
+} from './types'
 
 export default function PathBoard(props: DailyBoardProps) {
 	const t = createTranslator(props.locale)
@@ -29,9 +36,29 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 	const buttons: HTMLButtonElement[] = []
 	const locked = () => finish.state() !== 'playing'
 	const finish = createBoardFinish(props, 'number-path')
-	const [path, setPath] = finish.draft.signal<Cell[]>('path', [])
-	const [hint, setHint] = createSignal<{ text: string; wrongClue?: true }>()
-	const deadEnd = createMemo(() => !locked() && isDeadEnd(props.data, path()))
+	const [path, setPath] = finish.draft.signal<Cell[]>('path', [], (saved) =>
+		restorePath(props.data, saved),
+	)
+	const [hint, setHint] = createSignal<{ text: string; error?: true }>()
+	const nextNumber = () => path().length + 1
+	const nextClue = createMemo(() => findClueCell(clues, nextNumber()))
+	const cue = createMemo((): { text: string; error?: true } | undefined => {
+		if (locked()) return
+		const head = path().at(-1)
+		if (!head || path().length >= tiles.length) return hint()
+		const target = nextClue()
+		if (target && !isOrthogonalNeighbor(head, target)) {
+			return { text: t('games.numberPath.unreachableClue', { number: nextNumber() }), error: true }
+		}
+		if (isDeadEnd(props.data, path())) return { text: t('games.numberPath.deadEnd'), error: true }
+		return (
+			hint() ?? {
+				text: target
+					? t('games.numberPath.nextClue', { number: nextNumber() })
+					: t('games.numberPath.nextBlank', { number: nextNumber(), previous: path().length }),
+			}
+		)
+	})
 	const visits = createMemo(() => new Map(path().map((cell, step) => [cellKey(cell), step + 1])))
 	const points = () =>
 		path()
@@ -49,10 +76,13 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 			case 'nextSquare':
 				setHint({ text: t('games.numberPath.nextSquare', { number: path().length }) })
 				return false
+			case 'lockedClue':
+				setHint({ text: t('games.numberPath.lockedClue', { number: nextNumber() }), error: true })
+				return false
 			case 'wrongClue':
 				setHint({
 					text: t('games.numberPath.wrongClue', { clue: result.clue, expected: result.expected }),
-					wrongClue: true,
+					error: true,
 				})
 				return false
 			case 'outside':
@@ -129,6 +159,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 							{({ row, col, clue }, index) => {
 								const step = () => visits().get(cellKey({ row, col }))
 								const start = () => clue === 1 && path().length === 0
+								const next = () => !locked() && path().length > 0 && clue === nextNumber()
 								return (
 									<button
 										ref={(el) => {
@@ -171,7 +202,9 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 										<Show when={clue ?? step()}>
 											<span
 												class="relative z-[2] grid size-[60%] min-w-0 place-items-center rounded-md bg-background font-semibold text-muted-foreground data-clue:not-data-start:not-data-end:bg-foreground data-clue:not-data-start:not-data-end:text-background [&:is([data-start],[data-end])]:bg-accent-warm [&:is([data-start],[data-end])]:text-on-accent [&:is([data-start],[data-end])]:inset-ring-2 [&:is([data-start],[data-end])]:inset-ring-cta-edge/40 motion-safe:data-start:animate-pulse motion-safe:data-start:[animation-iteration-count:2]"
+												classList={{ 'outline-2 outline-offset-2 outline-accent-warm': next() }}
 												data-clue={clue !== null || undefined}
+												data-next-clue={next() || undefined}
 												data-start={start() || undefined}
 												data-end={(step() !== undefined && step() === path().length) || undefined}
 											>
@@ -202,14 +235,13 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 			<div class="play-tools space-y-3" data-play-control>
 				<p
 					role="status"
-					class="min-h-5 text-sm"
+					class="min-h-10 text-sm"
 					classList={{
-						'font-medium text-foreground': deadEnd(),
-						'text-muted-foreground': !deadEnd() && !hint()?.wrongClue,
-						'text-destructive': !deadEnd() && hint()?.wrongClue,
+						'text-muted-foreground': !cue()?.error,
+						'font-medium text-destructive': cue()?.error,
 					}}
 				>
-					{deadEnd() ? t('games.numberPath.deadEnd') : hint()?.text}
+					{cue()?.text}
 				</p>
 				<Show when={!locked()}>
 					<div class="flex flex-wrap items-center gap-3">
