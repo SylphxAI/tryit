@@ -281,6 +281,7 @@ export const gameSessions = pgTable(
 
 		startedAt: timestamp('started_at').defaultNow().notNull(),
 		completedAt: timestamp('completed_at'),
+		completedAtUtc: timestamp('completed_at_utc', { withTimezone: true }),
 
 		/**
 		 * Product day key (YYYY-MM-DD in Asia/Hong_Kong) for ritual finishes.
