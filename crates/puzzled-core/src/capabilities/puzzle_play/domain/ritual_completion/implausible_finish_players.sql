@@ -1,7 +1,8 @@
 -- Shared, read-only attribution rule. Compose with the report's own CTEs or SELECT.
 WITH finish_floors (game_slug, min_seconds) AS (
   VALUES ('word-guess', 5), ('word-ladder', 5), ('arithmo', 5),
-         ('pattern-match', 8), ('word-groups', 8), ('number-path', 8), ('block-slide', 8)
+         ('pattern-match', 8), ('word-groups', 8), ('number-path', 8), ('block-slide', 8),
+         ('quad-words', 10)
 ), implausible_finish_players AS MATERIALIZED (
   SELECT DISTINCT s.user_id
   FROM game_sessions s
