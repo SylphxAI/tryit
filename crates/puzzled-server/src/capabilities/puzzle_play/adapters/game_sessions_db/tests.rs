@@ -127,11 +127,11 @@ async fn pool_writer_stores_utc_wall_time_in_a_non_utc_session() {
     // and the independent UTC transaction clock inside the INSERT itself.
     sqlx::raw_sql(
         "SET TIME ZONE 'America/Phoenix';
-         CREATE TEMP TABLE write_clock (id uuid, zone text, utc_wall timestamp);
+         CREATE TEMP TABLE write_clock (id uuid, zone text, instant timestamptz);
          CREATE FUNCTION pg_temp.capture_write_clock() RETURNS trigger LANGUAGE plpgsql AS $$
          BEGIN
              INSERT INTO pg_temp.write_clock
-             VALUES (NEW.id, current_setting('TimeZone'), transaction_timestamp() AT TIME ZONE 'UTC');
+             VALUES (NEW.id, current_setting('TimeZone'), transaction_timestamp());
              RETURN NEW;
          END;
          $$;
@@ -162,8 +162,13 @@ async fn pool_writer_stores_utc_wall_time_in_a_non_utc_session() {
     )
     .await
     .unwrap();
-    let (zone, stored_utc): (String, bool) = sqlx::query_as(
-        "SELECT c.zone, g.completed_at = c.utc_wall
+    let (zone, stored_utc, stored_instant, tx_instant): (
+        String,
+        bool,
+        chrono::DateTime<chrono::Utc>,
+        chrono::DateTime<chrono::Utc>,
+    ) = sqlx::query_as(
+        "SELECT c.zone, g.completed_at = c.instant AT TIME ZONE 'UTC', g.completed_at_utc, c.instant
          FROM game_sessions g JOIN pg_temp.write_clock c USING (id) WHERE g.id = $1",
     )
     .bind(uuid::Uuid::parse_str(&id).unwrap())
@@ -173,8 +178,9 @@ async fn pool_writer_stores_utc_wall_time_in_a_non_utc_session() {
     assert_eq!(zone, "America/Phoenix");
     assert!(
         stored_utc,
-        "pool writer must store the UTC transaction clock"
+        "pool writer must keep the legacy UTC wall clock"
     );
+    assert_eq!(stored_instant, tx_instant);
 }
 
 #[tokio::test]
@@ -240,22 +246,29 @@ async fn validated_writer_keeps_utc_clock_and_hong_kong_day_under_non_utc_transa
     );
     savepoint.rollback().await.unwrap();
 
-    let rows: Vec<(uuid::Uuid, bool, String, bool)> = sqlx::query_as(
-        "SELECT id, completed_at = transaction_timestamp() AT TIME ZONE 'UTC', day_key, is_ritual
+    let rows: Vec<(uuid::Uuid, bool, chrono::DateTime<chrono::Utc>, String, bool)> = sqlx::query_as(
+        "SELECT id, completed_at = transaction_timestamp() AT TIME ZONE 'UTC', completed_at_utc, day_key, is_ritual
          FROM game_sessions WHERE user_id = $1",
     )
     .bind(uuid::Uuid::parse_str(&user_id).unwrap())
     .fetch_all(&mut *tx)
     .await
     .unwrap();
-    let [(same_id, stored_utc, day_key, is_ritual)] = rows.as_slice() else {
+    let [(same_id, stored_utc, stored_instant, day_key, is_ritual)] = rows.as_slice() else {
         panic!("expected one finish after both replays, got {rows:?}");
     };
     assert_eq!(same_id.to_string(), id);
     assert!(
         stored_utc,
-        "validated writer must store the UTC transaction clock"
+        "validated writer must keep the legacy UTC wall clock"
     );
+    let tx_instant: chrono::DateTime<chrono::Utc> =
+        sqlx::query_scalar("SELECT transaction_timestamp()")
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    assert_eq!(*stored_instant, tx_instant);
+    assert_ne!(*stored_instant, submission);
     assert_eq!(day_key, "2026-11-28");
     assert!(is_ritual);
     tx.commit().await.unwrap();

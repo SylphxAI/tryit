@@ -1,5 +1,6 @@
 //! Write a game session and its derived ritual fields to the same row.
-//! `completed_at` stores the transaction instant as UTC wall time, without a zone.
+//! `completed_at_utc` stores the transaction instant. `completed_at` keeps its
+//! compatibility representation of that same instant as UTC wall time.
 
 use sqlx::PgPool;
 
@@ -38,14 +39,15 @@ pub async fn persist_game_session(
     let row: (uuid::Uuid,) = sqlx::query_as(
         r#"
         INSERT INTO game_sessions (
-            user_id, game_slug, difficulty, mode, status, score, attempts, time_spent_ms, completed_at
+            user_id, game_slug, difficulty, mode, status, score, attempts, time_spent_ms,
+            completed_at, completed_at_utc
         ) VALUES (
             $1, $2,
             $3::puzzle_difficulty,
             $4::game_mode,
             $5::game_status,
             $6, $7, $8,
-            now() AT TIME ZONE 'UTC'
+            now() AT TIME ZONE 'UTC', now()
         )
         RETURNING id
         "#,
@@ -160,7 +162,7 @@ pub async fn persist_validated_session_on_connection(
         r#"
         INSERT INTO game_sessions (
             user_id, game_slug, puzzle_id, puzzle_date, difficulty, mode, status,
-            score, attempts, time_spent_ms, completed_at,
+            score, attempts, time_spent_ms, completed_at, completed_at_utc,
             day_key, module_class, is_ritual, finish_kind, hints_used, comparison_excluded
         ) VALUES (
             $1, $2, $3, $4,
@@ -168,7 +170,7 @@ pub async fn persist_validated_session_on_connection(
             $6::game_mode,
             $7::game_status,
             $8, $9, $10,
-            now() AT TIME ZONE 'UTC',
+            now() AT TIME ZONE 'UTC', now(),
             $11, $12, $13, $14, $15, $16
         )
         ON CONFLICT (user_id, puzzle_id) DO NOTHING
