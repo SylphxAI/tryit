@@ -38,13 +38,15 @@ import { loadMessages } from './messages'
 /** Every namespace JSON import, grouped by the module that imports it. */
 function messageImports(): Array<{ locale: string; specifier: string }> {
 	return locales.flatMap((locale) =>
-		[locale, `${locale}-extended`].flatMap((module) => {
-			const source = readFileSync(join(import.meta.dir, 'catalogues', `${module}.ts`), 'utf8')
-			return [...source.matchAll(/^import \w+ from '@\/messages\/([^']+)'$/gm)].map((match) => ({
-				locale,
-				specifier: match[1] as string,
-			}))
-		}),
+		readdirSync(join(import.meta.dir, 'catalogues'))
+			.filter((file) => file === `${locale}.ts` || file.startsWith(`${locale}-`))
+			.flatMap((module) => {
+				const source = readFileSync(join(import.meta.dir, 'catalogues', module), 'utf8')
+				return [...source.matchAll(/^import \w+ from '@\/messages\/([^']+)'$/gm)].map((match) => ({
+					locale,
+					specifier: match[1] as string,
+				}))
+			}),
 	)
 }
 

@@ -3,12 +3,16 @@ import {
 	browserMessages,
 	prepareBrowserMessages,
 	prepareExtendedBrowserMessages,
+	prepareHomeBrowserMessages,
 } from './browser-catalogue'
+import { messages as englishHome } from './catalogues/en-US-home'
 import { defaultLocale, locales } from './config'
 import { loadMessages } from './messages'
 
-test('only English is initially available; locale imports preserve all resolved copy', async () => {
+test('Home copy loads before the full catalogue; locale upgrades preserve all resolved copy', async () => {
 	const english = browserMessages(defaultLocale)
+	expect(english).not.toHaveProperty('games')
+	expect(english).not.toHaveProperty('archive')
 	for (const locale of locales) {
 		if (locale !== defaultLocale) expect(() => browserMessages(locale)).toThrow('not prepared')
 	}
@@ -19,8 +23,14 @@ test('only English is initially available; locale imports preserve all resolved 
 	expect(() => browserMessages('zh-HK')).toThrow('not prepared')
 
 	for (const locale of locales) {
-		await prepareBrowserMessages(locale)
+		await prepareHomeBrowserMessages(locale)
 		const messages = browserMessages(locale)
+		for (const key of Object.keys(englishHome)) {
+			expect(messages[key]).toEqual(loadMessages(locale)[key])
+		}
+		await prepareBrowserMessages(locale)
+		expect(browserMessages(locale)).toBe(messages)
+		expect(messages).toHaveProperty('games.sudoku')
 		expect(messages).not.toHaveProperty('settings')
 		await prepareExtendedBrowserMessages(locale)
 		expect(messages).toEqual(loadMessages(locale))

@@ -1,4 +1,4 @@
-import * as english from './catalogues/en-US'
+import { messages as englishHome } from './catalogues/en-US-home'
 import { defaultLocale, type Locale } from './config'
 import {
 	gameCopyFallbackChain,
@@ -8,6 +8,7 @@ import {
 } from './resolve-messages'
 
 const loaders = {
+	'en-US': () => import('./catalogues/en-US'),
 	'en-GB': () => import('./catalogues/en-GB'),
 	'zh-HK': () => import('./catalogues/zh-HK'),
 	'zh-TW': () => import('./catalogues/zh-TW'),
@@ -15,7 +16,7 @@ const loaders = {
 	ja: () => import('./catalogues/ja'),
 	es: () => import('./catalogues/es'),
 	'pt-BR': () => import('./catalogues/pt-BR'),
-} satisfies Record<Exclude<Locale, typeof defaultLocale>, () => Promise<LocaleCatalogue>>
+} satisfies Record<Locale, () => Promise<LocaleCatalogue>>
 
 const extendedLoaders = {
 	'en-US': () => import('./catalogues/en-US-extended'),
@@ -29,35 +30,53 @@ const extendedLoaders = {
 } satisfies Record<Locale, () => Promise<{ messages: Messages }>>
 
 const extended = new Map<Locale, Promise<void>>()
-const resolved = new Map<Locale, Messages>()
+const core = new Map<Locale, Promise<void>>()
+const homes = new Map<Locale, Promise<void>>()
+const resolved = new Map<Locale, Messages>([[defaultLocale, { ...englishHome }]])
 
-export async function prepareBrowserMessages(locale: Locale): Promise<void> {
-	if (locale === defaultLocale || resolved.has(locale)) return
-	const entries = await Promise.all(
-		gameCopyFallbackChain(locale).map(async (entry) => {
-			if (entry === 'en-US') return [entry, english] as const
-			return [entry, await loaders[entry]()] as const
-		}),
-	)
-	const loaded = new Map<Locale, LocaleCatalogue>(entries)
-	if (resolved.has(locale)) return
-	resolved.set(
-		locale,
-		resolveMessages(locale, (entry) => {
+function prepare(locale: Locale, scope: 'home' | 'core'): Promise<void> {
+	const pendingByLocale = scope === 'home' ? homes : core
+	const pending = pendingByLocale.get(locale)
+	if (pending) return pending
+	const promise = (async () => {
+		const entries = await Promise.all(
+			gameCopyFallbackChain(locale).map(async (entry) => {
+				if (scope === 'home' && entry === defaultLocale) {
+					return [entry, { messages: englishHome, games: {} }] as const
+				}
+				return [entry, await loaders[entry]()] as const
+			}),
+		)
+		const loaded = new Map<Locale, LocaleCatalogue>(entries)
+		const messages = resolveMessages(locale, (entry) => {
 			const catalogue = loaded.get(entry)
 			if (!catalogue) throw new Error(`Missing catalogue dependency: ${entry}`)
 			return catalogue
-		}),
-	)
+		})
+		const current = resolved.get(locale)
+		if (!current) resolved.set(locale, messages)
+		// Upgrade in place: existing translators retain this object. A slow Home
+		// load must never overwrite a catalogue already prepared for another route.
+		else if (scope === 'core') Object.assign(current, messages)
+	})().catch((error) => {
+		pendingByLocale.delete(locale)
+		throw error
+	})
+	pendingByLocale.set(locale, promise)
+	return promise
+}
+
+export function prepareHomeBrowserMessages(locale: Locale): Promise<void> {
+	return resolved.has(locale) ? Promise.resolve() : prepare(locale, 'home')
+}
+
+export function prepareBrowserMessages(locale: Locale): Promise<void> {
+	return prepare(locale, 'core')
 }
 
 export function browserMessages(locale: Locale): Messages {
-	let messages = resolved.get(locale)
-	if (!messages) {
-		if (locale !== defaultLocale) throw new Error(`Browser catalogue not prepared: ${locale}`)
-		messages = resolveMessages(locale, () => english)
-		resolved.set(locale, messages)
-	}
+	const messages = resolved.get(locale)
+	if (!messages) throw new Error(`Browser catalogue not prepared: ${locale}`)
 	return messages
 }
 
