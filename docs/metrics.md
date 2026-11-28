@@ -181,11 +181,24 @@ zero. Present zeros are a computed empty cohort. Either is final only when the
 day is `complete`; today's D1 is provisional. This is all-source D1, not
 organic D1.
 
-Not yet measurable, so no number is reported: **guest start to same-day
-completion** (`daily_free_picks` loses guest provenance on adoption and has no
-comparison flag, so the denominator is not authoritative) and the **organic
-split** (no authoritative point-in-time acquisition source; unknown attribution
-is not organic).
+### First guest start to same-day completion
+
+`guest_start_cohort` counts the earliest canonical free pick per player after
+adoption, ordered by start time then day and game. An earlier pick bars later
+picks even if its provenance is unknown or excluded. The first pick must be an
+explicit guest start, not a comparison or synthetic row, with no earlier
+qualifying finish. The numerator requires a North Star finish for the same game
+and server-assigned Hong Kong product day. There is no acquisition-source split:
+unknown attribution is not organic.
+
+The rollup defaults to absent. Set `PUZZLED_GUEST_START_WRITERS_VERIFIED_AT`
+only after verifying all pick writers persist provenance and all finish writer
+sessions use UTC for the legacy completion timestamp. The verified convergence
+instant (RFC 3339) opens collection on the following full Hong Kong product day.
+A day with any pick missing
+provenance is also absent, even if other picks are eligible. Present zeros
+mean computed empty; the usual 15-minute close grace applies. The report is
+recomputed on the existing schedule; historical picks are not changed.
 
 ### Initial stop-the-line thresholds
 

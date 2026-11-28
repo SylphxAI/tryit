@@ -243,6 +243,15 @@ message MetricDay {
   // Absent: not collected (stored before cohorts existed), never a zero.
   // Present with zeros: computed empty. Final only when `complete`.
   FirstFinishCohorts cohorts = 22;
+  // Absent on uncollected or mixed days; present zeros mean computed empty.
+  // Final only when `complete`. No acquisition-source split.
+  GuestStartCohort guest_start_cohort = 23;
+}
+// First canonical free picks explicitly started as a guest and qualifying
+// finishes on exactly that game and Hong Kong product day.
+message GuestStartCohort {
+  uint32 started = 1;
+  uint32 completed_same_day = 2;
 }
 // Players whose first qualifying finish is on the day, by entry identity
 // (unknown = total - guest - signed in); D1 is the previous day's cohort.

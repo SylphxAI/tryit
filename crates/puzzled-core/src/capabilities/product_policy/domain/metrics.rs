@@ -27,6 +27,15 @@ pub struct Day {
     /// `None`: stored before cohorts were collected, so unknown, not zero.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cohorts: Option<Cohorts>,
+    /// Absent on uncollected or mixed-provenance days; never an inferred zero.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guest_start_cohort: Option<GuestStartCohort>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuestStartCohort {
+    pub started: i64,
+    pub completed_same_day: i64,
 }
 
 /// First-finish cohorts by entry identity (the identity that recorded the

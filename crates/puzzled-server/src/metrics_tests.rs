@@ -467,3 +467,91 @@ async fn first_finish_cohorts_count_once_by_entry_identity_and_never_invent_zero
     assert!(day("2026-10-20").complete && c("2026-10-20") == Default::default());
     assert!(!day("2026-10-26").complete && (c("2026-10-26").d1_cohort, c("2026-10-26").d1_returned) == (1, 0));
 }
+
+#[tokio::test]
+#[rustfmt::skip]
+async fn guest_starts_use_first_adopted_pick_and_only_convert_on_the_same_game_and_hk_day() {
+    use crate::capabilities::identity_access::adapters::platform_jwt::VerifiedIdentity;
+    use crate::capabilities::puzzle_play::adapters::game_sessions_db::adopt_guest_sessions;
+    let Some(pool) = fresh_database().await else { return };
+    let q = sqlx::query::<sqlx::Postgres>;
+    let day = "2026-10-25";
+    let [adopted, guest, duplicate_guest, earlier, earlier_guest, synthetic, synthetic_guest, loose, wrong_game, wrong_day, prior_finish, unknown, implicit, excluded, tied, signed, late, comparison, old, mixed] = std::array::from_fn(|_| Uuid::now_v7());
+    let pick = "INSERT INTO daily_free_picks (user_id,day_key,game_slug,started_at,claimed_via,guest_entry,comparison_excluded) VALUES ($1,$2::text::date,$3,$4::text::timestamptz,$5,$6,$7)";
+    let done = "INSERT INTO game_sessions (user_id,game_slug,day_key,is_ritual,module_class,status,completed_at,comparison_excluded) VALUES ($1,$2,$3,true,'puzzle_ritual','won',$4::text::timestamp,$5)";
+    let start_at = "2026-10-24T22:00:00Z";
+    for user in [guest, earlier_guest, synthetic_guest, wrong_game, wrong_day, prior_finish, unknown, implicit, excluded, tied, late, comparison] {
+        q(pick).bind(user).bind(day).bind("sudoku").bind(start_at).bind("start").bind(true).bind(false).execute(&pool).await.unwrap();
+    }
+    for (user, d, game, at, via, guest_entry, flag) in [
+        (old, "2026-10-24", "sudoku", "2026-10-24T02:00:00Z", Some("start"), true, false),
+        (unknown, "2026-08-01", "sudoku", "2026-08-01T00:00:00Z", None, true, false),
+        (implicit, day, "crossword", "2026-10-24T21:00:00Z", Some("guess"), true, false),
+        (excluded, day, "crossword", "2026-10-24T21:00:00Z", Some("start"), true, true),
+        (tied, day, "crossword", start_at, Some("finish"), true, false),
+        (signed, day, "sudoku", start_at, Some("start"), false, false),
+        (adopted, day, "sudoku", "2026-10-24T23:00:00Z", Some("start"), false, false),
+        (mixed, "2026-10-26", "sudoku", "2026-10-25T18:00:00Z", Some("start"), true, false),
+    ] {
+        q(pick).bind(user).bind(d).bind(game).bind(at).bind(via).bind(guest_entry).bind(flag).execute(&pool).await.unwrap();
+    }
+    // Old writer with partial provenance, on an otherwise eligible later day.
+    q(pick).bind(Uuid::now_v7()).bind("2026-10-26").bind("sudoku").bind("2026-10-25T20:00:00Z").bind("start").bind(true).bind(None::<bool>).execute(&pool).await.unwrap();
+    for (user, game, d, at, excluded) in [
+        (adopted, "sudoku", day, "2026-10-24 23:00", true),
+        (guest, "sudoku", day, "2026-10-24 23:00", false),
+        (duplicate_guest, "sudoku", day, "2026-10-24 23:30", false),
+        (earlier, "crossword", day, "2026-10-24 23:00", true),
+        (earlier_guest, "crossword", day, "2026-10-24 21:00", false),
+        (synthetic_guest, "sudoku", day, "2026-10-24 23:00", false),
+        (loose, "sudoku", day, "2026-10-24 23:00", false),
+        (wrong_game, "crossword", day, "2026-10-24 23:00", false),
+        (wrong_day, "sudoku", "2026-10-26", "2026-10-25 18:00", false),
+        (prior_finish, "sudoku", day, "2026-10-24 21:00", false),
+        (comparison, "sudoku", day, "2026-10-24 23:00", true),
+    ] {
+        q(done).bind(user).bind(game).bind(d).bind(at).bind(excluded).execute(&pool).await.unwrap();
+    }
+    q("INSERT INTO synthetic_fixtures (user_id,fixture_key,auth_subject,synthetic_time) VALUES ($1,'synthetic-guest-start','synthetic-guest-start',now())").bind(synthetic_guest).execute(&pool).await.unwrap();
+    for (account, former_guest) in [(adopted, guest), (adopted, duplicate_guest), (earlier, earlier_guest), (synthetic, synthetic_guest)] {
+        q("INSERT INTO auth_subjects (subject,user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING").bind(format!("s-{account}")).bind(account).execute(&pool).await.unwrap();
+        let hash = format!("h-{former_guest}");
+        q("INSERT INTO guest_credentials (token_hash,user_id,provenance) VALUES ($1,$2,'server_issued')").bind(&hash).bind(former_guest).execute(&pool).await.unwrap();
+        let id = VerifiedIdentity { user_id: account.to_string(), display_name: None, email: None, actor: None };
+        // Only the synthetic finish physically moves; collisions keep guest rows.
+        assert_eq!(adopt_guest_sessions(&pool, &id, &format!("guest_{former_guest}"), &hash).await.unwrap(), u64::from(account == synthetic));
+    }
+    let tick = |now, marker| metrics::rollup_with_guest_start_boundary(&pool, time(now), marker);
+    let marker = Some("2026-10-23T18:00:00Z"); // HK Oct 24; first full day is Oct 25.
+    let before_close = "2026-10-25T16:09:00Z"; // HK Oct 26 at 00:09.
+    for refused in [None, Some("bad value"), Some("2026-10-26T00:00:00Z")] {
+        assert_eq!(tick(before_close, refused).await.unwrap(), 35);
+        let reports = metrics::reports(&pool).await.unwrap();
+        assert!(reports.iter().all(|(d, _)| d.guest_start_cohort.is_none()));
+        assert!(reports.iter().any(|(d, _)| d.daily_puzzle_completers > 0 && d.cohorts.is_some()));
+    }
+    let baseline = metrics::reports(&pool).await.unwrap();
+    tick(before_close, marker).await.unwrap();
+    let reports = metrics::reports(&pool).await.unwrap();
+    for ((b, _), (a, _)) in baseline.iter().zip(&reports) {
+        assert_eq!((&a.day_key, a.daily_puzzle_completers, &a.cohorts), (&b.day_key, b.daily_puzzle_completers, &b.cohorts));
+    }
+    let cohort = |key: &'static str| {
+        let pool = &pool;
+        async move {
+            let reports = metrics::reports(pool).await.unwrap();
+            let (d, _) = reports.into_iter().find(|(d, _)| d.day_key == key).unwrap();
+            (d.complete, d.guest_start_cohort.map(|c| (c.started, c.completed_same_day)))
+        }
+    };
+    assert_eq!(cohort(day).await, (false, Some((5, 1))));
+    // A finish received during grace is picked up, using the server day key.
+    q(done).bind(late).bind("sudoku").bind(day).bind("2026-10-25 15:59").bind(false).execute(&pool).await.unwrap();
+    tick("2026-10-25T16:17:00Z", marker).await.unwrap();
+    assert_eq!(cohort(day).await, (true, Some((5, 2))));
+    tick("2026-10-27T16:17:00Z", marker).await.unwrap();
+    assert_eq!(cohort("2026-10-23").await, (true, None)); // empty before collection
+    assert_eq!(cohort("2026-10-24").await, (true, None)); // eligible row on rollout day
+    assert_eq!(cohort("2026-10-26").await, (true, None)); // mixed despite eligible row
+    assert_eq!(cohort("2026-10-27").await, (true, Some((0, 0))));
+}
