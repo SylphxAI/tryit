@@ -3,7 +3,7 @@ import { createMemo, createSignal, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { createKillerSudokuPlay } from './create-killer-sudoku-play'
-import { firstMoveCage, openFirstMoveCue } from './first-move'
+import { canShowFirstMoveCue, firstMoveCage, markFirstMoveCueSeen } from './first-move'
 import { FirstMoveCue } from './first-move-cue'
 import { KillerSudokuControls } from './killer-sudoku-controls'
 import { KillerSudokuGrid } from './killer-sudoku-grid'
@@ -30,7 +30,16 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const finish = createBoardFinish(props, 'killer-sudoku')
 	const [cue, setCue] = createSignal(false)
-	const dismiss = () => setCue(false)
+	let recorded = false
+	const markSeen = () => {
+		if (recorded) return
+		recorded = true
+		markFirstMoveCueSeen(() => localStorage)
+	}
+	const dismiss = () => {
+		markSeen()
+		setCue(false)
+	}
 	const play = createKillerSudokuPlay(props.data, finish, { visible: cue, dismiss })
 	const target = createMemo(() => {
 		if (!cue() || !play.playing()) return
@@ -43,7 +52,10 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	onMount(() => {
 		// Completed daily snapshots already render a result instead of this board.
 		setCue(
-			openFirstMoveCue((props.mode ?? 'daily') === 'daily' && play.playing(), () => localStorage),
+			canShowFirstMoveCue(
+				(props.mode ?? 'daily') === 'daily' && play.playing(),
+				() => localStorage,
+			),
 		)
 	})
 	return (
@@ -53,7 +65,7 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 		>
 			<KillerSudokuGrid cages={props.data.cages} cueCage={target()} play={play} t={t} />
 			<Show when={cue()}>
-				<FirstMoveCue t={t} dismiss={dismiss} visible={play.playing()} />
+				<FirstMoveCue t={t} dismiss={dismiss} visible={play.playing()} onExposure={markSeen} />
 			</Show>
 			<KillerSudokuControls play={play} t={t} />
 			<BoardFinish

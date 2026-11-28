@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test'
 import { START_INTENT_TTL_MS } from '../src/features/daily/lib/start-intent'
 import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
-import { START_INTENT_KEY } from '../src/lib/storage-keys'
+import { CAGE_SUDOKU_CUE_SEEN_KEY, START_INTENT_KEY } from '../src/lib/storage-keys'
 import { googleTagTest as test } from './google-tag-support'
 
 const wordGames = [
@@ -461,6 +461,73 @@ for (const [width, height] of [
 ]) {
 	test.describe(`Cage Sudoku cue ${width}×${height}`, () => {
 		test.use({ viewport: { width, height }, isMobile: width === 390, hasTouch: width === 390 })
+		test('Cage Sudoku reopened daily keeps an unseen cue until it is in view in a visible tab', async ({
+			page,
+			baseURL,
+		}, info) => {
+			if (!baseURL || !['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname))
+				throw new Error('Cage cue requires a local fixture')
+			let starts = 0
+			const snapshot = playable('killer-sudoku')
+			await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) => {
+				starts++
+				return route.abort()
+			})
+			await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+				route.fulfill({ json: snapshot }),
+			)
+			await page.route('**/puzzled.v1.PuzzleService/GetPracticePuzzle', (route) =>
+				route.fulfill({ json: { ...snapshot, difficulty: 'medium', practiceSeed: '1' } }),
+			)
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			const path = '/en-US/games/killer-sudoku?difficulty=medium'
+			const board = page.locator('[data-killer-sudoku-board]')
+			const tip = board.locator('[data-cage-first-move]')
+			const seen = () => page.evaluate((key) => localStorage.getItem(key), CAGE_SUDOKU_CUE_SEEN_KEY)
+			const capture = (name: string) => page.screenshot({ path: info.outputPath(`${name}.png`) })
+			await page.goto(path)
+			await expect(tip).toBeVisible()
+			await expect(tip).not.toBeInViewport()
+			await capture('cage-reopen-above-board')
+			expect.soft(await seen(), 'mounting below the fold cannot consume the cue').toBeNull()
+			await page.reload()
+			await expect(tip).toBeVisible()
+			await expect(tip).not.toBeInViewport()
+			expect(await seen()).toBeNull()
+
+			// Chromium may keep background pages foregrounded in headless mode. Drive
+			// the visibility event deterministically; intersection remains native.
+			await page.evaluate(() => {
+				Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+				document.dispatchEvent(new Event('visibilitychange'))
+			})
+			await tip.scrollIntoViewIfNeeded()
+			await expect(tip).toBeInViewport({ ratio: 1 })
+			// Hold the negative case longer than the exposure dwell, not just one frame.
+			await page.waitForTimeout(600)
+			expect(await seen()).toBeNull()
+			await page.evaluate(() => {
+				Reflect.deleteProperty(document, 'visibilityState')
+				document.dispatchEvent(new Event('visibilitychange'))
+			})
+			await expect.poll(seen).toBe('1')
+			await expect(tip).toBeVisible()
+			await capture('cage-reopen-exposed')
+			await page.reload()
+			await expect(board).toBeVisible()
+			await expect(tip).toHaveCount(0)
+
+			await page.evaluate((key) => localStorage.removeItem(key), CAGE_SUDOKU_CUE_SEEN_KEY)
+			const yesterday = productDayKey(new Date(Date.now() - 86_400_000))
+			for (const suffix of ['&mode=practice', `&mode=archive&date=${yesterday}`]) {
+				await page.goto(`${path}${suffix}`)
+				await expect(board).toBeVisible()
+				await expect(tip).toHaveCount(0)
+				expect(await seen()).toBeNull()
+			}
+			expect(starts).toBe(0)
+		})
+
 		test('points to a cage without covering the board, and stays dismissed on reload', async ({
 			page,
 			baseURL,
@@ -505,28 +572,38 @@ for (const [width, height] of [
 			await expect(grid.locator('[aria-pressed="true"]')).toHaveCount(1)
 			await expect(tip).toHaveCount(0)
 		})
+
+		test('Cage Sudoku cue retires on a conflict-free digit, not on a note or conflict', async ({
+			page,
+			baseURL,
+		}) => {
+			// The explicit actions still persist dismissal without an exposure signal.
+			await page.addInitScript(() => {
+				Reflect.set(window, 'IntersectionObserver', undefined)
+			})
+			await openCageCueFixture(page, baseURL)
+			const board = page.locator('[data-killer-sudoku-board]')
+			const tip = board.locator('[data-cage-first-move]')
+			const cell = board.getByRole('button', { name: /^Row 1, Column 2,/ })
+			const press = width === 390 ? 'tap' : 'click'
+			const input = (key: string) =>
+				width === 390
+					? board.getByRole('button', { name: key === 'n' ? 'Notes' : key, exact: true }).tap()
+					: page.keyboard.press(key)
+			await expect(tip).toBeVisible()
+			await cell[press]()
+			for (const key of ['n', '5', 'n', '2']) await input(key)
+			await expect(cell).toHaveAttribute('aria-invalid', 'true')
+			await expect(tip).toBeVisible()
+			await input('1') // Conflict-free, but not the solution.
+			await expect(cell).not.toHaveAttribute('aria-invalid')
+			await expect(tip).toBeHidden()
+			await page.reload()
+			await expect(cell).toHaveAccessibleName(/Column 2, 1,/)
+			await expect(tip).toHaveCount(0)
+		})
 	})
 }
-
-test('Cage Sudoku cue retires on a conflict-free digit, not on a note or conflict', async ({
-	page,
-	baseURL,
-}) => {
-	await openCageCueFixture(page, baseURL)
-	const tip = page.locator('[data-cage-first-move]')
-	const cell = page.getByRole('button', { name: /^Row 1, Column 2,/ })
-	await cell.click()
-	for (const key of ['n', '5', 'n', '2']) await page.keyboard.press(key)
-	await expect(cell).toHaveAttribute('aria-invalid', 'true')
-	await expect(tip).toBeVisible()
-	// 1 is not the solution here; it just has no conflict visible to the player.
-	await page.keyboard.press('1')
-	await expect(cell).not.toHaveAttribute('aria-invalid')
-	await expect(tip).toBeHidden()
-	await page.reload()
-	await expect(cell).toHaveAccessibleName(/Column 2, 1,/)
-	await expect(tip).toHaveCount(0)
-})
 
 test('all 19 games show one rules dialog and introductory copy in zh-TW', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 })
