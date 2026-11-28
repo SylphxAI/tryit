@@ -184,6 +184,31 @@ establishes that bucket if the other is absent. Missing, later-only or conflicti
 evidence remains `unknown` and still counts in the total. No player ID, exact time,
 or pick attribution is returned. Existing consent-gated GA is unchanged.
 
+### Pick to finish by game
+
+Run the [pick completion query](../crates/puzzled-server/src/capabilities/funnel/pick_completions.sql)
+from the repo root with the approved Tryit read-only PostgreSQL connection
+already selected in your client environment. Both Hong Kong product day keys
+(`YYYY-MM-DD`) are inclusive:
+
+```bash
+set -o pipefail
+{
+  echo "BEGIN READ ONLY; SET LOCAL statement_timeout = '5s'; PREPARE pick_finishes(date, date) AS"
+  cat crates/puzzled-server/src/capabilities/funnel/pick_completions.sql
+  printf "EXECUTE pick_finishes('%s', '%s');\nROLLBACK;\n" '2026-11-19' '2026-11-25'
+} | psql -X -v ON_ERROR_STOP=1
+```
+
+Use Nov 19–25, 2026 for the baseline, Nov 29 alone for the sanity check, and
+Nov 29–Dec 5 for the cue read. Each row gives free picks, matching daily wins or
+losses (`finishes`), and wins. A pick counts once even if multiple sessions
+match; games without counted picks are omitted. The report excludes all picks
+by registered fixtures, owners of sessions adopted from fixtures, and players
+with any marked pick or finish, even if the mark is outside the selected dates.
+Before Nov 28, only a marked finish identifies historical harness starts, so a
+harness run that started a game without finishing anything would still count.
+
 ## Quality signals
 
 The api reports its own problems as structured log lines; the platform turns
