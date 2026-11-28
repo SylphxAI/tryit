@@ -4,10 +4,9 @@
 //! day's puzzle itself, store it ahead of time, and backfill the archive (the
 //! pipeline lives in `puzzled-server`, capability `daily_pipeline`).
 //!
-//! - **Seed:** `YYYYMMDD` of the product day, plus 0/1/2 for easy/medium/hard,
-//!   the same rule as the TS content tool (`registry.server.ts`), so a stored
-//!   puzzle can be regenerated for audit (the crossword's new days use
-//!   `rust-crossword-v2`; see Versions).
+//! - **Seed:** legacy daily rows use `YYYYMMDD` plus a difficulty offset.
+//!   From [`DAILY_SEED_V2_START`], new difficulty rows use disjoint blocks of
+//!   three seeds per product day. Other games keep their seed schedule.
 //! - **Parity:** each port reproduces its TS generator byte for byte where TS
 //!   succeeds (`tests/fixtures/generate/*.json`, exported by
 //!   `apps/puzzled/scripts/export-generator-fixtures.ts`).
@@ -16,10 +15,9 @@
 //!   puzzle.
 //! - **Self-check:** before a puzzle is accepted, the game's own submission
 //!   validator must accept its solution (`self_check`).
-//! - **Versions:** every stored row records the generator that made it
-//!   ([`GENERATOR_V1`], [`GENERATOR_CROSSWORD_V2`]). A stored row is never
-//!   replaced, so each version keeps reproducing its own output; new rows use
-//!   the game's current version. [`generate_seeded`] is the V1 entry point.
+//! - **Versions:** every stored row records the generator that made it; each
+//!   version reproduces its own output from the stored seed. The daily seed
+//!   change reuses the existing board algorithms. [`generate_seeded`] stays V1.
 
 use chrono::{Datelike, NaiveDate};
 use serde_json::Value;
@@ -54,20 +52,39 @@ pub const DIFFICULTY_GAMES: [&str; 5] = [
 /// Difficulties of a difficulty game, in seed-offset order.
 pub const DIFFICULTIES: [&str; 3] = ["easy", "medium", "hard"];
 
-/// The generator every game used before crossword V2, and still the one for
-/// every game but the crossword.
+/// Original board generators, also used by seeded practice.
 pub const GENERATOR_V1: &str = "rust-v1";
 /// Crossword whose down clues describe the column words
 /// (`domain::crossword_v2`).
 pub const GENERATOR_CROSSWORD_V2: &str = "rust-crossword-v2";
+/// Nonogram whose clues line logic solves to exactly one grid
+/// (`nonogram::generate_line_solvable`).
+pub const GENERATOR_NONOGRAM_V2: &str = "rust-nonogram-v2";
+/// Daily seed V2 with unchanged board algorithms (line-solvable for nonogram).
+pub const GENERATOR_DAILY_SEED_V2: &str = "rust-daily-seed-v2";
 
-/// The generator version new rows of a game are made with.
+/// First product day eligible for the new seeds, past the full 14-day buffer
+/// as of 2026-11-27 HKT. Stored rows always win, even on or after this date.
+pub const DAILY_SEED_V2_START: NaiveDate = match NaiveDate::from_ymd_opt(2026, 12, 12) {
+    Some(day) => day,
+    None => unreachable!(),
+};
+
+/// Current board algorithm, independent of the forward-only seed version.
 #[must_use]
 fn current_generator_version(game_slug: &str) -> &'static str {
     match super::domain::game_slugs::canonicalize_game_slug(game_slug) {
         "crossword" => GENERATOR_CROSSWORD_V2,
+        "nonogram" => GENERATOR_NONOGRAM_V2,
         _ => GENERATOR_V1,
     }
+}
+
+/// Only board algorithm upgrades are eligible for same-seed refresh.
+/// A seed-only upgrade does not supersede existing rows.
+#[must_use]
+pub fn superseded_version(game_slug: &str) -> Option<&'static str> {
+    (current_generator_version(game_slug) != GENERATOR_V1).then_some(GENERATOR_V1)
 }
 
 /// A generated puzzle ready to store.
@@ -90,7 +107,7 @@ pub fn difficulties_for(game_slug: &str) -> Vec<Option<&'static str>> {
     }
 }
 
-/// Content-pipeline seed: `YYYYMMDD` + 0/1/2 for easy/medium/hard.
+/// Original content-pipeline seed: `YYYYMMDD` + 0/1/2 for easy/medium/hard.
 #[must_use]
 pub fn seed_for(date: NaiveDate, difficulty: Option<&str>) -> i64 {
     let base =
@@ -100,6 +117,14 @@ pub fn seed_for(date: NaiveDate, difficulty: Option<&str>) -> i64 {
         Some("hard") => 2,
         _ => 0,
     }
+}
+
+/// V2 reserves three consecutive seeds per day; the ordinal handles month,
+/// year, and leap-day transitions without gaps. The base is above all legacy
+/// four-digit calendar seeds and pre-pipeline puzzle numbers. For dates from
+/// the cutover through `NaiveDate::MAX`, the result is below 388 million.
+fn daily_seed_v2(date: NaiveDate, difficulty_slot: i32) -> i32 {
+    100_000_000 + 3 * date.num_days_from_ce() + difficulty_slot
 }
 
 /// Generate from an explicit seed with the V1 generators (parity tests use the
@@ -131,6 +156,10 @@ fn generate_seeded_as(
     let slug = super::domain::game_slugs::canonicalize_game_slug(game_slug);
     match (version, slug) {
         (GENERATOR_V1, _) => {}
+        (GENERATOR_NONOGRAM_V2 | GENERATOR_DAILY_SEED_V2, "nonogram") => {
+            return nonogram::generate_line_solvable(seed, difficulty);
+        }
+        (GENERATOR_DAILY_SEED_V2, _) if DIFFICULTY_GAMES.contains(&slug) => {}
         (GENERATOR_CROSSWORD_V2, "crossword") => {
             return Ok(generate_crossword_puzzle_v2(seed));
         }
@@ -319,8 +348,25 @@ pub fn generate(
     difficulty: Option<&str>,
 ) -> Result<Generated, String> {
     let slug = super::domain::game_slugs::canonicalize_game_slug(game_slug);
-    let seed = seed_for(date, difficulty);
-    let generator_version = current_generator_version(slug);
+    let (seed, difficulty, generator_version) =
+        if date >= DAILY_SEED_V2_START && DIFFICULTY_GAMES.contains(&slug) {
+            let slot = match difficulty {
+                Some("easy") => 0,
+                Some("hard") => 2,
+                _ => 1,
+            };
+            (
+                i64::from(daily_seed_v2(date, slot)),
+                Some(DIFFICULTIES[slot as usize]),
+                GENERATOR_DAILY_SEED_V2,
+            )
+        } else {
+            (
+                seed_for(date, difficulty),
+                difficulty,
+                current_generator_version(slug),
+            )
+        };
     let (puzzle_data, solution) = generate_seeded_as(generator_version, slug, seed, difficulty)?;
     self_check(slug, &puzzle_data, &solution)?;
     Ok(Generated {
@@ -354,6 +400,99 @@ mod tests {
         assert_eq!(seed_for(day, Some("hard")), 20_260_928);
         assert_eq!(difficulties_for("sudoku").len(), 3);
         assert_eq!(difficulties_for("word-hive"), vec![None]);
+    }
+
+    #[test]
+    fn legacy_seed_collision_does_not_imply_equal_boards() {
+        let day = NaiveDate::from_ymd_opt(2026, 11, 27).unwrap();
+        let next = day.succ_opt().unwrap();
+        for game in DIFFICULTY_GAMES {
+            let medium = generate(game, day, Some("medium")).unwrap();
+            let easy = generate(game, next, Some("easy")).unwrap();
+            assert_eq!(medium.seed, 20_261_128, "{game}");
+            assert_eq!(medium.seed, easy.seed, "{game}");
+            assert_eq!(seed_for(day, Some("hard")), seed_for(next, Some("medium")));
+            // Nonogram ignores difficulty at a fixed seed; Crowns uses a
+            // different board size. Neither board claim follows from the seed alone.
+            if game == "nonogram" {
+                assert_eq!(medium, easy);
+            } else if game == "crowns" {
+                assert_ne!(medium.puzzle_data["size"], easy.puzzle_data["size"]);
+            }
+        }
+    }
+
+    #[test]
+    fn daily_seed_v2_is_stable_and_contiguous_across_calendar_boundaries() {
+        let start = DAILY_SEED_V2_START;
+        assert_eq!(daily_seed_v2(start, 0), 102_219_886);
+        let legacy_max = seed_for(start.pred_opt().unwrap(), Some("hard"));
+        assert!(i64::from(daily_seed_v2(start, 0)) > legacy_max);
+        assert!(daily_seed_v2(NaiveDate::MAX, 2) < 388_000_000);
+        for (y, m, d) in [(2026, 12, 31), (2027, 1, 31), (2028, 2, 28), (2028, 2, 29)] {
+            let day = NaiveDate::from_ymd_opt(y, m, d).unwrap();
+            let next = day.succ_opt().unwrap();
+            let seeds = [0, 1, 2].map(|slot| daily_seed_v2(day, slot));
+            assert_eq!(seeds, [seeds[0], seeds[0] + 1, seeds[0] + 2]);
+            assert_eq!(daily_seed_v2(next, 0), seeds[0] + 3);
+        }
+    }
+
+    #[test]
+    fn daily_seed_v2_reuses_the_real_generators_and_validates_their_solutions() {
+        for game in DIFFICULTY_GAMES {
+            let day = DAILY_SEED_V2_START;
+            let legacy_day = day.pred_opt().unwrap();
+            let legacy = generate(game, legacy_day, Some("easy")).unwrap();
+            assert_eq!(legacy.seed, 20_261_211, "{game}");
+            assert_eq!(legacy.generator_version, current_generator_version(game));
+            let algorithm = current_generator_version(game);
+            for (slot, difficulty) in DIFFICULTIES.into_iter().enumerate() {
+                let made = generate(game, day, Some(difficulty)).unwrap();
+                assert_eq!(made.seed, 102_219_886 + slot as i64, "{game}");
+                assert_eq!(made.generator_version, GENERATOR_DAILY_SEED_V2);
+                let explicit = generate_seeded_as(algorithm, game, made.seed, Some(difficulty));
+                assert_eq!(
+                    explicit,
+                    Ok((made.puzzle_data.clone(), made.solution.clone()))
+                );
+                // The other three games already invoke the submission validator
+                // inside generate; check Sudoku and Crowns with their real submissions.
+                let submission = match game {
+                    "sudoku" => serde_json::json!({"finalGrid": made.solution["grid"]}),
+                    "crowns" => {
+                        let size = made.puzzle_data["size"].as_u64().unwrap() as usize;
+                        let mut grid = vec![vec![false; size]; size];
+                        for queen in made.solution["queens"].as_array().unwrap() {
+                            let row = queen[0].as_u64().unwrap() as usize;
+                            let col = queen[1].as_u64().unwrap() as usize;
+                            grid[row][col] = true;
+                        }
+                        serde_json::json!({"finalGrid": grid})
+                    }
+                    _ => continue,
+                };
+                let verdict = validate_submission(
+                    game,
+                    &made.puzzle_data,
+                    &made.solution,
+                    &SubmissionEnvelope {
+                        status: SubmissionStatus::Won,
+                        attempts: 1,
+                        time_spent_ms: 60_000,
+                        data: submission,
+                    },
+                );
+                assert!(
+                    verdict.valid && verdict.status == Some(SubmissionStatus::Won),
+                    "{game} {difficulty}: {verdict:?}"
+                );
+            }
+        }
+        let unaffected = generate("word-guess", DAILY_SEED_V2_START, None).unwrap();
+        assert_eq!(unaffected.seed, 20_261_212);
+        assert_eq!(unaffected.generator_version, GENERATOR_V1);
+        assert!(generate_seeded_as(GENERATOR_DAILY_SEED_V2, "word-guess", 1, None).is_err());
     }
 
     #[test]
@@ -397,6 +536,20 @@ mod tests {
         // A version that does not belong to the game is refused.
         assert!(generate_seeded_as(GENERATOR_CROSSWORD_V2, "sudoku", 1, None).is_err());
         assert!(generate_seeded_as("rust-v0", "crossword", 1, None).is_err());
+    }
+
+    #[test]
+    fn new_nonogram_days_need_no_guess_and_v1_rows_still_reproduce() {
+        // 2026-11-27 medium: V1 served the Lightning, which has two solutions.
+        let day = NaiveDate::from_ymd_opt(2026, 11, 27).unwrap_or_default();
+        let made = generate("nonogram", day, Some("medium")).unwrap();
+        assert_eq!(made.generator_version, GENERATOR_NONOGRAM_V2);
+        let v1 = generate_seeded("nonogram", made.seed, Some("medium")).unwrap();
+        assert!(!nonogram::has_one_line_solution(
+            &serde_json::from_value::<Vec<Vec<bool>>>(v1.1["grid"].clone()).unwrap()
+        ));
+        assert_ne!(v1.1, made.solution);
+        assert!(generate_seeded_as(GENERATOR_NONOGRAM_V2, "sudoku", 1, None).is_err());
     }
 
     #[test]

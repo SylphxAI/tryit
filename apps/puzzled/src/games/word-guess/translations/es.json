@@ -1,6 +1,6 @@
 {
 	"name": "Cinco Letras",
-	"tagline": "5 letras • 6 intentos",
+	"tagline": "Palabras en inglés • 6 intentos",
 	"highlight": "6 intentos",
 	"description": "Adivina la palabra de 5 letras en 6 intentos",
 	"howToPlay": "Cómo jugar",
@@ -13,6 +13,7 @@
 		"present": "Amarillo significa que la letra está en la palabra, pero en otra posición",
 		"absent": "Gris significa que la letra no está en la palabra"
 	},
+	"sound": "Sonido",
 	"keyboard": {
 		"enter": "Intro",
 		"delete": "Borrar"

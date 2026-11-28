@@ -1,5 +1,5 @@
-//! Native Connect AdminService (ADR-170). Every method requires a verified
-//! Auth principal with the product customer organization's live admin role.
+//! Native Connect AdminService (ADR-170). Only the aggregate metrics report
+//! also admits a direct Auth session with the metrics read permission.
 
 use std::sync::Arc;
 
@@ -25,6 +25,8 @@ mod game_analytics;
 mod health;
 mod metrics;
 mod settings;
+
+pub(super) const METRICS_REPORT_PATH: &str = "/puzzled.v1.AdminService/GetMetricsReport";
 
 #[cfg(test)]
 mod announcement_mapping_tests;

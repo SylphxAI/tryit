@@ -44,10 +44,12 @@ test.describe('Solid shared results', () => {
 		await expect(card).toContainText('Solved!')
 		await expect(card).toContainText('37')
 		await expect(card).not.toContainText('answer')
-		await expect(page.getByRole('link', { name: "Play today's Sudoku" })).toHaveAttribute(
+		const play = page.getByRole('link', { name: "Play today's Sudoku" })
+		await expect(play).toHaveAttribute(
 			'href',
-			`/games/sudoku?ref=${fixtureShareId}&utm_source=friend`,
+			`/games/sudoku?ref=${fixtureShareId}&utm_source=friend&difficulty=medium&start=1#play`,
 		)
+		await expect(play).toHaveAttribute('data-start-intent', 'sudoku')
 		await expect
 			.poll(() =>
 				page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? 'null'), CHALLENGE_KEY),
@@ -63,9 +65,63 @@ test.describe('Solid shared results', () => {
 		await expect(page.getByRole('region', { name: 'Their result' })).toBeVisible()
 		await page.goto('/r/unknown?game=sudoku')
 		await expect(page.getByRole('region', { name: 'Their result' })).toHaveCount(0)
-		await expect(page.getByRole('link', { name: "Play today's Sudoku" })).toHaveAttribute(
-			'href',
-			'/games/sudoku?ref=unknown&utm_source=share',
+		const play = page.getByRole('link', { name: "Play today's Sudoku" })
+		await expect(play).toHaveAttribute('href', '/games/sudoku?ref=unknown&utm_source=share')
+		await expect(play).not.toHaveAttribute('data-start-intent', /.*/)
+	})
+
+	test("one tap on today's share starts that board once; landing, hover and pasted links never do", async ({
+		page,
+		context,
+	}) => {
+		const starts: Array<Record<string, unknown>> = []
+		// Production's edge routes same-origin /puzzled.v1.* to the api; here the
+		// read-only fixture answers reads, and StartDaily is caught, never served.
+		const api = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:8787'
+		await context.route(/\/puzzled\.v1\.PuzzleService\/\w+$/, async (route) => {
+			const { pathname } = new URL(route.request().url())
+			if (pathname.endsWith('/GetDaily')) {
+				// An unclaimed pick: the board needs an explicit StartDaily.
+				const response = await route.fetch({ url: api + pathname })
+				return route.fulfill({
+					response,
+					json: { ...(await response.json()), requiresStart: true },
+				})
+			}
+			if (!pathname.endsWith('/StartDaily')) return route.fallback({ url: api + pathname })
+			starts.push(route.request().postDataJSON() ?? {})
+			return route.abort()
+		})
+		// The guest cookie bootstrap precedes StartDaily; it is stubbed and writes nothing.
+		await context.route(/\/v1\/guest\/session$/, (route) =>
+			route.fulfill({ json: { issued: false } }),
 		)
+		const started = `/zh-HK/games/sudoku?ref=${fixtureShareId}&utm_source=share&difficulty=medium&start=1#play`
+		// A pasted copy of the started link carries no press: it shows the start card and waits.
+		await page.goto(started)
+		await expect(page.locator('html')).toHaveAttribute('lang', 'zh-HK')
+		await page.waitForLoadState('networkidle')
+		expect(starts).toHaveLength(0)
+		await page.goto(`/zh-HK/r/${fixtureShareId}?utm_source=share`)
+		const play = page.locator('a[data-start-intent="sudoku"]')
+		await expect(play).toHaveAttribute('href', started)
+		await play.hover()
+		await page.waitForLoadState('networkidle')
+		expect(starts).toHaveLength(0)
+		// A modified click opens a new tab that records no press and starts nothing.
+		const [tab] = await Promise.all([
+			context.waitForEvent('page'),
+			play.click({ modifiers: ['ControlOrMeta'] }),
+		])
+		await tab.waitForLoadState('networkidle')
+		expect(new URL(tab.url()).pathname).toBe('/zh-HK/games/sudoku')
+		expect(starts).toHaveLength(0)
+		await tab.close()
+		await play.click()
+		await expect(page).toHaveURL((url) => `${url.pathname}${url.search}${url.hash}` === started)
+		await expect.poll(() => starts.length).toBe(1)
+		expect(starts[0]).toMatchObject({ gameSlug: 'sudoku', puzzleDate: productDayKey() })
+		await page.waitForLoadState('networkidle')
+		expect(starts.length).toBeLessThanOrEqual(1)
 	})
 })

@@ -1,5 +1,6 @@
 import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 import type { createBoardFinish } from '@/games/shared/solid/finish'
+import { isFirstMove } from './first-move'
 import { createInitialState, type KillerSudokuAction, killerSudokuReducer } from './state'
 import { isCageSumValid, type KillerSudokuGameState, type KillerSudokuPuzzleData } from './types'
 
@@ -13,6 +14,7 @@ const moves = {
 export function createKillerSudokuPlay(
 	data: KillerSudokuPuzzleData,
 	finish: ReturnType<typeof createBoardFinish>,
+	cue: { visible: () => boolean; dismiss: () => void },
 ) {
 	const initial = createInitialState(data)
 	const [state, setState] = finish.draft.signal('state', initial)
@@ -43,6 +45,12 @@ export function createKillerSudokuPlay(
 		const next = killerSudokuReducer(previous, action, data)
 		if (next.cells !== previous.cells) setHistory((stack) => [...stack, previous])
 		setState(next)
+		if (
+			next.gameStatus === 'playing' &&
+			cue.visible() &&
+			isFirstMove(action, previous, next, data.cages)
+		)
+			cue.dismiss()
 		if (next.gameStatus === 'won') {
 			finish.finish({
 				finalGrid: next.cells.map((row) => row.map((cell) => cell.value)),

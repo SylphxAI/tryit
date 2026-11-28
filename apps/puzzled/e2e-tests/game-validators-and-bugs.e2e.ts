@@ -29,6 +29,54 @@ async function play(page: Page, slug: string, data: unknown, locale = 'en-US', d
 	await expect(page.locator('[data-game-stage="board"]')).toBeVisible()
 }
 
+test.describe('Path recovery on touch', () => {
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+
+	test('offers Undo immediately when only rewinds or wrong clues remain', async ({ page }) => {
+		await play(page, 'number-path', {
+			size: 3,
+			clues: [
+				[1, null, 4],
+				[null, 5, null],
+				[null, null, 9],
+			],
+		})
+		const board = page.locator('[data-number-path-board]')
+		const status = board.locator('.play-tools').getByRole('status')
+		const progress = board.locator('output')
+		const start = board.getByRole('button', { name: /^Row 1, Column 1,/ })
+		const blank = board.getByRole('button', { name: /^Row 1, Column 2(?:,|$)/ })
+		const undo = board.getByRole('button', { name: 'Undo', exact: true })
+		const cue = 'No moves from here. Use Undo to back up.'
+		const enterDeadEnd = async () => {
+			await blank.tap()
+			await expect(progress).toHaveText('2/9')
+			await expect(status).toHaveText(cue)
+		}
+
+		await expect(status).toBeEmpty()
+		await expect(undo).toBeDisabled()
+		await start.tap()
+		await expect(progress).toHaveText('1/9')
+		await expect(status).toBeEmpty()
+		await enterDeadEnd()
+		await undo.tap()
+		await expect(progress).toHaveText('1/9')
+		await expect(status).toBeEmpty()
+
+		await enterDeadEnd()
+		await start.tap()
+		await expect(progress).toHaveText('1/9')
+		await expect(status).toBeEmpty()
+
+		await enterDeadEnd()
+		await board.getByRole('button', { name: 'Start over', exact: true }).tap()
+		await expect(progress).toHaveText('0/9')
+		await expect(status).toBeEmpty()
+		await expect(undo).toBeDisabled()
+	})
+})
+
 for (const viewport of [
 	{ width: 1440, height: 900 },
 	{ width: 390, height: 844 },
@@ -202,17 +250,18 @@ test('Quad shows a dictionary error in the mobile viewport without using a guess
 	const board = page.locator('[data-quad-board]')
 	const attempts = board.getByRole('status').filter({ hasText: 'Attempts' })
 	try {
-		await page.keyboard.type('ZZZZZ')
-		await page.keyboard.press('Enter')
+		const key = (value: string) => board.locator(`[data-key="${value}"]`)
+		for (const letter of 'ZZZZZ') await key(letter).click()
+		await key('Enter').click()
 		const error = board.getByRole('alert')
 		await expect(error).toHaveText('Not in word list')
 		await expect(error).toBeInViewport({ ratio: 1 })
 		await expect(attempts).toContainText('0/9')
 		await expect(board.locator('td[data-grade]')).toHaveCount(0)
 		expect(graded).toEqual([])
-		for (let i = 0; i < 5; i++) await page.keyboard.press('Backspace')
-		await page.keyboard.type('CRANE')
-		await page.keyboard.press('Enter')
+		for (let i = 0; i < 5; i++) await key('Backspace').click()
+		for (const letter of 'CRANE') await key(letter).click()
+		await key('Enter').click()
 		await expect(board.getByRole('status').filter({ hasText: 'Syncing' })).toBeVisible()
 		await expect(attempts).toContainText('0/9')
 	} finally {

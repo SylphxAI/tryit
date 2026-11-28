@@ -15,6 +15,7 @@ export function WordBoxEntry(props: {
 }) {
 	return (
 		<form
+			data-play-control
 			class="flex flex-wrap items-center justify-center gap-2"
 			onSubmit={(event) => {
 				event.preventDefault()

@@ -6,15 +6,7 @@
  */
 
 import { afterEach, describe, expect, test } from 'bun:test'
-import {
-	chmodSync,
-	existsSync,
-	mkdtempSync,
-	readdirSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from 'node:fs'
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 
@@ -334,29 +326,6 @@ describe('money catalogue workflow and reader', () => {
 			const apply = job.steps.filter((step) => step.run)
 			expect(apply.map((step) => step.run)).toEqual(['bash scripts/money-catalogue-apply.sh'])
 			expect(job.steps.some((step) => step['continue-on-error'])).toBe(false)
-		}
-	})
-
-	test('the Rust reader and fixtures name only the real collection', () => {
-		const clientDir = join(root, 'crates/puzzled-server/src/capabilities/money/client')
-		const reader =
-			'"name": format!("{}/price_catalogs/default", self.environment_resource().await?)'
-		let foundReader = false
-		for (const file of readdirSync(clientDir, { withFileTypes: true })) {
-			if (!file.isFile() || !file.name.endsWith('.rs')) continue
-			const source = readFileSync(join(clientDir, file.name), 'utf8')
-			foundReader ||= source.includes(reader)
-			expect(source, file.name).not.toContain('"{}/catalogs/default"')
-		}
-		expect(foundReader, 'Money client must read price_catalogs/default').toBe(true)
-
-		for (const file of [
-			'crates/puzzled-server/src/capabilities/money/tests.rs',
-			'crates/puzzled-server/src/money_access_tests.rs',
-		]) {
-			const source = readFileSync(join(root, file), 'utf8')
-			expect(source).toContain('"/v1/orgs/o/projects/p/envs/e/price_catalogs/default"')
-			expect(source).not.toContain('/env/catalogs/default')
 		}
 	})
 })

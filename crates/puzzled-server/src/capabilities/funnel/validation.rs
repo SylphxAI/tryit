@@ -125,6 +125,11 @@ fn validate_behavior(input: &Incoming) -> Option<Row> {
     // events can reach storage. JSON null is deliberate only for pick_index.
     let (event, game_slug, params) = match input.event.as_str() {
         "game_complete" => {
+            let mode = mode()?;
+            // Older web builds may still report daily finishes; acknowledge without a row.
+            if mode == "daily" {
+                return None;
+            }
             if input.pick_index.is_some_and(|n| !(1..=3).contains(&n)) {
                 return None;
             }
@@ -132,7 +137,7 @@ fn validate_behavior(input: &Incoming) -> Option<Row> {
                 "game_complete",
                 Some(game_slug()?),
                 json!({
-                    "mode": mode()?,
+                    "mode": mode,
                     "status": allowed(input.status.as_deref(), &STATUSES)?,
                     "pick_index": input.pick_index,
                     "time_bucket_s": input.time_bucket_s.filter(|n| TIME_BUCKETS_S.contains(n))?,
@@ -172,16 +177,36 @@ fn validate_behavior(input: &Incoming) -> Option<Row> {
                 "is_guest": input.is_guest?,
             }),
         ),
-        event @ ("pwa_install_prompted" | "pwa_installed") => (
-            if event == "pwa_installed" {
-                "pwa_installed"
+        event @ ("pwa_install_prompted" | "pwa_installed") => {
+            let mut params = json!({
+                "platform": allowed(input.platform.as_deref(), &PWA_PLATFORMS)?,
+                "trigger": allowed(input.trigger.as_deref(), &["post_first_win", "returning_home"])?,
+            });
+            // Older callers omit guest status; that is not evidence of an account.
+            if let Some(is_guest) = input.is_guest {
+                params["is_guest"] = json!(is_guest);
+            }
+            (
+                if event == "pwa_installed" {
+                    "pwa_installed"
+                } else {
+                    "pwa_install_prompted"
+                },
+                None,
+                params,
+            )
+        }
+        event @ ("save_streak_prompted" | "save_streak_clicked") => (
+            if event == "save_streak_prompted" {
+                "save_streak_prompted"
             } else {
-                "pwa_install_prompted"
+                "save_streak_clicked"
             },
             None,
             json!({
-                "platform": allowed(input.platform.as_deref(), &PWA_PLATFORMS)?,
-                "trigger": allowed(input.trigger.as_deref(), &["post_first_win"])?,
+                // Connect's existing status field carries the daily finish outcome.
+                "outcome": allowed(input.status.as_deref(), &STATUSES)?,
+                "trigger": allowed(input.trigger.as_deref(), &["daily_finish"])?,
             }),
         ),
         "push_opted_in" => (

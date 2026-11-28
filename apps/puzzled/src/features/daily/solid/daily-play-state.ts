@@ -1,10 +1,12 @@
 import { ConnectError } from '@connectrpc/connect'
 import { createEffect, createResource, createSignal, onMount } from 'solid-js'
 import { sendFunnel } from '@/features/analytics/lib/funnel'
+import { trackGameStartStage } from '@/features/analytics/lib/signal-stages'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import type { PuzzleDifficulty } from '@/games/types'
 import { isPlusRequiredError } from '@/lib/billing/plus'
 import { getTodayProgress, startDaily } from '@/lib/connect/puzzle-client'
+import { withPresentationDeadline } from '@/lib/presentation-document'
 import { classifyDailyResponse, type DailySnapshot, loadDailySnapshot } from '../lib/daily-fallback'
 import { claimedDailyPicks } from '../lib/daily-picks'
 import { rememberDailyLevel } from '../lib/daily-resume-path'
@@ -32,7 +34,9 @@ export type DailyPlayProps = {
 	day: GameDayRequest
 	todayKey: string
 	resetAt: number
-	onLocked: () => void
+	onLandingBlocked: () => void
+	chooseDifficulty: boolean
+	onPlayable: (slug: string, mode: 'daily' | 'archive') => void
 	difficulty?: PuzzleDifficulty
 	started: boolean
 	initial?: State
@@ -65,7 +69,9 @@ export function createDailyPlayState(
 		{ initialValue: props.initial, ssrLoadFrom: 'initial' },
 	)
 	onMount(() => setMounted(true))
-	const [isGuest] = createResource(mounted, () => readPlayGuestStatus().catch(() => undefined))
+	const [isGuest, { refetch: retryGuestStatus }] = createResource(mounted, () =>
+		withPresentationDeadline(readPlayGuestStatus(), undefined),
+	)
 	const play = async (puzzleDate: string) => {
 		if (starting() || !hasBoard) return
 		setStarting(true)
@@ -87,7 +93,8 @@ export function createDailyPlayState(
 		const value = state()
 		if (!value || handled || !props.started) return
 		handled = true
-		if (!archive && hasBoard && !choose && value.kind === 'startable' && takeStartIntent(slug))
+		const intent = takeStartIntent(slug)
+		if (intent && !archive && hasBoard && !choose && value.kind === 'startable')
 			void play(value.puzzleDate)
 	})
 	const snapshot = <K extends State['kind']>(kind: K) => {
@@ -103,10 +110,13 @@ export function createDailyPlayState(
 		if (!value || seen || !hasBoard || choose) return
 		seen = true
 		sendFunnel({ event: 'game_start', game_slug: slug })
+		trackGameStartStage(slug, archive ? 'archive' : 'daily')
 		if (!archive) rememberDailyLevel(value.puzzleDate, slug, props.difficulty)
+		props.onPlayable(slug, archive ? 'archive' : 'daily')
 	})
 	createEffect(() => {
-		if (snapshot('locked')) props.onLocked()
+		if (snapshot('locked') || (choose && (snapshot('closed') || snapshot('completed'))))
+			props.onLandingBlocked()
 	})
 	const [claimedPicks] = createResource(
 		() => mounted() && !archive && snapshot('playable')?.puzzleDate,
@@ -121,5 +131,16 @@ export function createDailyPlayState(
 		{ initialValue: null },
 	)
 	const pickIndex = () => (claimedPicks.latest?.indexOf(slug) ?? -1) + 1
-	return { state, refetch, isGuest, starting, entered, play, snapshot, claimedPicks, pickIndex }
+	return {
+		state,
+		refetch,
+		isGuest,
+		retryGuestStatus,
+		starting,
+		entered,
+		play,
+		snapshot,
+		claimedPicks,
+		pickIndex,
+	}
 }

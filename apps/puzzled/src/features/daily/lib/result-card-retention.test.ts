@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { locales } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
-import { resultCardRetention } from './result-card-retention'
+import { resultCardRetention, resultRetentionPrompt } from './result-card-retention'
 
 const win = { mode: 'daily', status: 'won' } as const
 const loss = { mode: 'daily', status: 'lost' } as const
@@ -31,12 +31,59 @@ test('freeze reassurance needs a daily win and the explicit server flag', () => 
 	expect(resultCardRetention(win, null, true).freezeSaved).toBe(false)
 })
 
-test('account capture is only for a confirmed guest on a daily win, even without streak data', () => {
-	expect(resultCardRetention(win, null, true).captureGuest).toBe(true)
-	expect(resultCardRetention(win, null, false).captureGuest).toBe(false)
-	expect(resultCardRetention(win, null, undefined).captureGuest).toBe(false)
-	expect(resultCardRetention(loss, null, true).captureGuest).toBe(false)
-	expect(resultCardRetention(archive, null, true).captureGuest).toBe(false)
+for (const mode of ['daily', 'practice', 'archive'] as const) {
+	for (const status of ['won', 'lost'] as const) {
+		for (const [identity, isGuest] of [
+			['guest', true],
+			['account', false],
+		] as const) {
+			test.each([0, 1, 2])(`save-streak offer: ${mode} ${status}, ${identity}, %i days`, (days) => {
+				const streak = { currentStreak: days, freezeUsedYesterday: false }
+				const retention = resultCardRetention({ mode, status }, streak, isGuest)
+				expect(retention.captureGuest).toBe(mode === 'daily' && isGuest && days > 0)
+				if (retention.captureGuest) expect(retention.days).toBe(days)
+			})
+		}
+	}
+}
+
+test.each([win, loss])(
+	'save-streak requires both a server streak and a confirmed guest (%j)',
+	(card) => {
+		expect(resultCardRetention(card, null, true).captureGuest).toBe(false)
+		expect(
+			resultCardRetention(card, { currentStreak: 1, freezeUsedYesterday: false }, undefined)
+				.captureGuest,
+		).toBe(false)
+	},
+)
+
+test.each([
+	['guest win with a save offer', win, true, false, 'save-streak'],
+	['guest loss with a save offer', loss, true, false, 'save-streak'],
+	['signed-in win', win, false, false, 'install'],
+	['signed-in loss', loss, false, false, 'none'],
+	['guest win after earlier dismissal', win, true, true, 'install'],
+	['guest loss after earlier dismissal', loss, true, true, 'none'],
+] as const)('%s selects one retention prompt', (_name, card, guest, dismissedEarlier, expected) => {
+	const { captureGuest } = resultCardRetention(
+		card,
+		{ currentStreak: 1, freezeUsedYesterday: false },
+		guest,
+	)
+	expect(resultRetentionPrompt(card.status, true, captureGuest && !dismissedEarlier)).toBe(expected)
+})
+
+test('dismissing save-streak does not reveal install on this finish', () => {
+	const selected = resultRetentionPrompt('won', true, true)
+	const dismissed = resultRetentionPrompt('won', true, false, selected, true)
+	expect(dismissed).toBe('none')
+	expect(resultRetentionPrompt('won', true, false, dismissed)).toBe('none')
+	expect(resultRetentionPrompt('won', true, false)).toBe('install')
+})
+
+test('an older win cannot offer installation', () => {
+	expect(resultRetentionPrompt('won', false, false)).toBe('none')
 })
 
 test.each(locales)('%s has usable milestone, freeze, and account copy', (locale) => {

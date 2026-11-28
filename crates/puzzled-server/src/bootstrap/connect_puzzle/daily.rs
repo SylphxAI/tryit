@@ -12,7 +12,10 @@ use puzzled_core::puzzle_play::game_slugs::{canonicalize_game_slug, is_valid_gam
 
 use super::{admission::Admission, date_from_string, PuzzleConnectService, TRACE_TARGET};
 use crate::capabilities::daily_pipeline;
-use crate::capabilities::puzzle_play::adapters::game_sessions_db::load_completed_session_on_connection;
+use crate::capabilities::puzzle_play::adapters::daily_snapshot;
+use crate::capabilities::puzzle_play::adapters::game_sessions_db::{
+    load_completed_session_on_connection, CompletedSession,
+};
 use crate::proto::puzzled::v1::{
     DailyCompletion, GetDailyRequest, GetDailyResponse, StartDailyRequest, StartDailyResponse,
 };
@@ -111,6 +114,44 @@ impl PuzzleConnectService {
         let puzzle_date = requested_date.unwrap_or(today);
         let is_archive = puzzle_date != today;
 
+        // A guest-only read cannot allocate or adopt anything. Read credential,
+        // picks, puzzle and private completion in a single statement snapshot,
+        // so concurrent revocation/adoption cannot mix identities or snapshots.
+        if !start && !is_archive && platform.is_none() {
+            if let (Some(pool), Some(hash)) = (
+                &self.state.pool,
+                crate::bootstrap::identity::guest_credential_hash(ctx),
+            ) {
+                let snapshot =
+                    daily_snapshot::guest(pool, hash, game_slug, today, difficulty.as_deref())
+                        .await
+                        .map_err(|error| {
+                            warn!(target: TRACE_TARGET, %error, "guest daily snapshot failed");
+                            ConnectError::new(ErrorCode::Internal, "session_lookup_failed")
+                        })?;
+                if let Some((puzzle, picks, completion)) = snapshot {
+                    let admission = self.admit_today_from_picks(None, picks).await?;
+                    return build_response(DailyResponse {
+                        game_slug,
+                        today,
+                        puzzle_date,
+                        difficulty,
+                        puzzle_id: puzzle.id,
+                        puzzle_data: Some(puzzled_core::puzzle_play::generate::served_payload(
+                            game_slug,
+                            &puzzle.puzzle_data,
+                            &puzzle.solution,
+                        )),
+                        completed_session: completion,
+                        stub: false,
+                        requires_start: admission == Admission::FreePick,
+                    });
+                }
+                // Missing stored content uses the same generator as every other
+                // caller, without holding any connection during generation.
+            }
+        }
+
         let admission = self
             .enforce_play_access(ctx, billing_user, game_slug, puzzle_date)
             .await?;
@@ -181,71 +222,120 @@ impl PuzzleConnectService {
             admission == Admission::FreePick && self.state.pool.is_some() && !has_completed;
         let requires_start = needs_pick && !start && !stub;
         if needs_pick && start {
-            self.claim_free_pick(&mut access, billing_user, game_slug, today)
-                .await?;
+            self.claim_free_pick(
+                &mut access,
+                billing_user,
+                game_slug,
+                today,
+                super::admission::pick_claim(
+                    ctx,
+                    crate::capabilities::puzzle_play::adapters::daily_free_picks::Via::Start,
+                ),
+            )
+            .await?;
         }
-        // Do not expose an unchosen board in the public response or SSR HTML.
-        let puzzle_data = if requires_start { None } else { puzzle_data };
-        let puzzle_data_value = puzzle_data.clone();
-        let response = match build_daily_status(
+        let response = build_response(DailyResponse {
             game_slug,
             today,
-            difficulty.as_deref(),
-            if has_completed {
-                Some(Value::Null)
-            } else {
-                None
-            },
-            puzzle_id.clone(),
-            puzzle_data_value,
-        ) {
-            Ok(body) => Ok(GetDailyResponse {
-                game_slug: game_slug.to_string(),
-                puzzle_number: body.puzzle.puzzle_number,
-                puzzle_date: if is_archive {
-                    puzzle_date.format("%Y-%m-%d").to_string()
-                } else {
-                    body.puzzle.puzzle_date
-                },
-                puzzle_id,
-                difficulty: body
-                    .puzzle
-                    .difficulty
-                    .unwrap_or_else(|| difficulty.unwrap_or_default()),
-                has_completed,
-                can_play: !has_completed,
-                mode: body.mode.to_string(),
-                slice: SLICE_DAILY.to_string(),
-                stub,
-                requires_start,
-                puzzle_data_json: puzzle_data
-                    .map(client_safe_puzzle_data)
-                    .map(|v| v.to_string())
-                    .unwrap_or_default(),
-                completed_session: completed_session
-                    .map(|session| DailyCompletion {
-                        status: session.status,
-                        score: session.score.and_then(|score| u32::try_from(score).ok()),
-                        attempts: u32::try_from(session.attempts).ok(),
-                        completed_at_ms: session
-                            .completed_at
-                            .map(|completed_at| completed_at.and_utc().timestamp_millis()),
-                        difficulty: session.difficulty,
-                        time_spent_ms: session.time_spent_ms.and_then(|ms| u64::try_from(ms).ok()),
-                        ..Default::default()
-                    })
-                    .into(),
-                ..Default::default()
-            }),
-            Err(404) => Err(ConnectError::new(ErrorCode::NotFound, "unknown_game")),
-            Err(_) => Err(ConnectError::new(
-                ErrorCode::InvalidArgument,
-                "invalid_query",
-            )),
-        };
+            puzzle_date,
+            difficulty,
+            puzzle_id,
+            puzzle_data,
+            completed_session,
+            stub,
+            requires_start,
+        });
         if response.is_ok() {
             access.commit().await?;
         }
         response
+    }
+}
+
+struct DailyResponse<'a> {
+    game_slug: &'a str,
+    today: chrono::NaiveDate,
+    puzzle_date: chrono::NaiveDate,
+    difficulty: Option<String>,
+    puzzle_id: Option<String>,
+    puzzle_data: Option<Value>,
+    completed_session: Option<CompletedSession>,
+    stub: bool,
+    requires_start: bool,
+}
+
+fn build_response(input: DailyResponse<'_>) -> Result<GetDailyResponse, ConnectError> {
+    let DailyResponse {
+        game_slug,
+        today,
+        puzzle_date,
+        difficulty,
+        puzzle_id,
+        puzzle_data,
+        completed_session,
+        stub,
+        requires_start,
+    } = input;
+    let has_completed = completed_session.is_some();
+    let requires_start = requires_start && !has_completed;
+    let is_archive = puzzle_date != today;
+    // Do not expose an unchosen board in the public response or SSR HTML.
+    let puzzle_data = if requires_start { None } else { puzzle_data };
+    let puzzle_data_value = puzzle_data.clone();
+    match build_daily_status(
+        game_slug,
+        today,
+        difficulty.as_deref(),
+        if has_completed {
+            Some(Value::Null)
+        } else {
+            None
+        },
+        puzzle_id.clone(),
+        puzzle_data_value,
+    ) {
+        Ok(body) => Ok(GetDailyResponse {
+            game_slug: game_slug.to_string(),
+            puzzle_number: body.puzzle.puzzle_number,
+            puzzle_date: if is_archive {
+                puzzle_date.format("%Y-%m-%d").to_string()
+            } else {
+                body.puzzle.puzzle_date
+            },
+            puzzle_id,
+            difficulty: body
+                .puzzle
+                .difficulty
+                .unwrap_or_else(|| difficulty.unwrap_or_default()),
+            has_completed,
+            can_play: !has_completed,
+            mode: body.mode.to_string(),
+            slice: SLICE_DAILY.to_string(),
+            stub,
+            requires_start,
+            puzzle_data_json: puzzle_data
+                .map(client_safe_puzzle_data)
+                .map(|v| v.to_string())
+                .unwrap_or_default(),
+            completed_session: completed_session
+                .map(|session| DailyCompletion {
+                    status: session.status,
+                    score: session.score.and_then(|score| u32::try_from(score).ok()),
+                    attempts: u32::try_from(session.attempts).ok(),
+                    completed_at_ms: session
+                        .completed_at
+                        .map(|completed_at| completed_at.and_utc().timestamp_millis()),
+                    difficulty: session.difficulty,
+                    time_spent_ms: session.time_spent_ms.and_then(|ms| u64::try_from(ms).ok()),
+                    ..Default::default()
+                })
+                .into(),
+            ..Default::default()
+        }),
+        Err(404) => Err(ConnectError::new(ErrorCode::NotFound, "unknown_game")),
+        Err(_) => Err(ConnectError::new(
+            ErrorCode::InvalidArgument,
+            "invalid_query",
+        )),
     }
 }

@@ -197,7 +197,7 @@ function Board(props: DailyBoardProps & { data: PatternMatchClientData }) {
 				<p class="min-h-10 text-sm text-muted-foreground" role="status">
 					{message() ? mt(`messages.${message()}`) : mt('hint')}
 				</p>
-				<div class="flex flex-wrap gap-2">
+				<div class="flex flex-wrap gap-2" data-play-control>
 					<button
 						type="button"
 						class="min-h-11 rounded-lg border border-border px-4 disabled:opacity-50"

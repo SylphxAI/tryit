@@ -14,6 +14,7 @@
 	"startGame": "Começar jogo",
 	"region": "Região {index}",
 	"complete": "Desafio concluído!",
+	"sound": "Som",
 	"difficulty": {
 		"easy": "Fácil",
 		"medium": "Médio",

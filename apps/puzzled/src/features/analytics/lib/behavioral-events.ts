@@ -2,6 +2,7 @@ import { canonicalizeGameSlug, PLAYER_TITLE } from '@/lib/game-slug'
 import { hasAnalyticsConsent } from './consent'
 import { sendFunnel } from './funnel'
 import { sendGa4Event } from './google-tag'
+import { trackGameFinishStage } from './signal-stages'
 
 const modes = ['daily', 'archive', 'practice'] as const
 const actions = ['copy_challenge', 'save_png', 'native_share'] as const
@@ -62,6 +63,12 @@ export type BehavioralEvent =
 			event: 'pwa_install_prompted' | 'pwa_installed'
 			platform: PwaPlatform
 			trigger: 'post_first_win'
+			is_guest?: boolean
+	  }
+	| {
+			event: 'save_streak_prompted' | 'save_streak_clicked'
+			outcome: 'won' | 'lost'
+			trigger: 'daily_finish'
 	  }
 	| { event: 'push_opted_in'; trigger: PushTrigger; result: 'granted' | 'denied' | 'dismissed' }
 
@@ -139,9 +146,18 @@ function sanitize(input: BehavioralEvent): BehavioralEvent | undefined {
 		}
 		case 'pwa_install_prompted':
 		case 'pwa_installed': {
-			const { platform, trigger } = input
-			if (oneOf(platform, platforms) && trigger === 'post_first_win')
-				return { event, platform, trigger }
+			const { platform, trigger, is_guest } = input
+			if (oneOf(platform, platforms) && trigger === 'post_first_win') {
+				if (is_guest === undefined) return { event, platform, trigger }
+				if (typeof is_guest === 'boolean') return { event, platform, trigger, is_guest }
+			}
+			break
+		}
+		case 'save_streak_prompted':
+		case 'save_streak_clicked': {
+			const { outcome, trigger } = input
+			if (oneOf(outcome, ['won', 'lost']) && trigger === 'daily_finish')
+				return { event, outcome, trigger }
 			break
 		}
 		case 'push_opted_in': {
@@ -161,7 +177,8 @@ export function trackBehavioralEvent(input: BehavioralEvent): void {
 	try {
 		const clean = sanitize(input)
 		if (!clean) return
-		sendFunnel(clean)
+		// Daily first-party finishes come from committed game_sessions, not this callback.
+		if (clean.event !== 'game_complete' || clean.mode !== 'daily') sendFunnel(clean)
 		const { event, ...params } = clean
 		if (hasAnalyticsConsent()) sendGa4Event(event, params)
 	} catch {
@@ -190,6 +207,11 @@ export function createGameBehavior(
 		complete(status: 'won' | 'lost', elapsedMs: number, pickIndex: number | null) {
 			if (terminal) return
 			terminal = true
+			try {
+				trackGameFinishStage(game_slug, mode, status)
+			} catch {
+				// Telemetry must not affect a finish.
+			}
 			const is_guest = isGuest()
 			if (is_guest === undefined) return
 			trackBehavioralEvent({

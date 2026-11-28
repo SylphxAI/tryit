@@ -21,7 +21,7 @@
 		"title": "Today's lineup",
 		"seeAll": "See all games",
 		"play": "Play",
-		"freeToday": "Today's pick",
+		"freeToday": "Featured today",
 		"subtitleShort": "{count} games today"
 	},
 	"value": {
@@ -76,7 +76,8 @@
 		"puzzleNumber": "Puzzle #{number}",
 		"resetsIn": "Resets in",
 		"resetsAt": "Daily reset: 16:00 UTC",
-		"guestTitle": "{count} daily puzzles. Play now, no account needed.",
+		"guestTitle": "Pick any {picks} for free",
+		"guestDetail": "{count} daily puzzles. No account needed.",
 		"titleMemberReady": "Today's {game} is ready",
 		"titleMemberStreak": "Your {days}-day streak is waiting",
 		"titleMemberDone": "All done for today — nicely played",

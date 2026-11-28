@@ -9,7 +9,6 @@ use puzzled_core::puzzle_play::daily_time::product_day_key;
 use super::{PuzzleConnectService, TRACE_TARGET};
 use crate::bootstrap::identity::RequestAccess;
 use crate::capabilities::billing::service::access as entitlement_access;
-use crate::capabilities::identity_access::adapters::guest_credentials;
 use crate::capabilities::puzzle_play::adapters::daily_free_picks::{self, Picks};
 
 /// How a request for a puzzle was admitted.
@@ -20,6 +19,18 @@ pub(super) enum Admission {
     Open,
     /// Today's game on a free pick not yet taken; active play claims it.
     FreePick,
+}
+
+/// Provenance for a pick claimed by this request; the verification header
+/// marks it as a comparison start exactly as it marks a finish.
+pub(super) fn pick_claim(
+    ctx: &RequestContext,
+    via: daily_free_picks::Via,
+) -> daily_free_picks::Claim {
+    daily_free_picks::Claim {
+        via,
+        comparison: crate::shared::comparison::excluded(ctx.headers()),
+    }
 }
 
 impl PuzzleConnectService {
@@ -49,9 +60,7 @@ impl PuzzleConnectService {
         let is_today = date == today;
         if is_today {
             match self.read_picks(ctx, user_id, game_slug, today).await {
-                Ok(picks) if picks.chosen => return Ok(Admission::Open),
-                Ok(picks) if picks.open() => return Ok(Admission::FreePick),
-                Ok(_) => {}
+                Ok(picks) => return self.admit_today_from_picks(user_id, picks).await,
                 Err(error) => {
                     // Keep the free floor open: the claim on write, under the
                     // player's lock, is the authority.
@@ -63,6 +72,22 @@ impl PuzzleConnectService {
         self.paid_access(user_id, is_today)
             .await
             .map(|()| Admission::Open)
+    }
+
+    pub(super) async fn admit_today_from_picks(
+        &self,
+        user_id: Option<&str>,
+        picks: Picks,
+    ) -> Result<Admission, ConnectError> {
+        if picks.chosen {
+            Ok(Admission::Open)
+        } else if picks.open() {
+            Ok(Admission::FreePick)
+        } else {
+            self.paid_access(user_id, true)
+                .await
+                .map(|()| Admission::Open)
+        }
     }
 
     /// Today's picks for the request's players: the account and any guest
@@ -77,14 +102,10 @@ impl PuzzleConnectService {
         let Some(pool) = &self.state.pool else {
             return Ok(Picks::default());
         };
-        let mut players: Vec<uuid::Uuid> = user_id
-            .and_then(user_id_to_storage_uuid)
-            .into_iter()
-            .collect();
-        if let Some(hash) = crate::bootstrap::identity::guest_credential_hash(ctx) {
-            players.extend(guest_credentials::lookup_hash(pool, hash).await?);
-        }
-        daily_free_picks::read(pool, &players, today, game_slug).await
+        let player = user_id.and_then(user_id_to_storage_uuid);
+        let players = player.as_slice();
+        let hash = crate::bootstrap::identity::guest_credential_hash(ctx);
+        daily_free_picks::read_for_request(pool, players, hash, today, game_slug).await
     }
 
     /// Take the pick a write was admitted on, inside the request's locked
@@ -96,6 +117,7 @@ impl PuzzleConnectService {
         user_id: Option<&str>,
         game_slug: &str,
         today: NaiveDate,
+        how: daily_free_picks::Claim,
     ) -> Result<(), ConnectError> {
         let player = access
             .primary()
@@ -109,7 +131,7 @@ impl PuzzleConnectService {
                 "free_pick_claim_failed",
             ));
         };
-        match daily_free_picks::claim(connection, player, today, game_slug).await {
+        match daily_free_picks::claim(connection, player, today, game_slug, how).await {
             Ok(true) => Ok(()),
             Ok(false) => self.paid_access(user_id, true).await,
             Err(error) => {

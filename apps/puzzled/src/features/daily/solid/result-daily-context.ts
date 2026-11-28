@@ -81,7 +81,7 @@ export function createResultDailyContext(
 		{ initialValue: null },
 	)
 	const [streak] = createResource(
-		() => won() && ritualDay(),
+		() => (won() || props.isGuest === true) && ritualDay(),
 		async () => {
 			try {
 				const response = await createGamificationServiceClient().getStreakInfo({})
@@ -90,12 +90,15 @@ export function createResultDailyContext(
 				return null
 			}
 		},
-		{ initialValue: null },
 	)
 	const retention = createMemo(() =>
-		resultCardRetention(model(), ritualDay() ? streak.latest : null, props.isGuest),
+		resultCardRetention(model(), ritualDay() ? (streak.latest ?? null) : null, props.isGuest),
 	)
 	const streakCountLabel = (days: number) =>
 		`${t('streak.currentStreak')}: ${new Intl.NumberFormat(props.locale).format(days)}`
-	return { percentileLabel, ritual, retention, streakCountLabel }
+	const streakPending = () =>
+		Boolean(ritualDay() && (streak.loading || streak.state === 'unresolved'))
+	// Wait for the resources that can change the height of the finish rail.
+	const layoutReady = () => mounted() && !ritual.loading && !percentile.loading && !streakPending()
+	return { percentileLabel, ritual, retention, streakCountLabel, streakPending, layoutReady }
 }

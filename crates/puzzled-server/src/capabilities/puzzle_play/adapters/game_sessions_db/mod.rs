@@ -11,6 +11,7 @@ mod guest_adoption;
 mod persistence;
 mod progress;
 
+pub(crate) use completion::CompletedRow;
 pub use completion::{
     has_completed_session, has_completed_session_on_connection, has_ritual_completion,
     has_ritual_completion_on_connection, load_completed_session,
@@ -19,6 +20,7 @@ pub use completion::{
 pub use guest_adoption::{
     adopt_guest_sessions, adopt_guest_sessions_on_connection, reassign_sessions,
 };
+pub(crate) use persistence::storage_elapsed_ms;
 pub use persistence::{
     persist_game_session, persist_validated_session, persist_validated_session_on_connection,
     PersistGameSessionInput, ValidatedSession,

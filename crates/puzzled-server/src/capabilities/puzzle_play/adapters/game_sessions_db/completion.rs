@@ -148,7 +148,7 @@ pub async fn has_completed_session_on_connection(
     Ok(exists)
 }
 
-type CompletedRow = (
+pub(crate) type CompletedRow = (
     String,
     Option<i32>,
     i32,
@@ -231,16 +231,22 @@ pub async fn load_completed_session_on_connection(
         (None, None) => None,
     };
 
-    Ok(row.map(
-        |(status, score, attempts, completed_at, difficulty, time_spent_ms)| CompletedSession {
+    Ok(row.map(CompletedSession::from))
+}
+
+impl From<CompletedRow> for CompletedSession {
+    fn from(
+        (status, score, attempts, completed_at, difficulty, time_spent_ms): CompletedRow,
+    ) -> Self {
+        Self {
             status,
             score,
             attempts,
             completed_at,
             difficulty,
             time_spent_ms,
-        },
-    ))
+        }
+    }
 }
 
 /// True when the user already has a ritual finish for this module on `day_key`.

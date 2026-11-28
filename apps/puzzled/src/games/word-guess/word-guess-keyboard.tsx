@@ -11,15 +11,20 @@ type WordGuessKeyboardProps = {
 	busy: Accessor<boolean>
 	tone: (grade: Feedback | undefined, fallback: string) => string
 	rules: (grade: Feedback) => string
-	edit: (key: string) => void
-	grade: () => Promise<void>
+	edit: (key: string, event: MouseEvent | KeyboardEvent) => void
+	grade: (event: MouseEvent | KeyboardEvent) => Promise<void>
 }
 
 export function WordGuessKeyboard(props: WordGuessKeyboardProps) {
 	const { t, keys, busy, tone, rules, edit, grade } = props
 	const feedbackDescription = (grade: Feedback | undefined) => (grade ? rules(grade) : undefined)
 	return (
-		<fieldset class="grid gap-1" aria-label={t('games.wordGuess.rules.rule2')} aria-busy={busy()}>
+		<fieldset
+			data-play-control
+			class="grid gap-1"
+			aria-label={t('games.wordGuess.rules.rule2')}
+			aria-busy={busy()}
+		>
 			<For each={KEYBOARD_ROWS}>
 				{(row) => (
 					<div class="flex justify-center gap-1">
@@ -41,7 +46,14 @@ export function WordGuessKeyboard(props: WordGuessKeyboardProps) {
 										data-grade={keyGrade()}
 										aria-disabled={busy() || undefined}
 										class={`flex min-h-12 min-w-0 items-center justify-center rounded-md border font-semibold touch-manipulation aria-disabled:opacity-60 ${action ? 'w-[14%] text-xs' : 'w-[9%] text-base'} ${tone(keyGrade(), 'border-border bg-key text-key-text')}`}
-										onClick={() => (key === 'ENTER' ? void grade() : edit(key))}
+										onClick={(event) => (key === 'ENTER' ? void grade(event) : edit(key, event))}
+										onKeyDown={(event) => {
+											// Keep repeat edits without a second cue from a native click.
+											if (event.key !== 'Enter' || !event.repeat) return
+											event.preventDefault()
+											if (key === 'ENTER') void grade(event)
+											else edit(key, event)
+										}}
 									>
 										{key === 'BACKSPACE' ? <Delete size={18} aria-hidden="true" /> : label}
 									</button>

@@ -1,6 +1,6 @@
 {
 	"name": "五字母猜詞",
-	"tagline": "5 個字母 • 6 次機會",
+	"tagline": "英文詞語 • 5 個字母 • 6 次機會",
 	"highlight": "6 次機會",
 	"description": "在 6 次機會內猜出這個 5 字母的詞",
 	"howToPlay": "玩法",
@@ -13,6 +13,7 @@
 		"present": "黃色代表字母在詞中，但位置不對",
 		"absent": "灰色代表詞中沒有這個字母"
 	},
+	"sound": "音效",
 	"keyboard": {
 		"enter": "輸入",
 		"delete": "刪除"

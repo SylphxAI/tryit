@@ -8,11 +8,14 @@ import {
 	useParams,
 	useSearchParams,
 } from '@solidjs/router'
-import { createMemo, createSignal, Show } from 'solid-js'
+import { createMemo, createSignal, onCleanup, Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
+import { trackGa4GameStart } from '@/features/analytics/lib/ga4-game-start'
 import { buildGamePage } from '@/features/catalog/solid/game-data'
 import { GameLanding } from '@/features/catalog/solid/game-landing'
 import { asDifficulty } from '@/features/daily/lib/difficulty-completion'
+import { needsEnglishWordNotice } from '@/features/daily/lib/english-word-puzzles'
+import { choosesDailyLevel } from '@/features/daily/lib/pick-disclosure'
 import { START_PARAM_ON } from '@/features/daily/lib/start-param'
 import { todayPlayPath } from '@/features/daily/lib/today-play-path'
 import { DailyPlay } from '@/features/daily/solid/daily-play'
@@ -51,7 +54,14 @@ const getGamePage = query(
 		const practice = mode === 'practice' && isPracticeSupported(data.slug)
 		const day = resolveGameDayRequest({ date }, now)
 		const difficulty = data.difficultyLevels.length ? asDifficulty(level) : undefined
-		const started = start === START_PARAM_ON
+		const chooseDifficulty =
+			!practice &&
+			choosesDailyLevel({
+				archive: day.mode === 'archive',
+				levelCount: data.difficultyLevels.length,
+				difficulty,
+			})
+		const started = start === START_PARAM_ON && !chooseDifficulty
 		// The passive landing can paint an authoritative board or chooser in one response.
 		// Explicit play and archive keep their existing just-in-time browser read.
 		const [signedIn, initialDaily] = await Promise.all([
@@ -69,6 +79,7 @@ const getGamePage = query(
 			day,
 			todayKey: productDayKey(now),
 			difficulty,
+			chooseDifficulty,
 			started,
 			resetAt: nextProductDayStart(now).getTime(),
 			initialDaily,
@@ -100,8 +111,19 @@ export default function GamePage() {
 	const params = useParams()
 	const [search] = useSearchParams()
 	const data = createAsync(() => readGamePage(params, search), { deferStream: true })
-	const [lockedKey, setLockedKey] = createSignal<string>()
-	const playKey = createMemo(() => {
+	const [blockedKey, setBlockedKey] = createSignal<string>()
+	// The full daily hero owns Five's notice, even when a board resumes below it.
+	const englishWordNoticeInHero = () => {
+		const page = data()
+		return Boolean(
+			page?.day.mode === 'daily' &&
+				!page.practice &&
+				!page.started &&
+				page.data.slug === 'word-guess' &&
+				needsEnglishWordNotice(page.data.locale, page.data.slug),
+		)
+	}
+	const visitKey = createMemo(() => {
 		const page = data()
 		return (
 			page &&
@@ -111,10 +133,32 @@ export default function GamePage() {
 				page.day.puzzleDate,
 				page.todayKey,
 				page.difficulty,
-				page.started,
 				page.practice,
 			])
 		)
+	})
+	const locked = () => data()?.initialDaily?.kind === 'locked' || blockedKey() === playKey()
+	const showDifficulty = () => {
+		const page = data()
+		const kind = page?.initialDaily?.kind
+		return !!page?.chooseDifficulty && !locked() && kind !== 'completed' && kind !== 'closed'
+	}
+	const playKey = createMemo(() => {
+		const visit = visitKey()
+		return visit && JSON.stringify([visit, data()?.started])
+	})
+	// Passive → explicit play remounts DailyPlay, not the board visit. Count the
+	// first playable observation even if consent is off; never replay on grant.
+	const onPlayable = createMemo(() => {
+		visitKey()
+		let seen = false
+		let stop: (() => void) | undefined
+		onCleanup(() => stop?.())
+		return (slug: string, mode: 'daily' | 'archive') => {
+			if (seen) return
+			seen = true
+			stop = trackGa4GameStart(slug, mode)
+		}
 	})
 	return (
 		<Show when={data() !== undefined}>
@@ -122,7 +166,10 @@ export default function GamePage() {
 				{(page) => (
 					<GameLanding
 						data={page().data}
-						locked={page().initialDaily?.kind === 'locked' || lockedKey() === playKey()}
+						englishWordNoticeInHero={englishWordNoticeInHero()}
+						locked={locked()}
+						chooseDifficulty={page().chooseDifficulty}
+						showDifficulty={showDifficulty()}
 						stage={page().practice || (page().day.mode === 'daily' && page().started)}
 						practice={page().practice}
 						daily={!page().practice && page().day.mode === 'daily'}
@@ -144,10 +191,13 @@ export default function GamePage() {
 								) : (
 									<DailyPlay
 										data={page().data}
+										englishWordNoticeInHero={englishWordNoticeInHero()}
 										day={page().day}
 										todayKey={page().todayKey}
 										resetAt={page().resetAt}
-										onLocked={() => setLockedKey(_playKey)}
+										onLandingBlocked={() => setBlockedKey(_playKey)}
+										chooseDifficulty={page().chooseDifficulty}
+										onPlayable={onPlayable()}
 										difficulty={page().difficulty}
 										initial={page().initialDaily}
 										started={page().started}

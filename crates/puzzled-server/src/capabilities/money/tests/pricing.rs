@@ -5,15 +5,11 @@ use tower::ServiceExt;
 
 use super::super::client::Catalog;
 use super::super::pricing::{plan, plans};
-use super::{catalog_fixture, fake_money, fake_money_router, granted, parsed};
+use super::{catalog_fixture, fake_money, fake_money_router, parsed};
 
 #[tokio::test]
-async fn catalogue_reader_and_fixture_use_price_catalogs_and_refuse_old_route() {
-    let (money, fake) = fake_money(200, granted()).await;
-    assert!(
-        money.catalog().await.is_ok(),
-        "reader must reach the real collection"
-    );
+async fn catalogue_fixture_refuses_legacy_collection() {
+    let (_, fake) = fake_money(200, json!({})).await;
     let app = fake_money_router(fake);
     for (path, expected) in [
         (

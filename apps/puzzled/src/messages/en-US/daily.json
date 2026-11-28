@@ -29,7 +29,7 @@
 	"notReadyTitle": "Today's {game} isn't ready yet",
 	"notReadyBody": "There is no {game} puzzle for today yet. Pick any 3 of today's other 19 puzzles to play free.",
 	"notReadyCta": "Browse today's free puzzles",
-	"startUsesPick": "Starting uses one of today's 3 free picks. A game you start stays open all day.",
+	"startUsesPick": "Pick any 3 games to play free each day. Once you start a game, it stays open all day.",
 	"englishWordPuzzle": "English word puzzle",
 	"firstAction": {
 		"sudoku": "Tap a blank square, then pick a number 1–9.",
@@ -40,7 +40,6 @@
 		"duo": "Tap a blank square to choose a sun or moon.",
 		"numberPath": "Start at 1. Drag or tap neighboring squares in order.",
 		"wordGroups": "Tap four words that belong together.",
-		"killerSudoku": "Tap a blank square and use its cage sum to pick a digit.",
 		"wordLadder": "Change one letter to make a new word.",
 		"wordGuess": "Enter any five-letter word to get your first clues.",
 		"cryptogram": "Tap a cipher letter, then guess what it stands for.",

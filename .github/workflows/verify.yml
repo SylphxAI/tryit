@@ -383,7 +383,43 @@ jobs:
       # assumed. Pinned by the @playwright/test version in bun.lock.
       - name: Install Playwright Chromium
         working-directory: apps/puzzled
-        run: bunx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_INSTALL_BROWSERS: chromium
+        run: &install-playwright-browsers |
+          set -euo pipefail
+          read -r -a browsers <<< "$PLAYWRIGHT_INSTALL_BROWSERS"
+          bunx playwright install "${browsers[@]}"
+
+          probe_browsers() {
+            node - "$@" <<'NODE'
+          const playwright = require('playwright')
+          async function probe() {
+            for (const name of process.argv.slice(2)) {
+              const engine = playwright[name]
+              // Lighthouse consumes the full pinned binary, not Chromium headless shell.
+              const executablePath = process.env.PLAYWRIGHT_FULL_CHROMIUM === '1' && name === 'chromium'
+                ? engine.executablePath() : undefined
+              const browser = await engine.launch({ executablePath, timeout: 10_000 })
+              try {
+                const page = await browser.newPage()
+                await page.setContent('<title>Playwright launch check</title>', { timeout: 5_000 })
+                console.log('Playwright '+name+' launch check passed')
+              } finally {
+                await browser.close()
+              }
+            }
+          }
+          probe().catch((error) => { console.error(error); process.exitCode = 1 })
+          NODE
+          }
+
+          if probe_browsers "${browsers[@]}"; then
+            echo "Browser dependencies already present; skipping apt"
+          else
+            echo "Browser launch failed; installing system dependencies and checking again"
+            bunx playwright install-deps "${browsers[@]}"
+            probe_browsers "${browsers[@]}"
+          fi
 
       - name: run-store get web-build
         uses: SylphxAI/.github/.github/actions/run-store@90d88da2d60dcd6a3884899c273dd3a7f975be17
@@ -442,13 +478,13 @@ jobs:
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3015
-        run: bun run test:e2e e2e-tests/sudoku-terminal.e2e.ts e2e-tests/result-completion.e2e.ts e2e-tests/result-modal-consent.e2e.ts e2e-tests/result-clipboard-denied.e2e.ts e2e-tests/game1-pass.e2e.ts e2e-tests/game-validators-and-bugs.e2e.ts --workers=1 --retries=0
+        run: bun run test:e2e e2e-tests/sudoku-terminal.e2e.ts e2e-tests/result-completion.e2e.ts e2e-tests/finish-save-streak.e2e.ts e2e-tests/result-modal-consent.e2e.ts e2e-tests/result-clipboard-denied.e2e.ts e2e-tests/game1-pass.e2e.ts e2e-tests/game-validators-and-bugs.e2e.ts --workers=1 --retries=0
 
       - name: Discovery structured data, catalog, redirects and statutory disclosures
         working-directory: apps/puzzled
         env:
           BASE_URL: http://localhost:3015
-        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/global-readiness.e2e.ts e2e-tests/offline.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts e2e-tests/solid-editorial.e2e.ts --workers=1 --retries=0
+        run: bun run test:e2e e2e-tests/discovery.e2e.ts e2e-tests/llms.e2e.ts e2e-tests/global-readiness.e2e.ts e2e-tests/offline.e2e.ts e2e-tests/legacy-page-redirects.e2e.ts e2e-tests/solid-editorial.e2e.ts e2e-tests/catalog-entry.e2e.ts --workers=1 --retries=0
 
       - name: Stage the Playwright report
         id: playwright-report
@@ -533,7 +569,10 @@ jobs:
       # bun.lock instead of by whatever the runner happens to ship.
       - name: Install Chromium for Lighthouse
         working-directory: apps/puzzled
-        run: bunx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_INSTALL_BROWSERS: chromium
+          PLAYWRIGHT_FULL_CHROMIUM: '1'
+        run: *install-playwright-browsers
 
       - name: Point CHROME_PATH at that Chromium
         run: |
@@ -715,7 +754,9 @@ jobs:
       # job installs both engines.
       - name: Install Playwright Chromium and WebKit
         working-directory: apps/puzzled
-        run: bunx playwright install --with-deps chromium webkit
+        env:
+          PLAYWRIGHT_INSTALL_BROWSERS: chromium webkit
+        run: *install-playwright-browsers
 
       - name: run-store get web-build
         uses: SylphxAI/.github/.github/actions/run-store@90d88da2d60dcd6a3884899c273dd3a7f975be17
@@ -781,7 +822,7 @@ jobs:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/board
         run: |
           set -euo pipefail
-          bun run test:e2e e2e-tests/board-craft.e2e.ts e2e-tests/home-craft.e2e.ts e2e-tests/phone-first.e2e.ts e2e-tests/region-consent.e2e.ts e2e-tests/play-shell.e2e.ts --workers=1 --retries=0 --output=test-results/board 2>&1 | tee "$RUNNER_TEMP/craft-board.log"
+          bun run test:e2e e2e-tests/board-craft.e2e.ts e2e-tests/paint-first-move.e2e.ts e2e-tests/home-craft.e2e.ts e2e-tests/home-lineup-back.e2e.ts e2e-tests/phone-first.e2e.ts e2e-tests/region-consent.e2e.ts e2e-tests/play-shell.e2e.ts e2e-tests/ga4-game-start.e2e.ts --workers=1 --retries=0 --output=test-results/board 2>&1 | tee "$RUNNER_TEMP/craft-board.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-board.log"; then echo "a craft spec skipped"; exit 1; fi
 
       - name: Pricing with the open store
@@ -800,7 +841,7 @@ jobs:
         env:
           SKIP_ENV_VALIDATION: 'true'
           NODE_ENV: production
-          API_INTERNAL_URL: http://127.0.0.1:8787
+          API_INTERNAL_URL: http://127.0.0.1:8788
           SYLPHX_PUBLIC_URL: https://tryit.fun
           SOLID_AUTH_FIXTURE_URL: https://127.0.0.1:18875
           SYLPHX_AUTH_URL: https://127.0.0.1:18875
@@ -826,7 +867,7 @@ jobs:
             if [ "$attempt" = 30 ]; then cat "$RUNNER_TEMP/fixture-auth.log" "$RUNNER_TEMP/serve-auth.log"; exit 1; fi
             sleep 1
           done
-          bun run test:e2e e2e-tests/auth.e2e.ts e2e-tests/solid-sign-in.e2e.ts --workers=1 --retries=0 --output=test-results/auth 2>&1 | tee "$RUNNER_TEMP/craft-auth.log"
+          bun run test:e2e e2e-tests/paid-touch.e2e.ts e2e-tests/auth.e2e.ts e2e-tests/solid-sign-in.e2e.ts --workers=1 --retries=0 --output=test-results/auth 2>&1 | tee "$RUNNER_TEMP/craft-auth.log"
           if grep -Eq '[0-9]+ skipped' "$RUNNER_TEMP/craft-auth.log"; then echo "an auth test skipped"; exit 1; fi
 
       - name: Stop the served builds and fixture APIs

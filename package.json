@@ -11,7 +11,7 @@
 	],
 	"scripts": {
 		"dev": "turbo dev --filter=@sylphx/puzzled",
-		"build": "turbo run build:with-migrate --filter=@sylphx/puzzled",
+		"build": "turbo run build --filter=@sylphx/puzzled",
 		"lint": "turbo lint",
 		"typecheck": "turbo typecheck",
 		"test": "turbo test",

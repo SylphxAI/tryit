@@ -8,7 +8,8 @@ import {
 } from '@/features/analytics/lib/checkout-entry-surface'
 import { resolvePricingCheckoutTrigger } from '@/features/plus-offer/lib/plus-offer'
 import { getAllGameMetadata, getGameMetadata } from '@/games/registry'
-import { isPracticeSupported, PRACTICE_GAMES, practicePath, practiceRefusal } from './practice'
+import { isPracticeSupported, PRACTICE_GAMES, practicePath } from './practice'
+import { practiceRefusal } from './practice-refusal'
 
 const track = mock(() => {})
 mock.module('@/features/analytics/lib/behavioral-events', () => ({ trackBehavioralEvent: track }))
@@ -92,4 +93,10 @@ test('PracticeUnlock impression and CTA use the trusted practice checkout surfac
 		currency: 'GBP',
 		is_guest: true,
 	})
+})
+
+test('practice links stay free of the Connect runtime that Home and Catalog would download', () => {
+	const source = readFileSync(new URL('./practice.ts', import.meta.url), 'utf8')
+	expect(source).not.toContain('@connectrpc/')
+	expect(source).not.toContain('@bufbuild/')
 })

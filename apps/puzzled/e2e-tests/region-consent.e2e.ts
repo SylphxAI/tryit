@@ -19,7 +19,7 @@ const full = {
 
 const banner = (page: Page) => page.locator('[data-consent-banner]')
 const settings = async (page: Page) => {
-	await page.getByRole('button', { name: 'Cookie settings', exact: true }).click()
+	await page.locator('footer').getByRole('button', { name: 'Cookie settings', exact: true }).click()
 	const dialog = page.getByRole('dialog', { name: 'Cookie settings' })
 	await expect(dialog).toBeVisible()
 	return dialog
@@ -53,8 +53,9 @@ async function captureCspViolations(page: Page) {
 	return violations
 }
 
-async function expectLandingPageView(page: Page, path: string) {
-	const pageLocation = `${new URL(page.url()).origin}${path}`
+/** After Accept, the first view keeps only allowlisted landing params; never PII or fragments. */
+async function expectLandingPageView(page: Page, path: string, query = '?gclid=fixture-g') {
+	const pageLocation = `${new URL(page.url()).origin}${path}${query}`
 	await expect
 		.poll(() => commands(page))
 		.toContainEqual([
@@ -74,12 +75,12 @@ async function expectLandingPageView(page: Page, path: string) {
 		},
 	])
 	expect(data.some(isConversion)).toBe(false)
-	expect(JSON.stringify(data)).not.toMatch(/private%40|example\.test|fixture-g|fixture-fragment/)
+	expect(JSON.stringify(data)).not.toMatch(/private%40|example\.test|email|fixture-fragment/)
 }
 
-async function setGpc(page: Page, signal: 'header' | 'browser') {
+async function setGpc(page: Page, signal: 'header' | 'browser', country = 'HK') {
 	await page.setExtraHTTPHeaders({
-		'CF-IPCountry': 'HK',
+		'CF-IPCountry': country,
 		...(signal === 'header' ? { 'Sec-GPC': '1' } : {}),
 	})
 	await page.addInitScript(
@@ -118,7 +119,7 @@ for (const viewport of [
 			)
 			expect((await page.request.get('/manifest.webmanifest')).status()).toBe(200)
 			const metric = await banner(page).evaluate((el) => {
-				const buttons = [...el.querySelectorAll('button')]
+				const buttons = [...el.querySelectorAll('[data-consent-choices] button')]
 				const nav = document.querySelector('nav.fixed')?.getBoundingClientRect()
 				const bar = el.getBoundingClientRect()
 				const boxes = buttons.map((button) => button.getBoundingClientRect())
@@ -148,7 +149,7 @@ for (const viewport of [
 			expect(metric.rowSpread).toBeLessThan(1)
 			for (const target of [
 				page.locator('[data-day-primary-action]'),
-				page.getByRole('button', { name: 'Cookie settings', exact: true }),
+				page.locator('footer').getByRole('button', { name: 'Cookie settings', exact: true }),
 			]) {
 				await target.evaluate((el) => el.scrollIntoView({ block: 'end' }))
 				await expect
@@ -175,7 +176,7 @@ for (const viewport of [
 			expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('granted')
 			await expect.poll(() => requests).toEqual([scriptUrl])
 			await expect(banner(page)).toBeHidden()
-			await expectLandingPageView(page, '/')
+			await expectLandingPageView(page, '/', '?gclid=fixture-g&gbraid=fixture-gb&wbraid=fixture-wb')
 			const data = await commands(page)
 			expect(violations).toEqual([])
 			expect(data).toContainEqual([
@@ -183,7 +184,7 @@ for (const viewport of [
 				'page_view',
 				{
 					send_to: id,
-					page_location: `${new URL(page.url()).origin}/`,
+					page_location: `${new URL(page.url()).origin}/?gclid=fixture-g&gbraid=fixture-gb&wbraid=fixture-wb`,
 					page_title: 'Free Daily Brain Games & Puzzles | Tryit',
 					page_referrer: '',
 				},
@@ -252,6 +253,35 @@ for (const viewport of [
 	})
 }
 
+test('South Korea requires opt-in and persists refusal', async ({
+	page,
+	googleRequests: requests,
+}) => {
+	await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'KR' })
+	await page.goto('/?gclid=fixture-g')
+	await expect(banner(page)).toBeVisible()
+	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+	await expectGoogleBlocked(page, requests)
+	await banner(page).getByRole('button', { name: 'Decline', exact: true }).click()
+	await expect(banner(page)).toBeHidden()
+	expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('denied')
+	await page.reload()
+	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+	await expect(banner(page)).toBeHidden()
+	await expectGoogleBlocked(page, requests)
+})
+
+test('South Korea GPC blocks Google even after a saved grant', async ({
+	page,
+	googleRequests: requests,
+}) => {
+	await setGpc(page, 'header', 'KR')
+	await page.goto('/')
+	await expect.poll(() => commands(page)).toContainEqual(['consent', 'default', denied])
+	await expect(banner(page)).toBeHidden()
+	await expectGoogleBlocked(page, requests)
+})
+
 for (const path of ['/games/sudoku', '/games/word-guess']) {
 	test.describe(`direct entry at ${path}`, () => {
 		test('EEA Accept loads the tag and sends a clean landing page view', async ({
@@ -267,6 +297,27 @@ for (const path of ['/games/sudoku', '/games/word-guess']) {
 			await expect.poll(() => requests).toEqual([scriptUrl])
 			await expectLandingPageView(page, path)
 			expect(violations).toEqual([])
+		})
+
+		test('EEA Analytics only sends a landing page view without ad click ids', async ({
+			page,
+			googleRequests: requests,
+		}) => {
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			await page.goto(`${path}?utm_source=google&utm_medium=cpc&gclid=fixture-g#fixture-fragment`)
+			await banner(page).getByRole('button', { name: 'Analytics only', exact: true }).click()
+			await expect.poll(() => requests).toEqual([scriptUrl])
+			const pageLocation = `${new URL(page.url()).origin}${path}?utm_source=google&utm_medium=cpc`
+			await expect
+				.poll(() => commands(page))
+				.toContainEqual([
+					'event',
+					'page_view',
+					expect.objectContaining({ send_to: id, page_location: pageLocation, page_referrer: '' }),
+				])
+			const data = await commands(page)
+			expect(data.some(([command, name]) => command === 'config' && name === adsId)).toBe(false)
+			expect(JSON.stringify(data)).not.toMatch(/gclid|fixture-g|fixture-fragment/)
 		})
 
 		test('EEA Decline suppresses Google and persists after reload', async ({
@@ -314,7 +365,11 @@ test('context is private no-store, only reads the CF header and never varies pag
 	request,
 }) => {
 	for (const [country, expected] of [
-		['US', 'ROW'],
+		...['US', 'CA', 'AU', 'NZ', 'JP', 'HK', 'TW', 'SG', 'AE', 'IL'].map((country) => [
+			country,
+			'ROW',
+		]),
+		['KR', 'EEA'],
 		['US, US', 'EEA'],
 		['XX', 'EEA'],
 		['', 'EEA'],
@@ -386,7 +441,8 @@ test('late consent leaves the cold Nonogram LCP on game content', async ({ page,
 	} finally {
 		held.resolve()
 	}
-	await expect(banner(page).getByRole('button')).toHaveCount(3)
+	await expect(banner(page).locator('[data-consent-choices]').getByRole('button')).toHaveCount(3)
+	await expect(banner(page).getByRole('button', { name: 'Cookie settings' })).toBeVisible()
 	await expect(banner(page).getByRole('link', { name: 'Privacy policy' })).toBeVisible()
 	// Let Chromium paint the revealed notice and deliver any new entry before the first input.
 	await page.evaluate(

@@ -12,6 +12,11 @@
 	},
 	"startGame": "開始遊戲",
 	"complete": "謎題完成！",
+	"firstMove": {
+		"sum": "框住嘅格仔加埋，就係角落嗰個數字。",
+		"example": "例子",
+		"action": "撳一格，再撳一個數字。"
+	},
 	"cageTotal": "籠的總和 {sum}",
 	"notes": "筆記",
 	"notesMode": "筆記模式",

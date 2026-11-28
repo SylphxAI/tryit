@@ -46,7 +46,7 @@ const PRODUCTION_SECURITY_VARS: string[] = []
  *
  * Every entry carries required: false because presentation boot enforces none
  * of them (see SERVER_REQUIRED above): enforcement lives where the variable is
- * used - redis/db/credential helpers throw when used unconfigured, the dest
+ * used - redis/credential helpers throw when used unconfigured, the dest
  * peels and the origin resolver fall back. Add a name here before reading it
  * in src.
  */
@@ -85,6 +85,12 @@ export const KNOWN_VARS: readonly EnvVar[] = [
 		name: 'GOOGLE_ADS_PURCHASE_LABEL',
 		required: false,
 		description: 'Google Ads Website Purchase conversion label; ignored without GOOGLE_ADS_ID',
+	},
+	{
+		name: 'META_PIXEL_ID',
+		required: false,
+		description:
+			'Meta Pixel id (digits); empty means off. Loads only after a saved full ads consent, never under GPC',
 	},
 	// Deployment / dev host facts
 	{
@@ -138,12 +144,6 @@ export const KNOWN_VARS: readonly EnvVar[] = [
 		name: 'AI_API_KEY',
 		required: false,
 		description: 'Models product key; required when Models is called',
-	},
-	// Security / infra
-	{
-		name: 'DATABASE_URL',
-		required: false,
-		description: 'Postgres connection string for product reads (audit logs)',
 	},
 ]
 
@@ -288,6 +288,10 @@ export const env = {
 	get GOOGLE_ADS_ID(): string | undefined {
 		return process.env.GOOGLE_ADS_ID
 	},
+	/** Meta Pixel id; empty means off */
+	get META_PIXEL_ID(): string | undefined {
+		return process.env.META_PIXEL_ID
+	},
 	/** Google Ads Website Purchase conversion label */
 	get GOOGLE_ADS_PURCHASE_LABEL(): string | undefined {
 		return process.env.GOOGLE_ADS_PURCHASE_LABEL
@@ -295,9 +299,5 @@ export const env = {
 	/** AdSense ad unit id */
 	get ADS_SLOT_ID(): string | undefined {
 		return process.env.ADS_SLOT_ID
-	},
-	/** Postgres connection string */
-	get DATABASE_URL(): string | undefined {
-		return process.env.DATABASE_URL
 	},
 }

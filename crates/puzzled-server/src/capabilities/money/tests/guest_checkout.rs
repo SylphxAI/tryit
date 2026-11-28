@@ -357,15 +357,32 @@ async fn checkout_receipt_requires_exact_owned_paid_session() {
                 "amount_total": "1299",
                 "currency_code": "usd",
                 "processor_invoice_id": "in_recurring_fixture",
+                "transaction_id": "in_recurring_fixture",
             });
             match id.as_str() {
                 "cs_pass" | "chk_pass" => {
                     row["amount_total"] = json!(300);
                     row["currency_code"] = json!("JPY");
                     row["processor_payment_id"] = json!("pi_pass_fixture");
-                    row["processor_invoice_id"] = json!("");
+                    row["processor_invoice_id"] = json!("in_pass_fixture");
+                    row["transaction_id"] = json!("pi_pass_fixture");
                 }
-                "cs_missing_payment_id" => row["processor_invoice_id"] = json!(""),
+                "cs_recurring_dual" => {
+                    row["processor_payment_id"] = json!("pi_not_the_order");
+                    // Neither secondary processor field is the canonical source.
+                    row["processor_invoice_id"] = json!("in_not_the_order");
+                }
+                "cs_before_money_rollout" => {
+                    row.as_object_mut().unwrap().remove("transaction_id");
+                }
+                "cs_empty_order" => {
+                    row["processor_payment_id"] = json!("pi_not_the_order");
+                    row["transaction_id"] = json!("");
+                }
+                "cs_session_fallback" => row["transaction_id"] = json!("cs_session_fallback"),
+                "cs_money_session_id" => row["transaction_id"] = json!("chk_recurring"),
+                "cs_bad_order" => row["transaction_id"] = json!("in_"),
+                "cs_bad_order_chars" => row["transaction_id"] = json!("in_contains/a/slash"),
                 "cs_pending" => row["state"] = json!("open"),
                 "cs_unpaid" => row["payment_status"] = json!("unpaid"),
                 "cs_trial" => row["payment_status"] = json!("no_payment_required"),
@@ -393,6 +410,7 @@ async fn checkout_receipt_requires_exact_owned_paid_session() {
         ("cs_pass", "pi_pass_fixture", 300, "JPY"),
         ("chk_pass", "pi_pass_fixture", 300, "JPY"),
         ("cs_recurring", "in_recurring_fixture", 1299, "USD"),
+        ("cs_recurring_dual", "in_recurring_fixture", 1299, "USD"),
     ] {
         let receipt = money
             .settled_checkout(session, session, &subjects)
@@ -423,7 +441,12 @@ async fn checkout_receipt_requires_exact_owned_paid_session() {
         .await
         .is_none());
     for session in [
-        "cs_missing_payment_id",
+        "cs_before_money_rollout",
+        "cs_empty_order",
+        "cs_session_fallback",
+        "cs_money_session_id",
+        "cs_bad_order",
+        "cs_bad_order_chars",
         "cs_pending",
         "cs_unpaid",
         "cs_trial",

@@ -13,6 +13,10 @@
 	"startGame": "Começar jogo",
 	"fillMode": "Preencher",
 	"markMode": "Marcar",
+	"fillCue": "Casas da imagem",
+	"markCue": "Casas que ficam vazias",
+	"currentMode": "Modo: {mode}",
+	"switchToMark": "Mude para Marcar nas casas vazias.",
 	"errors": "{count} erros",
 	"complete": "Imagem completa!",
 	"messages": {

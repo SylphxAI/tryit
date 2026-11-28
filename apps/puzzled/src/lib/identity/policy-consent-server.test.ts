@@ -48,7 +48,7 @@ test('records only the seven-field consent fact at the organization-authenticate
 		),
 		project_id: projectId,
 		principal_id: principalId,
-		purpose: 'policy_acceptance:terms=2026-11-14;privacy=2026-11-14;surface=puzzled_web',
+		purpose: 'policy_acceptance:terms=2026-11-14;privacy=2026-11-27;surface=puzzled_web',
 		state: 'granted',
 		legal_basis: 'consent',
 		occurred_at_unix_seconds: expect.any(Number),

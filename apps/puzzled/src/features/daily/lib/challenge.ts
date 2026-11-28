@@ -8,13 +8,17 @@
  * on that same day.
  */
 import { isFieldSet } from '@bufbuild/protobuf'
+import { gameSupportsDifficulty } from '@/games/registry'
 import {
 	type GetSharedResultResponse,
 	GetSharedResultResponseSchema,
 } from '@/gen/connect/puzzled/v1/puzzle_pb'
 import { canonicalizeGameSlug, gamePath, PLAYER_TITLE } from '@/lib/game-slug'
 import { CHALLENGE_KEY } from '@/lib/storage-keys'
+import { asDifficulty } from './difficulty-completion'
 import { buildResultCard, type ResultCardModel } from './result-card'
+import { START_PARAM, START_PARAM_ON } from './start-param'
+import { DEFAULT_DAILY_DIFFICULTY } from './today-play-path'
 
 /** A share id is the UUID the api issued; anything else is not a share. */
 const SHARE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -131,18 +135,28 @@ export function landingPlayTarget(
 /**
  * Build the play CTA destination on the sender's game page, preserving `ref`
  * and `utm_source` across navigation from `/r/<shareId>` or `/daily?ref=...`.
+ *
+ * With `start`, the link opens today's started board (`?start=1#play`, at the
+ * given level or the default for games with levels). The game page still
+ * starts only when the click recorded a start intent, so a pasted or crawled
+ * copy of this link shows the start card and spends no pick.
  */
 export function sharedPlayHref(input: {
 	gameSlug: string
 	shareId?: string | null
 	utmSource?: string | null
+	start?: { difficulty?: string | null } | null
 }): string {
 	const slug = resolveKnownGameSlug(input.gameSlug) ?? input.gameSlug.trim()
 	const params = new URLSearchParams()
 	const shareId = input.shareId?.trim()
 	if (shareId) params.set('ref', shareId)
 	params.set('utm_source', input.utmSource?.trim() || 'share')
-	return `${gamePath(slug)}?${params.toString()}`
+	if (!input.start) return `${gamePath(slug)}?${params.toString()}`
+	if (gameSupportsDifficulty(slug))
+		params.set('difficulty', asDifficulty(input.start.difficulty) ?? DEFAULT_DAILY_DIFFICULTY)
+	params.set(START_PARAM, START_PARAM_ON)
+	return `${gamePath(slug)}?${params.toString()}#play`
 }
 
 /** Explicit game hint from a share URL (`?g=<slug>` or `?game=<slug>`), when valid. */

@@ -1,6 +1,6 @@
 {
 	"name": "Cinco Letras",
-	"tagline": "5 letras • 6 tentativas",
+	"tagline": "Palavras em inglês • 6 tentativas",
 	"highlight": "6 palpites",
 	"description": "Descubra a palavra de 5 letras em 6 tentativas",
 	"howToPlay": "Como jogar",
@@ -13,6 +13,7 @@
 		"present": "Amarelo significa que a letra está na palavra, mas no lugar errado",
 		"absent": "Cinza significa que a letra não está na palavra"
 	},
+	"sound": "Som",
 	"keyboard": {
 		"enter": "Enter",
 		"delete": "Apagar"

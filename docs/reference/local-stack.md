@@ -1,17 +1,23 @@
 # Local full-stack check (`scripts/local-stack.ts`)
 
-Run the whole [`scripts/verify-live.ts`](live-verification.md) check set against
-a **local** stack — the real `crates/puzzled-server` binary, the real
-`apps/puzzled` web build, and a real Postgres with the Atlas migrations
-applied — instead of only the Connect surface.
+Run the [verification harness](live-verification.md) against the local Rust API,
+SolidStart web app and a scratch Postgres database. The ingress loads the API
+service's `path_prefixes` from [`sylphx.toml`](../../sylphx.toml). Exact paths
+and their slash-delimited descendants go to the API; everything else goes to
+web. For example, `/observability/test` routes to the API, while
+`/api/observability/test` routes to web. Do not trigger either to check routing.
 
 ## Layer
 
 This is a **Local** check, not a Live claim. It answers "is the product loop
 correct in the revision I built?" while the platform Release path is what
-answers "is production serving it?". A green local run never upgrades a Live
-check: Live stays `bun run verify:live --base https://puzzled.gg
---expected-sha <sha>`.
+answers "is production serving it?". A green local run does not verify a
+deploy. Use the explicit loopback base below for local checks; omitting
+`--base` targets production.
+
+To check routing alone, run `bun test --isolate scripts/local-stack.test.ts`.
+It uses the actual ingress and two disposable loopback listeners. It does
+not require Postgres, credentials, production traffic or live measurement.
 
 Use it when:
 
@@ -37,47 +43,31 @@ psql -h localhost -U postgres -c 'CREATE DATABASE puzzled_local_check;'
 export DATABASE_URL="postgres://postgres:postgres@localhost:5432/puzzled_local_check?sslmode=disable"
 atlas migrate apply --dir file://apps/puzzled/atlas/migrations --url "$DATABASE_URL"
 
-# 2. api — the Rust authority (owns Postgres).
-PUZZLED_HTTP_PORT=8787 DATABASE_URL="$DATABASE_URL" cargo run -p puzzled-server &
+# 2. Rust API — use a debug build, with the ingress as its browser origin.
+#    Use only scratch configuration; do not supply live service credentials.
+PUZZLED_HTTP_PORT=8787 PUZZLED_PUBLIC_URL=http://127.0.0.1:9999 cargo run -p puzzled-server &
 
-# 3. web — presentation only; it must boot without DATABASE_URL and reach the
-#    api through API_INTERNAL_URL (the platform injects the same value).
-(cd apps/puzzled && API_INTERNAL_URL=http://127.0.0.1:8787 PORT=3000 bun run dev)
+# 3. SolidStart — in a separate terminal, run without DATABASE_URL.
+(cd apps/puzzled && env -u DATABASE_URL API_INTERNAL_URL=http://127.0.0.1:8787 \
+  SYLPHX_PUBLIC_URL=http://127.0.0.1:9999 bun run dev)
 
-# 4. ingress — mirrors the sylphx.toml split: Connect namespace + probes go to
-#    the api, everything else to the web service. Like the platform router it
-#    stamps x-revision-sha (`git rev-parse HEAD`), which is what --expected-sha
-#    asserts against.
-PUZZLED_API_PORT=8787 bun scripts/local-stack.ts
+# 4. Ingress — in another terminal, start the loopback proxy.
+PUZZLED_API_PORT=8787 bun run local:stack
+
+# 5. Verify the local stack, not the production default.
+bun run verify:live --base http://127.0.0.1:9999 --json
 ```
 
-`--base http://127.0.0.1:9999` is enough to pass: the harness accepts a
-loopback canonical when the target host is loopback, and `marks-scan` accepts
-localhost origins for a local target.
-
-To rehearse the **public-host** path as well (the canonical / JSON-LD origin a
-real visitor gets), map the product hostname to loopback for the duration of
-the run and remove it afterwards:
-
-```bash
-echo '127.0.0.1 puzzled.gg' | sudo tee -a /etc/hosts   # temporary, optional
-bun run verify:live --base http://puzzled.gg:9999 --play --json
-sudo sed -i '/127\.0\.0\.1 puzzled\.gg/d' /etc/hosts   # then remove it
-```
-
-With that mapping the canonical resolves to `https://puzzled.gg` (public hosts
-are always https), which is what production must advertise. Without it the
-local run still passes; it just never exercises the non-loopback branch of the
-origin resolver. A production build ignores a loopback
-`SYLPHX_PUBLIC_URL` and falls back to `https://puzzled.gg`, so a local
-*production* `next build` also does not need the mapping.
+Use the ingress origin for both web and API requests so guest cookies stay
+on the same origin. Add `--play` only against the scratch database. This
+run does not prove production host, HTTPS, or live provider behavior.
 
 ## What the local run can and cannot assert
 
 | Check | Locally | Why |
 | --- | --- | --- |
 | `free-slug-discovery`, `daily-serve`, `archive-open` | pass | Real GetDaily against the real schema and rotation. |
-| `finish-loop` | pass on a revision that records losses | Terminal recorded, `hasCompleted` on re-read, second submit refused `already_played`. On a revision that still hard-codes the win claim this check fails with `Invalid win claim …` — that failure is the point of the check, not a local artifact. |
+| `finish-loop` (with `--play`) | pass with a playable scratch stack | Terminal recorded, `hasCompleted` on re-read, second submit refused `already_played`. |
 | `web-document`, `marks-scan` | pass | The web layer is what renders canonical/JSON-LD/CTA; loopback targets are accepted as-is. |
 | `share-deep-link` | `unknown` | The harness cannot solve the free module, so the solution signature stays unknown; the landing-page shape and non-spoiler checks still run. |
 | `healthz` `revision-sha` | pass | The api probes return only `{"status":"ok"}`; the revision is the router's `x-revision-sha` header, which `local-stack.ts` stamps from `git rev-parse HEAD`. |
@@ -86,21 +76,8 @@ origin resolver. A production build ignores a loopback
 
 `SubmitGuess` → `200 valid=true status=lost` (a give-up is a terminal,
 not an "Invalid win claim"), `GetDaily` re-read → `hasCompleted=true` with the
-completed session, and a second terminal → `409 already_played`. The row the
-run writes is a qualifying ritual finish, so the North Star recipe is
-recomputable against it:
-
-```sql
--- daily puzzle completers for one product day (Asia/Hong_Kong day key)
-SELECT COUNT(DISTINCT user_id)::bigint AS daily_puzzle_completers
-FROM game_sessions
-WHERE day_key = 'YYYY-MM-DD'
-  AND is_ritual = true
-  AND module_class = 'puzzle_ritual'
-  AND status IN ('won', 'lost');
-```
-
-The same statement is published in Rust as
-`crates/puzzled-core/.../ritual_completion.rs` (`DRC_RECOMPUTE_SQL`) and
-asserted by `crates/puzzled-server` tests, so the local run closes the loop
-from client submission to the metric definition.
+completed session, and a second terminal → `409 already_played`. The harness
+writes a real ritual finish but marks it as verification traffic, so it does
+not contribute to [daily puzzle completers](../metrics.md#recomputing-it). The
+migrated database tests check the North Star against both marked and unmarked
+finishes.

@@ -14,6 +14,7 @@
 	"startGame": "ゲーム開始",
 	"region": "領域 {index}",
 	"complete": "パズルクリア！",
+	"sound": "効果音",
 	"difficulty": {
 		"easy": "かんたん",
 		"medium": "ふつう",

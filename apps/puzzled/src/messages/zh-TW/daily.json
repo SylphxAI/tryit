@@ -12,7 +12,7 @@
 	"completedNoResult": "你已完成今天的謎題，暫時無法顯示結果詳情。",
 	"difficultyStatusUnverified": "無法確認你今天已完成哪些難度，系統會在你開始前核對。",
 	"todaysFreeGame": "玩今天 3 款免費謎題",
-	"startUsesPick": "開始後會用掉今天 3 個免費名額中的 1 個，開始過的遊戲整天都能玩。",
+	"startUsesPick": "每天任選 3 款遊戲免費玩，開始後當天可以隨時繼續。",
 	"englishWordPuzzle": "英文單字謎題",
 	"firstAction": {
 		"sudoku": "點一個空格，再選 1–9 的數字。",
@@ -23,7 +23,6 @@
 		"duo": "點一個空格，選太陽或月亮。",
 		"numberPath": "從 1 開始，拖曳或依序點按相鄰方格。",
 		"wordGroups": "點四個有共同主題的單字。",
-		"killerSudoku": "點一個空格，參考區塊總和選數字。",
 		"wordLadder": "換掉一個字母，拼出新單字。",
 		"wordGuess": "輸入任一五字母單字，取得提示。",
 		"cryptogram": "點一個加密字母，猜它代表哪個字母。",

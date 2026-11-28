@@ -18,6 +18,8 @@
 // ==========================================
 export const SIGNAL_STORAGE_KEY = 'puzzled:signal'
 export const CONSENT_KEY = `${SIGNAL_STORAGE_KEY}.consent`
+/** The consent text version a saved choice was made under (see CONSENT_VERSION). */
+export const CONSENT_VERSION_KEY = `${SIGNAL_STORAGE_KEY}.consent-version`
 
 // ==========================================
 // Sound & Audio
@@ -27,7 +29,9 @@ export const SOUND_ENABLED_KEY = 'puzzled:sound:enabled'
 // ==========================================
 // PWA & Prompts
 // ==========================================
+export const CAGE_SUDOKU_CUE_SEEN_KEY = 'puzzled:game:killer-sudoku:cue-seen'
 export const PWA_PROMPT_DISMISSED_KEY = 'puzzled:pwa:prompt-dismissed'
+export const SAVE_STREAK_DISMISSED_DAY_KEY = 'puzzled:result:save-streak-dismissed-day'
 
 // ==========================================
 // Daily play continuity
@@ -35,6 +39,7 @@ export const PWA_PROMPT_DISMISSED_KEY = 'puzzled:pwa:prompt-dismissed'
 /** Same-tab in-progress daily board state; strictly necessary for reload recovery. */
 export const DAILY_PLAY_DRAFT_PREFIX = 'puzzled:play-draft:v2:'
 export const DAILY_PLAY_DRAFT_TAB_KEY = 'puzzled:play-draft-tab'
+export const PAINT_MODE_CUE_SEEN_DAY_KEY = 'puzzled:paint:mode-cue-seen-day'
 
 /**
  * Same-tab, one-shot record of a pressed "Play" for one game

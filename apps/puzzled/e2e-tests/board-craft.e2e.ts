@@ -1,6 +1,9 @@
 import { devices, expect, type Locator, type Page, test } from '@playwright/test'
 import sudokuGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/sudoku.json'
+import { isPracticeSupported } from '../src/features/practice/lib/practice'
 import { productDayKey } from '../src/lib/product-day'
+import { SAVE_STREAK_DISMISSED_DAY_KEY, SOUND_ENABLED_KEY } from '../src/lib/storage-keys'
+import { type FinishFixture, guestFinishFixtures } from './guest-finish-fixtures'
 
 const fivePath = '/en-US/games/word-guess?start=1#play'
 const firstPuzzleId = '11a198bc-8079-4830-8c07-0d397aaabc73'
@@ -43,6 +46,75 @@ async function start(page: Page, baseURL?: string, locale = 'en-US') {
 	await expect(board.locator('button')).toHaveCount(81)
 	return board
 }
+
+test.describe('browser Signal regional consent', () => {
+	// The fixture's fake collector is intentionally absent from production CSP.
+	test.use({ bypassCSP: true })
+
+	test('opt-out page and game events do not grant signup attribution', async ({
+		page,
+		baseURL,
+	}) => {
+		requireLocalFixture(baseURL)
+		const origin = new URL(baseURL ?? 'http://localhost:3000').origin
+		const collector = 'https://signal.example.test'
+		const eventNames: string[] = []
+		await page.route('**/*', (route) => {
+			const url = new URL(route.request().url())
+			return url.origin === origin ? route.fallback() : route.abort()
+		})
+		await page.route(`${collector}/v1/analytics/events:batch`, async (route) => {
+			if (route.request().method() === 'POST') {
+				const { events } = route.request().postDataJSON() as { events: { event_name: string }[] }
+				eventNames.push(...events.map((event) => event.event_name))
+			}
+			await route.fulfill({
+				status: 204,
+				headers: {
+					'access-control-allow-origin': origin,
+					'access-control-allow-methods': 'POST',
+					'access-control-allow-headers': 'content-type,x-sylphx-key',
+				},
+			})
+		})
+		await page.route('**/api/consent-context', async (route) => {
+			const response = await route.fetch()
+			await route.fulfill({
+				response,
+				json: {
+					...(await response.json()),
+					ids: {},
+					stream: { apiKey: 'sylphx_pk_fixture', baseUrl: collector },
+				},
+			})
+		})
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'US' })
+		await routeSudoku(page)
+		await page.goto('/en-US/games/sudoku?difficulty=easy&start=1&ref=fixture#play')
+		await expect.poll(() => eventNames).toContain('page_view')
+		await page.locator('[data-game-stage="start"]').getByRole('button').click()
+		await expect.poll(() => eventNames).toContain('game_start')
+		const signupCookie = async () =>
+			(await page.context().cookies()).find(({ name }) => name === 'puzzled_signup_attr')?.value
+		expect(await signupCookie()).toBeUndefined()
+		// The immersive play view omits the footer. Keep the same qualification
+		// and referral on the homepage, then exercise the real settings control.
+		const views = () => eventNames.filter((event) => event === 'page_view').length
+		const previousViews = views()
+		await page.goto('/?ref=fixture')
+		await expect.poll(views).toBeGreaterThan(previousViews)
+		expect(await signupCookie()).toBeUndefined()
+		await page
+			.locator('footer')
+			.getByRole('button', { name: 'Cookie settings', exact: true })
+			.click()
+		await page
+			.getByRole('dialog')
+			.getByRole('button', { name: 'Analytics only', exact: true })
+			.click()
+		await expect.poll(signupCookie).toBe(encodeURIComponent('r=fixture'))
+	})
+})
 
 async function dimensions(controls: Locator) {
 	for (const control of await controls.all()) {
@@ -142,6 +214,135 @@ test('dark CJK controls retain geometry and reduced-motion focus', async ({
 	await page.screenshot({ path: testInfo.outputPath('board-dark-zh-HK.png'), fullPage: false })
 })
 
+async function observeFiveFeedback(page: Page, unsupported = false) {
+	await page.addInitScript(
+		({ unsupported, key }) => {
+			if (unsupported) {
+				Object.defineProperty(window, 'AudioContext', { value: undefined })
+				Object.defineProperty(navigator, 'vibrate', { value: undefined })
+				localStorage.setItem(key, 'true')
+				return
+			}
+			const record = (name: string) => {
+				const metrics = document.documentElement.dataset
+				metrics[name] = String(Number(metrics[name] ?? 0) + 1)
+			}
+			const Context = window.AudioContext
+			window.AudioContext = class extends Context {
+				constructor() {
+					super()
+					record('contexts')
+				}
+			}
+			const start = OscillatorNode.prototype.start
+			OscillatorNode.prototype.start = function (when?: number) {
+				start.call(this, when)
+				record('cues')
+			}
+			Object.defineProperty(navigator, 'vibrate', {
+				value: (pattern: number[]) => {
+					if (pattern.join(',') === '5') record('pulses')
+					return true
+				},
+			})
+		},
+		{ unsupported, key: SOUND_ENABLED_KEY },
+	)
+}
+
+test.describe('Five board feedback', () => {
+	test.use({ hasTouch: true, viewport: { width: 390, height: 844 } })
+	test.beforeEach(async ({ page, baseURL }) => {
+		requireLocalFixture(baseURL)
+		const origin = new URL(baseURL ?? 'http://localhost:3000').origin
+		await page.route('**/*', (route) =>
+			new URL(route.request().url()).origin === origin ? route.fallback() : route.abort(),
+		)
+		await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+			route.fulfill({
+				json: {
+					gameSlug: 'word-guess',
+					puzzleDate: productDayKey(),
+					puzzleId: firstPuzzleId,
+					canPlay: true,
+					puzzleDataJson: '{"wordLength":5,"maxAttempts":6}',
+				},
+			}),
+		)
+	})
+
+	async function openFive(page: Page) {
+		await page.goto(fivePath)
+		const decline = page.getByRole('button', { name: 'Decline', exact: true })
+		if (await decline.isVisible()) await decline.click()
+		return {
+			root: page.locator('html'),
+			sound: page.getByRole('button', { name: 'Sound', exact: true }),
+			grid: page.getByRole('table', { name: 'Five' }).locator('tr').first(),
+			key: (name: string) =>
+				page.locator('fieldset[data-play-control]').getByRole('button', { name, exact: true }),
+		}
+	}
+
+	test('one cue per trusted edit and persistent Sound', async ({ page }, testInfo) => {
+		await observeFiveFeedback(page)
+		const { root, sound, grid, key } = await openFive(page)
+		await expect(sound).toBeEnabled()
+		await dimensions(sound)
+		await expect(sound).toHaveAttribute('aria-pressed', 'false')
+		await key('A').tap()
+		await expect(grid).toHaveText('A')
+		await expect(root).toHaveAttribute('data-pulses', '1')
+		await expect(root).not.toHaveAttribute('data-contexts')
+		await sound.focus()
+		await page.keyboard.press('Space')
+		await expect(sound).toHaveAttribute('aria-pressed', 'true')
+		await expect(root).not.toHaveAttribute('data-contexts')
+		await page.keyboard.down('b')
+		await expect(root).toHaveAttribute('data-cues', '1')
+		await page.keyboard.down('b')
+		await page.keyboard.up('b')
+		await key('C').dispatchEvent('click')
+		// Headless Chromium keeps tabs visible. Change only visibility; input is still trusted.
+		await page.evaluate(() =>
+			Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' }),
+		)
+		await page.keyboard.press('d')
+		await page.evaluate(() => Reflect.deleteProperty(document, 'visibilityState'))
+		await page.keyboard.press('e') // Full row.
+		await expect(grid).toHaveText('ABBCD')
+		await expect(root).toHaveAttribute('data-cues', '1')
+		await expect(root).toHaveAttribute('data-pulses', '2')
+		await page.reload()
+		await expect(sound).toHaveAttribute('aria-pressed', 'true')
+		await expect(grid).toBeEmpty()
+		await page.keyboard.press('Backspace')
+		await expect(root).not.toHaveAttribute('data-contexts')
+		await expect(root).not.toHaveAttribute('data-pulses')
+		await key('F').tap()
+		await expect(grid).toHaveText('F')
+		await expect(root).toHaveAttribute('data-cues', '1')
+		await expect(root).toHaveAttribute('data-pulses', '1')
+		await page.screenshot({ path: testInfo.outputPath('five-sound-390.png') })
+		await sound.tap()
+		await page.reload()
+		await expect(sound).toBeEnabled()
+		await expect(sound).toHaveAttribute('aria-pressed', 'false')
+		await page.keyboard.press('g')
+		await expect(grid).toHaveText('G')
+		await expect(root).not.toHaveAttribute('data-contexts')
+	})
+
+	test('silent and playable without feedback APIs', async ({ page }) => {
+		await observeFiveFeedback(page, true)
+		const { sound, grid, key } = await openFive(page)
+		await expect(sound).toBeDisabled()
+		await expect(sound).toHaveAttribute('aria-pressed', 'false')
+		await key('A').tap()
+		await expect(grid).toHaveText('A')
+	})
+})
+
 for (const scenario of [
 	'same run',
 	'guest run',
@@ -158,6 +359,7 @@ for (const scenario of [
 		const now = new Date()
 		const today = productDayKey(now)
 		const restore = scenario === 'same run' || scenario === 'guest run'
+		if (scenario === 'same run') await observeFiveFeedback(page)
 		let puzzleDate = today
 		let puzzleId = firstPuzzleId
 		const guesses: unknown[] = []
@@ -269,8 +471,12 @@ for (const scenario of [
 			release.resolve()
 			await acknowledged.promise
 			if (restore) {
+				if (scenario === 'same run')
+					await page.evaluate((key) => localStorage.setItem(key, 'true'), SOUND_ENABLED_KEY)
 				await goBack()
 				await expect(row(0).locator('[data-grade]')).toHaveCount(5)
+				if (scenario === 'same run')
+					await expect(page.locator('html')).not.toHaveAttribute('data-contexts')
 				await expect(letter(1)).toHaveAttribute('data-grade', 'present')
 				await expect(letter(2)).toHaveAttribute('data-grade', 'correct')
 				await expect(row(1)).toHaveAttribute('data-current', '')
@@ -313,21 +519,12 @@ function overlaps(a: DOMRect, b: DOMRect) {
 	return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 }
 
-async function expectFinishTypography(card: Locator, hasPractice: boolean, phone: boolean) {
+async function expectFinishTypography(card: Locator, actions: Locator[], phone: boolean) {
 	const next = card.getByRole('link', { name: /^Play next:/ })
-	const secondary = card.locator('.result-action-row').locator('a, button')
-	await expect(secondary).toHaveCount(hasPractice ? 3 : 2)
-	const controls = [
-		next,
-		...(await secondary.all()),
-		card.getByRole('link', { name: 'Create a free account', exact: true }),
-		card.locator('[data-install-nudge]').getByRole('button', { name: 'Dismiss', exact: true }),
-	]
 	const elements = [
 		card.locator('.completion-heading h2'),
-		card.locator('[data-result-percentile]'),
-		card.locator('[data-result-milestone="7"]'),
-		...controls,
+		...(await card.locator('[data-result-percentile], [data-result-streak]').all()),
+		...actions,
 	]
 	const boxes = await Promise.all(
 		elements.map((locator) =>
@@ -338,7 +535,7 @@ async function expectFinishTypography(card: Locator, hasPractice: boolean, phone
 		for (const other of boxes.slice(index + 1)) expect(overlaps(box, other)).toBe(false)
 	}
 
-	for (const action of controls) {
+	for (const action of elements) {
 		const words = await action.evaluate((el) => {
 			const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
 			const range = document.createRange()
@@ -382,45 +579,36 @@ for (const viewport of [
 			test.use({ viewport })
 		}
 
-		for (const slug of ['word-guess', 'sudoku', 'crossword'] as const) {
-			test(`${slug} guest finish fits without moving the board`, async ({
+		for (const [slug, outcome, installAvailable, dismissedEarlier] of [
+			...(
+				Object.entries(guestFinishFixtures) as [keyof typeof guestFinishFixtures, FinishFixture][]
+			).flatMap(([slug, fixture]) => [
+				[slug, 'won', true] as const,
+				...(fixture.lose ? [[slug, 'lost', false] as const] : []),
+			]),
+			['word-guess', 'won', false],
+			['word-guess', 'won', true, true],
+		] as const) {
+			const install = installAvailable && dismissedEarlier === true
+			test(`${slug} guest finish ${outcome} (${install ? 'install only' : installAvailable ? 'save-streak preferred' : 'save-streak only'}) fits without moving the board`, async ({
 				page,
 				baseURL,
 			}, info) => {
 				requireLocalFixture(baseURL)
 				const dayKey = productDayKey()
-				const next = 'crowns'
-				const puzzleData = {
-					'word-guess': { wordLength: 5, maxAttempts: 6 },
-					sudoku: {
-						grid: Array.from({ length: 9 }, (_, r) =>
-							Array.from({ length: 9 }, (_, c) =>
-								r === 8 && c === 8 ? null : ((r * 3 + Math.floor(r / 3) + c) % 9) + 1,
-							),
-						),
-						difficulty: 'easy',
-					},
-					crossword: {
-						grid: [['', '', '', '', ''], ...Array.from({ length: 4 }, () => Array(5).fill(null))],
-						clues: {
-							across: [{ number: 1, row: 0, col: 0, length: 5, clue: 'Pleasant' }],
-							down: [],
-						},
-					},
-				}[slug]
+				const next = slug === 'crowns' ? 'duo' : 'crowns'
+				const fixture: FinishFixture = guestFinishFixtures[slug]
 				await page.emulateMedia({ reducedMotion: 'reduce' })
 				await page.route('**/v1/guest/session', (route) =>
 					route.fulfill({ json: { issued: true } }),
 				)
+				const daily = { gameSlug: slug, puzzleId: firstPuzzleId, puzzleDate: dayKey, canPlay: true }
 				await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+					route.fulfill({ json: { ...daily, requiresStart: true } }),
+				)
+				await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) =>
 					route.fulfill({
-						json: {
-							gameSlug: slug,
-							puzzleId: firstPuzzleId,
-							puzzleDate: dayKey,
-							canPlay: true,
-							puzzleDataJson: JSON.stringify(puzzleData),
-						},
+						json: { daily: { ...daily, puzzleDataJson: JSON.stringify(fixture.data) } },
 					}),
 				)
 				await page.route('**/puzzled.v1.PuzzleService/GetTodayProgress', (route) =>
@@ -435,35 +623,58 @@ for (const viewport of [
 						},
 					}),
 				)
-				await page.route('**/puzzled.v1.PuzzleService/CheckGuess', (route) => {
-					const { word } = JSON.parse(route.request().postDataJSON().guessJson)
-					const tiles =
-						word === 'charm'
-							? ['correct', 'present', 'absent', 'absent', 'absent']
-							: Array(5).fill('correct')
-					return route.fulfill({ json: { resultJson: JSON.stringify({ tiles }) } })
+				await page.route(/puzzled\.v1\.PuzzleService\/(CheckGuess|GradeGuess)$/, (route) => {
+					const guess = JSON.parse(route.request().postDataJSON().guessJson)
+					const grade =
+						outcome === 'lost' && slug === 'word-guess'
+							? { tiles: Array(5).fill('absent') }
+							: fixture.grade?.(guess)
+					expect(grade, 'Unexpected grading request').toBeDefined()
+					return route.fulfill({ json: { resultJson: JSON.stringify(grade) } })
 				})
-				await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) =>
-					route.fulfill({ json: { gameSlug: slug, valid: true, status: 'won', score: 487 } }),
-				)
+				await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => {
+					expect(route.request().postDataJSON()).toMatchObject({ gameSlug: slug, status: outcome })
+					return route.fulfill({
+						json: {
+							gameSlug: slug,
+							valid: true,
+							status: outcome,
+							score: 487,
+							revealJson: outcome === 'lost' ? JSON.stringify(fixture.reveal) : undefined,
+						},
+					})
+				})
 				await page.route('**/puzzled.v1.StatsService/GetTodayPercentile', (route) =>
 					route.fulfill({ json: { gameSlug: slug, dayKey, percentile: 73, totalPlayers: 15 } }),
 				)
 				await page.route('**/puzzled.v1.GamificationService/GetStreakInfo', (route) =>
 					route.fulfill({ json: { info: { currentStreak: 7 } } }),
 				)
+				if (dismissedEarlier) {
+					await page.addInitScript(({ key, day }) => localStorage.setItem(key, day), {
+						key: SAVE_STREAK_DISMISSED_DAY_KEY,
+						day: dayKey,
+					})
+				}
+				if (!installAvailable) {
+					await page.addInitScript(() =>
+						Object.defineProperty(navigator, 'standalone', { value: true }),
+					)
+				}
 				await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
-				const difficulty = slug === 'sudoku' ? 'difficulty=easy&' : ''
+				const difficulty = fixture.difficulty ? `difficulty=${fixture.difficulty}&` : ''
 				await page.goto(`/en-US/games/${slug}?${difficulty}start=1#play`)
 				const decline = page.getByRole('button', { name: 'Decline', exact: true })
 				await decline.click()
-				const board =
-					slug === 'word-guess'
-						? page.getByRole('table', { name: 'Five' })
-						: page.locator('.play-body .play-board')
+				await page
+					.locator('[data-game-stage="start"]')
+					.getByRole('button', { name: 'Play' })
+					.click()
+				const stage = page.locator('[data-game-stage="board"]')
+				const board = stage.locator(fixture.board)
 				await expect(board).toBeVisible()
 				await page.evaluate(() => document.fonts.ready)
-				if (viewport.width !== 390) {
+				if (installAvailable && viewport.width !== 390) {
 					// A loopback build is not installable; exercise the captured Chromium event.
 					await page.evaluate(() =>
 						window.dispatchEvent(new Event('beforeinstallprompt', { cancelable: true })),
@@ -471,74 +682,111 @@ for (const viewport of [
 				}
 				const cue = page.locator('[data-first-action]')
 				await expect(cue).toBeVisible()
+				// Each game must identify its live controls; the end assertion cannot pass vacuously.
+				const playControls = stage.locator('[data-play-control]:visible')
+				await expect(playControls.first()).toBeVisible()
 				const bounds = (locator: Locator) =>
 					locator.evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect)
-				const before = await bounds(board)
-				if (slug === 'word-guess') {
-					for (const [index, word] of ['charm', 'couch'].entries()) {
-						await page.keyboard.type(word)
-						await page.keyboard.press('Enter')
-						await expect(board.locator('tr').nth(index).locator('[data-grade]')).toHaveCount(5)
-					}
-				} else if (slug === 'sudoku') {
-					await board.getByRole('button', { name: 'Row 9, Column 9', exact: true }).click()
-					await page.keyboard.press('8')
-				} else {
-					await board.locator('[data-crossword-cell]').first().click()
-					await page.keyboard.type('NICER')
-					await page.getByRole('button', { name: 'Check', exact: true }).click()
-				}
+				// Compare board geometry in the canvas, not its position in the viewport after reveal.
+				const boardPosition = () =>
+					board.evaluate((el) => {
+						const canvas = el.closest<HTMLElement>('.play-body')!
+						const rect = el.getBoundingClientRect()
+						const frame = canvas.getBoundingClientRect()
+						return {
+							x: rect.x - frame.x + canvas.scrollLeft,
+							y: rect.y - frame.y + canvas.scrollTop,
+							width: rect.width,
+							height: rect.height,
+						}
+					})
+				const before = await boardPosition()
+				if (outcome === 'lost') {
+					if (!fixture.lose) throw new Error(`Missing loss driver for ${slug}`)
+					await fixture.lose(page, stage)
+				} else await fixture.win(page, stage)
 
 				const card = page.locator('.completion-card[data-board-finished]')
-				const actions = [
-					card.getByRole('link', { name: /^Play next:/ }),
-					card.getByRole('button', { name: 'Copy challenge', exact: true }),
-					card.getByText(/^Create a free account to keep your streak/),
-					card.getByRole('link', { name: 'Create a free account', exact: true }),
-					card.getByRole('complementary', { name: 'Add Tryit to your Home Screen', exact: true }),
-				]
-				for (const action of actions) await expect(action).toBeVisible()
-				await expect(card.locator('[data-result-percentile]')).toBeVisible()
-				await expect(card.locator('[data-result-milestone="7"]')).toBeVisible()
-				const after = await bounds(board)
+				await expect(card.locator('.completion-heading')).toHaveAttribute('data-outcome', outcome)
+				const guest = card.locator('[data-result-guest-capture]')
+				const nudge = card.locator('[data-install-nudge]')
+				await expect(guest).toHaveCount(install ? 0 : 1)
+				await expect(nudge).toHaveCount(install ? 1 : 0)
+				const actions = card.locator(
+					'.result-next, .result-action-row :is(a, button), [data-result-guest-capture] :is(a, button), [data-install-nudge] button',
+				)
+				await expect(actions).toHaveCount(
+					1 +
+						(isPracticeSupported(slug) ? 3 : 2) +
+						(install ? (viewport.width === 390 ? 1 : 2) : 2),
+				)
+				const visibleActions = await actions.all()
+				const prompts = install ? [nudge] : [guest.locator('p').first()]
+				await expect(card.locator('[data-result-percentile]')).toHaveCount(
+					outcome === 'won' ? 1 : 0,
+				)
+				await expect(card.locator('[data-result-milestone="7"]')).toHaveCount(
+					outcome === 'won' ? 1 : 0,
+				)
+				await expect.soft(card).toBeInViewport({ ratio: 0.99 })
+				const after = await boardPosition()
 				const panel = await bounds(card)
 				const size = await card.evaluate(({ scrollHeight, clientHeight }) => ({
 					scrollHeight,
 					clientHeight,
 				}))
-				await page.screenshot({ path: info.outputPath(`${slug}.png`) })
+				await page.screenshot({
+					path: info.outputPath(
+						`${slug}-${outcome}-${install ? 'install' : installAvailable ? 'account-preferred' : 'account'}-${viewport.width}x${viewport.height}.png`,
+					),
+				})
 				await info.attach('finish geometry', {
-					body: JSON.stringify({ slug, viewport, before, after, panel, size }),
+					body: JSON.stringify({ slug, outcome, install, viewport, before, after, panel, size }),
 					contentType: 'application/json',
 				})
-				expect(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
+				expect.soft(size.scrollHeight).toBeLessThanOrEqual(size.clientHeight + 1)
 				await expect(cue).toBeHidden()
+				await expect(playControls).toHaveCount(0)
+				if (slug === 'word-search') await expect(stage.locator('output')).toHaveText('2/2')
+				if (slug === 'word-box') await expect(stage.getByText('12/12 letters used')).toBeVisible()
+				if (slug === 'word-hive')
+					await expect(stage.locator('[data-hive-feedback]')).toContainText('CASTLED')
 				for (const key of ['x', 'y', 'width', 'height'] as const) {
-					expect(Math.abs(after[key] - before[key])).toBeLessThanOrEqual(1)
+					// Rungs grows as the player adds legal steps.
+					if (key === 'height' && slug === 'word-ladder') continue
+					expect.soft(Math.abs(after[key] - before[key]), `board ${key}`).toBeLessThanOrEqual(1)
 				}
-				const played = board.locator('tr').filter({ has: page.locator('[data-grade]') })
-				let protectedBoard = after
-				if (slug === 'word-guess' && viewport.width === 390) {
-					await expect(played).toHaveCount(2)
-					protectedBoard = await bounds(played.last())
-				}
-				expect(overlaps(panel, protectedBoard)).toBe(false)
-				await expectFinishTypography(card, slug !== 'crossword', viewport.width === 390)
-				for (const locator of [board, card, ...actions]) {
+				const protectedCells =
+					slug === 'word-guess'
+						? board.locator('[data-grade]')
+						: slug === 'word-groups'
+							? board.locator('[data-group-category]')
+							: board
+				if (slug === 'word-guess')
+					await expect(protectedCells).toHaveCount(outcome === 'lost' ? 30 : 10)
+				for (const cell of await protectedCells.all())
+					expect.soft(overlaps(panel, await bounds(cell))).toBe(false)
+				await expectFinishTypography(card, visibleActions, viewport.width === 390)
+				for (const locator of [card, ...visibleActions, ...prompts]) {
 					const rect = await bounds(locator)
-					expect(rect.top).toBeGreaterThanOrEqual(0)
-					expect(rect.bottom).toBeLessThanOrEqual(viewport.height)
+					expect.soft(rect.top, String(locator)).toBeGreaterThanOrEqual(-1)
+					expect.soft(rect.bottom, String(locator)).toBeLessThanOrEqual(viewport.height + 1)
 					expect(rect.left).toBeGreaterThanOrEqual(0)
 					expect(rect.right).toBeLessThanOrEqual(viewport.width)
-					await expect(locator).toBeInViewport({ ratio: 0.99 })
+					await expect.soft(locator).toBeInViewport({ ratio: 0.99, timeout: 1200 })
 				}
-				for (const action of actions) {
+				for (const action of [...visibleActions, ...prompts]) {
 					expect(
 						await action.evaluate((el) => {
 							const { left, top, width, height } = el.getBoundingClientRect()
 							return el.contains(document.elementFromPoint(left + width / 2, top + height / 2))
 						}),
 					).toBe(true)
+				}
+				if (slug === 'word-guess' && outcome === 'won' && installAvailable && !install) {
+					await guest.getByRole('button', { name: 'Dismiss' }).click()
+					await expect(guest).toHaveCount(0)
+					await expect(nudge).toHaveCount(0)
 				}
 			})
 		}

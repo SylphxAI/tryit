@@ -86,14 +86,37 @@ on `SYLPHX_API_URL` (default `https://api.sylphx.com`). Both senders use
 `POST /v1/analytics/events:batch`, a fresh request with `X-Sylphx-Key`, and
 an explicit granted consent snapshot. GPC is enforced locally, not forwarded.
 
-The browser stream separately requires a saved analytics or full grant. Each
-committed public route visit sends one page view, with no raw query or referrer,
-one in-memory session per uninterrupted grant, and SDK deduplicated campaign
-storage. Analytics-only never emits or retains click IDs. Checkout-start events
+Browser Signal defaults on, subject to GPC and opt-out, only in US, CA, AU,
+NZ, JP, HK, TW, SG, AE and IL. All other or unknown markets require a saved
+analytics or full grant. The private consent context returns a policy flag,
+not the country. Each committed public route visit sends one page view, with
+no raw query or referrer, one in-memory session per uninterrupted period of
+eligibility, and SDK-deduplicated campaign storage. Analytics-only never emits or retains click IDs. Checkout-start events
 use the existing checkout consent snapshot and an ID derived from the Money
 session, without player identifiers. Delivery is best effort with a 10 s timeout;
 missing scopes, failed requests and exhausted capacity do not delay checkout.
 The existing settled-conversion outbox is unchanged.
+
+Browser funnel stages for ad optimisation use the same gate as page views
+(`features/analytics/lib/signal-stages.ts`):
+
+| Stage | Sent when | Properties (allowlisted) |
+| --- | --- | --- |
+| `game_start` | a playable daily or archive board is first shown | `game_slug`, `mode` |
+| `game_finish` | the api accepted a finish (`valid`, matching status) | `game_slug`, `mode`, `status` |
+| `plus_view` | a Plus offer card mounts, once per surface per page load | `entry_surface` |
+| `checkout_started` | api, after Money creates the checkout (above) | `entry_surface` |
+| `purchase` | the return page received the api's Money-settled receipt | `value`, `currency` |
+
+`entry_surface` is the `trustedEntrySurface` enum; anything else is `other`.
+`purchase` uses a SHA-256 of the processor order id as its event id (stable,
+so a reload deduplicates); no order, player, auth or customer id is sent.
+
+GA4 `game_start` counts the first playable daily or archive board per visit,
+not a switch to explicit Play. It requires an effective analytics grant from
+an existing affirmative choice or a named opt-out market default. Delayed
+context can confirm either; a later opt-in cannot replay the event. Only GA4
+receives it, with game, mode, a query-free public URL and no referrer.
 
 ## First-party funnel counter
 
@@ -105,7 +128,7 @@ counter runs without a consent choice. Google Analytics, when
 | Event | Written by |
 | --- | --- |
 | `landing` | browser, once per session (`FunnelReporter`) |
-| `game_start` | browser, when a playable board is shown (`GamePageClient`) |
+| `game_start` | browser, when a playable board is shown (`createDailyPlayState`) |
 | `signup` | api, in `RecordSignupAttribution`, once per new account |
 | `web_vitals` | browser, `LCP` `CLS` `INP` `FCP` `TTFB` (`useReportWebVitals`) |
 
@@ -117,14 +140,79 @@ The browser posts same-origin ProtoJSON to the native Connect RPC
 rows carry no player id. Web Vitals are document-load metrics, not soft-navigation
 metrics. Only allowlisted public paths are retained, without locale/query/hash;
 game-detail paths use the `/games/:slug` template and private paths are dropped.
-Read it with SQL:
+Read browser events with SQL. This recipe excludes retired browser reports of
+daily finishes, including rows retained across a mixed web/API rollout:
 
 ```sql
 SELECT event, count(*) FROM funnel_events
-WHERE occurred_at > now() - interval '1 day' GROUP BY 1;
+WHERE occurred_at > now() - interval '1 day'
+  AND (event <> 'game_complete' OR params->>'mode' IN ('archive', 'practice'))
+GROUP BY 1;
 SELECT metric, percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75
 FROM funnel_events WHERE event = 'web_vitals' GROUP BY 1;
 ```
+
+### Daily finishes
+
+Run the [daily completion query](../crates/puzzled-server/src/capabilities/funnel/daily_completions.sql)
+using the approved Tryit read-only database connection. It takes one Hong Kong
+product day (`YYYY-MM-DD`). For example, with that connection already selected
+in your PostgreSQL client environment, from the repo root:
+
+```bash
+set -o pipefail
+{
+  echo "BEGIN READ ONLY; SET LOCAL statement_timeout = '5s'; PREPARE daily_finishes(text) AS"
+  cat crates/puzzled-server/src/capabilities/funnel/daily_completions.sql
+  printf "EXECUTE daily_finishes('%s');\nROLLBACK;\n" '2026-11-26'
+} | psql -X -v ON_ERROR_STOP=1
+```
+
+Sum the returned `finishes` for the day, not browser events. Each qualifying
+committed win or loss contributes one; the same player can finish multiple games.
+The output distinguishes puzzle and entertainment ritual classes. It excludes
+registered fixtures (including the recorded guest origin) and verification-marked
+finishes. Archive, practice and the distinct-player [North Star](metrics.md) are
+separate measures. This is a read of current retained sessions, not a new event
+log or an immutable historical total; erasure and provenance changes can affect it.
+
+Identity is derived from existing server evidence at read time, not from a
+browser status lookup. Adoption or legacy-claim provenance proves guest origin
+and takes precedence over the new owner's account mapping. Otherwise, an Auth
+mapping or guest credential already created by the stored finish timestamp
+establishes that bucket if the other is absent. Missing, later-only or conflicting
+evidence remains `unknown` and still counts in the total. No player ID, exact time,
+or pick attribution is returned. Existing consent-gated GA is unchanged.
+
+### Pick to finish by game
+
+Run the [pick completion query](../crates/puzzled-server/src/capabilities/funnel/pick_completions.sql)
+from the repo root with the approved Tryit read-only PostgreSQL connection
+already selected in your client environment. Both Hong Kong product day keys
+(`YYYY-MM-DD`) are inclusive:
+
+```bash
+set -o pipefail
+{
+  echo "BEGIN READ ONLY; SET LOCAL statement_timeout = '5s'; PREPARE pick_finishes(date, date) AS"
+  cat crates/puzzled-core/src/capabilities/puzzle_play/domain/ritual_completion/implausible_finish_players.sql \
+      crates/puzzled-server/src/capabilities/funnel/pick_completions.sql
+  printf "EXECUTE pick_finishes('%s', '%s');\nROLLBACK;\n" '2026-11-19' '2026-11-25'
+} | psql -X -v ON_ERROR_STOP=1
+```
+
+Use Nov 19–25, 2026 for the baseline, Nov 29 alone for the sanity check, and
+Nov 29–Dec 5 for the cue read. Each row gives `raw_picks` and `raw_finishes`
+(before the timing filter), then `picks`, `finishes` (matching daily wins or
+losses) and `wins` (after it). A pick counts once even if multiple sessions
+match. Games with only excluded fast players still show their raw counts.
+The shared [timing rule and floors](metrics.md#implausibly-fast-finishes) drop
+all of a player's picks if any matching daily finish is below its floor, even
+if the finish is outside the selected dates. Both sets of counts exclude picks
+by registered fixtures, owners of sessions adopted from fixtures, and players
+with any marked pick or finish, even if the mark is outside the selected dates.
+Before Nov 28, only a marked finish identifies historical harness starts, so a
+harness run that started a game without finishing anything would still count.
 
 ## Quality signals
 

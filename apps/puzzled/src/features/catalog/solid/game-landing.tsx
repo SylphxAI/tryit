@@ -1,8 +1,5 @@
 /** @jsxImportSource solid-js */
 import { For, type ParentProps } from 'solid-js'
-import { getRequestEvent, isServer, NoHydration } from 'solid-js/web'
-import { START_INTENT_ATTRIBUTE } from '@/features/daily/lib/start-intent'
-import { START_INTENT_KEY } from '@/lib/storage-keys'
 import { JsonLd } from '@/shared/solid/json-ld'
 import { PageMeta } from '@/shared/solid/page-meta'
 import { SiteShell } from '@/shared/solid/site-shell'
@@ -16,18 +13,8 @@ import { type GameLandingHeroProps, renderGameLandingHeroBody } from './game-lan
 
 export { playButton } from './game-landing-actions'
 
-// Capture an explicit Play tap even before Solid installs its click handler.
-// Do not turn a shared or pasted URL into permission to spend a daily pick.
-const captureEarlyPlay = `document.addEventListener('click',function(e){
-  if(e.defaultPrevented||e.button!==0||e.shiftKey||e.ctrlKey||e.metaKey||e.altKey)return;
-  const link=e.target.closest?.('a[${START_INTENT_ATTRIBUTE}]');
-  if(!link)return;
-  try{sessionStorage.setItem('${START_INTENT_KEY}',JSON.stringify({slug:link.getAttribute('${START_INTENT_ATTRIBUTE}'),at:Date.now()}))}catch{}
-},true)`
-
 // Render helpers keep the existing Solid hydration scope and dynamic slots.
 export function GameLanding(props: ParentProps<GameLandingHeroProps>) {
-	const nonce = isServer ? getRequestEvent()?.locals.cspNonce : undefined
 	const d = () => props.data
 	const t = () => d().labels
 
@@ -35,11 +22,6 @@ export function GameLanding(props: ParentProps<GameLandingHeroProps>) {
 		<SiteShell data={d().shell} signedIn={props.signedIn}>
 			<PageMeta value={d().meta} />
 			<main id="main-content" tabIndex={-1} class="game-page flex-1">
-				<NoHydration>
-					{isServer && typeof nonce === 'string' && (
-						<script nonce={nonce} innerHTML={captureEarlyPlay} />
-					)}
-				</NoHydration>
 				<section
 					class="game-hero relative border-b border-[var(--tactile-soft-line)]"
 					classList={{ 'game-hero-stage': props.stage }}
@@ -73,7 +55,12 @@ export function GameLanding(props: ParentProps<GameLandingHeroProps>) {
 						{renderGameLandingHeroBody(props)}
 					</div>
 				</section>
-				<section id="play" tabIndex={-1} class="page-shell scroll-mt-16 py-3" aria-label={t().play}>
+				<section
+					id={props.showDifficulty ? undefined : 'play'}
+					tabIndex={-1}
+					class="page-shell scroll-mt-16 py-3 empty:hidden"
+					aria-label={t().play}
+				>
 					{props.children}
 				</section>
 				{renderGameRules(d)}

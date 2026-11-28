@@ -13,6 +13,10 @@
 	"startGame": "ゲーム開始",
 	"fillMode": "塗る",
 	"markMode": "印",
+	"fillCue": "絵になるマス",
+	"markCue": "空けておくマス",
+	"currentMode": "モード：{mode}",
+	"switchToMark": "空けておくマスには「印」に切り替えよう。",
 	"errors": "ミス {count} 回",
 	"complete": "絵が完成しました！",
 	"messages": {

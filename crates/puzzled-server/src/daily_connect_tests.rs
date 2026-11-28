@@ -1,5 +1,7 @@
 //! Daily puzzle reads and submission contracts on the Connect router.
 
+mod elapsed;
+
 use crate::test_support::{
     body_json, build_connect_request, build_connect_request_with_auth, connect_error_message,
     mint_test_token,

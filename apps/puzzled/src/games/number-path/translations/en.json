@@ -17,5 +17,6 @@
 	"cellStep": "Step {number}",
 	"startAtOne": "Start at 1",
 	"nextSquare": "Tap or drag to a square next to {number}",
+	"deadEnd": "No moves from here. Use Undo to back up.",
 	"wrongClue": "That square is {clue} — step {expected} comes next."
 }

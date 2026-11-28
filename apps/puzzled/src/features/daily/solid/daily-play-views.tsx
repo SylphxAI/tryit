@@ -1,10 +1,7 @@
 /** @jsxImportSource solid-js */
-import { type Accessor, For, Show } from 'solid-js'
+import { type Accessor, Show } from 'solid-js'
 import type { Translate } from '@/lib/i18n/translate'
-import { localizedPath } from '@/lib/seo/urls'
 import type { DailySnapshot } from '../lib/daily-fallback'
-import { markStartIntent } from '../lib/start-intent'
-import { todayPlayPath } from '../lib/today-play-path'
 import type { DailyPlayProps } from './daily-play-state'
 import { ResultActions } from './result-actions'
 
@@ -16,6 +13,7 @@ export function renderDailyCompletion(
 		result,
 		explicitPlay,
 		isGuest,
+		guestStatusPending,
 		resultOpen,
 		onDetailsOpenChange,
 	}: {
@@ -24,6 +22,7 @@ export function renderDailyCompletion(
 		result: Accessor<Extract<DailySnapshot, { kind: 'completed' }>>
 		explicitPlay: boolean
 		isGuest: Accessor<boolean | undefined>
+		guestStatusPending: Accessor<boolean>
 		resultOpen: Accessor<boolean>
 		onDetailsOpenChange: (open: boolean) => void
 	},
@@ -49,6 +48,7 @@ export function renderDailyCompletion(
 			</p>
 			<ResultActions
 				isGuest={isGuest()}
+				guestStatusPending={guestStatusPending()}
 				onDetailsOpenChange={onDetailsOpenChange}
 				facts={{
 					gameSlug: slug,
@@ -67,54 +67,6 @@ export function renderDailyCompletion(
 			<a class="inline-flex min-h-11 items-center underline" href={props.data.catalog}>
 				{t('daily.backToGames')}
 			</a>
-		</div>
-	)
-}
-
-export function renderDailyDifficulty(
-	props: Pick<DailyPlayProps, 'data'>,
-	{
-		t,
-		slug,
-		unavailable,
-	}: {
-		t: Translate
-		slug: string
-		unavailable: Accessor<Extract<DailySnapshot, { kind: 'unavailable' }> | undefined>
-	},
-) {
-	return (
-		<div class="editorial-surface mx-auto max-w-xl space-y-3 rounded-3xl p-4 sm:p-5">
-			<h2 class="font-display text-2xl">{t('common.difficulty.selectDifficulty')}</h2>
-			<Show when={unavailable()}>
-				<p class="text-sm text-muted-foreground">{t('daily.difficultyStatusUnverified')}</p>
-			</Show>
-			<ul class="grid gap-3 sm:grid-cols-3">
-				<For each={props.data.difficultyLevels}>
-					{(level) => (
-						<li>
-							<a
-								class="editorial-surface editorial-interactive block h-full rounded-2xl p-4"
-								href={localizedPath(props.data.locale, todayPlayPath(slug, level.level))}
-								data-start-intent={slug}
-								onClick={(event) => {
-									if (
-										!event.defaultPrevented &&
-										!event.shiftKey &&
-										!event.metaKey &&
-										!event.altKey &&
-										!event.ctrlKey
-									)
-										markStartIntent(slug)
-								}}
-							>
-								<span class="block font-display">{level.label}</span>
-								<span class="text-sm text-muted-foreground">{level.description}</span>
-							</a>
-						</li>
-					)}
-				</For>
-			</ul>
 		</div>
 	)
 }

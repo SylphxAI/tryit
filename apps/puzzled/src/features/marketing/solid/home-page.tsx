@@ -9,6 +9,7 @@ import { HomeBanners } from './home-banners'
 import { HomeDailySection } from './home-daily-section'
 import type { HomeDocument, HomeFacts } from './home-data'
 import { HomeEditorial } from './home-editorial'
+import { HomeInstallOffer } from './home-install-offer'
 import { MarketingFaq } from './marketing-faq'
 
 export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts | undefined> }) {
@@ -53,6 +54,12 @@ export function HomePage(props: { page: HomeDocument; facts: Accessor<HomeFacts 
 					items={page.faqs}
 				/>
 			</main>
+			<HomeInstallOffer
+				locale={page.locale}
+				dayKey={page.dayKey}
+				servedAt={page.servedAt}
+				resetAt={page.resetAt}
+			/>
 		</SiteShell>
 	)
 }

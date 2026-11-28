@@ -29,7 +29,7 @@
 	"notReadyTitle": "今日嘅{game}仲未準備好",
 	"notReadyBody": "今日暫時未有{game}謎題。今日其餘謎題仍可任揀 3 款免費玩。",
 	"notReadyCta": "查看今日免費謎題",
-	"startUsesPick": "開始會用咗今日 3 個免費名額其中 1 個，開咗嘅遊戲成日都可以玩。",
+	"startUsesPick": "每日任揀 3 款遊戲免費玩，開咗嘅遊戲全日都可以玩。",
 	"englishWordPuzzle": "英文單詞謎題",
 	"firstAction": {
 		"sudoku": "撳一個空格，再揀 1–9 嘅數字。",
@@ -40,7 +40,6 @@
 		"duo": "撳一個空格，揀太陽或月亮。",
 		"numberPath": "由 1 開始，拖拉或順序撳相鄰方格。",
 		"wordGroups": "撳四個有共同主題嘅單詞。",
-		"killerSudoku": "撳一個空格，睇區塊總和揀數字。",
 		"wordLadder": "換一個字母，砌出新單詞。",
 		"wordGuess": "輸入任意五個字母嘅單詞，攞第一個提示。",
 		"cryptogram": "撳一個密碼字母，估佢代表邊個字母。",

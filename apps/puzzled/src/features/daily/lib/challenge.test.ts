@@ -236,6 +236,18 @@ describe('landingPlayTarget & sharedPlayHref', () => {
 		expect(sharedPlayHref({ gameSlug: 'sudoku' })).toBe('/games/sudoku?utm_source=share')
 	})
 
+	test('sharedPlayHref with start opens the started board at a valid level', () => {
+		expect(sharedPlayHref({ gameSlug: 'sudoku', shareId: ID, start: { difficulty: 'easy' } })).toBe(
+			`/games/sudoku?ref=${ID}&utm_source=share&difficulty=easy&start=1#play`,
+		)
+		expect(sharedPlayHref({ gameSlug: 'sudoku', start: { difficulty: 'x' } })).toBe(
+			'/games/sudoku?utm_source=share&difficulty=medium&start=1#play',
+		)
+		expect(sharedPlayHref({ gameSlug: 'tango', start: {} })).toBe(
+			'/games/duo?utm_source=share&start=1#play',
+		)
+	})
+
 	test('isShareLandingQuery separates share referrals from Tryit partner links', () => {
 		expect(isShareLandingQuery({ ref: ID })).toBe(true)
 		expect(isShareLandingQuery({ ref: 'synthetic-test-id' })).toBe(true)

@@ -9,6 +9,7 @@ import { safeCallbackPath, signUpCookieHeader } from './after-sign-up'
 import { authConfig } from './client-auth'
 import { authIdValue } from './dest'
 import { OAUTH_ACCEPTANCE, OAUTH_PREFIX } from './oauth-contract'
+import { isAcceptedPrivacyVersion } from './policy-consent'
 import { requestUserAgent, resolveUser } from './request-identity'
 import { LEGACY_SESSION_COOKIE, SESSION_COOKIE } from './session-cookie'
 import { expiredSessionCookie } from './session-response'
@@ -56,7 +57,7 @@ export async function handleOAuth(request: Request): Promise<Response> {
 				validate: (versions) =>
 					Object.keys(versions).length === 2 &&
 					versions.terms_version === OAUTH_ACCEPTANCE.terms_version &&
-					versions.privacy_version === OAUTH_ACCEPTANCE.privacy_version,
+					isAcceptedPrivacyVersion(versions.privacy_version),
 			},
 			fetch: async (url, init) => {
 				// Keep discovery pinned to the deployed instance ID as well as its Access key.

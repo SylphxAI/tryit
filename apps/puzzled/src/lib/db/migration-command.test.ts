@@ -4,6 +4,20 @@ import { resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '../../../../..')
 
+test('package scripts do not apply migrations and root build only builds the app', () => {
+	for (const file of ['package.json', 'apps/puzzled/package.json']) {
+		const { scripts } = JSON.parse(readFileSync(resolve(ROOT, file), 'utf8')) as {
+			scripts: Record<string, string>
+		}
+		for (const [name, command] of Object.entries(scripts)) {
+			expect(command, `${file}:${name}`).not.toMatch(/\bmigrate\s+apply\b/)
+		}
+		if (file === 'package.json') {
+			expect(scripts.build).toBe('turbo run build --filter=@sylphx/puzzled')
+		}
+	}
+})
+
 test('normal deploy executes baseline DDL on an empty preview database', () => {
 	const config = Bun.TOML.parse(readFileSync(resolve(ROOT, 'sylphx.toml'), 'utf8')) as {
 		database: { migrations: { engine: string; image: string; command: string } }
@@ -26,13 +40,6 @@ test('normal deploy executes baseline DDL on an empty preview database', () => {
 	// ledger on an unmanaged populated database. Neither belongs in deploy.
 	expect(migration.command).not.toContain('--baseline')
 	expect(migration.command).not.toContain('--allow-dirty')
-	const pkg = JSON.parse(readFileSync(resolve(ROOT, 'apps/puzzled/package.json'), 'utf8')) as {
-		scripts: Record<string, string>
-	}
-	const build = pkg.scripts['build:with-migrate']
-	expect(build).toBe('atlas migrate apply --env production && bun run build')
-	expect(build).not.toContain('--baseline')
-	expect(build).not.toContain('--allow-dirty')
 	const directory = resolve(ROOT, 'apps/puzzled/atlas/migrations')
 	const first = readdirSync(directory)
 		.filter((name) => name.endsWith('.sql'))

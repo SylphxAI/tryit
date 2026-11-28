@@ -12,6 +12,11 @@
 	},
 	"startGame": "开始游戏",
 	"complete": "谜题完成！",
+	"firstMove": {
+		"sum": "框内的数字相加，等于角落的小数字。",
+		"example": "示例",
+		"action": "点一下空格，再点一下数字。"
+	},
 	"cageTotal": "笼的总和 {sum}",
 	"notes": "笔记",
 	"notesMode": "笔记模式",

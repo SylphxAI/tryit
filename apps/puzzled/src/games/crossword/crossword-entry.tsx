@@ -15,7 +15,7 @@ export function CrosswordEntry(props: {
 	const incomplete = t('games.crossword.messages.incomplete')
 	return (
 		<>
-			<div class="flex flex-col gap-1" dir="ltr">
+			<div class="flex flex-col gap-1" dir="ltr" data-play-control>
 				<For each={keyboard}>
 					{(row) => (
 						<div class="flex justify-center gap-1">
@@ -36,7 +36,13 @@ export function CrosswordEntry(props: {
 					)}
 				</For>
 			</div>
-			<button type="button" class={playButton} disabled={!playing()} onClick={check}>
+			<button
+				type="button"
+				data-play-control
+				class={playButton}
+				disabled={!playing()}
+				onClick={check}
+			>
 				{t('games.crossword.check')}
 			</button>
 			{/* Reserve the wrapped height of the longest message without announcing it. */}

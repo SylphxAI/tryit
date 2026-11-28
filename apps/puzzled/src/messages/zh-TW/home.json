@@ -62,7 +62,8 @@
 		}
 	},
 	"day": {
-		"guestTitle": "每天 {count} 款謎題，不用註冊就能玩。",
+		"guestTitle": "任選 {picks} 款免費玩",
+		"guestDetail": "每天 {count} 款謎題，不用註冊。",
 		"titleMemberReady": "今天的{game}已準備好",
 		"titleMemberStreak": "你的 {days} 天連續紀錄等著你",
 		"titleMemberDone": "今天已完成 — 玩得漂亮",

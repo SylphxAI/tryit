@@ -1,6 +1,38 @@
 import { expect, test } from '@playwright/test'
 import { DESKTOP, languageTrigger, MOBILE, settle } from './a11y-support'
 
+test('cold Home stays within its decoded startup JavaScript budget', async ({ page }, info) => {
+	await page.goto('/', { waitUntil: 'load' })
+	await expect(page.locator('[data-home-featured]')).toBeVisible()
+	const countdown = page.locator('[data-home-countdown]')
+	const renderedTime = await countdown.textContent()
+	await expect(countdown).not.toHaveText(renderedTime ?? '')
+
+	// This budget is for the production asset graph, not Vite's unbundled dev server.
+	const { scripts, bytes } = await page.evaluate(() => {
+		const scripts = performance.getEntriesByType('resource').filter((entry) => {
+			const url = new URL(entry.name)
+			return (
+				url.origin === location.origin &&
+				url.pathname.startsWith('/_build/assets/') &&
+				url.pathname.endsWith('.js')
+			)
+		}) as PerformanceResourceTiming[]
+		return {
+			scripts: scripts.length,
+			bytes: scripts.reduce((total, entry) => total + entry.decodedBodySize, 0),
+		}
+	})
+	expect(scripts, 'production JavaScript entries must be measured').toBeGreaterThan(0)
+	expect(bytes, 'decoded startup JavaScript must be measured').toBeGreaterThan(0)
+	await info.attach('home-startup-javascript', {
+		body: JSON.stringify({ scripts, bytes }),
+		contentType: 'application/json',
+	})
+	// The fixed classes on Home do not need to ship a runtime utility-class merger.
+	expect(bytes).toBeLessThanOrEqual(390_000)
+})
+
 for (const viewport of [
 	{ width: 1440, height: 757 },
 	{ width: 1440, height: 900 },
@@ -143,9 +175,6 @@ for (const viewport of [
 				(await card.getAttribute('data-home-game')) ?? undefined,
 			).toBe(false)
 		}
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-			'19 daily puzzles. Play now, no account needed.',
-		)
 		await expect(page.getByText('0 of 3 free picks used today')).toBeVisible()
 		const images = await motifs.evaluateAll((nodes: HTMLImageElement[]) =>
 			nodes.map((image) => ({
@@ -165,13 +194,79 @@ for (const viewport of [
 		expect(images.map(({ slug }) => slug)).toEqual(
 			expect.arrayContaining(['cryptogram', 'word-box', 'word-hive']),
 		)
-		for (const image of images) {
-			expect(image).toMatchObject({
-				src: `/motifs/${image.slug}-zoom.svg`,
-				alt: '',
-				loading: null,
-			})
+		// The first phone screen of cards carries its art in the page so it does
+		// not queue behind the module graph; the rest load the same file by URL.
+		for (const [index, image] of images.entries()) {
+			expect(image).toMatchObject({ alt: '', loading: null })
+			if (index < 4) expect(image.src, image.slug).toMatch(/^data:image\/svg\+xml,/)
+			else expect(image.src, image.slug).toBe(`/motifs/${image.slug}-zoom.svg`)
 			expect(image.width, image.slug).toBeGreaterThan(0)
+		}
+		expect(await page.evaluate(() => window.scrollY)).toBe(0)
+	})
+}
+
+for (const [path, lang, headline, detail, featuredLabel, notice] of [
+	[
+		'/',
+		'en-US',
+		'Pick any 3 for free',
+		'19 daily puzzles. No account needed.',
+		'Featured today',
+		null,
+	],
+	[
+		'/ja',
+		'ja',
+		'好きな3つを無料で',
+		'毎日19種類のパズル。アカウント不要。',
+		'今日のおすすめ',
+		'英単語パズル',
+	],
+	[
+		'/zh-HK',
+		'zh-HK',
+		'任揀 3 款免費玩',
+		'每日 19 款謎題，唔使開帳戶。',
+		'今日精選',
+		'英文單詞謎題',
+	],
+] as const) {
+	test(`${lang} Home explains the free choice before Play`, async ({ page }) => {
+		await page.setViewportSize({ width: 375, height: 667 })
+		await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+		await page.goto(path)
+		await expect(page.locator('html')).toHaveAttribute('lang', lang)
+		const heading = page.getByRole('heading', { level: 1 })
+		const details = page.getByText(detail, { exact: true })
+		const hero = page.locator('[data-day-puzzle-card]')
+		const label = hero.getByText(featuredLabel, { exact: true })
+		const play = hero.locator('[data-home-featured]')
+		const dock = page.locator('[data-consent-banner]')
+		await expect(heading).toHaveText(headline)
+		await expect(dock).toBeVisible()
+		await settle(page)
+		await page.evaluate(() => document.fonts.ready.then(() => undefined))
+		const dockTop = (await dock.boundingBox())!.y
+		const playTop = (await play.boundingBox())!.y
+		for (const message of [heading, details, label]) {
+			await expect(message).toBeInViewport({ ratio: 1 })
+			const { y, height } = (await message.boundingBox())!
+			expect(y + height).toBeLessThanOrEqual(Math.min(dockTop, playTop))
+		}
+		await expect(page.locator('[data-home-game]')).toHaveCount(18)
+		const five = page.locator('[data-home-game="word-guess"], [data-home-featured="word-guess"]')
+		await expect(five).toHaveCount(1)
+		const englishNotice = page.getByText(notice ?? 'English word puzzle', { exact: true })
+		if (!notice) {
+			await expect(englishNotice).toHaveCount(0)
+		} else if ((await play.getAttribute('data-home-featured')) === 'word-guess') {
+			await expect(englishNotice).toBeInViewport({ ratio: 1 })
+			const { y, height } = (await englishNotice.boundingBox())!
+			expect(y + height).toBeLessThanOrEqual(Math.min(dockTop, playTop))
+		} else {
+			await expect(five).toHaveAccessibleName(new RegExp(notice))
+			await expect(five.getByText(notice, { exact: true })).toBeVisible()
 		}
 		expect(await page.evaluate(() => window.scrollY)).toBe(0)
 	})
@@ -201,6 +296,60 @@ test('the lineup cards keep a stationary hit target', async ({ page }) => {
 	}
 })
 
+// A long localized label wraps inside the amber action; it is never cut to
+// "Juega Cinco Letras de …". The featured game changes by day, so this checks
+// the rule, not one string.
+for (const viewport of [
+	{ width: 390, height: 844 },
+	{ width: 360, height: 740 },
+]) {
+	for (const locale of ['es', 'pt-BR', 'zh-HK', 'zh-TW', 'ja']) {
+		test(`${locale} home action shows its whole label at ${viewport.width}x${viewport.height}`, async ({
+			browser,
+		}) => {
+			const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true })
+			const page = await context.newPage()
+			await page.goto(`/${locale}`)
+			const action = page.locator('[data-day-primary-action]')
+			await expect(action).toHaveCount(1)
+			await expect(action).toBeVisible()
+			// A fresh guest with no country header, GPC or stored choice resolves to
+			// the opt-in region, so the dock is required. It mounts only after the
+			// client reads /api/consent-context, so wait for it before measuring.
+			await expect(page.locator('[data-consent-banner]')).toBeVisible()
+			await settle(page)
+			const label = await action.evaluate((el) => {
+				const text = el.querySelector('span')!
+				const box = el.getBoundingClientRect()
+				const range = document.createRange()
+				range.selectNodeContents(text)
+				const lines = [...range.getClientRects()]
+				const dock = document.querySelector('[data-consent-banner]')!.getBoundingClientRect()
+				return {
+					clipped: text.scrollWidth > text.clientWidth || text.scrollHeight > text.clientHeight,
+					inside: lines.every(
+						(line) =>
+							line.left >= box.left &&
+							line.right <= box.right &&
+							line.top >= box.top &&
+							line.bottom <= box.bottom,
+					),
+					height: box.height,
+					clearOfDock: box.bottom <= dock.top,
+					pageWidth: document.documentElement.scrollWidth,
+				}
+			})
+			expect(label.clipped).toBe(false)
+			expect(label.inside).toBe(true)
+			expect(Math.round(label.height * 100) / 100).toBeGreaterThanOrEqual(48)
+			expect(label.clearOfDock).toBe(true)
+			expect(label.pageWidth).toBeLessThanOrEqual(viewport.width)
+			await action.tap({ trial: true })
+			await context.close()
+		})
+	}
+}
+
 test('Taiwan home and all 19 catalog tiles use local names and minute badges', async ({ page }) => {
 	await page.goto('/zh-TW')
 	const featured = page.locator('.home-featured-title')
@@ -208,9 +357,8 @@ test('Taiwan home and all 19 catalog tiles use local names and minute badges', a
 	await expect(page.locator('[data-day-primary-action]')).toHaveText(
 		`遊玩今日的「${await featured.textContent()}」`,
 	)
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-		'每天 19 款謎題，不用註冊就能玩。',
-	)
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('任選 3 款免費玩')
+	await expect(page.getByText('每天 19 款謎題，不用註冊。', { exact: true })).toBeVisible()
 	await expect(page.getByText('今天 3 個免費名額已用 0 個')).toBeVisible()
 	await expect(page.getByText(/今天已有 .* 位玩家完成/)).toHaveCount(0)
 	await expect(page.getByRole('link', { name: '跳至主要內容', exact: true })).toHaveAttribute(
@@ -292,5 +440,63 @@ for (const viewport of [
 			expect(y + height + 3).toBeLessThanOrEqual(top)
 		}
 		expect(await page.evaluate(() => window.scrollY)).toBe(0)
+	})
+}
+
+for (const viewport of [
+	{ width: 390, height: 844 },
+	{ width: 1440, height: 900 },
+]) {
+	test(`the open consent tray never covers a hub card at ${viewport.width}×${viewport.height}`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport)
+		await page.goto('/', { waitUntil: 'load' })
+		const dock = page.locator('[data-consent-banner]')
+		await expect(dock).toBeVisible()
+		await settle(page)
+		const consent = () => page.evaluate(() => localStorage.getItem('puzzled:signal.consent'))
+		// Every card centre painted between the sticky header and the dock is a direct hit,
+		// and no card paints under the dock: the page scrolls above it.
+		const covered = () =>
+			page.evaluate(() => {
+				const header = document.querySelector('.site-header')!.getBoundingClientRect().bottom
+				const dockTop = document.querySelector('[data-consent-banner]')!.getBoundingClientRect().top
+				const shell = document.querySelector('.site-shell')!.getBoundingClientRect()
+				const miss: string[] = []
+				let hits = 0
+				for (const card of document.querySelectorAll<HTMLElement>('[data-home-game]')) {
+					const r = card.getBoundingClientRect()
+					const y = r.y + r.height / 2
+					if (y <= header || y >= Math.min(innerHeight, shell.bottom)) continue
+					if (card.contains(document.elementFromPoint(r.x + r.width / 2, y))) hits++
+					else miss.push(card.dataset.homeGame!)
+				}
+				return { hits, miss, paintsUnderDock: shell.bottom > dockTop + 1 }
+			})
+		const first = await covered()
+		expect(first.hits).toBeGreaterThan(0)
+		expect(first).toMatchObject({ miss: [], paintsUnderDock: false })
+		for (const card of await page.locator('[data-home-game]').all()) {
+			// Playwright refuses a click whose point another element intercepts.
+			await card.click({ trial: true, timeout: 3000 })
+			expect((await covered()).miss).toEqual([])
+		}
+		if (viewport.width < 768) {
+			for (const box of await page
+				.locator('.category-chip')
+				.evaluateAll((chips) => chips.map((chip) => chip.getBoundingClientRect().height)))
+				expect(box).toBeGreaterThanOrEqual(44)
+		}
+		expect(await consent()).toBeNull()
+		await expect(dock).toBeVisible()
+
+		// A choice returns the page to window scrolling at the same reading position.
+		const shellTop = await page.evaluate(() => document.querySelector('.site-shell')!.scrollTop)
+		expect(shellTop).toBeGreaterThan(0)
+		await dock.getByRole('button', { name: 'Decline', exact: true }).click()
+		await expect(dock).toBeHidden()
+		expect(await consent()).toBe('denied')
+		expect(await page.evaluate(() => window.scrollY)).toBeCloseTo(shellTop, -1)
 	})
 }

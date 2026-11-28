@@ -8,6 +8,9 @@
 //!   generator version that made it (`Generated::generator_version`).
 //! - **Schedule:** [`fill`] stores [`DAYS_AHEAD`] days ahead and backfills the
 //!   archive window. It runs at start-up and on a Compute schedule tick.
+//! - **Refresh:** [`refresh_unplayed`] remakes, in place, a future row whose
+//!   generator was superseded, while no session or free pick exists for its
+//!   game and day, so a generator fix reaches every day nobody has played.
 //! - **Serve:** [`resolve`] reads the stored row and, on a miss, generates and
 //!   stores it first, so a player never waits on the schedule.
 //! - **Alert:** a fill that leaves fewer than [`ALERT_BELOW_DAYS`] days stored
@@ -139,6 +142,9 @@ pub struct FillReport {
 /// `today + DAYS_AHEAD`, then measure the buffer and alert when it is low.
 pub async fn fill(pool: &PgPool, today: NaiveDate) -> Result<FillReport, String> {
     let ahead = fill_range(pool, today, today + Duration::days(DAYS_AHEAD), today).await?;
+    if let Err(error) = refresh_unplayed(pool, today).await {
+        warn!(%error, "daily puzzle refresh failed");
+    }
     // The archive after the days ahead: players need today and tomorrow first.
     let archive = fill_range(pool, today - Duration::days(ARCHIVE_DAYS), today, today).await?;
     let mut report = archive;
@@ -152,6 +158,75 @@ pub async fn fill(pool: &PgPool, today: NaiveDate) -> Result<FillReport, String>
         "daily puzzle fill ran"
     );
     Ok(report)
+}
+
+/// Remake every unplayed row dated after `today` (up to [`DAYS_AHEAD`]) that a
+/// superseded generator made and the current one would make differently.
+/// Logs one line per row replaced or refused, with solution hashes only.
+/// Returns how many rows were replaced.
+pub async fn refresh_unplayed(pool: &PgPool, today: NaiveDate) -> Result<u32, String> {
+    let to = today + Duration::days(DAYS_AHEAD);
+    let mut replaced = 0;
+    for slug in all_game_slugs() {
+        let Some(old_version) = generate::superseded_version(slug) else {
+            continue;
+        };
+        for row in store::stale_future_rows(pool, slug, old_version, today, to).await? {
+            let (slug_owned, date, difficulty) = (
+                slug.to_string(),
+                row.puzzle_date.date(),
+                row.difficulty.clone(),
+            );
+            let made = tokio::task::spawn_blocking(move || {
+                generate_for(&slug_owned, date, difficulty.as_deref())
+            })
+            .await
+            .map_err(|e| format!("generator task failed: {e}"))?;
+            let generated = match made {
+                Ok(generated) => generated,
+                Err(error) => {
+                    warn!(%error, slug, %date, "daily puzzle refresh: generation failed");
+                    continue;
+                }
+            };
+            if generated.puzzle_data == row.puzzle_data
+                && Some(&generated.solution) == row.solution.as_ref()
+            {
+                continue;
+            }
+            let outcome = if i32::try_from(generated.seed).ok() == row.seed {
+                store::replace_unplayed(pool, &row, old_version, &generated).await?
+            } else {
+                store::Refresh::RefusedChanged
+            };
+            if outcome == store::Refresh::Replaced {
+                replaced += 1;
+            }
+            let old_hash = sha256(row.solution.as_ref().unwrap_or(&Value::Null));
+            let new_hash = sha256(&generated.solution);
+            info!(
+                outcome = ?outcome,
+                id = %row.id,
+                game = slug,
+                %date,
+                difficulty = row.difficulty.as_deref().unwrap_or("none"),
+                old_version,
+                new_version = generated.generator_version,
+                old_solution_sha256 = old_hash,
+                new_solution_sha256 = new_hash,
+                "daily puzzle refresh"
+            );
+        }
+    }
+    Ok(replaced)
+}
+
+fn sha256(value: &Value) -> String {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(value.to_string().as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// Store every missing puzzle in `[from, to]`, then measure the buffer from

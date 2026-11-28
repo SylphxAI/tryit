@@ -1,6 +1,6 @@
 /** @jsxImportSource solid-js */
 import { A } from '@solidjs/router'
-import { For } from 'solid-js'
+import { For, Show } from 'solid-js'
 import { slugToCamelCase } from '@/lib/game-slug'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -153,7 +153,14 @@ export function AdminView(props: {
 	}
 	return (
 		<div class="admin-theme">
-			<AdminNavigation locale={props.locale} t={t} section={props.section} />
+			<Show when={props.section !== 'analytics' || props.data.kind === 'analytics'}>
+				<AdminNavigation
+					locale={props.locale}
+					t={t}
+					section={props.section}
+					analyticsOnly={props.data.kind === 'analytics' && props.data.analyticsOnly}
+				/>
+			</Show>
 			<main class="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
 				<header class="flex flex-wrap items-start justify-between gap-3">
 					<div>

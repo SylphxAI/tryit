@@ -281,6 +281,7 @@ export const gameSessions = pgTable(
 
 		startedAt: timestamp('started_at').defaultNow().notNull(),
 		completedAt: timestamp('completed_at'),
+		completedAtUtc: timestamp('completed_at_utc', { withTimezone: true }),
 
 		/**
 		 * Product day key (YYYY-MM-DD in Asia/Hong_Kong) for ritual finishes.
@@ -1079,8 +1080,8 @@ export const funnelEvents = pgTable(
 	(table) => [
 		index('funnel_events_event_time_idx').on(table.event, table.occurredAt),
 		check(
-			'funnel_events_event_check',
-			sql`${table.event} IN ('landing', 'game_start', 'signup', 'web_vitals', 'share_landing', 'game_complete', 'game_abandon', 'hint_used', 'share_clicked', 'paywall_hit', 'pwa_install_prompted', 'pwa_installed', 'push_opted_in')`,
+			'funnel_events_event_check_widened',
+			sql`${table.event} IN ('landing', 'game_start', 'signup', 'web_vitals', 'share_landing', 'game_complete', 'game_abandon', 'hint_used', 'share_clicked', 'paywall_hit', 'pwa_install_prompted', 'pwa_installed', 'push_opted_in', 'save_streak_prompted', 'save_streak_clicked')`,
 		),
 	],
 )
@@ -1186,12 +1187,20 @@ export const dailyFreePicks = pgTable(
 		dayKey: date('day_key', { mode: 'string' }).notNull(),
 		gameSlug: text('game_slug').notNull(),
 		startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+		// Point-in-time start provenance, written only with a new pick; NULL = not collected.
+		claimedVia: text('claimed_via'),
+		guestEntry: boolean('guest_entry'),
+		comparisonExcluded: boolean('comparison_excluded'),
 	},
 	(table) => [
 		primaryKey({
 			name: 'daily_free_picks_pkey',
 			columns: [table.userId, table.dayKey, table.gameSlug],
 		}),
+		check(
+			'daily_free_picks_claimed_via_check',
+			sql`${table.claimedVia} IN ('start', 'guess', 'finish')`,
+		),
 	],
 )
 

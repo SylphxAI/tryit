@@ -2290,6 +2290,7 @@ dependencies = [
  "hmac 0.13.0",
  "jiff",
  "jsonwebtoken",
+ "log",
  "puzzled-core",
  "rand 0.10.3",
  "reqwest",

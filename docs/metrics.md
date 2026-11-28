@@ -25,31 +25,48 @@ A finish counts when all of these hold:
 2. It is for the product day's puzzle (`day_key = D`) or D's featured free rotation.
 3. The game's class is `puzzle_ritual`, not `entertainment_oracle`.
 4. It is a terminal result the game treats as "today's attempt resolved" (a win, or an exhausted loss where the game has one daily attempt).
-5. It is not a dry run, admin injection or load-test marker.
+5. It is not a dry run, admin injection, load test or registered synthetic fixture. A finish recorded with the `x-puzzled-verification` header or the legacy `puzzled-verify-live/` user-agent sets `comparison_excluded` and is not counted. The header can only remove an otherwise valid finish from metrics; it cannot make a finish valid or eligible.
 6. It is the daily mode, not archive and not practice (`qualifies_as_ritual` in core).
 
 One finish counts per `(user, game, day_key)`: replaying is review, and the
 api rejects a second finish as already played. Guests count when their identity
 is stable for the day; report the total and the signed-in split.
 
+### Implausibly fast finishes
+
+The rollup and pick-to-finish report exclude the entire player if any terminal
+win or loss in daily mode took less than its game's floor. The elapsed time is
+server-recorded completion (`completed_at` interpreted as UTC) minus the free
+pick's `started_at`, matched on player, Hong Kong product day and game. Client
+reported duration is not used. The provisional floors are:
+
+| Seconds | Games |
+| ---: | --- |
+| 5 | Word Guess, Word Ladder, Arithmo |
+| 8 | Pattern Match, Word Groups, Number Path, Block Slide |
+| 20 | Every other game |
+
+A finish exactly at the floor counts. A tie at zero (including a pick claimed
+by the finish itself) is excluded because ordinary web play claims the pick
+before showing the board; negative intervals are below the floor too. Legacy
+picks need no provenance flag. Finishes without a matching pick (e.g. entitled
+play) or without a recorded completion time cannot be timed and do not trigger
+exclusion. This is a reporting filter, not a change to recorded finishes or
+player access. The [pick-to-finish report](observability.md#pick-to-finish-by-game)
+shows prior counts in its `raw_*` columns.
+
 Entertainment games (fun, random outcomes allowed) are reported separately as
 `daily_entertainment_completers` so they cannot inflate the brain-play number.
 
 ### Recomputing it
 
-`game_sessions` rows written by `PuzzleService.SubmitGuess` are the source:
-
-```sql
-SELECT COUNT(DISTINCT user_id)::bigint AS daily_puzzle_completers
-FROM game_sessions
-WHERE day_key = $1          -- YYYY-MM-DD in Asia/Hong_Kong
-  AND is_ritual = true
-  AND module_class = 'puzzle_ritual'
-  AND status IN ('won', 'lost');
-```
-
-The pure form is `puzzled_core::puzzle_play::ritual_completion::compute_drc`.
-A dashboard number should match this within late-event lag (15 minutes).
+`game_sessions` rows written by `PuzzleService.SubmitGuess` are the source.
+Use `DRC_RECOMPUTE_SQL` in the [core metrics module](../crates/puzzled-core/src/capabilities/puzzle_play/domain/ritual_completion/metrics.rs)
+with a Hong Kong day key (`YYYY-MM-DD`). It uses the same implausible-finish
+exclusion as the scheduled rollup. The pure oracle `compute_drc` expects rows
+after verification finishes, synthetic fixtures and implausibly fast players
+have been filtered out. A dashboard number should match this within late-event
+lag (15 minutes).
 
 ## Supporting metrics
 
@@ -74,6 +91,18 @@ group ([observability.md](observability.md#quality-signals)).
 Prefer server-emitted events over client analytics for finish counts. Client
 analytics may enrich funnels (time to first finish, rage clicks). Aggregate by
 default and keep raw events per the privacy policy.
+
+## Consent and the ad funnel
+
+Optional measurement follows regional consent rules and never runs under GPC.
+[Browser Signal](observability.md#consented-signal-stream) defaults on only in
+supported opt-out markets; elsewhere it requires a saved analytics grant.
+With consent denied, unanswered in an opt-in region, or GPC set, only these
+strictly necessary first-party aggregates are recorded: the anonymous `funnel_events` rows (no user id, IP or
+cookie; [observability.md](observability.md#first-party-funnel-counter)) and the
+server-side finish and revenue facts the product needs to operate
+(`game_sessions`, Money settlements). Ads are optimised on consented stages
+only; the gap to the first-party totals is the unconsented share, not loss.
 
 ## Stage targets
 
@@ -150,6 +179,46 @@ signed-in subscription viewer** that day, not all subscribers or all guests;
 reverse trials belong to the free audience, unanswerable Money reads are excluded.
 Plus includes Money grants/family seats; it is an access-segment proxy, not a
 revenue measure. Raw landings/audiences are not exposed through the report.
+
+### First-finish cohorts and D1
+
+Each report day D may carry `cohorts`: players whose first qualifying finish
+(the North Star predicate, including player exclusions) is on D,
+counted once per player. They are split by **entry identity**, the identity
+that recorded that first finish: guest (a server-issued guest credential, or a
+row adopted from one) or signed in; the rest are unknown, never folded into
+either. `first_guest_entry_now_signed_in` is current status, kept apart. D1 for
+D is D−1's cohort and those who finished again on D. Paid status plays no part.
+
+An absent `cohorts` means the report was stored before collection: unknown, not
+zero. Present zeros are a computed empty cohort. Either is final only when the
+day is `complete`; today's D1 is provisional. This is all-source D1, not
+organic D1.
+
+### First guest start to same-day completion
+
+`guest_start_cohort` counts the earliest canonical free pick per player after
+adoption, ordered by start time then day and game. An earlier pick bars later
+picks even if its provenance is unknown or excluded. The first pick must be an
+explicit guest start, not a comparison or synthetic row. A qualifying finish
+strictly before the pick disqualifies it, regardless of game or stored day.
+This compares absolute instants using `completed_at_utc` and the pick clock,
+including qualifying history retained under adopted guest IDs. An exact tie
+is not earlier. The numerator requires a qualifying finish for the same game
+and server-assigned Hong Kong product day. There is no acquisition-source split:
+unknown attribution is not organic.
+
+Both counts default to absent. Set `PUZZLED_GUEST_START_WRITERS_VERIFIED_AT`
+only after verifying all pick writers persist provenance and all finish writers
+persist the completion instant. The verified convergence instant (RFC 3339)
+opens collection on the following full Hong Kong product day. A day with any
+pick missing provenance is absent. Both counts are also absent if an otherwise
+eligible player has qualifying legacy finish history of unknown order (NULL
+`completed_at_utc`). A known earlier finish already excludes that player, so
+additional unknown history for them does not suppress the day's counts. Legacy
+wall times and stored day keys do not establish finish order. Present zeros
+mean computed empty; the usual 15-minute close grace applies. Reports are
+recomputed on the existing schedule; historical rows are not backfilled.
 
 ### Initial stop-the-line thresholds
 

@@ -28,6 +28,10 @@ test('copying a challenge without clipboard permission offers a selectable capti
 	await page.goto('/games/sudoku?difficulty=easy&start=1#play')
 	await page.getByRole('button', { name: 'See your result' }).click()
 	const dialog = page.getByRole('dialog', { name: 'Sudoku Complete' })
+	const status = dialog.getByRole('status')
+	await expect(status).toHaveCount(1)
+	await expect(status).toBeEmpty()
+	const statusBeforeCopy = await status.elementHandle()
 	const cdp = await page.context().newCDPSession(page)
 	const { targetInfo } = await cdp.send('Target.getTargetInfo')
 	await cdp.send('Browser.setPermission', {
@@ -48,7 +52,8 @@ test('copying a challenge without clipboard permission offers a selectable capti
 		action: 'copy_challenge',
 		hasPercentile: false,
 	})
-	await expect(dialog.getByRole('status')).toHaveText('Could not share automatically.')
+	await expect(status).toHaveText('Could not share automatically.')
+	expect(await status.evaluate((node, before) => node === before, statusBeforeCopy)).toBe(true)
 	await expect(dialog.getByText('Challenge copied')).toHaveCount(0)
 	const caption = dialog.getByRole('textbox', { name: 'Result caption' })
 	const value = await caption.inputValue()
@@ -99,7 +104,7 @@ for (const historical of [false, true]) {
 		await page.goto(
 			`/games/sudoku?difficulty=medium&start=1${historical ? `&mode=archive&date=${day}` : ''}#play`,
 		)
-		await page.getByRole('button', { name: 'Copy challenge', exact: true }).click()
+		await page.getByRole('button', { name: 'Share result', exact: true }).click()
 		const caption = () =>
 			page.evaluate(() => Reflect.get(window, 'sharedCaption') as string | undefined)
 		const gameLink = /https?:\/\/[^\s]+\/games\/sudoku\?[^\s]+/
@@ -159,7 +164,10 @@ for (const historical of [false, true]) {
 					expect.objectContaining({ gameSlug: 'sudoku', puzzleDate: day }),
 				)
 			} else {
-				await friend.getByRole('link', { name: "Play today's puzzle", exact: true }).first().click()
+				await friend
+					.getByRole('group', { name: 'Select Difficulty', exact: true })
+					.getByRole('link', { name: "Play today's puzzle", exact: true })
+					.click()
 				await expect(friend.getByRole('group', { name: 'Sudoku', exact: true })).toBeVisible()
 				await expect(friend.locator('[data-unlock-panel]')).toHaveCount(0)
 				expect(dailyRequests.length).toBeGreaterThan(0)

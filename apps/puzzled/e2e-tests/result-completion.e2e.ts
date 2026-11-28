@@ -4,6 +4,7 @@ import { expect, type Page, test } from '@playwright/test'
 import pathGoldens from '../../../crates/puzzled-core/tests/fixtures/generate/number-path.json'
 import { fixtureShareId } from '../scripts/share-fixture-facts'
 import { freeGameForDayKey } from '../src/lib/free-rotation'
+import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
 import { WCAG_TAGS } from './a11y-support'
 
@@ -208,10 +209,10 @@ for (const viewport of [
 					route.fulfill({ json: { info: { currentStreak: 7, freezeUsedYesterday: true } } }),
 				)
 				await page.addInitScript(() => {
-					const pending = Promise.withResolvers<void>()
-					Reflect.set(window, 'resolveShare', pending.resolve)
 					Object.defineProperty(navigator, 'share', {
 						value: ({ text }: ShareData) => {
+							const pending = Promise.withResolvers<void>()
+							Reflect.set(window, 'resolveShare', pending.resolve)
 							Reflect.set(window, 'nativeCaption', text)
 							return pending.promise
 						},
@@ -302,11 +303,19 @@ for (const viewport of [
 				const downloads: string[] = []
 				page.on('download', (download) => downloads.push(download.suggestedFilename()))
 				const readClipboard = () => page.evaluate(() => navigator.clipboard.readText())
-				const railCopy = card.getByRole('button', { name: 'Copy challenge', exact: true })
-				await railCopy.click()
-				await expect(card.getByText('Challenge copied', { exact: true })).toBeVisible()
-				const caption = await readClipboard()
-				expect(caption).toContain(fiveGrid)
+				const nativeCaption = () =>
+					page.evaluate(() => Reflect.get(window, 'nativeCaption') as string | undefined)
+				// With a share sheet, the rail's one primary gesture opens it directly.
+				await expect(card.getByRole('button', { name: 'Copy challenge', exact: true })).toHaveCount(
+					0,
+				)
+				const railShare = card.getByRole('button', { name: 'Share result', exact: true })
+				await railShare.click()
+				await expect.poll(nativeCaption).toContain(fiveGrid)
+				const caption = (await nativeCaption())!
+				await page.evaluate(() => Reflect.get(window, 'resolveShare')())
+				await expect(railShare).toBeEnabled()
+				await expect(card.getByText('Challenge copied', { exact: true })).toHaveCount(0)
 				const link = new URL(caption.split(' ').at(-1) ?? '')
 				expect(link.pathname + link.search).toBe('/r/' + fixtureShareId + '?utm_source=share')
 				expect(caption).not.toMatch(/charm|couch|placed ahead/i)
@@ -320,12 +329,15 @@ for (const viewport of [
 				const copy = dialog.getByRole('button', { name: 'Copy challenge', exact: true })
 				const save = dialog.getByRole('button', { name: 'Save PNG', exact: true })
 				const native = dialog.getByRole('button', { name: 'Share result', exact: true })
-				for (const action of [railCopy, copy, save, native, signIn, nextAction]) {
+				for (const action of [railShare, copy, save, native, signIn, nextAction]) {
 					const box = (await action.boundingBox())!
 					expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44)
 				}
 				await expect(copy).toHaveCSS('background-color', 'rgb(32, 30, 26)')
 				await expect(save).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+				await copy.click()
+				await expect(dialog.getByText('Challenge copied', { exact: true })).toBeVisible()
+				expect(await readClipboard()).toBe(caption)
 				const saved = page.waitForEvent('download')
 				await save.click()
 				const download = await saved
@@ -359,7 +371,7 @@ for (const viewport of [
 				await expect
 					.poll(() => shareEvents)
 					.toEqual(
-						['copy_challenge', 'save_png', 'native_share'].map((action) => ({
+						['native_share', 'copy_challenge', 'save_png', 'native_share'].map((action) => ({
 							event: 'share_clicked',
 							gameSlug: 'word-guess',
 							action,
@@ -480,10 +492,13 @@ for (const viewport of [
 					await expect(dialog.locator('.result-steps > span')).toHaveCount(3)
 					await expect(dialog.locator('.result-steps [data-filled]')).toHaveCount(1)
 					const playNext = dialog.getByRole('link', { name: /^Play next:/ })
+					// The rotation picks the next game by product day; its link uses the
+					// public path (word-groups is /games/quartet) and the internal intent.
 					await expect(playNext).toHaveAttribute(
 						'href',
-						new RegExp(`/games/${next}\\?.*start=1#play$`),
+						new RegExp(`^${gamePath(next)}\\?.*start=1#play$`),
 					)
+					await expect(playNext).toHaveAttribute('data-start-intent', next)
 					await expect(dialog.getByRole('link', { name: 'All games' })).toHaveAttribute(
 						'href',
 						'/games',
@@ -589,7 +604,7 @@ for (const viewport of [
 						const started = page.waitForRequest((request) => request.url().endsWith('/StartDaily'))
 						await playNext.click()
 						expect((await started).postDataJSON()).toMatchObject({ gameSlug: next })
-						await expect(page).toHaveURL(new RegExp(`/games/${next}\\?.*start=1#play$`))
+						await expect(page).toHaveURL(new RegExp(`${gamePath(next)}\\?.*start=1#play$`))
 					}
 				},
 			)

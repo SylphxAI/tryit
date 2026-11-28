@@ -88,7 +88,13 @@ impl Money {
     /// The environment resource URL, discovered once and kept.
     pub(super) async fn env_url(&self) -> Result<&str, MoneyError> {
         self.base
-            .get_or_try_init(|| resolve_env_url_with(&self.sdk, &self.origin, &self.secret_key))
+            .get_or_try_init(|| {
+                crate::shared::verification_timing::money(resolve_env_url_with(
+                    &self.sdk,
+                    &self.origin,
+                    &self.secret_key,
+                ))
+            })
             .await
             .map(String::as_str)
     }

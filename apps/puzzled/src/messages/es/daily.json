@@ -29,7 +29,7 @@
 	"notReadyTitle": "El {game} de hoy aún no está listo",
 	"notReadyBody": "Todavía no hay un puzle de {game} para hoy. Elige cualquiera de los otros 3 puzzles gratis de hoy.",
 	"notReadyCta": "Ver los puzzles gratis de hoy",
-	"startUsesPick": "Empezar usa una de tus 3 elecciones gratis de hoy. El juego que empieces queda abierto todo el día.",
+	"startUsesPick": "Elige 3 juegos gratis cada día. Cuando empieces uno, podrás jugarlo todo el día.",
 	"englishWordPuzzle": "Juego de palabras en inglés",
 	"firstAction": {
 		"sudoku": "Toca una casilla vacía y elige un número del 1 al 9.",
@@ -40,7 +40,6 @@
 		"duo": "Toca una casilla vacía para poner un sol o una luna.",
 		"numberPath": "Empieza en 1 y recorre las casillas vecinas en orden.",
 		"wordGroups": "Toca cuatro palabras que tengan algo en común.",
-		"killerSudoku": "Elige un dígito con ayuda de la suma de su zona.",
 		"wordLadder": "Cambia una letra para formar otra palabra.",
 		"wordGuess": "Escribe una palabra de cinco letras para obtener pistas.",
 		"cryptogram": "Toca una letra cifrada y adivina cuál representa.",

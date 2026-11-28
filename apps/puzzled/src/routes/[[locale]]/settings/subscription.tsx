@@ -13,6 +13,7 @@ import { Show } from 'solid-js'
 import { getRequestEvent } from 'solid-js/web'
 import { SettingsShell } from '@/features/settings/solid/settings-shell'
 import { SubscriptionPanel } from '@/features/settings/solid/subscription-panel'
+import { scrubCheckoutSession } from '@/features/settings/solid/subscription-return'
 import { defaultLocale, isValidLocale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -77,6 +78,8 @@ export default function Subscription() {
 			<Show when={data()} keyed>
 				{(page) => {
 					const search = new URL(page.handoff.returnTo, 'https://local.invalid').search
+					// Hydration runs before the consent runtime can load a tag; handoff already holds the id.
+					if (typeof window !== 'undefined') scrubCheckoutSession(window)
 					const t = createTranslator(page.locale)
 					return (
 						<>

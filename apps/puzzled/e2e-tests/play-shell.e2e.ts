@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, type Page } from '@playwright/test'
+import { START_INTENT_TTL_MS } from '../src/features/daily/lib/start-intent'
 import { gamePath } from '../src/lib/game-slug'
 import { productDayKey } from '../src/lib/product-day'
+import { START_INTENT_KEY } from '../src/lib/storage-keys'
 import { googleTagTest as test } from './google-tag-support'
 
 const wordGames = [
@@ -32,7 +34,7 @@ const hasLevels = new Set(['sudoku', 'nonogram', 'block-slide', 'crowns', 'kille
 const stage = '[data-game-stage="board"]'
 const cue = '[data-first-action]'
 
-function playable(slug: string) {
+function playable(slug: string, difficulty = 'medium') {
 	const snapshot = {
 		gameSlug: slug,
 		puzzleDate: productDayKey(),
@@ -61,7 +63,7 @@ function playable(slug: string) {
 	)
 	const entry = cases.find(
 		(c: { difficulty: string | null; puzzleData?: unknown }) =>
-			c.puzzleData !== undefined && (!hasLevels.has(slug) || c.difficulty === 'medium'),
+			c.puzzleData !== undefined && (!hasLevels.has(slug) || c.difficulty === difficulty),
 	)
 	const puzzleData =
 		slug === 'word-search' ? { ...entry.puzzleData, words: entry.solution.words } : entry.puzzleData
@@ -136,7 +138,7 @@ async function canvasGeometry(page: Page) {
 				? []
 				: [el.getAttribute('aria-label') || el.textContent]
 		})
-		const choices = [...dock.querySelectorAll('button')].map((el) => {
+		const choices = [...dock.querySelectorAll('[data-consent-choices] button')].map((el) => {
 			const { width, height } = el.getBoundingClientRect()
 			return JSON.stringify([el.className, Math.round(width), Math.round(height)])
 		})
@@ -285,13 +287,13 @@ for (const [width, height] of layouts) {
 		test.use({ viewport: { width, height }, hasTouch: width === 390, isMobile: width === 390 })
 		for (const [locale, slugs] of [
 			['en-US', [...wordGames, ...otherGames]],
-			['zh-TW', ['nonogram', 'number-path', 'quad-words', 'block-slide']],
+			['zh-TW', ['nonogram', 'number-path', 'quad-words', 'block-slide', 'killer-sudoku']],
 		] as const) {
 			for (const slug of slugs) {
 				test(slug + ' fits the frameless play canvas (' + locale + ')', async ({ page }) => {
 					await openBoard(page, slug, locale)
 					const dock = page.locator('[data-consent-banner]')
-					await expect(dock.getByRole('button')).toHaveText(
+					await expect(dock.locator('[data-consent-choices]').getByRole('button')).toHaveText(
 						locale === 'en-US'
 							? ['Decline', 'Accept', 'Analytics only']
 							: ['拒絕', '接受', '僅限分析'],
@@ -406,13 +408,19 @@ for (const [width, height] of layouts) {
 					if (width >= 1024 && splitGames.includes(slug)) {
 						const instruction = await page.locator(cue).evaluate((el) => {
 							const range = document.createRange()
-							range.selectNodeContents(el)
-							const lines = new Set(Array.from(range.getClientRects(), (rect) => rect.top))
+							const nodes = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+							const lines = new Set<number>()
+							while (nodes.nextNode()) {
+								range.selectNodeContents(nodes.currentNode)
+								for (const rect of range.getClientRects()) {
+									if (rect.width > 0) lines.add(rect.top)
+								}
+							}
 							return { width: el.getBoundingClientRect().width, lines: lines.size }
 						})
 						expect(instruction.width).toBeGreaterThanOrEqual(220)
 						expect(instruction.lines).toBeGreaterThan(0)
-						expect(instruction.lines).toBeLessThanOrEqual(2)
+						expect(instruction.lines).toBeLessThanOrEqual(slug === 'killer-sudoku' ? 3 : 2)
 					}
 					if (width >= 1024 && slug === 'killer-sudoku') {
 						const dockTop = (await dock.boundingBox())!.y
@@ -426,7 +434,7 @@ for (const [width, height] of layouts) {
 						await checkHelp(page, locale === 'en-US' ? 'How to play' : '玩法')
 						const play = page.locator('#play')
 						const before = (await play.boundingBox())!.height
-						await dock.getByRole('button').first().click()
+						await dock.locator('[data-consent-choices]').getByRole('button').first().click()
 						await expect(dock).toHaveCount(0)
 						expect((await play.boundingBox())!.height).toBeGreaterThan(before)
 					}
@@ -435,6 +443,90 @@ for (const [width, height] of layouts) {
 		}
 	})
 }
+
+async function openCageCueFixture(page: Page, baseURL = 'http://localhost:3000') {
+	if (!['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname))
+		throw new Error('Cage cue requires a local fixture')
+	await page
+		.context()
+		.addCookies([
+			{ name: 'puzzled_session', value: 'fixture-player', url: baseURL, httpOnly: true },
+		])
+	await openBoard(page, 'killer-sudoku')
+}
+
+for (const [width, height] of [
+	[1440, 900],
+	[390, 844],
+]) {
+	test.describe(`Cage Sudoku cue ${width}×${height}`, () => {
+		test.use({ viewport: { width, height }, isMobile: width === 390, hasTouch: width === 390 })
+		test('points to a cage without covering the board, and stays dismissed on reload', async ({
+			page,
+			baseURL,
+		}, info) => {
+			await openCageCueFixture(page, baseURL)
+			const tip = page.locator('[data-cage-first-move]')
+			const grid = page.locator('.play-board')
+			const anchor = grid.locator('[data-cage-cue]').first()
+			await expect(tip).toBeInViewport({ ratio: 1 })
+			await expect(tip).toContainText('Tap a square, then tap a digit.')
+			await expect(grid).toBeInViewport({ ratio: 1 })
+			await expect(grid.locator('[data-cage-cue]')).toHaveCount(1)
+			const total = anchor.locator('[data-cage-total]')
+			await expect(total).toHaveText('6')
+			await expect(total).toHaveCSS('font-size', '11px')
+			expect((await canvasGeometry(page)).bad).toEqual([])
+			await page.evaluate(() => document.fonts.ready)
+			await info.attach(`cage-sudoku-${width}.png`, {
+				body: await page.screenshot(),
+				contentType: 'image/png',
+			})
+			const press = width === 390 ? 'tap' : 'click'
+			await anchor[press]()
+			await expect(anchor).toHaveAttribute('aria-pressed', 'true')
+			await page.keyboard.press('n')
+			await page.keyboard.press('1')
+			const note = anchor.locator('[data-visible]')
+			await expect(note).toBeVisible()
+			expect((await total.boundingBox())!.y + 11).toBeLessThanOrEqual((await note.boundingBox())!.y)
+			await expect(tip).toBeVisible()
+			const beforeDismiss = await grid.boundingBox()
+			await tip.getByRole('button', { name: 'Dismiss' })[press]()
+			await expect(tip).toHaveCount(0)
+			expect(await grid.boundingBox()).toEqual(beforeDismiss)
+			if (width === 390) {
+				await info.attach('cage-sudoku-390-dismissed.png', {
+					body: await page.screenshot(),
+					contentType: 'image/png',
+				})
+			}
+			await page.reload()
+			await expect(grid.locator('[aria-pressed="true"]')).toHaveCount(1)
+			await expect(tip).toHaveCount(0)
+		})
+	})
+}
+
+test('Cage Sudoku cue retires on a conflict-free digit, not on a note or conflict', async ({
+	page,
+	baseURL,
+}) => {
+	await openCageCueFixture(page, baseURL)
+	const tip = page.locator('[data-cage-first-move]')
+	const cell = page.getByRole('button', { name: /^Row 1, Column 2,/ })
+	await cell.click()
+	for (const key of ['n', '5', 'n', '2']) await page.keyboard.press(key)
+	await expect(cell).toHaveAttribute('aria-invalid', 'true')
+	await expect(tip).toBeVisible()
+	// 1 is not the solution here; it just has no conflict visible to the player.
+	await page.keyboard.press('1')
+	await expect(cell).not.toHaveAttribute('aria-invalid')
+	await expect(tip).toBeHidden()
+	await page.reload()
+	await expect(cell).toHaveAccessibleName(/Column 2, 1,/)
+	await expect(tip).toHaveCount(0)
+})
 
 test('all 19 games show one rules dialog and introductory copy in zh-TW', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 })
@@ -447,6 +539,72 @@ test('all 19 games show one rules dialog and introductory copy in zh-TW', async 
 		await checkHelp(page, '玩法')
 		await page.unroute('**/puzzled.v1.PuzzleService/GetDaily')
 	}
+})
+
+const fiveNoticeCases = [
+	['zh-HK', '英文單詞謎題', '拒絕分析及廣告'],
+	['es', 'Juego de palabras en inglés', 'Rechazar'],
+	['pt-BR', 'Jogo de palavras em inglês', 'Recusar'],
+] as const
+
+for (const [width, height] of [
+	[390, 844],
+	[1440, 900],
+]) {
+	test.describe(`Five direct landing ${width}×${height}`, () => {
+		test.use({ viewport: { width, height }, isMobile: width === 390, hasTouch: width === 390 })
+		for (const [locale, label, decline] of fiveNoticeCases) {
+			test(`${locale}: one notice before Play even when the daily board resumes below`, async ({
+				page,
+			}) => {
+				const path = `/${locale}/games/word-guess`
+				await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+				await page.goto(path)
+				// The enrolled craft server serves a playable frozen GetDaily snapshot.
+				await expect(page.locator(stage)).toBeVisible()
+				const hero = page.locator('.game-hero')
+				const notice = hero.locator('[data-english-word-puzzle]')
+				const play = hero.locator('a[data-start-intent="word-guess"]')
+				const consent = page.locator('[data-consent-banner]')
+				await expect(notice).toHaveText(label)
+				await expect(page.locator('[data-english-word-puzzle]')).toHaveCount(1)
+				await expect(play).toHaveCount(1)
+				await expect(play).toHaveAttribute('href', `${path}?start=1#play`)
+				await expect(consent).toBeVisible()
+				for (const dismiss of [false, true]) {
+					if (dismiss) {
+						const button = consent.getByRole('button', { name: decline, exact: true })
+						if (width === 390) await button.tap()
+						else await button.click()
+						await expect(consent).toHaveCount(0)
+					}
+					const bounds = (await notice.boundingBox())!
+					const cta = (await play.boundingBox())!
+					expect(bounds.y + bounds.height).toBeLessThanOrEqual(cta.y)
+					await expect(notice).toBeInViewport({ ratio: 1 })
+					await expect(play).toBeInViewport({ ratio: 1 })
+					// Trial checks hit testing without starting a game or moving to the play route.
+					if (width === 390) await play.tap({ trial: true })
+					else await play.click({ trial: true })
+					if (!dismiss)
+						expect(cta.y + cta.height).toBeLessThanOrEqual((await consent.boundingBox())!.y)
+				}
+			})
+		}
+	})
+}
+
+test('direct landing has no language notice for English Five or localized Quad', async ({
+	page,
+}) => {
+	for (const path of ['/games/word-guess', '/zh-HK/games/quad-words']) {
+		await page.goto(path)
+		await expect(page.locator('.game-hero [data-start-intent]')).toBeVisible()
+		await expect(page.locator('.game-hero [data-english-word-puzzle]')).toHaveCount(0)
+	}
+	// The landing-only negative must not remove Quad's existing in-play notice.
+	await openBoard(page, 'quad-words', 'zh-HK')
+	await expect(page.locator('#play [data-english-word-puzzle]')).toHaveText('英文單詞謎題')
 })
 
 for (const admitted of [true, false]) {
@@ -519,6 +677,240 @@ async function twoFrames(page: Page) {
 	)
 }
 
+for (const recover of [true, false]) {
+	test(
+		recover
+			? 'first Play recovers from a guest bootstrap network abort and starts once'
+			: 'two guest bootstrap failures show Try again without starting the puzzle',
+		async ({ page, context }) => {
+			const slug = 'number-path'
+			const daily = playable(slug)
+			let bootstraps = 0
+			const starts: unknown[] = []
+			await page.route('**/v1/guest/session', (route) => {
+				bootstraps++
+				if (bootstraps === 1 || !recover) return route.abort('failed')
+				return route.fulfill({
+					json: { issued: true },
+					headers: { 'Set-Cookie': '__Host-puzzled_guest=retry-fixture; HttpOnly; Secure; Path=/' },
+				})
+			})
+			await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+				route.fulfill({
+					json: {
+						gameSlug: slug,
+						puzzleDate: daily.puzzleDate,
+						canPlay: true,
+						requiresStart: true,
+					},
+				}),
+			)
+			await page.route('**/puzzled.v1.PuzzleService/StartDaily', async (route) => {
+				starts.push(route.request().postDataJSON())
+				if (
+					!(await route.request().headerValue('cookie'))?.includes(
+						'__Host-puzzled_guest=retry-fixture',
+					)
+				) {
+					return route.fulfill({
+						status: 401,
+						json: { code: 'unauthenticated', message: 'identity_required' },
+					})
+				}
+				return route.fulfill({ json: { daily } })
+			})
+			await page.goto(`${gamePath(slug)}?start=1#play`)
+			const play = page.locator('[data-game-stage="start"]').getByRole('button', { name: 'Play' })
+			await expect(play).toBeEnabled()
+			expect(await context.cookies()).toEqual([])
+			expect(bootstraps).toBe(0)
+			await play.click()
+			const unavailable = page.getByRole('heading', { name: 'Puzzle not available' })
+			const board = page.locator(`${stage} .play-board`)
+			if (recover) {
+				await expect(board).toBeVisible()
+				await expect(unavailable).toHaveCount(0)
+				expect(starts).toEqual([
+					expect.objectContaining({ gameSlug: slug, puzzleDate: daily.puzzleDate }),
+				])
+			} else {
+				await expect(unavailable).toBeVisible()
+				await expect(board).toHaveCount(0)
+				expect(starts).toEqual([])
+				await page.getByRole('button', { name: 'Try again' }).click()
+				await expect(play).toBeEnabled()
+			}
+			expect(bootstraps).toBe(2)
+		},
+	)
+}
+
+test.describe('Home Play at 390px', () => {
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+	const assets = '**/_build/assets/*.js'
+	const card = '[data-game-stage="start"] button'
+	const cookie = '__Host-puzzled_guest=cold-home-fixture'
+	const cookieHeader = `${cookie}; HttpOnly; Secure; Path=/`
+	const intent = (page: Page) =>
+		page.evaluate((key) => sessionStorage.getItem(key), START_INTENT_KEY)
+	async function fixture(page: Page, resume = false) {
+		const puzzleDate = productDayKey()
+		const starts: unknown[] = []
+		const guest = Promise.withResolvers<void>()
+		const context = page.context()
+		await context.route('**/v1/guest/session', async (route) => {
+			await guest.promise
+			await route.fulfill({ json: { issued: true }, headers: { 'Set-Cookie': cookieHeader } })
+		})
+		await context.route('**/puzzled.v1.PuzzleService/{GetDaily,StartDaily}', async (route) => {
+			const input = route.request().postDataJSON()
+			if (route.request().url().endsWith('/GetDaily')) {
+				const startable = { ...input, puzzleDate, canPlay: true, requiresStart: true }
+				return route.fulfill({
+					json: resume ? playable(input.gameSlug, input.difficulty) : startable,
+				})
+			}
+			starts.push(input)
+			expect(await route.request().headerValue('cookie')).toContain(cookie)
+			await route.fulfill({ json: { daily: playable(input.gameSlug, input.difficulty) } })
+		})
+		return { puzzleDate, starts, release: guest.resolve }
+	}
+	async function cold(page: Page, path = '/') {
+		// Stop Home's external scripts while retaining the streamed SSR and its nonce script.
+		await page.route(assets, (route) => route.abort())
+		await page.goto(path)
+		await page.unroute(assets)
+		return page.locator('[data-home-featured]')
+	}
+	for (const path of ['/', '/zh-HK', '/ja']) {
+		for (const hero of [true, false]) {
+			test(`${path}: cold ${hero ? 'hero' : 'lineup'} starts exactly once after the cookie`, async ({
+				page,
+			}) => {
+				const daily = await fixture(page)
+				const featured = await cold(page, path)
+				const featuredSlug = await featured.getAttribute('data-home-featured')
+				const slug = hero ? featuredSlug : featuredSlug === 'sudoku' ? 'number-path' : 'sudoku'
+				const play = hero ? featured : page.locator(`[data-home-game="${slug}"]`)
+				const dest = new URL((await play.getAttribute('href'))!, page.url())
+				const cookieRequest = page.waitForRequest('**/v1/guest/session')
+				try {
+					await play.tap()
+					await expect(page).toHaveURL(dest.href)
+					await expect(page.locator(card)).toBeDisabled()
+					await cookieRequest
+					expect(daily.starts).toEqual([])
+				} finally {
+					daily.release()
+				}
+				await expect(page.locator(stage)).toBeVisible()
+				const difficulty = dest.searchParams.get('difficulty') ?? undefined
+				expect(daily.starts).toEqual([{ gameSlug: slug, difficulty, puzzleDate: daily.puzzleDate }])
+				await page.reload()
+				await expect(page.locator(card)).toBeEnabled()
+				expect(daily.starts).toHaveLength(1)
+			})
+		}
+	}
+	for (const mode of ['Ctrl', 'middle', '_blank'] as const) {
+		test(`${mode} carries no Play intent`, async ({ page, context }) => {
+			const { starts, release } = await fixture(page)
+			release()
+			const play = await cold(page)
+			const from = page.url()
+			const href = new URL((await play.getAttribute('href'))!, from).href
+			expect(href).toMatch(/[?&]start=1#play$/)
+			if (mode === '_blank') await play.evaluate((a) => a.setAttribute('target', '_blank'))
+			const tabs: string[] = []
+			context.on('page', (tab) => tabs.push(tab.url()))
+			// The capture listens on document, so window hears the same press after it. Cancel
+			// the new tab there: creating and loading it is the browser's job, not the app's.
+			const seen = await page.evaluateHandle(() => {
+				const events: unknown[] = []
+				for (const type of ['click', 'auxclick']) {
+					addEventListener(type, (e) => {
+						const { isTrusted, defaultPrevented, button, ctrlKey } = e as MouseEvent
+						const target = (e.target as Element).closest('a')?.target
+						events.push({ type, isTrusted, defaultPrevented, button, ctrlKey, target })
+						e.preventDefault()
+					})
+				}
+				return events
+			})
+			await play.click({
+				button: mode === 'middle' ? 'middle' : 'left',
+				modifiers: mode === 'Ctrl' ? ['Control'] : [],
+			})
+			// One trusted, uncancelled press reached the capture; only its button, key or target differ.
+			expect(await seen.jsonValue()).toEqual([
+				{
+					type: mode === 'middle' ? 'auxclick' : 'click',
+					isTrusted: true,
+					defaultPrevented: false,
+					button: mode === 'middle' ? 1 : 0,
+					ctrlKey: mode === 'Ctrl',
+					target: mode === '_blank' ? '_blank' : '',
+				},
+			])
+			expect(page.url()).toBe(from)
+			expect(await intent(page)).toBeNull()
+			// The destination as the new tab would load it: referred by Home, with no recorded press.
+			await page.goto(href, { referer: from })
+			await expect(page.locator(card)).toBeEnabled()
+			expect(starts).toEqual([])
+			expect(tabs).toEqual([])
+		})
+	}
+	for (const mode of ['expired', 'storage blocked', 'reload/paste/share', 'resume']) {
+		test(`cold Home: ${mode} never claims a pick`, async ({ page, context }) => {
+			const { starts, release } = await fixture(page, mode === 'resume')
+			release()
+			if (mode === 'storage blocked') {
+				await page.addInitScript(() => {
+					const blocked = () => {
+						throw new DOMException('Blocked', 'SecurityError')
+					}
+					Object.defineProperty(window, 'sessionStorage', { get: blocked })
+				})
+			}
+			await cold(page)
+			const sudoku = page.locator('[data-home-game="sudoku"], [data-home-featured="sudoku"]')
+			const href = new URL((await sudoku.getAttribute('href'))!, page.url()).href
+			if (mode === 'expired') {
+				const at = Date.now() - START_INTENT_TTL_MS - 1
+				const record = { slug: 'sudoku', href, from: page.url(), at }
+				await page.evaluate(
+					({ key, record }) => sessionStorage.setItem(key, JSON.stringify(record)),
+					{ key: START_INTENT_KEY, record },
+				)
+				await page.goto(href, { referer: record.from })
+			} else if (mode === 'reload/paste/share') {
+				await page.route(assets, (route) => route.abort())
+				await sudoku.tap()
+				await expect(page).toHaveURL(href)
+				const raw = await intent(page)
+				expect(raw).not.toBeNull()
+				await page.unroute(assets)
+				await page.reload()
+				await expect(page.locator(card)).toBeEnabled()
+				await page.goto('/games')
+				const setIntent = ({ key, value }: { key: string; value: string }) =>
+					sessionStorage.setItem(key, value)
+				await page.evaluate(setIntent, { key: START_INTENT_KEY, value: raw! })
+				await page.goto(href)
+				const shared = await context.newPage()
+				await shared.goto(href.replace('#', '&utm_source=share#'))
+				await expect(shared.locator(card)).toBeEnabled()
+			} else await sudoku.tap()
+			await expect(page).toHaveURL(/\/games\/sudoku\?difficulty=medium&start=1#play$/)
+			if (mode === 'resume') await expect(page.locator(stage)).toBeVisible()
+			else await expect(page.locator(card)).toBeEnabled()
+			if (mode !== 'storage blocked') expect(await intent(page)).toBeNull()
+			expect(starts).toEqual([])
+		})
+	}
+})
 function holdResponse(page: Page, url: string | RegExp, json?: unknown) {
 	const release = Promise.withResolvers<void>()
 	const requested = Promise.withResolvers<void>()
@@ -826,3 +1218,113 @@ test('Path restores only the same viewer and served puzzle', async ({ page, cont
 	await page.reload()
 	await expect(clue).toHaveAttribute('aria-pressed', 'false')
 })
+
+for (const { width, height, difficulty } of [
+	{ width: 390, height: 844, difficulty: 'hard' },
+	{ width: 1440, height: 900, difficulty: 'hard' },
+]) {
+	test.describe(`Sudoku daily choice on ${width}×${height}`, () => {
+		const touch = width === 390
+		test.use({ viewport: { width, height }, isMobile: touch, hasTouch: touch })
+
+		test('Practice text aligns with Play and keeps its focus and hit area', async ({ page }) => {
+			for (const [path, playLabel, practiceLabel] of [
+				['/games/sudoku', "Play today's puzzle", 'Practice'],
+				['/zh-HK/games/sudoku', '開始今日謎題', '練習'],
+			]) {
+				await page.goto(path)
+				const play = page.getByRole('link', { name: playLabel, exact: true })
+				const practice = page.getByRole('link', { name: practiceLabel, exact: true })
+				const practiceTextLeft = await practice.evaluate((link) => {
+					const text = [...link.childNodes].find(
+						(node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+					)!
+					const range = document.createRange()
+					range.selectNodeContents(text)
+					return range.getBoundingClientRect().left
+				})
+				expect(
+					Math.abs(practiceTextLeft - (await play.boundingBox())!.x),
+					path,
+				).toBeLessThanOrEqual(1)
+				const box = (await practice.boundingBox())!
+				expect(box.width, path).toBeGreaterThanOrEqual(48)
+				expect(box.height, path).toBeGreaterThanOrEqual(48)
+				await play.focus()
+				await page.keyboard.press('Tab')
+				await expect(practice).toBeFocused()
+				await expect(practice).toHaveCSS('outline-width', '2px')
+				const endPadding = await practice.evaluate(
+					(link) => getComputedStyle(link).paddingInlineEnd,
+				)
+				await expect(practice).toHaveCSS('padding-inline-start', endPadding)
+				if (touch)
+					expect(
+						await page.evaluate(() => document.documentElement.scrollWidth),
+					).toBeLessThanOrEqual(width)
+			}
+		})
+
+		test(`shows one picker; choosing claims nothing and Play opens Hard`, async ({ page }) => {
+			// The browser wiring is real; the Rust pick cap and replay are covered by DB tests.
+			const slug = 'sudoku'
+			const puzzleDate = productDayKey()
+			const starts: unknown[] = []
+			await page.route('**/v1/guest/session', (route) => route.fulfill({ json: { issued: true } }))
+			await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+				route.fulfill({
+					json: { gameSlug: slug, puzzleDate, canPlay: true, requiresStart: true },
+				}),
+			)
+			await page.route('**/puzzled.v1.PuzzleService/StartDaily', (route) => {
+				starts.push(route.request().postDataJSON())
+				return route.fulfill({ json: { daily: playable(slug, difficulty) } })
+			})
+			await page.goto(touch ? '/games/sudoku' : '/games/sudoku?start=1#play')
+			const choices = page.getByRole('group', { name: 'Select Difficulty', exact: true })
+			const medium = choices.getByRole('radio', { name: 'Medium', exact: true })
+			const hard = choices.getByRole('radio', { name: 'Hard', exact: true })
+			const play = choices.getByRole('link', { name: "Play today's puzzle", exact: true })
+			await expect(choices).toHaveCount(1)
+			await expect(choices.getByRole('radio')).toHaveCount(3)
+			await expect(medium).toBeChecked()
+			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=medium&start=1#play')
+			for (const link of await choices.locator('label').all()) {
+				await expect(link).toBeInViewport({ ratio: 1 })
+				expect(
+					await link.evaluate((element) => {
+						const { x, y, width, height } = element.getBoundingClientRect()
+						return (
+							width >= 48 &&
+							height >= 48 &&
+							element.contains(document.elementFromPoint(x + width / 2, y + height / 2))
+						)
+					}),
+				).toBe(true)
+			}
+			if (touch) await choices.getByText('Hard', { exact: true }).tap()
+			else {
+				await medium.focus()
+				await page.keyboard.press('ArrowRight')
+			}
+			await expect(hard).toBeChecked()
+			await expect(play).toHaveAttribute('href', '/games/sudoku?difficulty=hard&start=1#play')
+			await expect(play).toBeInViewport({ ratio: 1 })
+			expect(starts).toEqual([])
+			if (touch) {
+				await play.tap()
+			} else {
+				await page.keyboard.press('Tab')
+				await expect(play).toBeFocused()
+				await expect(play).toHaveCSS('outline-width', '2px')
+				await page.keyboard.press('Enter')
+			}
+			await expect(
+				page.locator(stage).getByRole('group', { name: 'Sudoku', exact: true }),
+			).toBeVisible()
+			await expect(page.locator('[data-game-stage="start"] button')).toHaveCount(0)
+			await expect(choices).toHaveCount(0)
+			expect(starts).toEqual([{ gameSlug: slug, difficulty, puzzleDate }])
+		})
+	})
+}

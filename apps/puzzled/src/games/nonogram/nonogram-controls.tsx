@@ -1,9 +1,19 @@
 /** @jsxImportSource solid-js */
-import { Paintbrush, X } from 'lucide-solid'
-import { createMemo, Show } from 'solid-js'
+import { Check, Paintbrush, X } from 'lucide-solid'
+import { createMemo, createUniqueId, For, Show } from 'solid-js'
 import type { Locale } from '@/lib/i18n/config'
 import type { Translate } from '@/lib/i18n/translate'
 import type { NonogramPlay } from './create-nonogram-play'
+
+const brushes = [
+	{
+		ink: 'filled',
+		Icon: Paintbrush,
+		label: 'games.nonogram.fillMode',
+		cue: 'games.nonogram.fillCue',
+	},
+	{ ink: 'marked', Icon: X, label: 'games.nonogram.markMode', cue: 'games.nonogram.markCue' },
+] as const
 
 type ControlsPlay = Pick<
 	NonogramPlay,
@@ -27,31 +37,43 @@ export function NonogramControls(props: { locale: Locale; play: ControlsPlay; t:
 				})
 			: ''
 	})
-	const modeClass =
-		'flex min-h-11 items-center gap-2 rounded-xl border border-border px-4 font-semibold aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground'
+	const brushId = createUniqueId()
 	return (
-		<div class="play-tools space-y-2">
-			<div class="flex justify-center gap-2">
-				<button
-					type="button"
-					class={modeClass}
-					aria-pressed={mode() === 'filled'}
-					disabled={locked()}
-					onClick={() => setMode('filled')}
-				>
-					<Paintbrush size={16} aria-hidden="true" />
-					{t('games.nonogram.fillMode')}
-				</button>
-				<button
-					type="button"
-					class={modeClass}
-					aria-pressed={mode() === 'marked'}
-					disabled={locked()}
-					onClick={() => setMode('marked')}
-				>
-					<X size={16} aria-hidden="true" />
-					{t('games.nonogram.markMode')}
-				</button>
+		<div class="play-tools space-y-2" data-play-control>
+			<div class="mx-auto grid max-w-sm grid-cols-2 gap-2">
+				<For each={brushes}>
+					{({ ink, Icon, label, cue }) => {
+						const descriptionId = `${brushId}-${ink}`
+						return (
+							<button
+								type="button"
+								class="group min-h-12 min-w-0 rounded-xl border border-border px-2 py-1 text-start leading-tight aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+								aria-label={t(label)}
+								aria-describedby={locked() ? undefined : descriptionId}
+								aria-pressed={mode() === ink}
+								disabled={locked()}
+								onClick={() => setMode(ink)}
+							>
+								<span class="flex items-center gap-1.5 font-semibold">
+									<Icon size={16} class="shrink-0" aria-hidden="true" />
+									{t(label)}
+									<Check
+										size={16}
+										class="invisible ms-auto shrink-0 group-aria-pressed:visible"
+										aria-hidden="true"
+									/>
+								</span>
+								<span
+									id={descriptionId}
+									class="mt-0.5 block text-xs leading-tight"
+									classList={{ invisible: locked() }}
+								>
+									{t(cue)}
+								</span>
+							</button>
+						)
+					}}
+				</For>
 			</div>
 			<Show when={!locked()}>
 				<div class="flex flex-wrap items-center justify-center gap-2">

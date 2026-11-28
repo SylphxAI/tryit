@@ -10,6 +10,7 @@ import {
 	cookieConsent,
 	notifyConsentChange,
 	onConsentChange,
+	rememberLanding,
 	type SignalStream,
 	setConsentContext,
 	trackSignalPage,
@@ -25,6 +26,14 @@ import {
 	type TagWindow,
 	trackablePath,
 } from '../lib/google-tag'
+import {
+	createMetaPixel,
+	type MetaPixelController,
+	metaPixelId,
+	type PixelDocument,
+	type PixelWindow,
+	setActiveMetaPixel,
+} from '../lib/meta-pixel'
 import { syncReferral } from '../lib/referral'
 
 function publicDocumentTitle(path: string): string | null {
@@ -42,7 +51,14 @@ export function ConsentRuntime() {
 	const location = useLocation()
 	const isRouting = useIsRouting()
 	let tag: GoogleTagController | null = null
+	let pixel: MetaPixelController | null = null
 	let signup: SignUpMethod | null = null
+	// Read the landing URL once: consent may arrive after the SPA has navigated.
+	const landing =
+		typeof window === 'undefined'
+			? null
+			: { search: window.location.search, referrer: document.referrer }
+	if (typeof window !== 'undefined') rememberLanding(window.location.href)
 	function sync() {
 		const routing = isRouting()
 		const { pathname: path, search } = location
@@ -61,6 +77,7 @@ export function ConsentRuntime() {
 			trackGa4KeyEvent('sign_up', { method })
 		}
 		if (!routing) tag?.pageView(path, isPublic ? publicDocumentTitle(path) : null)
+		if (!routing && consent.ready) pixel?.pageView(isPublic ? path : null)
 		if (!tag && !consent.analytics && (consent.ready || consent.gpc)) {
 			deleteGoogleCookies(document, window.location.hostname)
 		}
@@ -107,6 +124,7 @@ export function ConsentRuntime() {
 		window.addEventListener('storage', storageChanged)
 		const abort = new AbortController()
 		void (async () => {
+			let ready = false
 			try {
 				const response = await fetch('/api/consent-context', {
 					cache: 'no-store',
@@ -131,8 +149,20 @@ export function ConsentRuntime() {
 						win: window as unknown as TagWindow,
 						doc: document as unknown as TagDocument,
 						consent: () => cookieConsent().signals,
+						landing,
 					})
 					setActiveGoogleTag(tag)
+				}
+				const meta = metaPixelId({
+					META_PIXEL_ID: typeof data.ids?.meta === 'string' ? data.ids.meta : undefined,
+				})
+				if (meta) {
+					pixel = createMetaPixel({
+						id: meta,
+						win: window as unknown as PixelWindow,
+						doc: document as unknown as PixelDocument,
+					})
+					setActiveMetaPixel(pixel)
 				}
 				setCheckoutMeasurementId(ids?.ga ?? null)
 				const raw: Partial<SignalStream> | null = data.stream ?? null
@@ -140,9 +170,17 @@ export function ConsentRuntime() {
 					typeof raw?.apiKey === 'string' && typeof raw.baseUrl === 'string'
 						? { apiKey: raw.apiKey, baseUrl: raw.baseUrl }
 						: undefined
-				setConsentContext({ region, gpc: data.gpc, stream })
+				setConsentContext({
+					region,
+					gpc: data.gpc,
+					optOutMarket: data.optOutMarket === true,
+					stream,
+				})
+				ready = true
 			} catch {
 				// If the HTTP privacy signal could not be read, leave measurement off.
+			} finally {
+				if (!ready && !abort.signal.aborted) notifyConsentChange()
 			}
 		})()
 		onCleanup(() => {
@@ -151,6 +189,7 @@ export function ConsentRuntime() {
 			stop()
 			window.removeEventListener('storage', storageChanged)
 			setActiveGoogleTag(null)
+			setActiveMetaPixel(null)
 			setConsentContext(null)
 		})
 	})

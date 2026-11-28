@@ -43,6 +43,8 @@ mod daily_percentile_tests;
 #[cfg(test)]
 mod daily_pipeline_tests;
 #[cfg(test)]
+mod daily_refresh_tests;
+#[cfg(test)]
 mod daily_reminder_tests;
 #[cfg(test)]
 mod funnel_tests;

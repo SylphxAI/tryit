@@ -23,6 +23,7 @@
 		"scorePoints": "{score}ポイント",
 		"streakDays": "{days}日連続",
 		"patternSummary": "パターン: 一致 {hit} / 惜しい {near} / はずれ {miss}",
+		"wordHivePatternSummary": "見つけた単語: {words}、パングラム: {pangrams}",
 		"altOnDay": "({day})",
 		"altTemplate": "Tryit - {game}{day}。{result}",
 		"altDetailsTemplate": " {details}。",

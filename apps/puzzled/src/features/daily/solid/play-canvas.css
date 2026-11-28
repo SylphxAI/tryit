@@ -281,22 +281,22 @@
 }
 
 [data-play-canvas] .play-tools .completion-card { visibility: visible; }
-/* The full install result grows into the canvas scrollport, not a nested one. */
-[data-play-canvas] .completion-card[data-board-finished]:has(.result-install) {
+/* Daily results use the canvas scrollport, even without either optional prompt. */
+[data-play-canvas] .completion-card[data-board-finished]:has(> .result-action-row) {
 	max-block-size: none;
 	overflow: visible;
 }
 
 @media (width < 1024px) {
 	/* Reuse the vacated controls space, including when the card lives in the tools. */
-	[data-play-canvas] .play-split:has(.result-install) { row-gap: 0; }
-	[data-play-canvas] .completion-card:has(.result-install) {
+	[data-play-canvas] .play-split:has(.completion-card[data-board-finished] > .result-action-row) { row-gap: 0; }
+	[data-play-canvas] .completion-card[data-board-finished]:has(> .result-action-row) {
 		position: static;
 		margin-block: .25rem 0;
 	}
-	[data-play-canvas] .play-body:has(.result-install) .play-tools:not(:has(.completion-card)),
-	[data-play-canvas] .play-tools:has(.result-install) > :not(.completion-card) { display: none; }
-	[data-play-canvas] .play-tools:has(.result-install) { display: contents; }
+	[data-play-canvas] .play-body:has(.completion-card[data-board-finished] > .result-action-row) .play-tools:not(:has(.completion-card)),
+	[data-play-canvas] .play-tools:has(.completion-card[data-board-finished] > .result-action-row) > :not(.completion-card) { display: none; }
+	[data-play-canvas] .play-tools:has(.completion-card[data-board-finished] > .result-action-row) { display: contents; }
 }
 
 @media (width >= 1024px) {
@@ -315,7 +315,7 @@
 	}
 
 	/* A stand-alone board puts the result below the board. */
-	[data-play-canvas] .play-body > :not(.play-split) .completion-card:has(.result-install) {
+	[data-play-canvas] .play-body > :not(.play-split) .completion-card[data-board-finished]:has(> .result-action-row) {
 		position: static;
 		margin-block: .5rem 0;
 	}
@@ -360,4 +360,25 @@
 		}
 		[data-play-canvas] .play-tools:has([data-board-finished]) > :not(.completion-card) { display: none; }
 	}
+}
+
+/* Auxiliary controls are distinct from the board and completed status. */
+[data-play-canvas] .play-body:has([data-board-finished]) :is([data-play-control], .pip-feedback) {
+	display: none;
+}
+
+/* An accepted Quad loss adds a one-line answer under each table. Reserve
+   that line during play so the centred desktop grid never jumps on reveal. */
+[data-play-canvas] [data-quad-board] .play-board > div {
+	display: grid;
+	grid-template-rows: auto 1.25rem;
+}
+[data-play-canvas] [data-quad-board] .play-board > div > p { line-height: 1.25rem; }
+
+@media (width < 1024px) {
+	/* The domino actions unmount after placement; keep them below the grid. */
+	[data-play-canvas] [data-pip-place-board] { row-gap: 0; }
+	[data-play-canvas] [data-pip-place-board] .pip-actions { order: 1; }
+	[data-play-canvas] [data-pip-place-board] .play-board { margin-block: .75rem; }
+	[data-play-canvas] [data-block-slide-board] { row-gap: 0; }
 }

@@ -192,6 +192,9 @@ jobs:
         if: fromJSON(steps.range.outputs.run).web
         run: bun test --isolate scripts/turbo-env.test.ts
 
+      - name: Local ingress route parity
+        run: bun test --isolate scripts/local-stack.test.ts
+
       # bun test has no affected mode: the lane is path-selected (web paths)
       # and runs the whole unit suite when it runs.
       - name: Run unit tests
@@ -200,7 +203,6 @@ jobs:
         working-directory: apps/puzzled
         env:
           NODE_ENV: test
-          DATABASE_URL: 'postgresql://test:test@localhost:5432/test'
           SKIP_ENV_VALIDATION: 'true'
 
   rust-api:

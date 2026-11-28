@@ -3,7 +3,7 @@ import { createMemo, createSignal, For, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { parseNumberPathClientPayload } from './parse-client'
-import { visitCell } from './path-moves'
+import { isDeadEnd, visitCell } from './path-moves'
 import { type Cell, cellKey, isSolved, type NumberPathPuzzleData } from './types'
 
 export default function PathBoard(props: DailyBoardProps) {
@@ -31,6 +31,7 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 	const finish = createBoardFinish(props, 'number-path')
 	const [path, setPath] = finish.draft.signal<Cell[]>('path', [])
 	const [hint, setHint] = createSignal<{ text: string; wrongClue?: true }>()
+	const deadEnd = createMemo(() => !locked() && isDeadEnd(props.data, path()))
 	const visits = createMemo(() => new Map(path().map((cell, step) => [cellKey(cell), step + 1])))
 	const points = () =>
 		path()
@@ -198,16 +199,17 @@ function Board(props: DailyBoardProps & { data: NumberPathPuzzleData }) {
 					</div>
 				</div>
 			</fieldset>
-			<div class="play-tools space-y-3">
+			<div class="play-tools space-y-3" data-play-control>
 				<p
 					role="status"
 					class="min-h-5 text-sm"
 					classList={{
-						'text-muted-foreground': !hint()?.wrongClue,
-						'text-destructive': hint()?.wrongClue,
+						'font-medium text-foreground': deadEnd(),
+						'text-muted-foreground': !deadEnd() && !hint()?.wrongClue,
+						'text-destructive': !deadEnd() && hint()?.wrongClue,
 					}}
 				>
-					{hint()?.text}
+					{deadEnd() ? t('games.numberPath.deadEnd') : hint()?.text}
 				</p>
 				<Show when={!locked()}>
 					<div class="flex flex-wrap items-center gap-3">

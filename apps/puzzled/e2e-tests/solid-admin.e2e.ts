@@ -36,6 +36,13 @@ test.describe('Solid admin console (built Nitro)', () => {
 		expect(guest.headers().location).toBe(
 			'/es/sign-in?callbackUrl=%2Fes%2Fadmin%2Faudit-logs%3Faction%3Dupdate',
 		)
+		const analyticsGuest = await request.get('/es/admin/analytics', { maxRedirects: 0 })
+		expect(analyticsGuest.status()).toBe(302)
+		expect(analyticsGuest.headers().location).toBe(
+			'/es/sign-in?callbackUrl=%2Fes%2Fadmin%2Fanalytics',
+		)
+		expect(analyticsGuest.headers()['cache-control']).toBe('private, no-store')
+		expect(analyticsGuest.headers()['x-robots-tag']).toBe('noindex, nofollow')
 		for (const path of paths) {
 			const url = `/admin${path === '/' ? '' : path}`
 			const operator = await request.get(url, { headers: { cookie: admin } })
@@ -45,13 +52,59 @@ test.describe('Solid admin console (built Nitro)', () => {
 			expect(await operator.text()).not.toContain('fixture-settings-marker')
 			const unprivileged = await request.get(url, { headers: { cookie: member } })
 			expect(unprivileged.status(), url).toBe(403)
+			expect(unprivileged.headers()['cache-control']).toBe('private, no-store')
+			expect(unprivileged.headers()['x-robots-tag']).toBe('noindex, nofollow')
 			const html = await unprivileged.text()
 			expect(html).toContain('Admin Access Required')
-			expect(html).not.toMatch(/fixture-resource|fixture-failed-job|fixture uptime/)
+			expect(html).not.toMatch(
+				/fixture-resource|fixture-failed-job|fixture uptime|First-finish retention/,
+			)
 		}
 		expect(
 			(await request.get('/admin/games/not-a-game', { headers: { cookie: admin } })).status(),
 		).toBe(404)
+	})
+
+	test('Analytics distinguishes missing, empty, provisional and stale cohorts at desktop and phone widths', async ({
+		page,
+		context,
+		baseURL,
+	}, testInfo) => {
+		await context.addCookies([
+			{ url: baseURL!, name: 'puzzled_session', value: 'fixture-operator-session' },
+		])
+		for (const width of [1280, 390]) {
+			await page.setViewportSize({ width, height: 844 })
+			const response = await page.goto('/admin/analytics')
+			expect(response?.status()).toBe(200)
+			expect(response?.headers()['cache-control']).toBe('private, no-store')
+			expect(response?.headers()['x-robots-tag']).toBe('noindex, nofollow')
+			const table = page.getByRole('region', {
+				name: 'Retention and guest completion by product day',
+			})
+			const provisional = table.getByRole('row', { name: /2026-11-21/ })
+			await expect(provisional).toContainText('Provisional · Stale')
+			await expect(provisional.getByRole('cell')).toHaveText([
+				'20% (4 / 20)',
+				'0% (0 / 8)',
+				'40% (4 / 10)',
+			])
+			await expect(table.getByRole('row', { name: /2026-11-20/ })).toContainText('Stale')
+			await expect(table.getByRole('row', { name: /2026-11-20/ }).getByRole('cell')).toHaveText(
+				Array(3).fill('No cohort (0 / 0)'),
+			)
+			await expect(table.getByRole('row', { name: /2026-11-19/ }).getByRole('cell')).toHaveText(
+				Array(3).fill('Unavailable'),
+			)
+			expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+				width,
+			)
+			await page.screenshot({ path: testInfo.outputPath(`analytics-${width}.png`), fullPage: true })
+		}
+		expect((await trace()).map(({ method }) => method)).toEqual([
+			'GetMetricsReport',
+			'GetMetricsReport',
+		])
 	})
 
 	test('keyboard navigation, filters, detail dialog and a narrow table remain usable', async ({

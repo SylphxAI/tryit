@@ -13,6 +13,10 @@
 	"startGame": "开始游戏",
 	"fillMode": "填色",
 	"markMode": "标记",
+	"fillCue": "组成图案的格子",
+	"markCue": "要留空的格子",
+	"currentMode": "当前模式：{mode}",
+	"switchToMark": "要留空，切换到「标记」。",
 	"errors": "{count} 个错误",
 	"complete": "图案完成！",
 	"messages": {

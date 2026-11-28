@@ -2,14 +2,17 @@ import { afterEach, expect, test } from 'bun:test'
 import { resolveEffectiveConsent } from '@sylphx/sdk/signal'
 import { buildCsp } from '@/lib/csp'
 import { signalStreamConfig } from '@/lib/signal-config'
-import { CONSENT_KEY } from '@/lib/storage-keys'
+import { CONSENT_KEY, CONSENT_VERSION_KEY, SIGNAL_STORAGE_KEY } from '@/lib/storage-keys'
 import { GET } from '@/routes/api/consent-context'
 import { checkoutSignalHeaders, setCheckoutMeasurementId } from './checkout-signal'
 import {
+	CONSENT_VERSION,
+	canUseMeta,
 	captureSignalTouch,
 	cookieConsent,
 	saveCookieChoice,
 	setConsentContext,
+	trackSignalEvent,
 	trackSignalPage,
 } from './consent'
 
@@ -49,7 +52,7 @@ function browser(legacy?: string) {
 	return store
 }
 
-async function context(country?: string, gpc?: string) {
+async function context(country?: string, gpc?: string, signalStream?: typeof stream) {
 	const headers = new Headers()
 	if (country) headers.set('CF-IPCountry', country)
 	if (gpc) headers.set('Sec-GPC', gpc)
@@ -57,7 +60,7 @@ async function context(country?: string, gpc?: string) {
 		request: new Request('https://tryit.fun/api/consent-context', { headers }),
 	})
 	expect(response.headers.get('Cache-Control')).toBe('private, no-store')
-	setConsentContext(await response.json())
+	setConsentContext({ ...(await response.json()), stream: signalStream })
 }
 
 function snapshot() {
@@ -79,34 +82,78 @@ afterEach(() => {
 	else Reflect.deleteProperty(navigator, 'globalPrivacyControl')
 })
 
-for (const country of ['US', 'CA', 'AU']) {
-	test(`${country} defaults to complete SDK consent and attribution`, async () => {
+for (const country of ['US', 'CA', 'AU', 'NZ', 'JP', 'HK', 'TW', 'SG', 'AE', 'IL']) {
+	test(`${country} defaults to complete SDK consent, Google and Meta attribution`, async () => {
 		browser()
 		await context(country)
-		expect(snapshot()).toEqual({
-			consent: full,
-			surface: 'pricing_card',
-			fields: {
-				ga_client_id: '12345.67890',
-				ga_session_id: '1234567890',
-				gclid: 'fixture_g',
-				fbclid: 'fixture_fb',
-				fbp: 'fb.1.1234567890.444',
-				fbc: expect.stringMatching(/^fb\.1\.\d+\.fixture_fb$/),
-				utm_source: 'fixture',
-			},
-		})
+		const all = {
+			ga_client_id: '12345.67890',
+			ga_session_id: '1234567890',
+			gclid: 'fixture_g',
+			utm_source: 'fixture',
+			fbclid: 'fixture_fb',
+			fbp: 'fb.1.1234567890.444',
+			fbc: expect.stringMatching(/^fb\.1\.\d+\.fixture_fb$/),
+		}
+		// ROW: Meta is eligible by default, like Google's click ids.
+		expect(snapshot()).toEqual({ consent: full, surface: 'pricing_card', fields: all })
+		expect(canUseMeta()).toBe(true)
+	})
+
+	test(`${country} with Sec-GPC or a saved opt-out sends no Meta ids`, async () => {
+		browser()
+		await context(country, '1')
+		expect(canUseMeta()).toBe(false)
+		expect(snapshot().fields).toBeNull()
+		const store = browser()
+		await context(country)
+		saveCookieChoice('denied')
+		expect(store.get(CONSENT_KEY)).toBe('denied')
+		expect(canUseMeta()).toBe(false)
+		expect(snapshot().fields).toBeNull()
 	})
 }
 
-for (const country of ['DE', 'GB', 'CH', 'XX', 'SU', 'US, US', undefined]) {
+for (const country of ['DE', 'GB', 'CH', 'KR', 'XX', undefined]) {
+	test(`${String(country)} grant saved before the Meta consent version keeps Google, not Meta`, async () => {
+		const store = browser()
+		store.set(CONSENT_KEY, 'granted')
+		await context(country)
+		const google = {
+			ga_client_id: '12345.67890',
+			ga_session_id: '1234567890',
+			gclid: 'fixture_g',
+			utm_source: 'fixture',
+		}
+		// No banner wall: the old grant still counts for everything but Meta.
+		expect(cookieConsent().prompt).toBe(false)
+		expect(snapshot()).toEqual({ consent: full, surface: 'pricing_card', fields: google })
+		expect(canUseMeta()).toBe(false)
+		store.set(CONSENT_VERSION_KEY, '2026-11-26')
+		expect(canUseMeta()).toBe(false)
+		saveCookieChoice('granted')
+		expect(store.get(CONSENT_VERSION_KEY)).toBe(CONSENT_VERSION)
+		expect(canUseMeta()).toBe(true)
+		expect(snapshot().fields.fbp).toBe('fb.1.1234567890.444')
+	})
+
+	test(`${String(country)} unset stays strictly opt-in for Meta`, async () => {
+		browser()
+		await context(country)
+		expect(canUseMeta()).toBe(false)
+	})
+}
+
+for (const country of ['DE', 'GB', 'CH', 'KR', 'XX', 'SU', 'US, US', undefined]) {
 	test(`${String(country)} fails closed until explicit opt-in`, async () => {
 		browser()
 		await context(country)
 		expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
 		expect(cookieConsent().prompt).toBe(true)
+		expect(canUseMeta()).toBe(false)
 		saveCookieChoice('granted')
 		expect(snapshot().consent).toBe(full)
+		expect(canUseMeta()).toBe(true)
 	})
 }
 
@@ -153,16 +200,26 @@ test('declining is persistent and clears the campaign touch', async () => {
 	expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
 })
 
-for (const gpc of ['header', 'browser']) {
-	test(`${gpc} GPC overrides even a stored grant`, async () => {
-		const store = browser()
-		store.set(CONSENT_KEY, 'granted')
-		if (gpc === 'browser')
-			Object.defineProperty(navigator, 'globalPrivacyControl', { value: true, configurable: true })
-		await context('AU', gpc === 'header' ? '0, 1' : undefined)
-		expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
-		expect(store.has('puzzled:signal.touch')).toBe(false)
-	})
+for (const country of ['AU', 'KR']) {
+	for (const gpc of ['header', 'browser']) {
+		test(`${country}: ${gpc} GPC overrides even a current stored grant`, async () => {
+			const store = browser()
+			await context(country)
+			saveCookieChoice('granted')
+			expect(canUseMeta()).toBe(true)
+			if (gpc === 'browser')
+				Object.defineProperty(navigator, 'globalPrivacyControl', {
+					value: true,
+					configurable: true,
+				})
+			await context(country, gpc === 'header' ? '0, 1' : undefined)
+			expect(cookieConsent().prompt).toBe(false)
+			expect(snapshot()).toEqual({ consent: denied, fields: null, surface: undefined })
+			expect(canUseMeta()).toBe(false)
+			expect(captureSignalTouch()).toEqual({})
+			expect(store.has('puzzled:signal.touch')).toBe(false)
+		})
+	}
 }
 
 const campaign = {
@@ -220,12 +277,93 @@ test('Wave 1 stays off without a saved grant; EEA never captures the pre-grant l
 	expect(store.has('puzzled:signal.touch')).toBe(false)
 })
 
-test('ROW checkout defaults do not enable the opt-in SPA stream', () => {
-	const { requests } = signalBrowser()
-	setConsentContext({ region: 'ROW', gpc: false, stream })
+test.each(['US', 'CA', 'AU', 'NZ', 'JP', 'HK', 'TW', 'SG', 'AE', 'IL'])(
+	'%s sends one page view and one game start without a saved choice',
+	async (country) => {
+		const { store, requests } = signalBrowser()
+		await context(country, undefined, stream)
+		trackSignalPage('/pricing')
+		trackSignalPage('/pricing')
+		expect(trackSignalEvent('game_start', { game_slug: 'sudoku', mode: 'daily' })).toBe(true)
+		expect(requests.map((req) => req.body.events[0].event_name)).toEqual([
+			'page_view',
+			'game_start',
+		])
+		expect(store.has(CONSENT_KEY)).toBe(false)
+	},
+)
+
+test.each(['DE', 'GB', 'CH', 'KR', 'XX', 'T1', 'US, US', undefined, 'BR'])(
+	'%s does not ingest without a saved grant',
+	async (country) => {
+		const { requests, store } = signalBrowser()
+		await context(country, undefined, stream)
+		trackSignalPage('/pricing')
+		expect(trackSignalEvent('game_start', {})).toBe(false)
+		expect(requests).toHaveLength(0)
+		if (country === 'BR') {
+			// The broader ROW default for checkout isn't the browser stream policy.
+			expect(snapshot().fields).toMatchObject(campaign)
+			saveCookieChoice('analytics_only')
+			trackSignalPage('/pricing')
+			expect(requests).toHaveLength(1)
+		} else {
+			expect(store.size).toBe(0)
+		}
+	},
+)
+
+test('without context or readable storage, a default grant cannot enable ingestion', async () => {
+	const { requests, store } = signalBrowser()
+	store.set(CONSENT_KEY, 'granted')
 	trackSignalPage('/pricing')
+	expect(trackSignalEvent('game_start', {})).toBe(false)
+	await context('US', undefined, stream)
+	const { localStorage } = window
+	const read = localStorage.getItem
+	localStorage.getItem = () => {
+		throw new Error('Storage blocked')
+	}
+	try {
+		trackSignalPage('/pricing')
+		expect(trackSignalEvent('game_start', {})).toBe(false)
+		expect(requests).toHaveLength(0)
+	} finally {
+		localStorage.getItem = read
+	}
+})
+
+test('late refusal and context reset stop an eligible stream', async () => {
+	const { store, requests } = signalBrowser()
+	await context('US', undefined, stream)
+	trackSignalPage('/pricing')
+	expect(requests).toHaveLength(1)
+	setConsentContext(null)
+	trackSignalPage('/games')
+	expect(trackSignalEvent('game_start', {})).toBe(false)
+	expect(requests).toHaveLength(1)
+	await context('US', undefined, stream)
+	saveCookieChoice('denied')
+	trackSignalPage('/games')
+	expect(trackSignalEvent('game_start', {})).toBe(false)
+	expect(store.has(`${SIGNAL_STORAGE_KEY}.touch`)).toBe(false)
+	expect(requests).toHaveLength(1)
+})
+
+test('rechecks eligibility at dispatch if the saved grant disappears during encoding', async () => {
+	const { store, requests } = signalBrowser()
+	await context('BR', undefined, stream)
+	saveCookieChoice('granted')
+	expect(
+		trackSignalEvent('game_start', {
+			get game_slug() {
+				store.delete(CONSENT_KEY)
+				return 'sudoku'
+			},
+		}),
+	).toBe(true)
+	expect(store.has(CONSENT_KEY)).toBe(false)
 	expect(requests).toHaveLength(0)
-	expect(snapshot().fields).toMatchObject(campaign)
 })
 
 for (const choice of ['analytics_only', 'granted'] as const) {
@@ -280,7 +418,7 @@ for (const gpc of [true, false]) {
 		const { store, requests } = signalBrowser()
 		store.set(CONSENT_KEY, gpc ? 'granted' : 'denied')
 		store.set('puzzled:signal.touch', 'previous touch')
-		setConsentContext({ region: 'ROW', gpc, stream })
+		setConsentContext({ region: 'ROW', gpc, optOutMarket: true, stream })
 		trackSignalPage('/pricing')
 		expect(requests).toHaveLength(0)
 		expect(store.has('puzzled:signal.touch')).toBe(false)

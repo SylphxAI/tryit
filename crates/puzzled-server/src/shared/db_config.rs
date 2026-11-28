@@ -6,25 +6,40 @@ use sqlx::PgConnection;
 
 const WRITER_PROBE: &str = "SELECT NOT pg_is_in_recovery() AND current_setting('transaction_read_only') = 'off' AS writable";
 
+/// Keep two connections warm between visits without increasing the API cap.
+/// SQLx replenishes connections below this floor. Its lifetimes are not
+/// jittered; longer bounds make normal idle/recycle churn less frequent.
+#[must_use]
+pub fn api_writer_pool_options() -> PgPoolOptions {
+    writer_pool_options(
+        PgPoolOptions::new()
+            .min_connections(2)
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(15))
+            .idle_timeout(Some(Duration::from_secs(30 * 60)))
+            .max_lifetime(Some(Duration::from_secs(2 * 60 * 60))),
+    )
+}
+
 /// Extend the existing pool, preserving its sizing, startup and acquisition budget.
-/// Writer validation is the health round trip; a separate ping is redundant.
-/// No statement is replayed if a writer is demoted after checkout.
+/// Validate newly opened connections; readiness checks writability separately.
+/// With transaction pooling, a checkout probe would run in its own transaction
+/// and cannot validate the backend assigned to the caller's transaction. Fencing
+/// and writer routing belong to Postgres and the pooler. Do not replay writes.
 pub fn writer_pool_options(options: PgPoolOptions) -> PgPoolOptions {
     let budget = options.get_acquire_timeout();
     options
         .test_before_acquire(false)
+        .acquire_time_level(log::LevelFilter::Debug)
         .after_connect(move |connection, _| Box::pin(probe_writer(connection, budget)))
-        .before_acquire(move |connection, _| {
-            Box::pin(async move { Ok(probe_writer(connection, budget).await.is_ok()) })
-        })
 }
 
 async fn probe_writer(connection: &mut PgConnection, budget: Duration) -> Result<(), sqlx::Error> {
-    require_writer(
-        sqlx::query_scalar::<_, bool>(WRITER_PROBE).fetch_one(connection),
-        budget,
-    )
-    .await
+    require_writer(is_writer(connection), budget).await
+}
+
+pub(crate) async fn is_writer(connection: &mut PgConnection) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(WRITER_PROBE).fetch_one(connection).await
 }
 
 async fn require_writer(
@@ -138,6 +153,17 @@ mod tests {
     }
 
     #[test]
+    fn api_writer_pool_keeps_a_warm_floor_without_raising_the_cap() {
+        let options = api_writer_pool_options();
+        assert_eq!(options.get_min_connections(), 2);
+        assert_eq!(options.get_max_connections(), 5);
+        assert_eq!(options.get_acquire_timeout(), Duration::from_secs(15));
+        assert!(options.get_idle_timeout() > Some(Duration::from_secs(600)));
+        assert!(options.get_max_lifetime() > options.get_idle_timeout());
+        assert!(!options.get_test_before_acquire());
+    }
+
+    #[test]
     fn writer_options_preserve_existing_pool_configuration() {
         let original = PgPoolOptions::new()
             .max_connections(5)
@@ -171,98 +197,77 @@ mod tests {
         ));
     }
 
-    #[allow(clippy::unwrap_used)]
     #[tokio::test]
-    async fn writer_pool_recycles_readonly_and_never_replays_a_failed_write() {
+    async fn fenced_writer_discards_the_socket_without_replaying_the_transaction() {
         let Some(fixture) = crate::test_support::fresh_database().await else {
             return;
         };
-        let options = (*fixture.connect_options()).clone();
-        fixture.close().await;
-        use sqlx::Connection;
-
         let pool = writer_pool_options(
             PgPoolOptions::new()
                 .max_connections(1)
                 .acquire_timeout(Duration::from_secs(2)),
         )
-        .connect_with(options.clone())
+        .connect_with((*fixture.connect_options()).clone())
         .await
         .unwrap();
-        let mut connection = pool.acquire().await.unwrap();
-        let first: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
-            .fetch_one(&mut *connection)
+        sqlx::query("CREATE TABLE writer_pool_failover_test (id integer PRIMARY KEY)")
+            .execute(&fixture)
             .await
             .unwrap();
-        drop(connection);
-        let mut connection = pool.acquire().await.unwrap();
-        let reused: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
-            .fetch_one(&mut *connection)
+        sqlx::query("INSERT INTO writer_pool_failover_test VALUES (1)")
+            .execute(&pool)
             .await
             .unwrap();
-        assert_eq!(first, reused, "healthy writer should be reused");
 
-        // This changes only our borrowed disposable direct-test session.
-        sqlx::query("SET default_transaction_read_only = on")
-            .execute(&mut *connection)
+        let mut tx = pool.begin().await.unwrap();
+        let fenced_pid: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
+            .fetch_one(&mut *tx)
             .await
             .unwrap();
-        connection.ping().await.unwrap();
-        drop(connection);
+        sqlx::query("INSERT INTO writer_pool_failover_test VALUES (2)")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+        // Fence the checked-out backend after a write, before it can commit.
+        // Waiting for termination makes this a deterministic socket failure.
+        let terminated: bool = sqlx::query_scalar("SELECT pg_terminate_backend($1, 1000)")
+            .bind(fenced_pid)
+            .fetch_one(&fixture)
+            .await
+            .unwrap();
+        assert!(terminated);
+        assert!(tx.commit().await.is_err());
+
         let mut connection = pool.acquire().await.unwrap();
         let replacement: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
             .fetch_one(&mut *connection)
             .await
             .unwrap();
-        assert_ne!(
-            first, replacement,
-            "a successful ping does not prove writer role"
-        );
-        probe_writer(&mut connection, Duration::from_secs(2))
-            .await
-            .unwrap();
-
-        // Demotion after checkout cannot be made atomic with a role probe.
-        // The one failed operation surfaces 25006; no query wrapper retries it.
-        sqlx::query("SET default_transaction_read_only = on")
+        assert_ne!(fenced_pid, replacement);
+        sqlx::query("INSERT INTO writer_pool_failover_test VALUES (3)")
             .execute(&mut *connection)
             .await
             .unwrap();
-        let error = sqlx::query("CREATE TABLE writer_pool_must_not_replay (id integer)")
-            .execute(&mut *connection)
-            .await
-            .unwrap_err();
-        assert_eq!(
-            error
-                .as_database_error()
-                .and_then(|error| error.code())
-                .as_deref(),
-            Some("25006")
-        );
-        drop(connection);
-        let mut connection = pool.acquire().await.unwrap();
-        let independent: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
-            .fetch_one(&mut *connection)
-            .await
-            .unwrap();
-        assert_ne!(replacement, independent);
-        probe_writer(&mut connection, Duration::from_secs(2))
-            .await
-            .unwrap();
-        let replayed: bool =
-            sqlx::query_scalar("SELECT to_regclass('writer_pool_must_not_replay') IS NOT NULL")
-                .fetch_one(&mut *connection)
+        let ids: Vec<i32> =
+            sqlx::query_scalar("SELECT id FROM writer_pool_failover_test ORDER BY id")
+                .fetch_all(&fixture)
                 .await
                 .unwrap();
-        assert!(
-            !replayed,
-            "failed DDL must never be replayed on the replacement writer"
+        assert_eq!(
+            ids,
+            [1, 3],
+            "keep acknowledged writes and never replay an aborted write"
         );
-        drop(connection);
-        pool.close().await;
+    }
 
-        // New connections do not run before_acquire: after_connect must refuse them.
-        let readonly = options.options([("default_transaction_read_only", "on")]);
+    #[tokio::test]
+    async fn new_pool_connections_refuse_a_read_only_backend() {
+        let Some(fixture) = crate::test_support::fresh_database().await else {
+            return;
+        };
+        let readonly = (*fixture.connect_options())
+            .clone()
+            .options([("default_transaction_read_only", "on")]);
         let result = tokio::time::timeout(
             Duration::from_secs(2),
             writer_pool_options(

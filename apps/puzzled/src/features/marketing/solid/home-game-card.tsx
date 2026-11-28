@@ -9,7 +9,8 @@ export function HomeGameCard(props: {
 	status: ReturnType<typeof lineupStatus>
 	href: string
 	caption: string
-	onClick: (event: MouseEvent) => void
+	/** Inline art for a card on the first phone screen; otherwise the file. */
+	motifSrc?: string
 }) {
 	return (
 		<li class={styles.slot}>
@@ -18,7 +19,7 @@ export function HomeGameCard(props: {
 				data-home-game={props.game.slug}
 				data-home-status={props.status}
 				href={props.href}
-				onClick={props.onClick}
+				data-start-intent={props.status === 'solved' ? undefined : props.game.slug}
 			>
 				<div class={`${styles.face} editorial-surface`}>
 					<div
@@ -27,7 +28,7 @@ export function HomeGameCard(props: {
 					>
 						<img
 							class={styles.motif}
-							src={`/motifs/${props.game.slug}-zoom.svg`}
+							src={props.motifSrc ?? `/motifs/${props.game.slug}-zoom.svg`}
 							alt=""
 							width={132}
 							height={84}

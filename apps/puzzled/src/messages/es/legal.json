@@ -2,7 +2,7 @@
 	"privacy": {
 		"title": "Política de privacidad",
 		"lastUpdated": "Última actualización",
-		"revision": "2026-11-14",
+		"revision": "2026-11-27",
 		"eyebrow": "Legal",
 		"lead": "Esta política explica qué datos recopila Tryit, por qué los recopila y cómo puedes ponerte en contacto con nosotros al respecto.",
 		"toc": {
@@ -57,7 +57,8 @@
 				"google": "Autenticación",
 				"mail": "Envío de correo electrónico (correos de inicio de sesión y de verificación)",
 				"others": "También podemos compartir datos con nuestros proveedores de alojamiento, asesores profesionales, autoridades cuando la ley lo exija, y un comprador o sucesor si se vende o reorganiza nuestro negocio o Tryit.",
-				"googleMeasurement": "Google Analytics y medición con Google Ads según las reglas regionales de Cookies."
+				"googleMeasurement": "Google Analytics y medición con Google Ads según las reglas regionales de Cookies.",
+				"meta": "**Meta Platforms (Meta Pixel & Conversions API):** **Meta Platforms Ireland Limited** (for users in the EEA, UK, and Switzerland) and **Meta Platforms, Inc.** (elsewhere) receive website and server-side purchase-measurement events only when optional advertising measurement is enabled under the regional and consent rules above. For the collection and transmission of event data from our websites in the EEA, UK, and Switzerland, Sylphx Limited and Meta Platforms Ireland Limited act as joint controllers under Meta's [Controller Addendum](https://www.facebook.com/legal/controller_addendum); Meta Platforms Ireland Limited is an independent controller for its subsequent processing under the [Meta Privacy Policy](https://www.facebook.com/privacy/policy). International transfers to Meta Platforms, Inc. in the United States rely on approved safeguards (such as the UK International Data Transfer Addendum, EU Standard Contractual Clauses, or the UK–US Data Bridge / Data Privacy Framework)."
 			},
 			"transfers": {
 				"title": "Transferencias internacionales",
@@ -69,9 +70,11 @@
 			},
 			"cookies": {
 				"title": "Cookies",
-				"content": "Usamos cookies necesarias para el inicio de sesión, la seguridad y la configuración. Usamos el código de país de Cloudflare, no tu idioma. En el EEE, el Reino Unido, Suiza y los territorios europeos asociados, o si no se conoce el país, la analítica y la publicidad están desactivadas hasta que des tu permiso. En otros lugares, ambas se activan salvo que las desactives. En Configuración de cookies (pie de página o Ajustes → Privacidad) puedes elegir ambas, solo analítica o ninguna. La señal Global Privacy Control (GPC) de la solicitud o del navegador desactiva ambas incluso si ya las habías aceptado. Rechazar no limita el acceso a Tryit.",
+				"content": "Usamos cookies necesarias para el inicio de sesión, la seguridad y la configuración. Usamos el código de país de Cloudflare, no tu idioma. En el EEE, el Reino Unido, Suiza, Corea del Sur y los territorios europeos asociados, o si no se conoce el país, la analítica y la publicidad están desactivadas hasta que des tu permiso. En otros lugares, ambas se activan salvo que las desactives. En Configuración de cookies (pie de página o Ajustes → Privacidad) puedes elegir ambas, solo analítica o ninguna. La señal Global Privacy Control (GPC) de la solicitud o del navegador desactiva ambas incluso si ya las habías aceptado. Rechazar no limita el acceso a Tryit.",
 				"notices": "Otra cookie recuerda qué avisos del sitio has cerrado o ya has visto: puzzled_dismissed_notices. Es estrictamente necesaria, la establecemos nosotros (cookie propia) y se conserva durante un año; solo contiene los identificadores de esos avisos, ningún dato personal, por lo que se establece sin preguntar y no se usa para analítica. Otra cookie propia estrictamente necesaria, puzzled_currency, recuerda la moneda que eliges en la página de precios (por ejemplo GBP o USD) durante un año; solo contiene ese código de moneda, ningún dato personal, y no se usa para analítica.",
-				"google": "Google Analytics registra visitas solo a páginas públicas autorizadas, sin parámetros de consulta ni URL de procedencia. Con analítica habilitada, enviamos etiquetas de campaña e identificadores de Google Analytics para atribuir los pagos. Con publicidad habilitada, también podemos enviar identificadores de clic y del navegador de Meta; permitimos el almacenamiento, el uso de datos y señales de personalización publicitaria. Los informes pueden incluir el plan y el precio, no tu nombre o correo."
+				"ga4": "Google Analytics page views use approved public paths only. To attribute visits and campaigns, the first page view after measurement is enabled may include allowlisted campaign parameters (`utm_*` — plus ad click parameters `gclid`, `gbraid`, and `wbraid` strictly when advertising measurement is enabled) and the external referrer's origin and path with its query string removed. Subsequent page views omit query strings and referrer URLs, and no measurement is dispatched when optional measurement is off or Global Privacy Control is active.",
+				"google": "Con analítica habilitada, enviamos etiquetas de campaña e identificadores de Google Analytics para atribuir los pagos. Con publicidad habilitada, también podemos enviar identificadores de clic y del navegador de Meta; permitimos el almacenamiento, el uso de datos y señales de personalización publicitaria. Los informes pueden incluir el plan y el precio, no tu nombre o correo.",
+				"meta": "**Meta Pixel and Meta Conversions API:** When optional advertising measurement is enabled (and Global Privacy Control is not active), we may load the **Meta Pixel** on public marketing, pricing, and checkout-confirmation pages and store first-party attribution identifiers (`_fbp` and `_fbc` for up to 90 days, and ad click ID `fbclid` for up to 30 days) in your browser. When you start or complete a purchase with advertising measurement enabled, **Sylphx Events** may also send server-side conversion events to Meta via the **Meta Conversions API (CAPI)** (including event/transaction reference, plan, amount, currency, event time, and available consented click/browser identifiers) so we can measure whether our ads lead to a verified purchase even if you close the checkout window. When advertising measurement is off or Global Privacy Control is on, we do not load the Meta Pixel or send conversion events to Meta. We never send Meta your gameplay history, account email address, or card details."
 			},
 			"rights": {
 				"title": "Tus derechos",
@@ -98,7 +101,7 @@
 			},
 			"changes": {
 				"title": "Cambios en esta política",
-				"content": "Podemos actualizar esta política y publicar cada nueva versión en esta página con una nueva fecha de revisión vigente (actualmente 2026-11-14). Las versiones actualizadas entran en vigor tras su notificación (por ejemplo, mediante publicación en esta página, correo electrónico o aviso dentro del producto) y tu uso continuado o la aceptación de un aviso de reconfirmación en el producto. Si pensamos usar tus datos personales para un fin nuevo, o cuando la ley exija un nuevo consentimiento, te lo comunicaremos y obtendremos tu consentimiento antes de hacerlo."
+				"content": "Podemos actualizar esta política y publicar cada nueva versión en esta página con una nueva fecha de revisión vigente (actualmente 2026-11-27). Las versiones actualizadas entran en vigor tras su notificación (por ejemplo, mediante publicación en esta página, correo electrónico o aviso dentro del producto) y tu uso continuado o la aceptación de un aviso de reconfirmación en el producto. Si pensamos usar tus datos personales para un fin nuevo, o cuando la ley exija un nuevo consentimiento, te lo comunicaremos y obtendremos tu consentimiento antes de hacerlo."
 			},
 			"contact": {
 				"title": "Contacto",

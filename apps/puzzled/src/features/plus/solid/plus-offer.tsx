@@ -1,6 +1,8 @@
 /** @jsxImportSource solid-js */
 import { Check } from 'lucide-solid'
-import { createEffect, createMemo, createSignal, For, type JSX, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, type JSX, onMount, Show } from 'solid-js'
+import { trackPlusViewStage } from '@/features/analytics/lib/signal-stages'
+import { usePricingOfferVisibility } from '@/features/analytics/solid/pricing-offer-visit'
 import { formatMonthlyEquivalentPrice, formatPrice, type PlanCard } from '@/lib/billing/plus'
 import type { Locale } from '@/lib/i18n/config'
 import { createTranslator } from '@/lib/i18n/translate'
@@ -36,7 +38,9 @@ type Props = {
 	locale: Locale
 	signedIn: boolean
 	subscribed: boolean
-	initialPlan?: string
+	/** null explicitly starts with no purchase selected. */
+	initialPlan?: string | null
+	onPlanChange?: (card: PlanCard) => void
 	/** Safe post-checkout return destination (e.g. from GameUnlockPanel). */
 	callbackUrl?: string
 	/** Distinct surface trigger label attributed on GA4 `begin_checkout`. */
@@ -59,6 +63,7 @@ type Props = {
  * SubscribeButton checkout flow.
  */
 export function PlusOffer(props: Props) {
+	const observePricingRow = usePricingOfferVisibility()
 	const translate = createTranslator(props.locale)
 	const t = (key: string, values?: Record<string, string | number>) =>
 		translate(`plus.pricing.${key}`, values)
@@ -66,12 +71,22 @@ export function PlusOffer(props: Props) {
 		[props.once, props.yearly, props.monthly].filter((card): card is PlanCard => Boolean(card)),
 	)
 	const defaultInterval = () =>
-		options().find((card) => card.id === props.initialPlan)?.interval ??
-		(props.yearly ? 'year' : props.monthly ? 'month' : 'once')
-	const [interval, setInterval] = createSignal<PlanCard['interval']>(defaultInterval())
+		props.initialPlan === null
+			? undefined
+			: (options().find((card) => card.id === props.initialPlan)?.interval ??
+				props.yearly?.interval ??
+				props.monthly?.interval ??
+				props.once?.interval)
+	const [interval, setInterval] = createSignal(defaultInterval())
 	createEffect(() => setInterval(defaultInterval()))
+	onMount(() => trackPlusViewStage(props.checkoutTrigger))
 	const current = createMemo(() => options().find((card) => card.interval === interval()))
 	const price = (card: PlanCard) => formatPrice(card.amountMinor, card.currency, props.locale)
+	const chargeCadence = (card: PlanCard) => {
+		if (card.interval === 'once') return t('oneTime')
+		if (card.interval === 'year') return t(props.pricingPage ? 'billedYearly' : 'perYear')
+		return t(props.pricingPage ? 'billedMonthly' : 'perMonth')
+	}
 	const saving = () => pricingYearlySaving(props.monthly, props.yearly)
 	const features = () => props.features ?? []
 	const benefits = () =>
@@ -89,7 +104,7 @@ export function PlusOffer(props: Props) {
 		) : null
 
 	return (
-		<Show when={current()}>
+		<Show when={options().length > 0}>
 			<div id={props.id} data-checkout-surface="" class={cn('scroll-mt-24', styles.offer)}>
 				{!props.compact ? props.headerSlot : null}
 				<div
@@ -125,8 +140,14 @@ export function PlusOffer(props: Props) {
 								const isOnce = card.interval === 'once'
 								const isYear = card.interval === 'year'
 								const checked = () => card.interval === interval()
+								let row!: HTMLLabelElement
+								createEffect(() => {
+									if (props.pricingPage && !props.subscribed && current()?.id === card.id)
+										observePricingRow(row, props.id, card.id)
+								})
 								return (
 									<label
+										ref={row}
 										class={cn(
 											styles.option,
 											'flex cursor-pointer items-center gap-3 rounded-xl border px-3',
@@ -137,10 +158,14 @@ export function PlusOffer(props: Props) {
 									>
 										<input
 											type="radio"
+											autocomplete={props.pricingPage ? 'off' : undefined}
 											name={props.radioName}
 											value={card.interval}
 											checked={checked()}
-											onChange={() => setInterval(card.interval)}
+											onChange={() => {
+												setInterval(card.interval)
+												props.onPlanChange?.(card)
+											}}
 											class="h-5 w-5 shrink-0 accent-primary"
 										/>
 										<span class="min-w-0 flex-1">
@@ -163,7 +188,7 @@ export function PlusOffer(props: Props) {
 														props.compact ? 'text-xs' : 'text-sm',
 													)}
 												>
-													{t('monthlyEquivalent', {
+													{t(props.pricingPage ? 'annualMonthlyEquivalent' : 'monthlyEquivalent', {
 														price: formatMonthlyEquivalentPrice(
 															card.amountMinor,
 															card.currency,
@@ -191,9 +216,7 @@ export function PlusOffer(props: Props) {
 											>
 												{price(card)}
 											</span>
-											<span class="block text-xs text-muted-foreground">
-												{isOnce ? t('oneTime') : isYear ? t('perYear') : t('perMonth')}
-											</span>
+											<span class="block text-xs text-muted-foreground">{chargeCadence(card)}</span>
 										</span>
 									</label>
 								)

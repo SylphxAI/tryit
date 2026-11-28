@@ -14,20 +14,31 @@
 
 .total {
 	position: absolute;
-	inset: 3px auto auto 4px;
+	inset: 2px auto auto 4px;
 	color: inherit;
-	font: 750 9px/1 var(--font-sans);
+	font: 750 11px/1 var(--font-sans);
 	font-variant-numeric: tabular-nums;
 	pointer-events: none;
 }
 
 .hasTotal .notes {
-	padding-top: 12px;
+	padding-top: 17px;
 }
 
 .digit {
 	font-size: clamp(16px, 4.5vw, 23px);
-	transform: translateY(2px);
+	transform: translateY(4px);
+}
+
+.cell[data-cage-cue] .edge {
+	color: var(--color-accent-warm-foreground);
+	border-style: solid;
+}
+
+.cell[data-cage-cue] .total {
+	border-radius: 2px;
+	background: var(--color-accent-warm);
+	color: var(--color-on-accent);
 }
 
 .cell[data-selected]:not([data-conflict]) .edge {

@@ -1,8 +1,8 @@
 {
 	"privacy": {
-		"title": "隱私權政策",
+		"title": "私隱政策",
 		"lastUpdated": "最後更新",
-		"revision": "2026-11-14",
+		"revision": "2026-11-27",
 		"eyebrow": "法律文件",
 		"lead": "本政策說明 Tryit 收集哪些資料、為何收集，以及你可以如何就此聯絡我們。",
 		"toc": {
@@ -57,7 +57,8 @@
 				"google": "身份驗證",
 				"mail": "電子郵件發送（登入與驗證郵件）",
 				"others": "我們亦可能與我們的託管服務供應商、專業顧問、法律要求時的有關當局，以及在我們的業務或 Tryit 出售或重組時的買方或承繼人分享資料。",
-				"googleMeasurement": "按「Cookie」一節的地區規則使用 Google Analytics 和 Google Ads 量度成效。"
+				"googleMeasurement": "按「Cookie」一節的地區規則使用 Google Analytics 和 Google Ads 量度成效。",
+				"meta": "**Meta Platforms（Meta Pixel 及 Conversions API）：** 只有按上文的地區及同意規則啟用選用的廣告成效量度後，Meta 才會接收來自網站及伺服器端的購買成效量度事件。歐洲經濟區、英國及瑞士用戶的事件由 **Meta Platforms Ireland Limited** 接收；其他地區用戶的事件則由 **Meta Platforms, Inc.** 接收。就我們的網站在歐洲經濟區、英國及瑞士收集和傳送的事件資料而言，Sylphx Limited 與 Meta Platforms Ireland Limited 根據 Meta 的[資料控制者附錄](https://www.facebook.com/legal/controller_addendum)擔任共同資料控制者。其後，Meta Platforms Ireland Limited 按照 [Meta 私隱政策](https://www.facebook.com/privacy/policy)，以獨立資料控制者的身分處理這些資料。將資料跨境傳送至美國的 Meta Platforms, Inc. 時，我們依據獲認可的保障措施，例如英國《國際資料轉移附錄》、歐盟標準合約條款，或英美資料橋樑／資料私隱框架。"
 			},
 			"transfers": {
 				"title": "跨境轉移",
@@ -69,9 +70,11 @@
 			},
 			"cookies": {
 				"title": "Cookie",
-				"content": "我們使用必要 Cookie 來登入、維持安全和記住設定，並使用 Cloudflare 提供的國家代碼，而非你的語言。歐洲經濟區、英國、瑞士、相關歐洲屬地或地區不明時，分析和廣告要在你選擇接受後才啟用；其他地區預設啟用兩者，你可以拒絕。在頁尾或「設定 → 私隱」的 Cookie 設定，可選擇兩者、只限分析或兩者皆拒絕。只要瀏覽器或要求傳送 Global Privacy Control（GPC），即使你曾同意，兩者都會關閉。拒絕不影響使用 Tryit。",
+				"content": "我們使用必要 Cookie 來登入、維持安全和記住設定，並使用 Cloudflare 提供的國家代碼，而非你的語言。歐洲經濟區、英國、瑞士、南韓、相關歐洲屬地或地區不明時，分析和廣告要在你選擇接受後才啟用；其他地區預設啟用兩者，你可以拒絕。在頁尾或「設定 → 私隱」的 Cookie 設定，可選擇兩者、只限分析或兩者皆拒絕。只要瀏覽器或要求傳送 Global Privacy Control（GPC），即使你曾同意，兩者都會關閉。拒絕不影響使用 Tryit。",
 				"notices": "另有一個 Cookie 用來記住你已關閉或已看過哪些網站通知：puzzled_dismissed_notices。它屬必要 Cookie，由我們自己設定（第一方），保存一年，只記錄這些通知的編號，不含任何個人資料，所以毋須詢問即會設定，亦不會用於分析。另有一個必要的第一方 Cookie：puzzled_currency，用來記住你在價格頁選擇的貨幣（例如 GBP 或 USD），保存一年，只記錄貨幣代碼，不含任何個人資料，亦不會用於分析。",
-				"google": "Google Analytics 的瀏覽報告只涵蓋核准的公開頁面，不包含查詢字串或來源網址。啟用分析後，結帳成效量度會傳送推廣標記及 Google Analytics 識別碼；如果啟用廣告，也可能傳送廣告點擊及 Meta 瀏覽器識別碼，並允許廣告儲存、使用資料及個人化訊號。轉換報告可能包含方案和價格，但不包含姓名或電郵。"
+				"ga4": "Google Analytics 的頁面瀏覽紀錄只涵蓋獲准的公開頁面路徑。為了辨識瀏覽的來源及所屬的推廣活動，啟用成效量度後的首次瀏覽紀錄可能包含准許使用的推廣參數（`utm_*`；只有啟用廣告成效量度時，才可包含廣告點擊參數 `gclid`、`gbraid` 及 `wbraid`），以及引薦你到本網站的外部網址（只包括來源〔origin〕及路徑，不包括查詢字串）。其後的瀏覽紀錄不包含查詢字串或引薦網址。如果選用的成效量度已關閉，或 Global Privacy Control（GPC）已啟用，我們不會傳送任何成效量度資料。",
+				"google": "啟用分析後，結帳成效量度會傳送推廣標記及 Google Analytics 識別碼；如果啟用廣告，也可能傳送廣告點擊及 Meta 瀏覽器識別碼，並允許廣告儲存、使用資料及個人化訊號。轉換報告可能包含方案和價格，但不包含姓名或電郵。",
+				"meta": "**Meta Pixel 及 Meta Conversions API：** 如果已啟用選用的廣告成效量度，而 Global Privacy Control（GPC）並未啟用，我們可能會在公開的推廣、價格及結帳確認頁面載入 **Meta Pixel**，並在你的瀏覽器內儲存第一方歸因識別碼（`_fbp` 及 `_fbc` 最長保留 90 日，廣告點擊識別碼 `fbclid` 最長保留 30 日）。如果你在廣告成效量度已啟用時開始或完成購買，**Sylphx Events** 亦可能透過 **Meta Conversions API（CAPI）** 從伺服器端向 Meta 傳送轉換事件。資料包括事件或交易參考編號、方案、金額、貨幣、事件時間，以及可用且已獲同意使用的點擊或瀏覽器識別碼。即使你關閉結帳視窗，我們仍可藉此量度廣告有否帶來經核實的購買。如果廣告成效量度已關閉，或 Global Privacy Control（GPC）已啟用，我們不會載入 Meta Pixel，也不會向 Meta 傳送轉換事件。我們絕不會向 Meta 傳送你的遊戲紀錄、帳戶電郵地址或付款卡資料。"
 			},
 			"rights": {
 				"title": "你的權利",
@@ -98,7 +101,7 @@
 			},
 			"changes": {
 				"title": "政策變更",
-				"content": "我們可能會更新本政策，並在本頁發布附有新生效修訂日期（現為 2026-11-14）的新版本。更新版本於通知（例如在本頁發布、電郵或產品內通知）及你繼續使用或接受產品內重新同意提示後生效。如我們打算為新目的使用你的個人資料，或法律規定須重新取得同意，會在使用前通知你並取得同意。"
+				"content": "我們可能會更新本政策，並在本頁發布附有新生效修訂日期（現為 2026-11-27）的新版本。更新版本於通知（例如在本頁發布、電郵或產品內通知）及你繼續使用或接受產品內重新同意提示後生效。如我們打算為新目的使用你的個人資料，或法律規定須重新取得同意，會在使用前通知你並取得同意。"
 			},
 			"contact": {
 				"title": "聯絡我們",

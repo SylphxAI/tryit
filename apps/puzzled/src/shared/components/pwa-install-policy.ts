@@ -58,3 +58,21 @@ export function readFirstFinishDay(): string | null {
 		return null
 	}
 }
+
+/**
+ * Whether the server's day key still names the current product day. The page
+ * carries the key, the server time it was served and the next reset; it is
+ * stale once either the time since mount or the device clock reaches that
+ * reset. A missing key never opens the offer.
+ */
+export function isServerDayCurrent(input: {
+	dayKey: string | null | undefined
+	servedAt: number
+	resetAt: number
+	sinceMountMs: number
+	clientNow: number
+}): boolean {
+	const { dayKey, servedAt, resetAt, sinceMountMs, clientNow } = input
+	if (!dayKey || !Number.isFinite(servedAt) || !Number.isFinite(resetAt)) return false
+	return servedAt + sinceMountMs < resetAt && clientNow < resetAt
+}

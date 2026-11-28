@@ -1,12 +1,13 @@
 /** @jsxImportSource solid-js */
 import { Play } from 'lucide-solid'
 import { type Accessor, Show, Suspense } from 'solid-js'
+import { DAILY_FREE_PICKS } from '@/features/daily/lib/daily-picks'
+import { needsEnglishWordNotice } from '@/features/daily/lib/english-word-puzzles'
 import { todayPlayPath, todayResultPath } from '@/features/daily/lib/today-play-path'
 import type { HomeDayCopy } from '@/features/home/lib/home-day-copy'
 import { homeParticipationCopy } from '@/features/home/lib/home-participation-copy'
 import { gameFamilyColor, getGameColors } from '@/games/theme-colors'
 import type { Translate } from '@/lib/i18n/translate'
-import { cn } from '@/lib/utils'
 import { ProgressRing } from '@/shared/solid/progress-ring'
 import type { HomeDocument, HomeFacts } from './home-data'
 
@@ -19,10 +20,28 @@ export function HomeDayLead(props: {
 	copy: Accessor<HomeDayCopy>
 	unread: boolean
 	completedCount: number
-	onStart: (event: MouseEvent, slug: string) => void
 }) {
 	const { page, t, href, copy, format } = props
 	const count = page.catalog.length
+	const fiveNotice =
+		page.featured.slug === 'word-guess' && needsEnglishWordNotice(page.locale, page.featured.slug)
+	const headline = (key: HomeDayCopy['headlineKey']) => (
+		<div>
+			<h1 class="editorial-title max-w-xl">
+				{t(`home.day.${key}`, {
+					game: page.featured.name,
+					count,
+					picks: DAILY_FREE_PICKS,
+					days: key === 'titleMemberStreak' ? (props.facts()?.streak?.currentStreak ?? 0) : 0,
+				})}
+			</h1>
+			<Show when={key === 'guestTitle'}>
+				<p class="mt-1 text-sm text-muted-foreground sm:text-base">
+					{t('home.day.guestDetail', { count })}
+				</p>
+			</Show>
+		</div>
+	)
 	const featuredCard = (cta: Accessor<'play' | 'result'>) => (
 		<div
 			data-day-puzzle-card=""
@@ -30,9 +49,7 @@ export function HomeDayLead(props: {
 			classList={{ [gameFamilyColor[page.featured.category]]: true }}
 		>
 			<div
-				class={cn(
-					'home-featured-art family-field relative flex items-center justify-center border-e border-hairline sm:border-e-0 sm:border-b',
-				)}
+				class="home-featured-art family-field relative flex items-center justify-center border-e border-hairline sm:border-e-0 sm:border-b"
 				aria-hidden="true"
 				style={{ '--game-paper': getGameColors(page.featured.theme).hex }}
 			>
@@ -43,14 +60,12 @@ export function HomeDayLead(props: {
 					height="100"
 					class="home-featured-motif block h-full w-full object-contain"
 				/>
-				<span class="absolute left-3 top-3 hidden rounded-full bg-card px-2.5 py-1 text-xs font-semibold text-foreground sm:block">
-					{t('home.lineup.freeToday')}
-				</span>
 				<span class="numeral absolute right-3 top-3 hidden rounded-full bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground sm:block">
 					#{format.format(page.puzzleNumber)}
 				</span>
 			</div>
 			<div class="home-featured-content p-3 sm:p-5">
+				<p class="text-xs font-semibold text-muted-foreground">{t('home.lineup.freeToday')}</p>
 				<div class="flex items-baseline justify-between gap-3">
 					<p class="home-featured-title font-display text-[1.5rem] leading-tight font-extrabold sm:text-[2rem]">
 						{page.featured.name}
@@ -61,22 +76,40 @@ export function HomeDayLead(props: {
 						</span>
 					</Show>
 				</div>
-				<p class="mt-0.5 line-clamp-1 text-[14px] text-muted-foreground sm:text-[15px]">
-					{page.featured.tagline}
-				</p>
+				<Show
+					when={fiveNotice}
+					fallback={
+						<p class="mt-0.5 line-clamp-1 text-[14px] text-muted-foreground sm:text-[15px]">
+							{page.featured.tagline}
+						</p>
+					}
+				>
+					<p class="mt-0.5 text-sm font-semibold text-muted-foreground">
+						{t('daily.englishWordPuzzle')}
+					</p>
+				</Show>
 				<a
 					data-day-primary-action=""
 					data-home-featured={page.featured.slug}
-					class="chrome-control chrome-primary mt-2 flex min-h-12 w-full gap-2 px-4 text-[15px] font-bold sm:mt-4 sm:text-[16px]"
+					class="chrome-control chrome-primary mt-2 flex min-h-12 w-full px-4 py-2 text-[15px] font-bold sm:mt-4 sm:text-[16px]"
 					href={href(
 						cta() === 'result'
 							? todayResultPath(page.featured.slug)
 							: todayPlayPath(page.featured.slug),
 					)}
-					onClick={(event) => cta() === 'play' && props.onStart(event, page.featured.slug)}
+					data-start-intent={cta() === 'play' ? page.featured.slug : undefined}
 				>
-					<Play size={16} fill="currentColor" class="shrink-0" aria-hidden="true" />
-					<span class="truncate">
+					{/* Wrap, never clip: the game name and "today" both stay readable on a
+					    phone. CJK breaks at the title brackets, not inside a word. The
+					    icon sits inline so it stays beside the first line however the
+					    label wraps. */}
+					<span class="min-w-0 text-balance text-center break-keep wrap-anywhere">
+						<Play
+							size={16}
+							fill="currentColor"
+							class="me-2 inline-block align-[-0.15em]"
+							aria-hidden="true"
+						/>
 						{cta() === 'result'
 							? t('gameResult.seeResult')
 							: t('home.day.playToday', { game: page.featured.name })}
@@ -87,13 +120,7 @@ export function HomeDayLead(props: {
 	)
 	const lead = () => (
 		<div class="home-day-lead min-w-0 space-y-3 sm:space-y-4">
-			<h1 class="editorial-title max-w-xl">
-				{t(`home.day.${copy().headlineKey}`, {
-					game: page.featured.name,
-					count,
-					days: props.facts()?.streak?.currentStreak ?? 0,
-				})}
-			</h1>
+			{headline(copy().headlineKey)}
 			{featuredCard(() => copy().cta)}
 			<Show when={props.facts()?.hasIdentity && props.unread}>
 				<p class="text-sm text-muted-foreground">{t('home.hero.progressUnverified')}</p>
@@ -118,7 +145,7 @@ export function HomeDayLead(props: {
 		<Suspense
 			fallback={
 				<div class="home-day-lead min-w-0 space-y-3 sm:space-y-4">
-					<h1 class="editorial-title max-w-xl">{t('home.day.guestTitle', { count })}</h1>
+					{headline('guestTitle')}
 					{featuredCard(() => 'play')}
 				</div>
 			}

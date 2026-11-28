@@ -9,6 +9,7 @@ import {
 } from '@/features/daily/lib/result-card'
 import { formatResultElapsed, type resultRitual } from '@/features/daily/lib/result-ritual'
 import { FinishPassLink } from '@/features/plus/solid/finish-pass-link'
+import { PassOfferCard } from '@/features/plus/solid/pass-offer-card'
 import type { Locale } from '@/lib/i18n/config'
 import type { Translate } from '@/lib/i18n/translate'
 import { localizedPath } from '@/lib/seo/urls'
@@ -137,6 +138,12 @@ export function ResultDetailsBody(props: {
 					{t('catalog.title')}
 				</a>
 			</div>
+			{/* Below Share/Next: the result and its actions stay first. */}
+			<Show when={props.opened && props.ritual?.completed === 1 && props.model.dayKey}>
+				{(dayKey) => (
+					<PassOfferCard locale={props.locale} context="first_finish" dayKey={dayKey()} />
+				)}
+			</Show>
 		</>
 	)
 }

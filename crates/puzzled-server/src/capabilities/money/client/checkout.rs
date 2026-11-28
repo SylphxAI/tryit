@@ -80,10 +80,15 @@ impl Money {
         {
             return None;
         }
-        // Match money.checkout.settled; wait for a processor ID rather than using the checkout ID.
-        let order_id = [text("processor_payment_id"), text("processor_invoice_id")]
-            .into_iter()
-            .find(|id| valid_id(id))?;
+        // Money owns the mode-specific choice and sends the same ID in money.checkout.settled.
+        // Never infer it from the processor fields or use a checkout session ID.
+        let order_id = text("transaction_id");
+        if order_id.len() <= 3
+            || !(order_id.starts_with("pi_") || order_id.starts_with("in_"))
+            || !valid_id(order_id)
+        {
+            return None;
+        }
         Some(SettledReceipt {
             order_id: order_id.to_owned(),
             amount_minor,

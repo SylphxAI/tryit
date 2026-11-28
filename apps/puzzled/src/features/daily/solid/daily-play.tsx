@@ -8,19 +8,29 @@ import { createTranslator } from '@/lib/i18n/translate'
 import { dailyPickCount } from '../lib/daily-picks'
 import { BoardIntro } from './board-intro'
 import { createDailyPlayState, type DailyPlayProps } from './daily-play-state'
-import { renderDailyCompletion, renderDailyDifficulty } from './daily-play-views'
+import { renderDailyCompletion } from './daily-play-views'
 import { DailyUnlock } from './daily-unlock'
 
-export function DailyPlay(props: DailyPlayProps) {
+export function DailyPlay(props: DailyPlayProps & { englishWordNoticeInHero: boolean }) {
 	const t = createTranslator(props.data.locale)
 	const slug = props.data.slug
 	const archive = props.day.mode === 'archive'
-	const choose = !archive && props.data.difficultyLevels.length > 0 && !props.difficulty
+	const choose = props.chooseDifficulty
 	const board = gameBoards.get(slug)
 	const explicitPlay = props.started && !choose && Boolean(board)
 	const [resultOpen, setResultOpen] = createSignal(false)
-	const { state, refetch, isGuest, starting, entered, play, snapshot, claimedPicks, pickIndex } =
-		createDailyPlayState(props, { slug, archive, choose, hasBoard: Boolean(board) })
+	const {
+		state,
+		refetch,
+		isGuest,
+		retryGuestStatus,
+		starting,
+		entered,
+		play,
+		snapshot,
+		claimedPicks,
+		pickIndex,
+	} = createDailyPlayState(props, { slug, archive, choose, hasBoard: Boolean(board) })
 
 	const unavailable = () => (
 		<div class="play-entry mx-auto max-w-md space-y-2 text-center">
@@ -32,11 +42,15 @@ export function DailyPlay(props: DailyPlayProps) {
 		</div>
 	)
 
-	const loading = () => (
-		<p class="play-entry text-center" role="status">
-			{t('daily.loadingPuzzle')}
-		</p>
-	)
+	// One line, one placement: shown wherever Play is the next step that claims a pick.
+	const pickNotice = () => <p>{t('daily.startUsesPick')}</p>
+
+	const loading = () =>
+		!choose && (
+			<p class="play-entry text-center" role="status">
+				{t('daily.loadingPuzzle')}
+			</p>
+		)
 	const intro = (date: () => string | undefined) => (
 		<BoardIntro
 			data={props.data}
@@ -48,6 +62,7 @@ export function DailyPlay(props: DailyPlayProps) {
 			}
 			locked={Boolean(snapshot('locked'))}
 			changeDifficulty={!archive && props.data.difficultyLevels.length > 0}
+			englishWordNoticeInHero={props.englishWordNoticeInHero}
 		/>
 	)
 	const content = () => (
@@ -69,6 +84,7 @@ export function DailyPlay(props: DailyPlayProps) {
 						result,
 						explicitPlay,
 						isGuest: () => isGuest.latest,
+						guestStatusPending: () => isGuest.loading,
 						resultOpen,
 						onDetailsOpenChange: setResultOpen,
 					})
@@ -78,13 +94,13 @@ export function DailyPlay(props: DailyPlayProps) {
 				<p role="status">{t('daily.completedNoResult')}</p>
 			</Match>
 			<Match when={choose}>
-				{renderDailyDifficulty(props, { t, slug, unavailable: () => snapshot('unavailable') })}
+				<Show when={snapshot('unavailable')}>{unavailable()}</Show>
 			</Match>
 			<Match when={snapshot('startable')}>
 				{(value) =>
 					board ? (
 						<div class="play-entry mx-auto max-w-md space-y-4 text-center" data-game-stage="start">
-							<p>{t('daily.startUsesPick')}</p>
+							{pickNotice()}
 							<Show when={archive || props.started}>
 								<button
 									type="button"
@@ -116,6 +132,8 @@ export function DailyPlay(props: DailyPlayProps) {
 							difficulty={props.difficulty}
 							draftScope={value().draftScope ?? undefined}
 							isGuest={isGuest.latest}
+							guestStatusPending={isGuest.loading}
+							retryGuestStatus={retryGuestStatus}
 							pickIndex={pickIndex()}
 							onAlreadyPlayed={() => void refetch()}
 						/>

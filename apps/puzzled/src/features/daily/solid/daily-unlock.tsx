@@ -4,6 +4,8 @@ import { createEffect, createResource, createSignal, For, onCleanup, onMount, Sh
 import { trackBehavioralEvent } from '@/features/analytics/lib/behavioral-events'
 import type { GamePageData } from '@/features/catalog/solid/game-data'
 import { playButton } from '@/features/catalog/solid/game-landing'
+import { PassOfferCard } from '@/features/plus/solid/pass-offer-card'
+import { passOfferFor } from '@/features/plus-offer/lib/pass-offer'
 import { getAllGameMetadata } from '@/games/registry'
 import { currencyForLocale } from '@/lib/billing/plus'
 import { getTodayProgress } from '@/lib/connect/puzzle-client'
@@ -63,7 +65,7 @@ export function DailyUnlock(props: {
 		{ initialValue: null },
 	)
 	const [prices] = createResource(
-		() => !archive && ready(),
+		ready,
 		() =>
 			readUnlockPrices(locale).catch(() => ({ cards: [], currency: currencyForLocale(locale) })),
 		{ initialValue: null },
@@ -76,7 +78,7 @@ export function DailyUnlock(props: {
 			reported ||
 			is_guest === undefined ||
 			progress.loading ||
-			prices.loading ||
+			(!archive && prices.loading) ||
 			(!archive && remaining() === 0)
 		)
 			return
@@ -88,14 +90,31 @@ export function DailyUnlock(props: {
 			surface: archive ? 'archive_lock' : '4th_game_lock',
 			game_slug: props.data.slug,
 			picks_used,
-			currency: prices.latest?.currency ?? currencyForLocale(locale),
+			// Archive impressions already use the locale currency, independent of pricing.
+			currency: (archive ? undefined : prices.latest?.currency) ?? currencyForLocale(locale),
 			is_guest,
 		})
 	})
 	const callbackUrl = archive ? `${canonicalPath}?date=${props.day.puzzleDate}` : canonicalPath
+	const trigger = archive ? 'game_unlock_archive' : 'game_unlock'
 	const pricingHref = localizedPath(
 		locale,
-		`/pricing?${new URLSearchParams({ callbackUrl, trigger: 'game_unlock' })}`,
+		`/pricing?${new URLSearchParams({ callbackUrl, trigger })}`,
+	)
+	const passHref = localizedPath(
+		locale,
+		`/pricing?${new URLSearchParams({ plan: 'individual_once', callbackUrl, trigger })}#plus`,
+	)
+	const pass = () => (archive ? passOfferFor(prices.latest?.cards ?? null, locale) : null)
+	const actions = () => (
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+			<a class={playButton} href={pricingHref}>
+				{t('plus.unlock.cta')}
+			</a>
+			<a class="chrome-control min-h-12 underline" href={catalog}>
+				{t('plus.unlock.backToToday')}
+			</a>
+		</div>
 	)
 	return (
 		<div
@@ -148,17 +167,35 @@ export function DailyUnlock(props: {
 					})}
 				</p>
 			</Show>
+			{archive && actions()}
 			<Show when={prices.latest}>
-				{(value) => <UnlockPlanList cards={value().cards} locale={locale} />}
+				{(value) => (
+					<UnlockPlanList
+						cards={
+							archive && !pass()
+								? value().cards.filter((card) => card.interval !== 'once')
+								: value().cards
+						}
+						locale={locale}
+					/>
+				)}
 			</Show>
-			<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-				<a class={playButton} href={pricingHref}>
-					{t('plus.unlock.cta')}
-				</a>
-				<a class="chrome-control min-h-12 underline" href={catalog}>
-					{t('plus.unlock.backToToday')}
-				</a>
-			</div>
+			<Show when={pass()}>
+				{(offer) => (
+					<a class="chrome-control min-h-12 text-sm underline" href={passHref}>
+						{t('plus.passOffer.cta', { days: offer().days })}
+					</a>
+				)}
+			</Show>
+			<Show when={!archive && remaining() !== 0}>
+				<PassOfferCard
+					locale={locale}
+					context="pick_limit"
+					dayKey={props.todayKey}
+					callbackUrl={callbackUrl}
+				/>
+			</Show>
+			{!archive && actions()}
 		</div>
 	)
 }
