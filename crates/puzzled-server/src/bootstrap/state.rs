@@ -4,6 +4,8 @@ use std::time::Instant;
 
 use sqlx::PgPool;
 
+use super::compute_ticks::TickAudienceOrigin;
+
 use crate::capabilities::identity_access::adapters::auth_erasure::AuthErasure;
 use crate::capabilities::identity_access::adapters::auth_session::AuthSessions;
 use crate::capabilities::money::{pricing, Money, MoneyError};
@@ -27,6 +29,8 @@ pub struct AppState {
     pub erasure: Option<AuthErasure>,
     /// Published key endpoint for the SDK's callback verifier.
     pub tick_jwks_url: String,
+    /// Absent or malformed bindings disable callback admission only.
+    pub(crate) tick_audience_origin: Option<TickAudienceOrigin>,
     /// Reports Tryit-referred sign-ups and purchases back to Tryit. None
     /// without `SYLPHX_API_KEY`: conversions are then queued and wait.
     pub tryit: Option<TryitReporter>,
@@ -46,6 +50,9 @@ impl AppState {
                 .ok()
                 .filter(|url| !url.trim().is_empty())
                 .unwrap_or_else(|| CALLBACK_RECEIPT_JWKS_URL.to_owned()),
+            tick_audience_origin: std::env::var("SYLPHX_SERVICE_PRIVATE_ORIGIN")
+                .ok()
+                .and_then(|raw| TickAudienceOrigin::from_private_origin(&raw)),
             tryit: TryitReporter::from_env(),
         }
     }
@@ -53,6 +60,13 @@ impl AppState {
     #[must_use]
     pub fn with_tick_jwks_url(mut self, url: String) -> Self {
         self.tick_jwks_url = url;
+        self
+    }
+
+    #[cfg(test)]
+    #[must_use]
+    pub(crate) fn with_tick_private_origin(mut self, raw: Option<&str>) -> Self {
+        self.tick_audience_origin = raw.and_then(TickAudienceOrigin::from_private_origin);
         self
     }
 

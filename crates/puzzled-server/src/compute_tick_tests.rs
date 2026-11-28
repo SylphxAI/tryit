@@ -32,6 +32,11 @@ async fn compute_tick_admission_info_omits_signed_receipt_and_query() {
 }
 
 #[tokio::test]
-async fn compute_callbacks_bind_host_and_preserve_the_existing_forwarded_host_fallback() {
-    auth::assert_host_binding_and_fallback().await;
+async fn compute_callbacks_use_the_private_binding_not_request_headers() {
+    auth::assert_configured_origin_binding().await;
+}
+
+#[tokio::test]
+async fn missing_private_binding_only_disables_callbacks() {
+    auth::assert_callbacks_only_unavailable_without_origin().await;
 }

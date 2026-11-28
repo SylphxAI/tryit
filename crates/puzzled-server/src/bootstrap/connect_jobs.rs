@@ -58,7 +58,7 @@ impl JobsConnectService {
             .ok_or_else(|| ConnectError::new(ErrorCode::Unauthenticated, "tick_receipt_invalid"))?
             .0;
         admit_tick(
-            &self.state.tick_jwks_url,
+            &self.state,
             ctx.headers(),
             uri.path_and_query()
                 .map(|p| p.as_str())

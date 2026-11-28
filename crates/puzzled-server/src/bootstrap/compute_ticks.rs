@@ -18,6 +18,27 @@ pub const AUDIT_RETENTION_PATH: &str = "/internal/compute/audit-log-retention";
 pub const DAILY_REMINDERS_PATH: &str = "/internal/compute/daily-reminders";
 pub const TRYIT_CONVERSIONS_PATH: &str = "/internal/compute/tryit-conversions";
 
+/// HTTPS audience origin from Hosting's portless private HTTP ingress origin.
+/// No normalization of the authority and no public or legacy origin fallback.
+#[derive(Clone)]
+pub(crate) struct TickAudienceOrigin(String);
+
+impl TickAudienceOrigin {
+    pub(crate) fn from_private_origin(raw: &str) -> Option<Self> {
+        let host = raw.strip_prefix("http://")?;
+        let (service, namespace) = host.strip_suffix(".sylphx.internal")?.split_once('.')?;
+        fn dns_label(label: &str) -> bool {
+            (1..=63).contains(&label.len())
+                && !label.starts_with('-')
+                && !label.ends_with('-')
+                && label
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        }
+        (dns_label(service) && dns_label(namespace)).then(|| Self(format!("https://{host}")))
+    }
+}
+
 /// Product transport mapping only; signature, claims and keys belong to the SDK.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TickError {
@@ -45,14 +66,18 @@ impl TickError {
 }
 
 /// Verify the receipt against the exact callback URL; log only safe admission fields.
-pub async fn admit_tick(jwks_url: &str, headers: &HeaderMap, path: &str) -> Result<(), TickError> {
+pub async fn admit_tick(
+    state: &AppState,
+    headers: &HeaderMap,
+    path: &str,
+) -> Result<(), TickError> {
     let token = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
         .map(str::trim)
         .filter(|t| !t.is_empty());
-    let admission = verify_tick(jwks_url, headers, path, token).await;
+    let admission = verify_tick(state, path, token).await;
 
     // Do not echo a receipt copied into another diagnostic field.
     let safe = |value: &str| !token.is_some_and(|token| value.contains(token));
@@ -97,23 +122,18 @@ fn log_authority(value: Option<&axum::http::HeaderValue>) -> Option<&str> {
 }
 
 async fn verify_tick(
-    jwks_url: &str,
-    headers: &HeaderMap,
+    state: &AppState,
     path: &str,
     token: Option<&str>,
 ) -> Result<(), (TickError, &'static str)> {
     let token = token.ok_or((TickError::Missing, "not_checked"))?;
-    // The edge preserves Host; forwarded-host is only a fallback for old routes.
-    let host = headers
-        .get(header::HOST)
-        .or_else(|| headers.get("x-forwarded-host"))
-        .and_then(|v| v.to_str().ok())
-        .map(str::trim)
-        .filter(|h| !h.is_empty())
-        .ok_or((TickError::Invalid, "not_checked"))?;
-    // The published SDK owns signature, issuer, audience, expiry and key
-    // handling. Only the transport knows the original public request URL.
-    Verifier::with_jwks_url(Expect::callback(format!("https://{host}{path}")), jwks_url)
+    let origin = state
+        .tick_audience_origin
+        .as_ref()
+        .ok_or((TickError::Unavailable, "private_origin_unavailable"))?;
+    // Bind the untouched original path and query; request authority is never trusted.
+    let audience = format!("{}{path}", origin.0);
+    Verifier::with_jwks_url(Expect::callback(audience), state.tick_jwks_url.as_str())
         .verify(token)
         .await
         .map(|_| ())
@@ -147,7 +167,7 @@ pub async fn daily_puzzles_tick(
     headers: HeaderMap,
 ) -> Response {
     if let Err(reject) = admit_tick(
-        &state.tick_jwks_url,
+        &state,
         &headers,
         uri.path_and_query()
             .map(|p| p.as_str())
@@ -203,7 +223,7 @@ pub async fn audit_retention_tick(
     headers: HeaderMap,
 ) -> Response {
     if let Err(reject) = admit_tick(
-        &state.tick_jwks_url,
+        &state,
         &headers,
         uri.path_and_query()
             .map(|p| p.as_str())
@@ -243,7 +263,7 @@ pub async fn tryit_conversions_tick(
     headers: HeaderMap,
 ) -> Response {
     if let Err(reject) = admit_tick(
-        &state.tick_jwks_url,
+        &state,
         &headers,
         uri.path_and_query()
             .map(|p| p.as_str())
@@ -281,7 +301,7 @@ pub async fn daily_reminders_tick(
     headers: HeaderMap,
 ) -> Response {
     if let Err(reject) = admit_tick(
-        &state.tick_jwks_url,
+        &state,
         &headers,
         uri.path_and_query()
             .map(|p| p.as_str())
@@ -319,7 +339,7 @@ pub async fn metrics_tick(
     headers: HeaderMap,
 ) -> Response {
     if let Err(reject) = admit_tick(
-        &state.tick_jwks_url,
+        &state,
         &headers,
         uri.path_and_query()
             .map(|p| p.as_str())
@@ -349,6 +369,46 @@ pub async fn metrics_tick(
                 Json(json!({"error":"metrics_failed"})),
             )
                 .into_response()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TickAudienceOrigin;
+
+    #[test]
+    fn private_origin_requires_the_portless_hosting_binding() {
+        let origin = TickAudienceOrigin::from_private_origin("http://api.env-01.sylphx.internal");
+        assert_eq!(
+            origin.as_ref().map(|origin| origin.0.as_str()),
+            Some("https://api.env-01.sylphx.internal")
+        );
+        for invalid in [
+            "",
+            "api.env-01.sylphx.internal",
+            "https://api.env-01.sylphx.internal",
+            "http://tryit.test",
+            "http://api.env-01.svc.cluster.local",
+            "http://sylphx.internal",
+            "http://api.sylphx.internal",
+            "http://api..sylphx.internal",
+            "http://-api.env-01.sylphx.internal",
+            "http://api.env-01.sylphx.internal:80",
+            "http://api.env-01.sylphx.internal/",
+            "http://api.env-01.sylphx.internal/path",
+            "http://api.env-01.sylphx.internal?query",
+            "http://api.env-01.sylphx.internal#fragment",
+            "http://user@api.env-01.sylphx.internal",
+            "http://api.env-01.sylphx.internal.evil.test",
+            " http://api.env-01.sylphx.internal",
+            "http://api.env-01.sylphx.internal
+",
+        ] {
+            assert!(
+                TickAudienceOrigin::from_private_origin(invalid).is_none(),
+                "{invalid:?}"
+            );
         }
     }
 }
