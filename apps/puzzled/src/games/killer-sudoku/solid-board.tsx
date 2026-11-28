@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { createMemo, createSignal, onMount, Show } from 'solid-js'
+import { createMemo, createSignal, createUniqueId, onMount, Show } from 'solid-js'
 import { BoardFinish, createBoardFinish, type DailyBoardProps } from '@/games/shared/solid/finish'
 import { createTranslator } from '@/lib/i18n/translate'
 import { createKillerSudokuPlay } from './create-killer-sudoku-play'
@@ -29,6 +29,7 @@ export default function KillerSudokuBoard(props: DailyBoardProps) {
 function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 	const t = createTranslator(props.locale)
 	const finish = createBoardFinish(props, 'killer-sudoku')
+	const statusId = createUniqueId()
 	const [cue, setCue] = createSignal(false)
 	let recorded = false
 	const markSeen = () => {
@@ -63,11 +64,17 @@ function Board(props: DailyBoardProps & { data: KillerSudokuPuzzleData }) {
 			class="play-split sudoku-layout mx-auto flex w-full max-w-[26rem] flex-col"
 			data-killer-sudoku-board
 		>
-			<KillerSudokuGrid cages={props.data.cages} cueCage={target()} play={play} t={t} />
+			<KillerSudokuGrid
+				cages={props.data.cages}
+				cueCage={target()}
+				statusId={statusId}
+				play={play}
+				t={t}
+			/>
 			<Show when={cue()}>
 				<FirstMoveCue t={t} dismiss={dismiss} visible={play.playing()} onExposure={markSeen} />
 			</Show>
-			<KillerSudokuControls play={play} t={t} />
+			<KillerSudokuControls statusId={statusId} play={play} t={t} />
 			<BoardFinish
 				finish={finish}
 				locale={props.locale}

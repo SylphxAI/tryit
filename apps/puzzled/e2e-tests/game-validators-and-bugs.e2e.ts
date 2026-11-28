@@ -638,7 +638,7 @@ test('Killer Sudoku flags a wrong total, protects digits in Notes, and can undo 
 	await digit(2).click()
 	await expect(first).toHaveAttribute('aria-invalid', 'true')
 	await expect(second).toHaveAttribute('aria-invalid', 'true')
-	await expect(status).toHaveText('This cage must add up to 9.')
+	await expect(status).toHaveText('This cage must add up to 9. Undo or change an entry.')
 	const notes = board.getByRole('button', { name: 'Notes', exact: true })
 	await notes.click()
 	await digit(4).click()

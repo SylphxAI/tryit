@@ -1,15 +1,8 @@
 import { CAGE_SUDOKU_CUE_SEEN_KEY } from '@/lib/storage-keys'
 import type { KillerSudokuAction } from './state'
-import { type Cage, getCellConflicts, type KillerSudokuGameState } from './types'
+import { type Cage, digitSetCount, getCellConflicts, type KillerSudokuGameState } from './types'
 
 export const cageAnchor = ({ cells }: Cage) => Math.min(...cells.map(([row, col]) => 9 * row + col))
-
-/** Count unordered sets of distinct digits using only a cage's printed clues. */
-export function digitSetCount(size: number, total: number, digit = 1): number {
-	if (size === 0) return Number(total === 0)
-	if (digit > 9 || total < digit) return 0
-	return digitSetCount(size - 1, total - digit, digit + 1) + digitSetCount(size, total, digit + 1)
-}
 
 export function firstMoveCage(cages: Cage[], canPlace: (row: number, col: number) => boolean) {
 	return cages

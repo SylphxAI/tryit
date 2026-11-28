@@ -32,6 +32,13 @@
 	},
 	"startOver": "重新開始",
 	"messages": {
+		"row": "同一行不能有重複的數字。",
+		"col": "同一列不能有重複的數字。",
+		"box": "同一個 3×3 宮不能有重複的數字。",
+		"cage": "同一組格子不能有重複的數字。",
+		"cage_unreachable": "這組格子不重複使用數字就無法湊成 {sum}。",
+		"undoOrChange": "復原或更改一個填入的數字。",
+		"changeEntry": "更改一個填入的數字。",
 		"wrongSum": "這組格子的數字總和必須為 {sum}。",
 		"selectBlank": "請先點選空白格",
 		"lockedClue": "提示數字無法修改",

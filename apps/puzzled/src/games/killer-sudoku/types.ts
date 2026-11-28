@@ -115,23 +115,33 @@ function hasCageConflict(
 	return false
 }
 
-/**
- * Check if cage sum is violated (when all cells filled)
- */
-export function isCageSumValid(cells: KillerCell[][], cage: Cage): boolean | null {
-	let sum = 0
-	let allFilled = true
+/** Count distinct digit sets for one cage, without considering other cells. */
+export function digitSetCount(size: number, total: number, used?: Set<number>, digit = 1): number {
+	if (size === 0) return Number(total === 0)
+	if (digit > 9 || total < digit || size > 10 - digit) return 0
+	return (
+		digitSetCount(size, total, used, digit + 1) +
+		(used?.has(digit) ? 0 : digitSetCount(size - 1, total - digit, used, digit + 1))
+	)
+}
 
+function cageTotalConflict(cells: KillerCell[][], cage: Cage) {
+	let remaining = cage.sum
+	let blanks = 0
+	const used = new Set<number>()
 	for (const [r, c] of cage.cells) {
-		if (cells[r][c].value === null) {
-			allFilled = false
-		} else {
-			sum += cells[r][c].value
+		const value = cells[r][c].value
+		if (value === null) blanks++
+		else {
+			remaining -= value
+			used.add(value)
 		}
 	}
-
-	if (!allFilled) return null // Can't determine yet
-	return sum === cage.sum
+	if (blanks === 0) return remaining !== 0 ? 'cage_sum' : undefined
+	// A partial duplicate already has a more direct conflict. Otherwise only
+	// test whether unused digits can make the printed total, not where they go.
+	if (used.size < cage.cells.length - blanks) return
+	return digitSetCount(blanks, remaining, used) === 0 ? 'cage_unreachable' : undefined
 }
 
 /**
@@ -162,7 +172,7 @@ export function isSolved(cells: KillerCell[][], cages: Cage[]): boolean {
 	// All cage sums must be correct and cage digits must be distinct.
 	for (const cage of cages) {
 		if (
-			isCageSumValid(cells, cage) !== true ||
+			cageTotalConflict(cells, cage) ||
 			new Set(cage.cells.map(([row, col]) => cells[row][col].value)).size !== cage.cells.length
 		) {
 			return false
@@ -172,16 +182,13 @@ export function isSolved(cells: KillerCell[][], cages: Cage[]): boolean {
 	return true
 }
 
+export type CellConflict = 'row' | 'col' | 'box' | 'cage' | 'cage_sum' | 'cage_unreachable'
+
 /**
  * Get all conflicts for a cell
  */
-export function getCellConflicts(
-	cells: KillerCell[][],
-	cages: Cage[],
-	row: number,
-	col: number,
-): Set<string> {
-	const conflicts = new Set<string>()
+export function getCellConflicts(cells: KillerCell[][], cages: Cage[], row: number, col: number) {
+	const conflicts = new Set<CellConflict>()
 	const value = cells[row][col].value
 
 	if (value === null) return conflicts
@@ -190,7 +197,8 @@ export function getCellConflicts(
 	if (hasColConflict(cells, row, col, value)) conflicts.add('col')
 	if (hasBoxConflict(cells, row, col, value)) conflicts.add('box')
 	if (hasCageConflict(cells, cages, row, col, value)) conflicts.add('cage')
-	if (isCageSumValid(cells, cages[cells[row][col].cageId]) === false) conflicts.add('cage_sum')
+	const totalConflict = cageTotalConflict(cells, cages[cells[row][col].cageId])
+	if (totalConflict) conflicts.add(totalConflict)
 
 	return conflicts
 }

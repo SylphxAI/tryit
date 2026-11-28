@@ -573,6 +573,71 @@ for (const [width, height] of [
 			await expect(tip).toHaveCount(0)
 		})
 
+		test('Cage Sudoku explains a row conflict and an impossible partial cage', async ({
+			page,
+			baseURL,
+		}) => {
+			if (!baseURL || !['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname))
+				throw new Error('Cage conflict test requires a local fixture')
+			await page
+				.context()
+				.addCookies([
+					{ name: 'puzzled_session', value: 'fixture-player', url: baseURL, httpOnly: true },
+				])
+			const snapshot = playable('killer-sudoku')
+			const data = JSON.parse(snapshot.puzzleDataJson)
+			// Isolate the cage rule: remove the given 5 in the row of the two-cell 10 cage.
+			data.grid[2][7] = null
+			await page.route('**/puzzled.v1.PuzzleService/GetDaily', (route) =>
+				route.fulfill({ json: { ...snapshot, puzzleDataJson: JSON.stringify(data) } }),
+			)
+			await page.route('**/puzzled.v1.PuzzleService/SubmitGuess', (route) => route.abort())
+			await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' })
+			await page.goto('/en-US/games/killer-sudoku?difficulty=medium&start=1#play')
+			const board = page.locator('[data-killer-sudoku-board]')
+			const status = board.getByRole('status')
+			const press = width === 390 ? 'tap' : 'click'
+			const cell = (row: number, col: number) =>
+				board.getByRole('button', { name: new RegExp(`^Row ${row}, Column ${col},`) })
+			const input = (digit: string) =>
+				width === 390
+					? board.getByRole('button', { name: digit, exact: true }).tap()
+					: page.keyboard.press(digit)
+			await cell(1, 1)[press]()
+			await input('7')
+			await expect(status).toBeEmpty()
+			await cell(1, 6)[press]()
+			await input('7')
+			await expect(cell(1, 6)).toHaveAttribute('aria-invalid', 'true')
+			await expect(status).toHaveText('No repeats in a row. Undo or change an entry.')
+			await expect(status).toBeInViewport({ ratio: 1 })
+			await expect(cell(1, 6)).toHaveAccessibleDescription(/No repeats in a row/)
+			await board.getByRole('button', { name: 'Undo', exact: true })[press]()
+			await expect(status).toBeEmpty()
+
+			await cell(3, 5)[press]()
+			await input('5')
+			await expect(cell(3, 5)).toHaveAttribute('aria-invalid', 'true')
+			await expect(status).toHaveText(
+				'This cage can’t reach 10 without repeats. Undo or change an entry.',
+			)
+			await page.reload()
+			await expect(cell(3, 5)).toHaveAccessibleName(/Column 5, 5, Cage total 10/)
+			await expect(status).toContainText('This cage can’t reach 10 without repeats.')
+			await cell(3, 5)[press]()
+			await input('4')
+			await expect(cell(3, 5)).not.toHaveAttribute('aria-invalid')
+			await expect(status).toBeEmpty()
+			await cell(3, 6)[press]()
+			await input('6')
+			await expect(status).toBeEmpty()
+			await expect(cell(3, 6)).not.toHaveAttribute('aria-invalid')
+			if (width === 390) await board.getByRole('button', { name: 'Clear', exact: true }).tap()
+			else await page.keyboard.press('Backspace')
+			await expect(cell(3, 6)).not.toHaveAttribute('data-filled')
+			await expect(status).toBeEmpty()
+		})
+
 		test('Cage Sudoku cue retires on a conflict-free digit, not on a note or conflict', async ({
 			page,
 			baseURL,

@@ -32,6 +32,13 @@
 	},
 	"startOver": "Empezar de nuevo",
 	"messages": {
+		"row": "No repitas números en una fila.",
+		"col": "No repitas números en una columna.",
+		"box": "No repitas números en un bloque de 3×3.",
+		"cage": "No repitas números en un grupo.",
+		"cage_unreachable": "Este grupo no puede sumar {sum} sin repetir números.",
+		"undoOrChange": "Deshaz el último cambio o modifica un número.",
+		"changeEntry": "Modifica un número.",
 		"wrongSum": "Los números de este grupo deben sumar {sum}.",
 		"selectBlank": "Toca primero una casilla vacía",
 		"lockedClue": "Pista bloqueada",

@@ -10,21 +10,23 @@ const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 type ControlsProps = {
 	play: Pick<
 		KillerSudokuPlay,
-		'state' | 'feedback' | 'wrongCage' | 'playing' | 'canUndo' | 'dispatch' | 'undo'
+		'state' | 'feedback' | 'conflict' | 'playing' | 'canUndo' | 'dispatch' | 'undo'
 	>
+	statusId: string
 	t: Translate
 }
 
-export function KillerSudokuControls({ play, t }: ControlsProps) {
-	const { state, feedback, wrongCage, playing, canUndo, dispatch, undo } = play
+export function KillerSudokuControls({ play, statusId, t }: ControlsProps) {
+	const { state, feedback, conflict, playing, canUndo, dispatch, undo } = play
 	return (
 		<div class="play-tools" data-play-control>
-			<p role="status" class="min-h-5 text-center text-sm">
+			<p id={statusId} role="status" class="min-h-5 text-center text-sm">
 				{feedback() ? t(`games.killerSudoku.messages.${feedback()}`) : ''}
-				<Show when={wrongCage()} keyed>
-					{(cage) => (
+				<Show when={conflict()} keyed>
+					{({ rule, sum }) => (
 						<span class="block text-destructive">
-							{t('games.killerSudoku.messages.wrongSum', { sum: cage.sum })}
+							{t(`games.killerSudoku.messages.${rule === 'cage_sum' ? 'wrongSum' : rule}`, { sum })}{' '}
+							{t(`games.killerSudoku.messages.${canUndo() ? 'undoOrChange' : 'changeEntry'}`)}
 						</span>
 					)}
 				</Show>
