@@ -12,6 +12,11 @@
 	},
 	"startGame": "Start Game",
 	"complete": "Puzzle Complete!",
+	"firstMove": {
+		"sum": "The cage adds up to its corner number.",
+		"example": "Example",
+		"action": "Tap a square, then tap a digit."
+	},
 	"cageTotal": "Cage total {sum}",
 	"notes": "Notes",
 	"notesMode": "Notes Mode",

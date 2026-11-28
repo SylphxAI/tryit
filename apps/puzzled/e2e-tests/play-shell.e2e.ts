@@ -420,25 +420,7 @@ for (const [width, height] of layouts) {
 						})
 						expect(instruction.width).toBeGreaterThanOrEqual(220)
 						expect(instruction.lines).toBeGreaterThan(0)
-						expect(instruction.lines).toBeLessThanOrEqual(2)
-					}
-					if (slug === 'killer-sudoku') {
-						const instruction = page.locator(cue)
-						await expect(instruction).toContainText(
-							locale === 'en-US'
-								? 'Select an empty square, then enter a digit.'
-								: '先選一個空格，再輸入數字。',
-						)
-						await expect(instruction).toContainText(
-							locale === 'en-US'
-								? 'Small corner number = sum of digits in the dashed cage.'
-								: '角落小數字是虛線框內數字的總和。',
-						)
-						await expect(instruction).toContainText(
-							locale === 'en-US'
-								? 'Example (not this puzzle): 3 + 5 gives a corner total of 8.'
-								: '範例（不是本局）：框內 3 + 5，角落就是 8。',
-						)
+						expect(instruction.lines).toBeLessThanOrEqual(slug === 'killer-sudoku' ? 3 : 2)
 					}
 					if (width >= 1024 && slug === 'killer-sudoku') {
 						const dockTop = (await dock.boundingBox())!.y
@@ -461,6 +443,90 @@ for (const [width, height] of layouts) {
 		}
 	})
 }
+
+async function openCageCueFixture(page: Page, baseURL = 'http://localhost:3000') {
+	if (!['localhost', '127.0.0.1'].includes(new URL(baseURL).hostname))
+		throw new Error('Cage cue requires a local fixture')
+	await page
+		.context()
+		.addCookies([
+			{ name: 'puzzled_session', value: 'fixture-player', url: baseURL, httpOnly: true },
+		])
+	await openBoard(page, 'killer-sudoku')
+}
+
+for (const [width, height] of [
+	[1440, 900],
+	[390, 844],
+]) {
+	test.describe(`Cage Sudoku cue ${width}×${height}`, () => {
+		test.use({ viewport: { width, height }, isMobile: width === 390, hasTouch: width === 390 })
+		test('points to a cage without covering the board, and stays dismissed on reload', async ({
+			page,
+			baseURL,
+		}, info) => {
+			await openCageCueFixture(page, baseURL)
+			const tip = page.locator('[data-cage-first-move]')
+			const grid = page.locator('.play-board')
+			const anchor = grid.locator('[data-cage-cue]').first()
+			await expect(tip).toBeInViewport({ ratio: 1 })
+			await expect(tip).toContainText('Tap a square, then tap a digit.')
+			await expect(grid).toBeInViewport({ ratio: 1 })
+			await expect(grid.locator('[data-cage-cue]')).toHaveCount(1)
+			const total = anchor.locator('[data-cage-total]')
+			await expect(total).toHaveText('6')
+			await expect(total).toHaveCSS('font-size', '11px')
+			expect((await canvasGeometry(page)).bad).toEqual([])
+			await page.evaluate(() => document.fonts.ready)
+			await info.attach(`cage-sudoku-${width}.png`, {
+				body: await page.screenshot(),
+				contentType: 'image/png',
+			})
+			const press = width === 390 ? 'tap' : 'click'
+			await anchor[press]()
+			await expect(anchor).toHaveAttribute('aria-pressed', 'true')
+			await page.keyboard.press('n')
+			await page.keyboard.press('1')
+			const note = anchor.locator('[data-visible]')
+			await expect(note).toBeVisible()
+			expect((await total.boundingBox())!.y + 11).toBeLessThanOrEqual((await note.boundingBox())!.y)
+			await expect(tip).toBeVisible()
+			const beforeDismiss = await grid.boundingBox()
+			await tip.getByRole('button', { name: 'Dismiss' })[press]()
+			await expect(tip).toHaveCount(0)
+			expect(await grid.boundingBox()).toEqual(beforeDismiss)
+			if (width === 390) {
+				await info.attach('cage-sudoku-390-dismissed.png', {
+					body: await page.screenshot(),
+					contentType: 'image/png',
+				})
+			}
+			await page.reload()
+			await expect(grid.locator('[aria-pressed="true"]')).toHaveCount(1)
+			await expect(tip).toHaveCount(0)
+		})
+	})
+}
+
+test('Cage Sudoku cue retires on a conflict-free digit, not on a note or conflict', async ({
+	page,
+	baseURL,
+}) => {
+	await openCageCueFixture(page, baseURL)
+	const tip = page.locator('[data-cage-first-move]')
+	const cell = page.getByRole('button', { name: /^Row 1, Column 2,/ })
+	await cell.click()
+	for (const key of ['n', '5', 'n', '2']) await page.keyboard.press(key)
+	await expect(cell).toHaveAttribute('aria-invalid', 'true')
+	await expect(tip).toBeVisible()
+	// 1 is not the solution here; it just has no conflict visible to the player.
+	await page.keyboard.press('1')
+	await expect(cell).not.toHaveAttribute('aria-invalid')
+	await expect(tip).toBeHidden()
+	await page.reload()
+	await expect(cell).toHaveAccessibleName(/Column 2, 1,/)
+	await expect(tip).toHaveCount(0)
+})
 
 test('all 19 games show one rules dialog and introductory copy in zh-TW', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 })

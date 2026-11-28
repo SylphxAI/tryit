@@ -12,6 +12,11 @@
 	},
 	"startGame": "ゲーム開始",
 	"complete": "パズルクリア！",
+	"firstMove": {
+		"sum": "囲んだマスの数字を足すと、角の数字になります。",
+		"example": "例",
+		"action": "マスをタップして、数字を選びましょう。"
+	},
 	"cageTotal": "ケージの合計 {sum}",
 	"notes": "メモ",
 	"notesMode": "メモモード",

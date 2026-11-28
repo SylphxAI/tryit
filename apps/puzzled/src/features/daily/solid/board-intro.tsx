@@ -67,18 +67,10 @@ export function BoardIntro(props: {
 					<span>{t('common.help')}</span>
 				</button>
 			</div>
-			<Show when={!props.locked}>
-				<div
-					class="play-cue"
-					classList={{ 'cage-sudoku-cue': props.data.slug === 'killer-sudoku' }}
-				>
+			<Show when={!props.locked && props.data.slug !== 'killer-sudoku'}>
+				<div class="play-cue">
 					<p class="text-muted-foreground" data-first-action>
 						{t(`daily.firstAction.${slugToCamelCase(props.data.slug)}`)}
-						<Show when={props.data.slug === 'killer-sudoku'}>
-							{' '}
-							<span class="max-sm:block">{t('daily.cageSudokuCornerTotal')}</span>
-							<span class="block">{t('daily.cageSudokuExample')}</span>
-						</Show>
 					</p>
 					<Show when={wordNotice()}>
 						<p
